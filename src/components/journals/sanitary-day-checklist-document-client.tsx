@@ -826,11 +826,11 @@ export function SanitaryDayChecklistDocumentClient({
     <div className="bg-white text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
+      {/* A1: чек-лист санитарного дня — единственный ВЕРТИКАЛЬНЫЙ бланк
+          среди журналов. Маркер переопределяет альбомный @page страницы
+          документа на именованный @page journal-portrait. */}
+      <span data-journal-print-root="portrait" hidden aria-hidden="true" />
       <style jsx global>{`
-        @page {
-          size: A4 portrait;
-          margin: 10mm;
-        }
 
         @media print {
           html,

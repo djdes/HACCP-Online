@@ -83,11 +83,21 @@ export function JournalDocGuideOverlay() {
           отсчитывался не от окна, а от НИЗА всей длинной страницы
           документа: кнопка была видна только на коротких журналах
           (3 из 13), на остальных уезжала на несколько экранов вниз. */}
+      {/* A13 аудита: кнопка стояла в ЛЕВОМ нижнем углу (`bottom-5 left-5`)
+          и накрывала первые колонки таблиц журналов — «Дата» и чекбоксы
+          выделения, ровно там, где идёт заполнение. Переезжает в ПРАВЫЙ
+          нижний угол, в один столбик над двумя существующими FAB'ами:
+          поддержка (`fixed bottom-5 right-[68px]`) и AI-помощник по
+          СанПиН (`fixed bottom-5 right-5`), оба высотой 44px (size-11).
+          20 + 44 + 8 = 72px, поэтому `bottom-[72px] right-5` — ровно над
+          ними, с зазором 8px и по общему правому краю. z-30 — как у
+          поддержки, ниже раскрытой панели поддержки (z-40), так что она
+          кнопку перекрывает, а не наоборот. */}
       {createPortal(
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 left-5 z-30 inline-flex h-12 items-center gap-2 rounded-full border border-[#ececf4] bg-white px-4 text-[14px] font-medium text-[#0b1024] shadow-[0_12px_30px_-10px_rgba(11,16,36,0.25)] transition-all hover:scale-105 hover:border-[#5566f6]/40 hover:text-[#5566f6]"
+          className="fixed bottom-[72px] right-5 z-30 inline-flex h-12 items-center gap-2 rounded-full border border-[#ececf4] bg-white px-4 text-[14px] font-medium text-[#0b1024] shadow-[0_12px_30px_-10px_rgba(11,16,36,0.25)] transition-all hover:scale-105 hover:border-[#5566f6]/40 hover:text-[#5566f6] print:hidden"
           aria-label="Как заполнять этот журнал"
           title="Как заполнять этот журнал"
         >

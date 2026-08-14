@@ -270,13 +270,15 @@ function CleaningDayColorLegend() {
     { color: "border-[#ececf4] bg-white", label: "Рабочий день" },
   ];
   return (
-    // Q2-3: расшифровка ЦВЕТОВ дней — экранная подсказка. На бумаге
-    // заливок нет (GRID_DAY_OFF_BG_CLASS печатается прозрачным), значит
-    // и легенда к ним печаталась бы как три пустых квадрата.
-    <div className="mx-auto flex w-full max-w-[820px] flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-[#3c4053] print:hidden">
+    // A18: заливки дней теперь ПЕЧАТАЮТСЯ (см. journal-grid.ts), значит
+    // и легенда к ним имеет смысл на бумаге — проверяющий понимает,
+    // почему розовый столбец пуст. Квадраты помечены
+    // `data-print-keep-bg`, иначе тотальный светлый сброс печати
+    // выбелил бы их в три пустых рамки.
+    <div className="mx-auto flex w-full max-w-[820px] flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-[#3c4053]">
       {items.map((item) => (
         <span key={item.label} className="inline-flex items-center gap-2">
-          <span className={`inline-block size-4 rounded-md border ${item.color}`} />
+          <span data-print-keep-bg="" className={`inline-block size-4 rounded-md border ${item.color}`} />
           {item.label}
         </span>
       ))}
@@ -1572,7 +1574,12 @@ export function CleaningDocumentClient(props: Props) {
       variant: "danger",
       confirmLabel: "Удалить",
       bullets: [
-        { label: `Будет удалено помещений: ${count}`, tone: "warn" },
+        // A15 аудита: выделять можно НЕ ТОЛЬКО помещения — служебные
+        // строки «Ответственный за уборку/контроль» тоже удаляются
+        // (ветки `deleteCleaningResponsibleRow` / `selected-cleaner-`
+        // ниже), поэтому чекбоксы у них оставлены. Подпись обобщена:
+        // «помещений: N» врала, когда в выделении были ответственные.
+        { label: `Будет удалено строк: ${count}`, tone: "warn" },
         { label: "Отметки Т / Г / «/» в этих строках будут стёрты", tone: "warn" },
         { label: "Помещения остаются в /settings/buildings — удаляется только строка журнала" },
       ],
@@ -2122,7 +2129,7 @@ export function CleaningDocumentClient(props: Props) {
               сетка ниже, поэтому её ширина совпадает с шириной таблицы
               (раньше шапка была ~57% ширины сетки и центрировалась сама). */}
           <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
-            <div style={{ minWidth: `${gridMinWidth}px` }} className="print:!min-w-0">
+            <div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>
             <JournalDocumentHeader
               orgName={props.organizationName}
               title={config.documentTitle || CLEANING_DOCUMENT_TITLE}
@@ -2144,7 +2151,7 @@ export function CleaningDocumentClient(props: Props) {
               «Добавить» (таблицу показывал CSS, тулбар прятал JS). */}
           {cleaningAddToolbar}
           {cleaningRaceStrip}
-          <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} className="print:!min-w-0">
+          <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>
           <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
@@ -2220,6 +2227,7 @@ export function CleaningDocumentClient(props: Props) {
                     <td
                       key={dateKey}
                       data-cell-key={cellKey(row.id, dateKey)}
+                      data-print-keep-bg={dayBg ? "" : undefined}
                       title={dayKind.name ?? undefined}
                       role={interactive ? "button" : undefined}
                       tabIndex={interactive ? 0 : undefined}
@@ -2325,6 +2333,7 @@ export function CleaningDocumentClient(props: Props) {
                   return (
                     <td
                       key={dateKey}
+                      data-print-keep-bg={dayBg ? "" : undefined}
                       title={
                         interactive
                           ? `${dayKind.name ? dayKind.name + " · " : ""}Тап циклит: пусто → ${cleaningCodes.join(" → ")} → пусто`
@@ -2425,6 +2434,7 @@ export function CleaningDocumentClient(props: Props) {
                   return (
                     <td
                       key={dateKey}
+                      data-print-keep-bg={dayBg ? "" : undefined}
                       title={
                         interactive
                           ? `${dayKind.name ? dayKind.name + " · " : ""}Тап циклит: пусто → ${controlCodes.join(" → ")} → пусто`

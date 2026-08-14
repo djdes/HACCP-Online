@@ -95,10 +95,14 @@ test("document list card matches the reference geometry", () => {
   assert.match(JOURNAL_LIST_CARD_CLASS, /sm:\[&>:first-child\]:min-w-0/);
   // Разделитель ПЕРЕД первой мета-колонкой снят (S3): линии только между.
   assert.match(JOURNAL_LIST_CARD_CLASS, /sm:\[&>:nth-child\(2\)\]:border-l-0/);
-  // Колонка — по содержимому, подписи и значения в одну строку (S2).
+  // A14: мета-колонки всех карточек списка стоят на ОДНОМ x — у секции
+  // фиксированная ширина, а не ширина по содержимому (иначе разделители
+  // соседних карточек расходились на десятки пикселей). Подпись остаётся
+  // в одну строку, значение переносится внутри своей колонки.
   assert.match(JOURNAL_CARD_SECTION_CLASS, /sm:shrink-0/);
+  assert.match(JOURNAL_CARD_SECTION_CLASS, /sm:w-\[260px\]/);
   assert.match(JOURNAL_CARD_LABEL_CLASS, /sm:whitespace-nowrap/);
-  assert.match(JOURNAL_CARD_VALUE_CLASS, /sm:whitespace-nowrap/);
+  assert.doesNotMatch(JOURNAL_CARD_VALUE_CLASS, /sm:whitespace-nowrap/);
   // Зазор между карточками — 16px (эталон 14-18px), S4.
   assert.equal(JOURNAL_LIST_CARDS_CLASS, "space-y-4");
 });
@@ -151,14 +155,17 @@ test("dialog grid keeps exactly two widths and one typography scale", () => {
   assert.match(JOURNAL_DIALOG_BODY_CLASS, /overflow-y-auto/);
   assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bmin-h-0\b/);
   assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bshrink-0\b/);
-  // Шапка: px-6 py-4 + нижняя линия, заголовок 18px/600, тело px-6 py-5.
+  // Шапка: px-6 py-4 + нижняя линия, заголовок 18px/600, тело px-6 pt-5 pb-8.
   assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bpx-6\b/);
   assert.match(JOURNAL_DIALOG_HEADER_CLASS, /\bpy-4\b/);
   assert.match(JOURNAL_DIALOG_HEADER_CLASS, /border-b/);
   assert.match(JOURNAL_DIALOG_TITLE_CLASS, /text-\[18px\]/);
   assert.match(JOURNAL_DIALOG_TITLE_CLASS, /font-semibold/);
   assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpx-6\b/);
-  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpy-5\b/);
+  // A17: снизу 32px вместо 20px — иначе при прокрутке до конца последнее
+  // поле упиралось в непрозрачный подвал и читалось как перекрытое им.
+  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpt-5\b/);
+  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpb-8\b/);
   assert.match(JOURNAL_DIALOG_LABEL_CLASS, /text-\[13px\]/);
 });
 

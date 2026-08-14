@@ -231,6 +231,12 @@ export default async function JournalDocumentPage(props: {
 
   return (
     <>
+      {/* A1 аудита: маркер альбомной ориентации печати. `@page` нельзя
+          навесить селектором, поэтому globals.css ловит этот узел через
+          `body:has([data-journal-print-root])` и переводит лист на
+          именованный `@page journal-landscape`. Узел `hidden` — нулевое
+          влияние на разметку экрана. */}
+      <span data-journal-print-root hidden aria-hidden="true" />
       {showCrumbs ? (
         <JournalBreadcrumbs
           className="mb-3"

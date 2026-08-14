@@ -639,9 +639,9 @@ export function CreateDocumentDialog({
                       setMedBookIncludeVaccinations(value === true)
                     }
                     className="shrink-0"
-                    aria-label={'включить "Прививки"'}
+                    aria-label={'Включить раздел «Прививки»'}
                   />
-                  включить &quot;Прививки&quot;
+                  Включить раздел «Прививки»
                 </label>
               )}
 

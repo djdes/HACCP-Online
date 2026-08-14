@@ -1164,8 +1164,17 @@ export function SanitationDayDocumentClient({
                 </Fragment>
               ))}
               <tr>
+                {/* A5 аудита: раньше здесь стоял один `colSpan={3}`,
+                    перекрывавший ещё и колонку чекбоксов. Колонка
+                    чекбоксов `print:hidden` — на бумаге строка
+                    «Ответственный» оказывалась на КОЛОНКУ ШИРЕ шапки, и
+                    справа от таблицы печаталась пустая безымянная
+                    полоса. Служебная ячейка теперь отдельная и тоже
+                    `print:hidden`, а подпись занимает ровно
+                    «Помещение» + «Вид». */}
+                <td className={`${GRID_CELL_CLASS} print:hidden`} />
                 <td
-                  colSpan={3}
+                  colSpan={2}
                   className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}
                 >
                   <span className={GRID_SERVICE_LABEL_CLASS}>

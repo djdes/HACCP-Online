@@ -1394,7 +1394,16 @@ export function ClimateDocumentClient({
                       помещение в списке — значит контролируется. Кликать
                       нечего, поэтому pointer-events снят и от скринридера
                       скрыт. */}
-                  <Checkbox checked aria-hidden className="pointer-events-none" tabIndex={-1} />
+                  {/* A6 аудита: на бумаге синий чекбокс — единственное
+                      цветное пятно бланка и чистый интерфейсный артефакт
+                      (нажать на распечатке нечего). Печатается только
+                      название помещения. */}
+                  <Checkbox
+                    checked
+                    aria-hidden
+                    className="pointer-events-none print:hidden"
+                    tabIndex={-1}
+                  />
                   <span className="font-medium lowercase">{room.name}</span>
                   {status === "active" && (
                     <button
@@ -1505,8 +1514,16 @@ export function ClimateDocumentClient({
             тумблера. Раньше она жила ВНУТРИ раскрывающейся панели
             автозаполнения, и при свёрнутой панели журнал оставался вообще
             без шапки. В панели теперь только инпуты норм. */}
+        {/* A9 аудита: шапка получила ТУ ЖЕ минимальную ширину, что и
+            сетка замеров (1280px). Раньше шапка была `w-full` по полотну
+            (~1046px), а сетка — `min-w-[1280px]`: правая вертикаль бланка
+            расходилась на ~230px, и правая часть сетки («Холодильный цех»,
+            «Ответственный») выглядела просто ОБРЕЗАННОЙ — пользователь не
+            понимал, что её надо доскроллить. Теперь обе таблицы одной
+            ширины и обе живут в `GRID_VIEWPORT_CLASS` с постоянно видимой
+            полосой прокрутки (`GRID_VIEWPORT_SCROLLBAR_CLASS`). */}
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
-          <table className="w-full border-collapse text-[13px] text-[#0b1024]">
+          <table className="w-full min-w-[1280px] border-collapse text-[13px] text-[#0b1024]">
             <tbody>
               <JournalPaperHeaderRows
                 orgName={organizationName}
@@ -1652,7 +1669,7 @@ export function ClimateDocumentClient({
         ) : null}
 
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
-          <table className="min-w-[1280px] border-collapse text-[13px]">
+          <table className="w-full min-w-[1280px] border-collapse text-[13px]">
             <thead>
               <tr>
                 <th className={`${GRID_HEAD_CELL_CLASS} w-[44px] px-2 py-1.5 text-center leading-tight print:hidden`} rowSpan={4}>

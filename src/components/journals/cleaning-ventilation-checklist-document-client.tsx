@@ -1083,22 +1083,25 @@ export function CleaningVentilationChecklistDocumentClient({
           <table className="w-full border-collapse text-[13px]">
             <tbody>
               <tr className="border-b border-[#333] print:border-black">
-                {/* P8: «Процедура» и её текст занимают ОБЕ строки блока
-                    (rowSpan=2). Раньше вторая строка держала две пустые
-                    ячейки ~160px высотой — на бланке это читалось как
-                    «блок Процедура пустой», хотя описание было заполнено
-                    строкой выше. Розовая подсветка незаполненного
-                    (CHECKLIST_EMPTY_CELL_CLASS) теперь тоже видна на всю
-                    высоту блока, а не на одной его половине. */}
+                {/* A21 аудита: `rowSpan={2}` снят с обеих левых ячеек.
+                    Правый стек (Периодичность + Ответственные, каждый со
+                    своей кнопкой «Добавить») почти вдвое выше описания
+                    процедуры, поэтому спан растягивал левый блок на его
+                    высоту — под текстом зияло ~200px пустоты, и бланк
+                    читался как «Процедура не заполнена». Теперь строка
+                    «Ответственные лица» занимает всю ширину (colSpan=3
+                    у списка), высота каждой строки — по её содержимому.
+
+                    Ширины на бумаге — в ПРОЦЕНТАХ (A8): жёсткие
+                    180/210/260px не сжимались печатью, чек-лист уезжал
+                    за лист и рвался на 12 страниц. */}
                 <td
-                  rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} w-[180px] px-5 py-2 align-top text-[16px] font-semibold leading-tight`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[180px] px-5 py-2 align-top text-[16px] font-semibold leading-tight print:w-[14%]`}
                 >
                   Процедура
                 </td>
                 <td
-                  rowSpan={2}
-                  className={`border-r border-[#333] print:border-black px-5 py-2 align-top text-[15px] leading-6 ${
+                  className={`border-r border-[#333] print:border-black px-5 py-2 align-top text-[15px] leading-6 print:w-[46%] ${
                     descriptionLines.length === 0 ? CHECKLIST_EMPTY_CELL_CLASS : ""
                   }`}
                 >
@@ -1110,11 +1113,11 @@ export function CleaningVentilationChecklistDocumentClient({
                   ))}
                 </td>
                 <td
-                  className={`${GRID_HEAD_CELL_CLASS} w-[210px] px-5 py-2 align-top text-[16px] font-semibold leading-tight`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[210px] px-5 py-2 align-top text-[16px] font-semibold leading-tight print:w-[16%]`}
                 >
                   Периодичность
                 </td>
-                <td className="w-[260px] p-0 align-top text-[15px] leading-6">
+                <td className="w-[260px] p-0 align-top text-[15px] leading-6 print:w-[24%]">
                   <div className="space-y-1 px-5 py-2">
                     {getCleaningVentilationPeriodicityLines(config.ventilationEnabled).map(
                       (line) => (
@@ -1167,11 +1170,11 @@ export function CleaningVentilationChecklistDocumentClient({
               </tr>
               <tr>
                 <td
-                  className={`${GRID_HEAD_CELL_CLASS} px-5 py-2 align-top text-[16px] font-semibold leading-tight`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[180px] px-5 py-2 align-top text-[16px] font-semibold leading-tight print:w-[14%]`}
                 >
                   Ответственные лица
                 </td>
-                <td className="p-0 align-top text-[15px] leading-6">
+                <td colSpan={3} className="p-0 align-top text-[15px] leading-6">
                   <div className="space-y-2 px-5 py-2">
                   {config.responsibles.length > 0 ? (
                     config.responsibles.map((responsible) => {

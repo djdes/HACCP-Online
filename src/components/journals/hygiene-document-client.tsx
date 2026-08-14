@@ -53,6 +53,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_WIDE_CLASS as GRID_VIEWPORT_CLASS,
   getDayColumnBgClass,
+  getDayColumnPrintKeepBg,
 } from "@/components/journals/journal-grid";
 type Props = {
   documentId: string;
@@ -525,10 +526,9 @@ export function HygieneDocumentClient({
     <div className="bg-white text-black">
       <FocusTodayScroller />
       <style jsx global>{`
-        @page {
-          size: A4 landscape;
-          margin: 10mm;
-        }
+        /* A1: локальный @page убран — ориентация задаётся один раз в
+           globals.css (именованный @page journal-landscape + маркер
+           [data-journal-print-root] страницы документа). */
 
         @media print {
           html,
@@ -943,6 +943,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
+                            data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
                               dateKey
                             )} ${
@@ -979,6 +980,7 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
+                            data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
                               dateKey
                             )} ${
@@ -1028,6 +1030,7 @@ export function HygieneDocumentClient({
                     <td
                       key={`blank:${dateKey}`}
                       className={`${GRID_CELL_CLASS} px-2 py-0.5 leading-tight ${getDayColumnBgClass(dateKey)}`}
+                      data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
                     />
                   ))}
                 </tr>

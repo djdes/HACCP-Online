@@ -81,17 +81,40 @@ export const GRID_VIEWPORT_WIDE_CLASS = `${JOURNAL_TABLE_VIEWPORT_CLASS} ${GRID_
  * rgb(244,204,204), то есть отчётливо розовый, а не бледный `#fff4f2`,
  * который на проде читался как белый.
  *
- * Заливка ЭКРАННАЯ: `print:bg-transparent` оставляет печатный бланк
- * таким же, каким он был до правки.
+ * A18 аудита: заливка теперь ПЕЧАТАЕТСЯ. Раньше здесь стоял
+ * `print:bg-transparent`, и на бумаге проверяющий видел просто пустые
+ * строки без объяснения — «журнал не заполняли». Розовый столбец
+ * выходного и есть объяснение, поэтому он идёт на печать.
+ *
+ * Механика опт-аута: тотальный светлый сброс печати
+ * (`app-theme.css`, `.app-shell *:not([data-print-keep-bg])`) и правило
+ * `th/td { background: white }` в `globals.css` пропускают элементы с
+ * атрибутом `data-print-keep-bg`. Поэтому одного класса мало — ячейка
+ * дня обязана нести и атрибут, см. `getDayColumnPrintKeepBg()`.
  */
-export const GRID_DAY_OFF_BG_CLASS = "bg-[#f8d7d4] print:bg-transparent";
-export const GRID_DAY_SHORT_BG_CLASS = "bg-[#fdeeda] print:bg-transparent";
+export const GRID_DAY_OFF_BG_CLASS = "bg-[#f8d7d4]";
+export const GRID_DAY_SHORT_BG_CLASS = "bg-[#fdeeda]";
 
 export function getDayColumnBgClass(dateKey: string): string {
   const kind = getCalendarDayKind(dateKey).kind;
   if (kind === "holiday" || kind === "weekend") return GRID_DAY_OFF_BG_CLASS;
   if (kind === "short") return GRID_DAY_SHORT_BG_CLASS;
   return "";
+}
+
+/**
+ * Значение атрибута `data-print-keep-bg` для ячейки колонки дня.
+ *
+ * Возвращает `""` (атрибут присутствует) для нерабочих/сокращённых дней
+ * и `undefined` (атрибута нет) для обычных — так React вообще не
+ * выводит атрибут, и обычная ячейка остаётся под общим белым сбросом.
+ *
+ * Использовать В ПАРЕ с `getDayColumnBgClass()`:
+ *   className={`… ${getDayColumnBgClass(dateKey)}`}
+ *   data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
+ */
+export function getDayColumnPrintKeepBg(dateKey: string): "" | undefined {
+  return getDayColumnBgClass(dateKey) ? "" : undefined;
 }
 
 export const CELL_FOCUS_CLASS =

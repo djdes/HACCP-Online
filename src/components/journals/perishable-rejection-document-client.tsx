@@ -759,7 +759,7 @@ export function PerishableRejectionDocumentClient({
             onClick={() => setListModalOpen(true)}
             disabled={readOnly}
           >
-            Редактировать список изделий
+            Редактировать списки
           </Button>
           {/* Кнопки «Сохранить» нет: правки уезжают сами (см. applyConfig). */}
           {isSaving ? (
@@ -1636,7 +1636,7 @@ export function PerishableRejectionDocumentClient({
         <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
           <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
-              Редактировать список изделий
+              Редактировать списки
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 px-6 py-5">

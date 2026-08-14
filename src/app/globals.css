@@ -1371,14 +1371,28 @@ html, body {
     max-width: 100% !important;
   }
 
-  /* Document tables — чёрные границы, белый фон, монохром */
+  /* Document tables — чёрные границы, белый фон, монохром.
+   *
+   * A18: `[data-print-keep-bg]` — опт-аут для ячеек, чья заливка НЕСЁТ
+   * СМЫСЛ на бумаге (розовый столбец нерабочего дня производственного
+   * календаря). Без исключения именно это правило перекрашивало их в
+   * белый — сброс в app-theme.css их уже пропускал, а этот нет. */
   table,
-  th,
-  td {
+  th:not([data-print-keep-bg]),
+  td:not([data-print-keep-bg]) {
     border-color: black !important;
     color: black !important;
     background: white !important;
     box-shadow: none !important;
+  }
+
+  th[data-print-keep-bg],
+  td[data-print-keep-bg] {
+    border-color: black !important;
+    color: black !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Полностью убираем переходы и анимации при печати */
@@ -1390,9 +1404,45 @@ html, body {
     box-shadow: none !important;
   }
 
-  /* Page break setup для multi-page журналов */
+  /* Page break setup для multi-page журналов.
+   *
+   * A1 аудита: единственный `@page { size: A4 }` = ПОРТРЕТ для всего
+   * приложения — и это корень примерно восьми симптомов печати
+   * (климат/уборка/вентиляция/фритюр рвались на 4-12 листов, правые
+   * колонки уезжали за лист). Наши бумажные формы ХАССП альбомные,
+   * серверные PDF (`document-pdf.ts`) тоже landscape — печать браузера
+   * обязана совпадать с PDF.
+   *
+   * Ориентацию нельзя включить селектором, поэтому используем ИМЕНОВАННЫЕ
+   * страницы (CSS Paged Media, Chrome 85+): страница документа журнала
+   * рендерит маркер `[data-journal-print-root]`, и `:has()` переводит
+   * весь лист на альбомный именованный `@page`.
+   *
+   * Обычные страницы кабинета (отчёты, настройки, лендинг) остаются
+   * портретными — им альбом не нужен. */
   @page {
     size: A4;
     margin: 1cm;
+  }
+
+  @page journal-landscape {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  /* Опт-аут для журналов, чей бланк по своей природе вертикальный
+     (санитарный день — чек-лист в одну колонку). Клиент выставляет
+     `data-journal-print-root="portrait"`. */
+  @page journal-portrait {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  body:has([data-journal-print-root]) {
+    page: journal-landscape;
+  }
+
+  body:has([data-journal-print-root="portrait"]) {
+    page: journal-portrait;
   }
 }

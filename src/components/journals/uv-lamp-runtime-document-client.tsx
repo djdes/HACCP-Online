@@ -1401,24 +1401,18 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         }
       />
 
-      {/* Print header */}
-      <div className="uv-print-header hidden print:block">
-        <div className="mb-1 text-right text-[10px]">
-          <div>Дата: {formatRuDateDash(props.dateFrom)}</div>
-          <div>Стр.: 1 из 1</div>
-        </div>
-        <div className="text-center text-[11px]">
-          <div className="font-bold">{props.organizationName}</div>
-          <div className="mt-1">
-            ЖУРНАЛ УЧЕТА РАБОТЫ УЛЬТРАФИОЛЕТОВОЙ БАКТЕРИЦИДНОЙ УСТАНОВКИ
-          </div>
-        </div>
-        <div className="mt-2 text-[10px]">
-          <div>БАКТЕРИЦИДНАЯ УСТАНОВКА №{config.lampNumber}</div>
-          <div>{config.areaName || " "}</div>
-          <div>(наименование цеха / участка применения)</div>
-        </div>
-      </div>
+      {/* A7 аудита: печатный колонтитул удалён целиком.
+
+          Он дублировал то, что и так печатается ниже: организацию и
+          название журнала — в ХАССП-шапке (`JournalDocumentHeader`), а
+          «БАКТЕРИЦИДНАЯ УСТАНОВКА №N» и линию «(наименование цеха /
+          участка применения)» — в титульном блоке бланка. На листе
+          выходило ДВЕ шапки подряд.
+
+          Заодно ушла строка «Стр.: 1 из 1» — она была захардкожена и
+          врала на любом журнале длиннее листа (наработка УФ — 31 строка
+          в месяц, регулярно 2+ страницы). Нумерацию страниц печати
+          браузер ставит сам. */}
 
       {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
       <div className={DOC_PAPER_CANVAS_CLASS}>
@@ -1551,11 +1545,19 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                 `<col>` — нет, и при table-fixed колонка «Дата»
                 получала 40px («01-/08-/202»). */}
             {props.status === "active" && <col className="w-[40px] print:hidden" />}
-            <col className="w-[150px]" />
-            <col className="w-[130px]" />
-            <col className="w-[130px]" />
-            <col className="w-[180px]" />
-            <col className="w-[420px]" />
+            {/* A12 аудита: ширины пересчитаны как ДОЛИ (table-fixed +
+                w-full раздаёт свободное место пропорционально, поэтому
+                важна не абсолютная величина, а отношение).
+                Было 150/130/130/180/420 — доля ФИО 40%, и на полотне
+                1400px колонка раздувалась до ~540px под селект в 148px,
+                а «Итого продолжительность работы, минут» ютилось в 180px
+                и ломалось на две строки. Стало ~25% под ФИО (≈340px) и
+                вдвое шире «Итого». */}
+            <col className="w-[210px]" />
+            <col className="w-[210px]" />
+            <col className="w-[210px]" />
+            <col className="w-[300px]" />
+            <col className="w-[320px]" />
           </colgroup>
           <thead>
             <tr className="bg-[#f6f7fb] print:bg-[#f0f0f0]">

@@ -63,8 +63,15 @@ export const JOURNAL_CARD_TITLE_CLASS =
 export const JOURNAL_CARD_LABEL_CLASS =
   "text-[12.5px] leading-[1.3] text-[#84849a] sm:whitespace-nowrap";
 
+/**
+ * A14: `sm:whitespace-nowrap` снят. Секции карточки теперь имеют общую
+ * фиксированную ширину (см. `JOURNAL_CARD_SECTION_CLASS`), и длинное
+ * значение вроде «Повар горячего цеха: лорлорол» обязано переноситься,
+ * а не вылезать за колонку. Подпись (LABEL) остаётся в одну строку —
+ * она короткая и держит ритм колонки.
+ */
 export const JOURNAL_CARD_VALUE_CLASS =
-  "mt-1 text-[13.5px] font-semibold leading-[1.35] text-black sm:whitespace-nowrap";
+  "mt-1 text-[13.5px] font-semibold leading-[1.35] text-black";
 
 /**
  * Shared section divider used between title → label/value blocks in the
@@ -73,11 +80,22 @@ export const JOURNAL_CARD_VALUE_CLASS =
  * a flex column centered vertically so label/value sits exactly between
  * the vertical dividers regardless of cell height differences.
  *
- * `sm:shrink-0` + nowrap подписей — колонка ровно по своему содержимому:
- * ширину карточке диктует название, а не мета-данные.
+ * A14 аудита: секция получила ФИКСИРОВАННУЮ ширину (`sm:w-[260px]`).
+ *
+ * Раньше стоял только `sm:shrink-0` — ширина по содержимому, поэтому у
+ * каждой карточки списка мета-колонки вставали на СВОЁМ x: в списке
+ * уборки вертикальные разделители соседних карточек расходились на
+ * 943px и 989px, и колонка «Период»/«Статус» гуляла по вертикали.
+ * Карточки — это сетка, а не независимые плитки, поэтому колонка одна
+ * для всех: 260px хватает и «Август с 1 по 15», и «Повар горячего цеха:
+ * лорлорол». У значения снят `whitespace-nowrap` — при переполнении оно
+ * переносится, а не вылезает за колонку.
+ *
+ * `shrink-0` остаётся: сжимать колонку под длинное название документа
+ * нельзя, название переносится само.
  */
 export const JOURNAL_CARD_SECTION_CLASS =
-  "border-t border-[#e6e6f0] pt-3 sm:flex sm:shrink-0 sm:flex-col sm:justify-center sm:border-l sm:border-t-0 sm:px-6 sm:pt-0";
+  "border-t border-[#e6e6f0] pt-3 sm:flex sm:w-[260px] sm:shrink-0 sm:flex-col sm:justify-center sm:border-l sm:border-t-0 sm:px-6 sm:pt-0";
 
 /** Вертикальный зазор между карточками списка — 16px (эталон 14-18px). */
 export const JOURNAL_LIST_CARDS_CLASS = "space-y-4";
@@ -192,8 +210,18 @@ export const JOURNAL_DIALOG_HEADER_CLASS =
 export const JOURNAL_DIALOG_TITLE_CLASS =
   "text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]";
 
+/**
+ * Тело окна — единственная скроллящаяся зона диалога.
+ *
+ * A17 аудита: нижний отступ увеличен с 20px до 32px. Подвал
+ * (`JOURNAL_DIALOG_FOOTER_CLASS`) непрозрачный и `shrink-0`, поэтому при
+ * прокрутке до конца последнее поле упиралось прямо в кнопку «Создать» и
+ * читалось как перекрытое ей (диалог создания документа бракеража — там
+ * полей больше десятка). 32px дают ту же «воздушную» границу, что и
+ * между полями.
+ */
 export const JOURNAL_DIALOG_BODY_CLASS =
-  "min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 py-5";
+  "min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 pb-8 pt-5";
 
 /**
  * Подвал окна: действие справа внизу, как на эталоне.

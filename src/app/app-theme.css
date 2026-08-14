@@ -956,29 +956,129 @@ body:has(.app-shell[data-app-theme="dark"]) {
      живут на auto-layout: у них colspan-ячейки без ширин, и
      принудительный fixed раскидал бы их поровну. */
   .app-shell table[class*="min-w-["],
+  .app-shell table[style*="min-width"],
   .app-shell table:has(> colgroup) {
     table-layout: fixed !important;
   }
+
+  /* ── A4/A5. КОЛОНКИ В АБСОЛЮТНЫХ ПИКСЕЛЯХ ────────────────────────
+   * `<colgroup>` с px-ширинами (`fryer_oil`: 28+118+100+178+… = 1122px)
+   * при `table-layout: fixed` НЕ сжимается печатью: сумма фиксирована,
+   * и последние 4 колонки просто уезжали за лист. Плюс побочный эффект:
+   * служебный `<col>` чекбоксов гасится `print:hidden`, но `display:none`
+   * на `<col>` браузер игнорирует — колонка остаётся, а ячеек в ней нет,
+   * и справа печаталась ПУСТАЯ БЕЗЫМЯННАЯ полоса (finished_product).
+   *
+   * Обе беды лечит одно: px-ширины на бумаге отменяем, а таблицу с
+   * такими колонками переводим на auto-layout — движок раскладывает
+   * колонки по содержимому в ширину листа, а колонка без ячеек
+   * схлопывается в ноль. Относительные (%) ширины остаются подсказкой
+   * и продолжают работать. */
+  .app-shell col[class*="w-["],
+  .app-shell col[style*="px"] {
+    width: auto !important;
+  }
+  .app-shell table:has(> colgroup > col[class*="w-["]),
+  .app-shell table:has(> colgroup > col[style*="px"]) {
+    table-layout: auto !important;
+  }
+
+  /* A2 аудита — КОРЕНЬ «букв столбиком».
+   *
+   * Здесь стояло `word-break: break-word` + `hyphens: auto`. Оба правила
+   * ломают печать широких журналов:
+   *
+   *  • `word-break: break-word` обнуляет min-content ячейки — браузер
+   *    считает, что колонка может ужаться до ОДНОЙ БУКВЫ. На auto-layout
+   *    (климат, холодильники, общая уборка, уборка помещений) движок
+   *    честно так и делал: «Помещение» печаталось буквами в столбик.
+   *  • `hyphens: auto` рвал русские слова по слогам с дефисом:
+   *    «На-чат», «Окон-чен», «Производи-тель» — на бланке для РПН это
+   *    читается как дефект вёрстки.
+   *
+   * `overflow-wrap: break-word` даёт ровно нужное поведение — рвёт
+   * только слово, которое иначе НЕ помещается, и при этом НЕ влияет на
+   * расчёт min-content колонки. */
   .app-shell th,
   .app-shell td {
     overflow-wrap: break-word !important;
-    word-break: break-word !important;
-    hyphens: auto !important;
+    word-break: normal !important;
+    hyphens: manual !important;
   }
 
   /* Таблицы, которые на экране держатся горизонтальным скроллом
      (`min-w-[1280px]` у климата, `min-w-[1200px]` у уборки и т.д.),
      после снятия min-width всё равно не влезают в A4 на 13px.
      Уменьшаем печатный кегль ровно у них — узкие журналы
-     (медкнижки, фритюр) остаются в своём размере. */
-  .app-shell table[class*="min-w-["] {
+     (медкнижки, фритюр) остаются в своём размере.
+
+     A3: холодильники (`cold-equipment-document-client`) перешли с
+     классового `min-w-[…]` на inline `style={{ minWidth: gridMinWidth }}`
+     (ширина считается от числа точек контроля) — селектор по классу их
+     больше не ловил, и печать шла экранным 13px, унося правые колонки за
+     лист. Ловим оба варианта разметки. */
+  .app-shell table[class*="min-w-["],
+  .app-shell table[style*="min-width"],
+  .app-shell [data-journal-blank-column] table {
     font-size: 9.5px !important;
     line-height: 1.15 !important;
   }
   .app-shell table[class*="min-w-["] th,
-  .app-shell table[class*="min-w-["] td {
+  .app-shell table[class*="min-w-["] td,
+  .app-shell table[style*="min-width"] th,
+  .app-shell table[style*="min-width"] td,
+  .app-shell [data-journal-blank-column] table th,
+  .app-shell [data-journal-blank-column] table td {
     padding: 1px 2px !important;
     font-size: inherit !important;
+  }
+
+  /* Колонка бланка (шапка + сетка в одном scroll-viewport'е, см.
+     `cold-equipment-document-client`, `cleaning-document-client`) держит
+     свою ширину inline-стилем `min-width`. На бумаге скролла нет —
+     ширину отдаём листу.
+
+     ВАЖНО: делать это Tailwind-классом `print:!min-w-0` НЕЛЬЗЯ. Проект
+     на Tailwind v4, где important-модификатор стал ПОСТФИКСНЫМ
+     (`min-w-0!`), а legacy-префикс `!` не генерирует вообще ничего —
+     такие классы молча мертвы (проверено по собранному CSS). Поэтому
+     разметка помечает колонку `data-journal-blank-column`, а правило
+     живёт здесь. */
+  .app-shell [data-journal-blank-column],
+  .app-shell[data-app-theme="dark"] [data-journal-blank-column] {
+    min-width: 0 !important;
+    width: auto !important;
+  }
+
+  /* A3: inline `min-width` на самой таблице тоже надо снять — правило
+     выше (`.app-shell table { min-width: 0 }`) бьётся с inline-стилем
+     по специфичности только за счёт !important, но у style-атрибута
+     приоритет выше. Дублируем адресно. */
+  .app-shell table[style*="min-width"] {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* A3: фиксированные обёртки под селекты («С1 - ФИО» в шапке
+     холодильников, `w-[150px]`) на бумаге давят колонку — контент
+     печатается в узкую полосу. При печати ширину отдаём ячейке. */
+  .app-shell th > div[class*="w-["],
+  .app-shell td > div[class*="w-["] {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* ── A18. ВЫХОДНЫЕ ДНИ ПЕЧАТАЮТСЯ ────────────────────────────────
+   * Тотальный сброс выше гасит ЛЮБОЙ фон, включая розовую подсветку
+   * нерабочих дней производственного календаря. На бумаге это важная
+   * информация: проверяющий видит, ПОЧЕМУ в столбце пусто. Ячейки дня
+   * помечены `data-print-keep-bg` (см. `getDayColumnBgClass`), сброс их
+   * уже исключает — здесь только разрешаем принтеру лить краску. */
+  .app-shell [data-print-keep-bg],
+  .app-shell[data-app-theme="dark"] [data-print-keep-bg] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Ссылки — не показывать href в скобках и не подчёркивать

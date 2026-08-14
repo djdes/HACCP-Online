@@ -1270,9 +1270,29 @@ export function ColdEquipmentDocumentClient({
             Сетка на 15 дней шире полотна и продолжает скроллиться внутри
             своего GRID_VIEWPORT_CLASS. */}
         <div className={`${DOC_PAPER_CANVAS_CLASS} ${mobileView === "cards" ? "hidden sm:block print:block" : ""}`}>
-        {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
-        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} print:mb-2`}>
-          <div style={{ minWidth: gridMinWidth }} className="print:!min-w-0">
+        {/* A10 аудита: ОДИН scroll-viewport на весь бланк.
+         *
+         * Раньше ХАССП-шапка и сетка замеров жили в РАЗНЫХ
+         * `overflow-x-auto`-контейнерах: шапка тянулась на всю ширину
+         * полотна (до 1400px), сетка держалась на inline
+         * `min-width: gridMinWidth` (~1175px) — и правая вертикаль
+         * бланка расходилась на пару сотен пикселей. Плюс скроллбаров
+         * было два, и они ездили независимо.
+         *
+         * Теперь всё внутри одного viewport'а и одной внутренней
+         * колонки шириной `max(100%, gridMinWidth)`: на широком экране
+         * бланк занимает полотно целиком, на узком — держит свою
+         * минимальную ширину и скроллится.
+         * Таблицы внутри — `w-full`, поэтому правая линия ровно одна.
+         * На бумаге inline min-width снимает правило по
+         * `[data-journal-blank-column]` из app-theme.css. */}
+        <div className={GRID_VIEWPORT_CLASS}>
+          <div
+            style={{ minWidth: `max(100%, ${gridMinWidth}px)` }}
+            className="w-full"
+            data-journal-blank-column
+          >
+          <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал контроля температурного режима холодильного и морозильного оборудования"
@@ -1281,7 +1301,6 @@ export function ColdEquipmentDocumentClient({
             controlPeriodicity={controlPeriodicity}
           />
           </div>
-        </div>
         <div className={DOC_CAPS_TITLE_CLASS}>
           <JournalDocumentTitle>
             Журнал контроля температурного режима холодильного и морозильного
@@ -1295,8 +1314,7 @@ export function ColdEquipmentDocumentClient({
             в своём `sm:hidden` выше). */}
         {equipmentAddBar}
         {selectionBar}
-        <div className={GRID_VIEWPORT_CLASS}>
-          <table style={{ minWidth: gridMinWidth }} className="border-collapse text-[13px] print:!min-w-0">
+          <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>
                 <th className={`${GRID_HEAD_CELL_CLASS} w-[40px] px-1 py-1 text-center leading-tight print:hidden`} rowSpan={2}>
@@ -1462,6 +1480,7 @@ export function ColdEquipmentDocumentClient({
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         </div>
       </div>

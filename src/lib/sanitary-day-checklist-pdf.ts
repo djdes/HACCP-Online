@@ -1,5 +1,6 @@
 import type { jsPDF } from "jspdf";
 import autoTable, { type RowInput } from "jspdf-autotable";
+import { registerPageLabelSlot } from "@/lib/pdf-page-labels";
 import {
   getItemNumber,
   normalizeSdcConfig,
@@ -76,7 +77,8 @@ export function drawSanitaryDayChecklistPdf(
           styles: { fontStyle: "bold", fontSize: 10 },
         },
         { content: "СИСТЕМА ХАССП" },
-        { content: "СТР. 1 ИЗ 1", rowSpan: 2 },
+        // Пусто: «СТР. i ИЗ N» штампуется после вёрстки по слоту.
+        { content: "", rowSpan: 2 },
       ],
       [
         {
@@ -86,6 +88,19 @@ export function drawSanitaryDayChecklistPdf(
       ],
     ],
     margin: { left: margin, right: margin },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.row.index === 0 && data.column.index === 2) {
+        registerPageLabelSlot(doc, {
+          x: data.cell.x,
+          y: data.cell.y,
+          width: data.cell.width,
+          height: data.cell.height,
+          maxWidth: data.cell.width - 4,
+          fontSize: 9,
+          fontStyle: "normal",
+        });
+      }
+    },
   });
 
   // ─── Дата проведения ───

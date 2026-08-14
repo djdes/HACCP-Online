@@ -65,6 +65,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_WIDE_CLASS as GRID_VIEWPORT_CLASS,
   getDayColumnBgClass,
+  getDayColumnPrintKeepBg,
 } from "@/components/journals/journal-grid";
 type Props = {
   documentId: string;
@@ -297,10 +298,10 @@ export function HealthDocumentClient(props: Props) {
       <FocusTodayScroller />
       {/* Back-link + Print are rendered by StaffJournalToolbar below. */}
       <style jsx global>{`
-        @page {
-          size: A4 landscape;
-          margin: 10mm;
-        }
+        /* A1: локальный @page убран — ориентация задаётся один раз в
+           globals.css (именованный @page journal-landscape + маркер
+           [data-journal-print-root] страницы документа). Локальные
+           дубли конфликтовали между собой по порядку загрузки. */
 
         @media print {
           html,
@@ -667,6 +668,7 @@ export function HealthDocumentClient(props: Props) {
                           className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight ${getDayColumnBgClass(
                             dateKey
                           )}`}
+                          data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
                         >
                           {data?.signed ? "+" : ""}
                         </td>
@@ -697,6 +699,7 @@ export function HealthDocumentClient(props: Props) {
                   <td
                     key={`blank:${dateKey}`}
                     className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight ${getDayColumnBgClass(dateKey)}`}
+                    data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
                   />
                 ))}
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />

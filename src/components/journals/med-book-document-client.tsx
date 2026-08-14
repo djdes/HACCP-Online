@@ -857,12 +857,19 @@ export function MedBookDocumentClient({
         ) : null}
 
         {/* M3: обе таблицы медкнижек шире бумажного полотна — скроллятся
-            ВНУТРИ своего viewport'а, с постоянно видимой полосой прокрутки. */}
+            ВНУТРИ своего viewport'а, с постоянно видимой полосой прокрутки.
+
+            A11 аудита: у таблиц добавлен `w-full`. Без него ширину задавал
+            КОНТЕНТ (min-w — только нижняя граница), и правый край бланка
+            был рваным: шапка 1406px, «Осмотры и исследования» 1387px,
+            «Прививки» 1355px — три разные вертикали на одном листе.
+            Теперь обе таблицы тянутся на ширину полотна, как и шапка,
+            а `min-w-[1320px]` продолжает включать скролл на узких. */}
         <MobileViewTableWrapper
           mobileView={mobileView}
           className={`${GRID_VIEWPORT_CLASS} ${GRID_VIEWPORT_SCROLLBAR_CLASS}`}
         >
-          <table className="min-w-[1320px] border-collapse text-[13px] text-black">
+          <table className="w-full min-w-[1320px] border-collapse text-[13px] text-black">
             <thead>
               <tr>
                 <th
@@ -1038,7 +1045,7 @@ export function MedBookDocumentClient({
           </h2>
           <div className="space-y-2">
             <div className={`${GRID_VIEWPORT_CLASS} ${GRID_VIEWPORT_SCROLLBAR_CLASS}`}>
-              <table className="min-w-[1320px] border-collapse text-[13px] text-black">
+              <table className="w-full min-w-[1320px] border-collapse text-[13px] text-black">
                 <thead>
                   <tr>
                     <th
@@ -1321,9 +1328,9 @@ export function MedBookDocumentClient({
               checked={settingsIncludeVacc}
               onCheckedChange={(value) => setSettingsIncludeVacc(value === true)}
               className="shrink-0"
-              aria-label={'включить "Прививки"'}
+              aria-label={'Включить раздел «Прививки»'}
             />
-            включить &quot;Прививки&quot;
+            Включить раздел «Прививки»
           </label>
           {settingsIncludeVacc ? (
             <div className="space-y-2">

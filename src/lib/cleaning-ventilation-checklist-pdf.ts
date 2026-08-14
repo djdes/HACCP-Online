@@ -29,6 +29,8 @@ function ensureUnicodeFont(doc: jsPDF): string {
   return "JournalUnicode";
 }
 import { readControlPeriodicity } from "@/lib/control-periodicity";
+import { registerPageLabelSlot } from "@/lib/pdf-page-labels";
+import { getUserDisplayTitle } from "@/lib/user-roles";
 import {
   CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE,
   buildChecklistDateKeys,
@@ -43,6 +45,8 @@ type BasicUser = {
   id: string;
   name: string;
   role: string;
+  /** Экранная должность (jobPosition → positionTitle → роль). */
+  positionTitle?: string | null;
 };
 
 type EntryItem = {
@@ -102,7 +106,8 @@ export function drawCleaningVentilationChecklistPdf(
         { content: params.organizationName, rowSpan: 2 },
         { content: "СИСТЕМА ХАССП" },
         { content: `Начат ${dateFromIso.split("-").reverse().join("-")}\nОкончен __________`, rowSpan: 1 },
-        { content: "СТР. 1 ИЗ 1", rowSpan: 2 },
+        // Пусто: «СТР. i ИЗ N» штампуется после вёрстки по слоту.
+        { content: "", rowSpan: 2 },
       ],
       [
         { content: "ЧЕК-ЛИСТ УБОРКИ И ПРОВЕТРИВАНИЯ ПОМЕЩЕНИЙ", styles: { fontStyle: "italic" } },
@@ -119,6 +124,19 @@ export function drawCleaningVentilationChecklistPdf(
           ]
         : []),
     ],
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.row.index === 0 && data.column.index === 3) {
+        registerPageLabelSlot(doc, {
+          x: data.cell.x,
+          y: data.cell.y,
+          width: data.cell.width,
+          height: data.cell.height,
+          maxWidth: data.cell.width - 4,
+          fontSize: 9,
+          fontStyle: "normal",
+        });
+      }
+    },
   });
 
   const descriptionText = getCleaningVentilationDescriptionLines()
@@ -126,9 +144,14 @@ export function drawCleaningVentilationChecklistPdf(
     .map((item) => `${item.label}: ${item.text}`)
     .join("\n\n");
 
+  // На экране ответственные подписаны «Должность - ФИО» — повторяем в PDF.
   const responsiblesText =
     config.responsibles
-      .map((item) => params.users.find((user) => user.id === item.userId)?.name || "")
+      .map((item) => {
+        const user = params.users.find((candidate) => candidate.id === item.userId);
+        if (!user?.name) return "";
+        return `${getUserDisplayTitle(user)} - ${user.name}`;
+      })
       .filter(Boolean)
       .join("\n") || "—";
 
@@ -146,14 +169,14 @@ export function drawCleaningVentilationChecklistPdf(
     },
     body: [
       [
-        { content: "Процедура", styles: { fontStyle: "bold" } },
-        { content: descriptionText },
+        // Как на экране: «Процедура» и её описание объединены по
+        // вертикали на обе строки — раньше во второй строке зияли две пустые ячейки.
+        { content: "Процедура", rowSpan: 2, styles: { fontStyle: "bold" } },
+        { content: descriptionText, rowSpan: 2 },
         { content: "Периодичность", styles: { fontStyle: "bold" } },
         { content: getCleaningVentilationPeriodicityLines(config.ventilationEnabled).join("\n") },
       ],
       [
-        { content: "" },
-        { content: "" },
         { content: "Ответственные лица", styles: { fontStyle: "bold" } },
         { content: responsiblesText },
       ],
