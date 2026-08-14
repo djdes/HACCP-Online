@@ -669,7 +669,12 @@ export function FryerOilDocumentClient(props: Props) {
             */}
             <table className="w-full min-w-[1122px] table-fixed border-collapse text-[13px]">
               <colgroup>
-                {isActive ? <col className="w-[28px]" /> : null}
+                {/* Q2-7: `<th>`/`<td>` колонки выделения уже были
+                    `print:hidden`, а её `<col>` — нет. При table-fixed
+                    ширины сдвигались на одну: первая содержательная
+                    колонка печаталась в 28px («Дата, время» по букве в
+                    строку), а справа оставалась пустая 100px-полоса. */}
+                {isActive ? <col className="w-[28px] print:hidden" /> : null}
                 <col className="w-[118px]" />
                 <col className="w-[100px]" />
                 <col className="w-[178px]" />

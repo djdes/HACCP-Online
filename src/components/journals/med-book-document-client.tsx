@@ -171,6 +171,29 @@ async function fileToDataUrl(file: File) {
   });
 }
 
+/**
+ * Q2-8: печатная развёртка справочника колонок.
+ *
+ * На экране «Список специалистов и исследований» и «Список прививок» —
+ * ссылки, открывающие диалог-редактор. Диалоги при печати скрыты
+ * (`[role="dialog"]` в @media print), поэтому распечатанный журнал
+ * медкнижек уходил инспектору без расшифровки колонок. Блок ниже
+ * НЕ виден на экране и печатается вместо ссылки.
+ */
+function MedBookPrintList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="hidden print:block">
+      <div className="text-[13px] font-bold text-black">{title}</div>
+      <ol className="mt-1 list-decimal pl-5 text-[11.5px] leading-[1.35] text-black">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export function MedBookDocumentClient({
   documentId,
   title,
@@ -990,10 +1013,17 @@ export function MedBookDocumentClient({
         <button
           type="button"
           onClick={() => setExamListOpen(true)}
-          className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+          className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden"
         >
           Список специалистов и исследований
         </button>
+        {/* Q2-8: на экране справочник живёт за ссылкой (диалог), на
+            бумаге диалога нет — инспектор получал документ без расшифровки
+            колонок. Печатаем содержимое списком. */}
+        <MedBookPrintList
+          title="Список специалистов и исследований"
+          items={examColumns}
+        />
       </div>
 
       {includeVaccinations ? (
@@ -1159,10 +1189,11 @@ export function MedBookDocumentClient({
             <button
               type="button"
               onClick={() => setVaccListOpen(true)}
-              className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              className="text-[17px] font-semibold text-black underline decoration-1 underline-offset-4 transition-colors duration-150 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden"
             >
               Список прививок
             </button>
+            <MedBookPrintList title="Список прививок" items={vaccColumns} />
           </div>
         </div>
       ) : null}

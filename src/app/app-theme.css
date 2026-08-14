@@ -749,34 +749,231 @@ body:has(.app-shell[data-app-theme="dark"]) {
  * navigation) и форсируем светлую тему.
  * ================================================================== */
 @media print {
-  /* Force light, white backgrounds — экономим тонер. */
+  /* ── Q2-1. ТОТАЛЬНЫЙ СВЕТЛЫЙ СБРОС ────────────────────────────────
+   * Тёмная тема кабинета живёт на `.app-shell[data-app-theme="dark"]`
+   * и сотнях производных селекторов (`… .bg-white { background: var(--app-surface) }`).
+   * Точечно перебивать их бессмысленно — при печати нейтрализуем
+   * ТОКЕНЫ (значения переменных) и поверх этого гасим ЛЮБОЙ фон
+   * внутри бумажной зоны. Инспектор РПН/СЭС получает чёрное по белому,
+   * принтер не заливает лист тонером.
+   *
+   * Опт-аут — `data-print-keep-bg` на элементе (например цветная
+   * легенда, если она когда-нибудь понадобится на бумаге). */
+  .app-shell,
+  .app-shell[data-app-theme="dark"] {
+    /* Значения = светлая тема, см. блок `.app-shell` выше. */
+    --app-bg: #ffffff;
+    --app-surface: #ffffff;
+    --app-surface-elevated: #ffffff;
+    --app-surface-muted: #ffffff;
+    --app-soft-surface: #ffffff;
+    --app-tint-indigo: #ffffff;
+    --app-tint-indigo-2: #ffffff;
+    --app-border: #000000;
+    --app-border-strong: #000000;
+    --app-text: #000000;
+    --app-text-secondary: #000000;
+    --app-text-muted: #000000;
+    --app-text-faint: #000000;
+    --app-indigo: #000000;
+    --app-success-bg: #ffffff;
+    --app-success-fg: #000000;
+    --app-warn-bg: #ffffff;
+    --app-warn-fg: #000000;
+    --app-scrim: transparent;
+    color-scheme: light !important;
+  }
+
+  html,
   body,
-  .app-shell {
+  body:has(.app-shell[data-app-theme="dark"]),
+  .app-shell,
+  .app-shell[data-app-theme="dark"],
+  main {
     background: #fff !important;
+    background-image: none !important;
     color: #000 !important;
   }
 
-  /* Скрываем элементы которые не нужны на бумаге. */
+  /* Всё внутри кабинета — прозрачный фон и чёрный текст. Рамки
+     таблиц задаются отдельно (`table, th, td` в globals.css). */
+  .app-shell *:not([data-print-keep-bg]),
+  .app-shell *:not([data-print-keep-bg])::before,
+  .app-shell *:not([data-print-keep-bg])::after {
+    background-color: transparent !important;
+    background-image: none !important;
+    color: #000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Иконки lucide рисуются `stroke: currentColor` — после сброса выше
+     они уже чёрные. Явно фиксируем на случай inline fill. */
+  .app-shell svg {
+    color: #000 !important;
+  }
+
+  /* ── Q2-2. ПОЛЯ ВВОДА → ПРОСТО ТЕКСТ ──────────────────────────────
+   * На бумаге ячейка журнала должна выглядеть как значение в клетке,
+   * а не как control: без рамки, без заливки, без стрелок и иконок. */
+  .app-shell input,
+  .app-shell select,
+  .app-shell textarea {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: #000 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    resize: none !important;
+    text-overflow: clip !important;
+    font-size: inherit !important;
+    /* Ширина по содержимому: экранный `w-[56px]` обрезал печатное
+       значение («10, 17, 24» → «10, 17, ‌:»). `field-sizing: content`
+       отдаёт инпуту ровно столько, сколько занял текст, а
+       `max-width: 100%` не даёт разорвать колонку. */
+    field-sizing: content;
+  }
+
+  /* Плейсхолдеры («Введите…», «--») на бумаге — шум. */
+  .app-shell input::placeholder,
+  .app-shell textarea::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+  }
+
+  /* Спиннеры number, иконка календаря/часов, крестик очистки. */
+  .app-shell input::-webkit-outer-spin-button,
+  .app-shell input::-webkit-inner-spin-button,
+  .app-shell input::-webkit-calendar-picker-indicator,
+  .app-shell input::-webkit-clear-button,
+  .app-shell input::-webkit-search-cancel-button {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    display: none !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+  }
+  .app-shell input[type="number"] {
+    -moz-appearance: textfield !important;
+  }
+
+  /* ПУСТОЙ time/date-инпут печатает браузерную «рыбу» `--:--`.
+     Клиенты журналов ставят `data-empty="true"`, когда значения нет —
+     гасим весь редактор, а не только плейсхолдер (у Chrome
+     `::-webkit-datetime-edit` не наследует `color: transparent`
+     от плейсхолдера). */
+  .app-shell input[data-empty="true"],
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit,
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit-fields-wrapper,
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit-text,
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit-hour-field,
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit-minute-field,
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit-day-field,
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit-month-field,
+  .app-shell input[data-empty="true"]::-webkit-datetime-edit-year-field {
+    color: transparent !important;
+    visibility: hidden !important;
+  }
+
+  /* ── Q2-3. ЭКРАННЫЕ ЭЛЕМЕНТЫ ──────────────────────────────────────
+   * Всё, что нельзя нажать на бумаге: навигация, тумблеры, полосы
+   * действий, порталы, скроллбары. Точечные `print:hidden` в
+   * клиентах остаются — здесь ловим общие случаи. */
   header,
   nav,
   [role="alert"],
   [role="dialog"],
+  [role="switch"],
+  [data-slot="switch"],
+  [data-slot="tooltip-content"],
+  [data-sonner-toaster],
+  [data-radix-popper-content-wrapper],
   .fixed,
-  /* Tail-floating widgets */
   button[aria-label="AI-помощник по СанПиН"],
   button[aria-label="Поддержка"],
-  /* AI/Support FAB-кнопки идентифицируются по тексту */
-  [data-print="hide"] {
+  [data-print="hide"],
+  [data-print-hide] {
     display: none !important;
   }
 
-  /* Карточки — без теней и без скруглений (бумажный вид). */
+  /* Карточки — без теней и без скруглений (бумажный вид).
+     Рамку НЕ дорисовываем: раньше здесь стоял
+     `border: 1px solid #e5e7eb !important`, и обёртка карточки
+     (шире своей таблицы) печаталась как «внешняя рамка без
+     разлиновки» — пустая полоса справа у cold_equipment и fryer_oil
+     (пп. 5 и 7 аудита). */
   [class*="rounded-3xl"],
   [class*="rounded-2xl"],
   [class*="shadow-"] {
     box-shadow: none !important;
-    border-radius: 4px !important;
-    border: 1px solid #e5e7eb !important;
+    border-radius: 0 !important;
+  }
+
+  /* ── Q2-4. ГОРИЗОНТАЛЬНАЯ ОБРЕЗКА ─────────────────────────────────
+   * Широкие сетки (климат: 31×16 полей) живут в `overflow-x-auto`
+   * viewport'е. На бумаге скролла нет — обрезка съедала правые
+   * колонки. Снимаем overflow и min-width у ЛЮБОГО предка таблицы. */
+  .app-shell [class*="overflow-x-"],
+  .app-shell [class*="overflow-"] {
+    overflow: visible !important;
+  }
+  .app-shell table,
+  .app-shell table[class*="min-w-"] {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* `table-layout: fixed` — только там, где колонки уже описаны
+     (`<colgroup>`) или таблица заведомо шире листа. Бумажные ХАССП-шапки
+     живут на auto-layout: у них colspan-ячейки без ширин, и
+     принудительный fixed раскидал бы их поровну. */
+  .app-shell table[class*="min-w-["],
+  .app-shell table:has(> colgroup) {
+    table-layout: fixed !important;
+  }
+  .app-shell th,
+  .app-shell td {
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    hyphens: auto !important;
+  }
+
+  /* Таблицы, которые на экране держатся горизонтальным скроллом
+     (`min-w-[1280px]` у климата, `min-w-[1200px]` у уборки и т.д.),
+     после снятия min-width всё равно не влезают в A4 на 13px.
+     Уменьшаем печатный кегль ровно у них — узкие журналы
+     (медкнижки, фритюр) остаются в своём размере. */
+  .app-shell table[class*="min-w-["] {
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+  }
+  .app-shell table[class*="min-w-["] th,
+  .app-shell table[class*="min-w-["] td {
+    padding: 1px 2px !important;
+    font-size: inherit !important;
+  }
+
+  /* Ссылки — не показывать href в скобках и не подчёркивать
+     (интерактивный вид на бумаге читается как дефект, п. 3). */
+  a[href]::after {
+    content: "" !important;
+  }
+  .app-shell a {
+    text-decoration: none !important;
+    color: #000 !important;
   }
 
   /* Не разрывать таблицы между страниц. */
@@ -788,18 +985,11 @@ body:has(.app-shell[data-app-theme="dark"]) {
     page-break-after: auto;
   }
 
-  /* Ссылки — не показывать href в скобках (по умолчанию некоторые
-     браузеры это делают; для compliance-отчёта это шум). */
-  a[href]::after {
-    content: "" !important;
-  }
-
   /* Фон у hero-блоков (тёмный indigo) ломает печать — облегчаем. */
   [style*="0b1024"],
   [class*="bg-[#0b1024]"] {
     background: #fff !important;
     color: #000 !important;
-    border: 1px solid #d1d5db !important;
   }
 }
 

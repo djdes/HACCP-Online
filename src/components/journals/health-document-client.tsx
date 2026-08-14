@@ -568,7 +568,7 @@ export function HealthDocumentClient(props: Props) {
             <thead>
               <tr>
                 <th
-                  className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
+                  className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight print:hidden`}
                   rowSpan={2}
                 >
                   <HealthCheckbox
@@ -635,7 +635,7 @@ export function HealthDocumentClient(props: Props) {
 
                 return (
                   <tr key={employee.id}>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight print:hidden`}>
                       {employee.name ? (
                         <HealthCheckbox
                           checked={selectedEmployeeIds.includes(employee.id)}
@@ -687,7 +687,7 @@ export function HealthDocumentClient(props: Props) {
                 {/* Хвостовая пустая строка бланка (место для дозаписи от
                     руки при печати). Данных за ней нет, выделять нечего —
                     чекбокс только для симметрии сетки, всегда disabled. */}
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight print:hidden`}>
                   <HealthCheckbox checked={false} disabled />
                 </td>
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />

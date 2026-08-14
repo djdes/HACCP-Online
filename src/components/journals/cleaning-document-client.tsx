@@ -270,7 +270,10 @@ function CleaningDayColorLegend() {
     { color: "border-[#ececf4] bg-white", label: "Рабочий день" },
   ];
   return (
-    <div className="mx-auto flex w-full max-w-[820px] flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-[#3c4053]">
+    // Q2-3: расшифровка ЦВЕТОВ дней — экранная подсказка. На бумаге
+    // заливок нет (GRID_DAY_OFF_BG_CLASS печатается прозрачным), значит
+    // и легенда к ним печаталась бы как три пустых квадрата.
+    <div className="mx-auto flex w-full max-w-[820px] flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-[#3c4053] print:hidden">
       {items.map((item) => (
         <span key={item.label} className="inline-flex items-center gap-2">
           <span className={`inline-block size-4 rounded-md border ${item.color}`} />
@@ -2173,7 +2176,7 @@ export function CleaningDocumentClient(props: Props) {
                       <button
                         type="button"
                         aria-label="Редактировать"
-                        className="rounded-lg p-1 text-[#7a7f93] transition-colors hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+                        className="rounded-lg p-1 text-[#7a7f93] transition-colors hover:bg-[#f5f6ff] hover:text-[#5566f6] print:hidden"
                         onClick={() => {
                           if (row.kind === "room") {
                             openRoomEditorFromRow(row.id);

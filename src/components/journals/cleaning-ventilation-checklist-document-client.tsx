@@ -161,8 +161,16 @@ const CHECKLIST_EMPTY_CELL_CLASS =
 const CHECKLIST_STICKY_HEAD_CLASS =
   "sticky top-0 z-20 border-[#333] bg-[#f8f9fc] text-[15px] font-semibold leading-tight text-black shadow-[inset_0_-1px_0_#333] print:static print:bg-white print:shadow-none print:border-b print:border-black";
 
+/**
+ * Дата строки чек-листа. Q2-10: формат унифицирован с остальными
+ * журналами и с PDF — дефисы (`10-08-2026`), а не точки. Раньше здесь
+ * стоял `toLocaleDateString("ru-RU")`, и печатная версия расходилась
+ * с выгрузкой по одному и тому же документу.
+ */
 function formatRuDate(isoDate: string) {
-  return new Date(`${isoDate}T00:00:00`).toLocaleDateString("ru-RU");
+  const [year, month, day] = isoDate.split("-");
+  if (!year || !month || !day) return isoDate;
+  return `${day}-${month}-${year}`;
 }
 
 function createId() {
@@ -1123,7 +1131,7 @@ export function CleaningVentilationChecklistDocumentClient({
                           <button
                             type="button"
                             aria-label={`Удалить периодичность «${line}»`}
-                            className="shrink-0 text-[#ff3b30] transition-colors duration-150 hover:text-[#d92b21]"
+                            className="shrink-0 text-[#ff3b30] transition-colors duration-150 hover:text-[#d92b21] print:hidden"
                             onClick={() => {
                               persistConfig({
                                 ...config,
@@ -1297,7 +1305,10 @@ export function CleaningVentilationChecklistDocumentClient({
         >
           <table className="min-w-[1140px] w-full table-fixed border-collapse text-[13px]">
             <colgroup>
-              <col className="w-[58px]" />
+              {/* Q2-3: колонка выделения строк не печатается. Прячем
+                  ИМЕННО <col>, а не только ячейки: при table-fixed
+                  оставшийся <col> сдвинул бы все ширины на одну. */}
+              <col className="w-[58px] print:hidden" />
               <col className="w-[130px]" />
               <col className="w-[220px]" />
               {/* V4: 150px = два селекта по 64px + зазор + поля ячейки. */}
@@ -1308,7 +1319,7 @@ export function CleaningVentilationChecklistDocumentClient({
             </colgroup>
             <thead className="sticky top-0 z-20 print:static">
               <tr className="bg-[#f8f9fc] print:bg-white">
-                <th className={`${CHECKLIST_STICKY_HEAD_CLASS} border-r px-4 py-4 text-center`}>
+                <th className={`${CHECKLIST_STICKY_HEAD_CLASS} border-r px-4 py-4 text-center print:hidden`}>
                   <div className="flex justify-center">
                     <Checkbox
                       checked={rows.length > 0 && selection.length === rows.length}
@@ -1356,7 +1367,7 @@ export function CleaningVentilationChecklistDocumentClient({
                       {index === 0 ? (
                         <td
                           rowSpan={row.procedures.length}
-                          className="border-b border-r border-[#333] print:border-black px-4 py-4 align-top leading-tight"
+                          className="border-b border-r border-[#333] print:border-black px-4 py-4 align-top leading-tight print:hidden"
                         >
                           <div className="flex justify-center">
                             <Checkbox
@@ -1390,20 +1401,30 @@ export function CleaningVentilationChecklistDocumentClient({
                           key={`${row.dateKey}-${procedure.id}-${timeIndex}`}
                           className="border-b border-r border-[#333] print:border-black px-2 py-1 leading-tight"
                         >
-                          <TimeSelect
-                            value={procedure.times[timeIndex] || "00:00"}
-                            disabled={!isActive || !config.autoFillEnabled}
-                            onChange={(value) => {
-                              updateProcedureTime(row.dateKey, procedure, timeIndex, value).catch(
-                                (error) =>
-                                  toast.error(
-                                    error instanceof Error
-                                      ? error.message
-                                      : "Не удалось сохранить время"
-                                  )
-                              );
-                            }}
-                          />
+                          {/* Q2-10: на бумаге печатаем ФАКТИЧЕСКОЕ время
+                              и ничего, если его нет. Селект подставляет
+                              `00:00` для незаданного слота — у процедур с
+                              периодичностью 2 раза «Время 3» печаталось
+                              третьим фиктивным замером. */}
+                          <span className="hidden print:inline text-[13px] text-black">
+                            {procedure.times[timeIndex] || ""}
+                          </span>
+                          <span className="print:hidden">
+                            <TimeSelect
+                              value={procedure.times[timeIndex] || "00:00"}
+                              disabled={!isActive || !config.autoFillEnabled}
+                              onChange={(value) => {
+                                updateProcedureTime(row.dateKey, procedure, timeIndex, value).catch(
+                                  (error) =>
+                                    toast.error(
+                                      error instanceof Error
+                                        ? error.message
+                                        : "Не удалось сохранить время"
+                                    )
+                                );
+                              }}
+                            />
+                          </span>
                         </td>
                       ))}
                       <td className="border-b border-[#333] print:border-black px-4 py-4 text-[16px] text-black leading-tight">

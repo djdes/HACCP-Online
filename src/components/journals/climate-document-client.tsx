@@ -1655,7 +1655,7 @@ export function ClimateDocumentClient({
           <table className="min-w-[1280px] border-collapse text-[13px]">
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[44px] px-2 py-1.5 text-center leading-tight`} rowSpan={4}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[44px] px-2 py-1.5 text-center leading-tight print:hidden`} rowSpan={4}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1729,7 +1729,7 @@ export function ClimateDocumentClient({
                 const isToday = row.date === new Date().toISOString().slice(0, 10);
                 return (
                   <tr key={row.id} data-focus-today={isToday ? "" : undefined}>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
                       <Checkbox
                         checked={selectedRowIds.includes(row.id)}
                         onCheckedChange={(checked) =>

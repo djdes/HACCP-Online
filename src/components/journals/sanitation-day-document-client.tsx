@@ -1020,7 +1020,7 @@ export function SanitationDayDocumentClient({
               <tr>
                 <th
                   rowSpan={2}
-                  className={`${GRID_HEAD_CELL_CLASS} w-[54px] px-2 py-1.5 leading-tight`}
+                  className={`${GRID_HEAD_CELL_CLASS} w-[54px] px-2 py-1.5 leading-tight print:hidden`}
                 >
                   {!readOnly ? (
                     <div className="flex items-center justify-center">
@@ -1068,7 +1068,7 @@ export function SanitationDayDocumentClient({
                   <tr>
                     <td
                       rowSpan={2}
-                      className={`${GRID_CELL_CLASS} px-2 py-1 align-middle leading-tight`}
+                      className={`${GRID_CELL_CLASS} px-2 py-1 align-middle leading-tight print:hidden`}
                     >
                       {!readOnly ? (
                         <div className="flex items-center justify-center">

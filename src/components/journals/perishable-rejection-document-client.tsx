@@ -815,7 +815,8 @@ export function PerishableRejectionDocumentClient({
               скролл внутри viewport'а. */}
           <table className="w-full min-w-[1040px] table-fixed border-collapse text-[12.5px]">
             <colgroup>
-              <col style={{ width: `${CHECKBOX_COL_PERCENT}%` }} />
+              {/* Q2-3: служебная колонка выделения не печатается. */}
+              <col className="print:hidden" style={{ width: `${CHECKBOX_COL_PERCENT}%` }} />
               {columnWidths.map((width, index) => (
                 <col key={index} style={{ width }} />
               ))}
@@ -824,7 +825,7 @@ export function PerishableRejectionDocumentClient({
               <tr>
                 {/* Select-all — как в остальных журналах: одна галочка
                     отмечает все строки листа, снятие очищает выделение. */}
-                <th className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 text-center leading-tight`}>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 text-center leading-tight print:hidden`}>
                   <Checkbox
                     checked={config.rows.length > 0 && selectedRows.length === config.rows.length}
                     onCheckedChange={(checked) =>
@@ -873,7 +874,7 @@ export function PerishableRejectionDocumentClient({
                   Добавить» живёт на кнопке над таблицей. */}
               {config.rows.length === 0 ? (
                 <tr>
-                  <td className={`${GRID_CELL_CLASS} px-1 py-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-1 py-1 align-top leading-tight print:hidden`}>
                     <Checkbox checked={false} disabled />
                   </td>
                   {Array.from({ length: config.showNote ? 11 : 10 }, (_, index) => (
@@ -888,7 +889,7 @@ export function PerishableRejectionDocumentClient({
               ) : null}
               {config.rows.map((row) => (
                 <tr key={row.id} data-focus-today={row.id === todayFocusRowId ? "" : undefined}>
-                  <td className={`${GRID_CELL_CLASS} px-1 py-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-1 py-1 align-top leading-tight print:hidden`}>
                     <Checkbox
                       checked={selectedRows.includes(row.id)}
                       onCheckedChange={(checked) =>

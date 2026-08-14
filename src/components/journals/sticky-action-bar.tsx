@@ -12,7 +12,9 @@ export function StickyActionBar({ children, className }: StickyActionBarProps) {
   return (
     <div
       className={cn(
-        "sticky top-14 z-20 -mx-4 mb-6 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6",
+        // Q2-3: ряд «Добавить строку» / «Настроить» — экранный chrome,
+        // на бумаге его печатать нельзя.
+        "sticky top-14 z-20 -mx-4 mb-6 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur print:hidden sm:-mx-6 sm:px-6",
         className
       )}
     >

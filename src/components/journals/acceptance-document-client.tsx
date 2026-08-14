@@ -2429,7 +2429,9 @@ export function AcceptanceDocumentClient(props: Props) {
                 {/* I2: колонка чекбокса на эталоне ~24px, у нас была 36px
                     (+ px-1.5 = 37px по факту) и съедала ширину у контентных
                     колонок. Чекбокс 16px + 2×4px паддинга укладывается в 26px. */}
-                <col className="w-[26px]" />
+                {/* Q2-3: колонка выделения не печатается — прячем сам
+                    <col>, иначе процентные ширины сдвинутся на одну. */}
+                <col className="w-[26px] print:hidden" />
                 <col className="w-[7%]" />
                 <col className="w-[10%]" />
                 <col className="w-[6.5%]" />
@@ -2445,7 +2447,7 @@ export function AcceptanceDocumentClient(props: Props) {
               </colgroup>
               <thead>
                 <tr>
-                  <th className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 leading-tight`}>
+                  <th className={`${GRID_HEAD_CELL_CLASS} px-1 py-1.5 leading-tight print:hidden`}>
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={(c) => setSelectedRowIds(c === true ? displayedRows.map((r) => r.id) : [])}
@@ -2476,7 +2478,7 @@ export function AcceptanceDocumentClient(props: Props) {
                       }}
                     >
                       <td
-                        className={`${GRID_CELL_CLASS} px-1 py-1 text-center leading-tight`}
+                        className={`${GRID_CELL_CLASS} px-1 py-1 text-center leading-tight print:hidden`}
                         onClick={(event) => event.stopPropagation()}
                       >
                         <Checkbox
@@ -2518,8 +2520,11 @@ export function AcceptanceDocumentClient(props: Props) {
                     </td>
                   </tr>
                 )}
-                <tr>
-                  <td className={`${GRID_CELL_CLASS} px-1 py-1 text-center leading-tight`}>
+                {/* Q2-3: пустая строка-заготовка «добавить» — экранная
+                    аффорданс, на бумаге печаталась как незаполненная
+                    строка бланка. */}
+                <tr className="print:hidden">
+                  <td className={`${GRID_CELL_CLASS} px-1 py-1 text-center leading-tight print:hidden`}>
                     <Checkbox disabled />
                   </td>
                   <td
@@ -2535,7 +2540,7 @@ export function AcceptanceDocumentClient(props: Props) {
           <table className="min-w-[960px] w-full border-collapse text-[13px] sm:min-w-[1400px]">
             <thead>
               <tr>
-                <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight print:hidden`}>
                   <Checkbox checked={allSelected} onCheckedChange={(c) => setSelectedRowIds(c === true ? displayedRows.map((r) => r.id) : [])} disabled={displayedRows.length === 0 || isClosed} />
                 </th>
                 <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>
@@ -2571,7 +2576,7 @@ export function AcceptanceDocumentClient(props: Props) {
                     setRowDialogOpen(true);
                   }}
                 >
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} onClick={(event) => event.stopPropagation()}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`} onClick={(event) => event.stopPropagation()}>
                     <Checkbox checked={selectedRowIds.includes(row.id)} onCheckedChange={(c) => setSelectedRowIds((cur) => c === true ? [...new Set([...cur, row.id])] : cur.filter((id) => id !== row.id))} disabled={isClosed} />
                   </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center whitespace-pre-line leading-tight`}>
@@ -2600,7 +2605,7 @@ export function AcceptanceDocumentClient(props: Props) {
                 <tr><td colSpan={11} className={`${GRID_CELL_CLASS} p-8 text-center text-[#80849a] leading-tight`}>Строк пока нет</td></tr>
               )}
               {/* Empty row at bottom */}
-              <tr><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} /></tr>
+              <tr className="print:hidden"><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} /></tr>
             </tbody>
           </table>
         </MobileViewTableWrapper>

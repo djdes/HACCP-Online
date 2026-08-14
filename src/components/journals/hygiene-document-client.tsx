@@ -594,6 +594,14 @@ export function HygieneDocumentClient({
             line-height: 1.2 !important;
           }
 
+          /* Q2-11: легенда упиралась в нижнюю границу бумажного блока —
+             последняя строка визуально «сидела» на линии. Отбиваем её
+             от рамки сверху и снизу. */
+          .hygiene-legend {
+            margin-top: 12px !important;
+            margin-bottom: 10px !important;
+          }
+
           .hygiene-second-page-content {
             margin-top: 120px !important;
           }
@@ -854,7 +862,7 @@ export function HygieneDocumentClient({
               <thead>
                 <tr>
                   <th
-                    className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
+                    className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight print:hidden`}
                     rowSpan={2}
                   >
                     <HygieneCheckbox
@@ -905,7 +913,7 @@ export function HygieneDocumentClient({
                 {printableEmployees.map((employee) => (
                   <Fragment key={employee.id}>
                     <tr>
-                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight`}>
+                      <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight print:hidden`}>
                         {employee.name ? (
                           <HygieneCheckbox
                             checked={selectedEmployeeIds.includes(employee.id)}
@@ -1003,7 +1011,7 @@ export function HygieneDocumentClient({
                       галочка не декоративная: как на эталоне, она работает
                       вторым «выбрать всё» — внизу длинной сетки это ближе,
                       чем возвращаться к шапке. */}
-                  <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight print:hidden`}>
                     <HygieneCheckbox
                       checked={allSelected}
                       disabled={!isActive}

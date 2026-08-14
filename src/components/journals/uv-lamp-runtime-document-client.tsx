@@ -1547,7 +1547,10 @@ export function UvLampRuntimeDocumentClient(props: Props) {
               строки), «ФИО ответственного лица» — широкая. Раньше было
               наоборот: 410px под минуты и сжатое ФИО. */}
           <colgroup>
-            {props.status === "active" && <col className="w-[40px]" />}
+            {/* Q2-6: `<th>`/`<td>` выделения печатались скрытыми, а
+                `<col>` — нет, и при table-fixed колонка «Дата»
+                получала 40px («01-/08-/202»). */}
+            {props.status === "active" && <col className="w-[40px] print:hidden" />}
             <col className="w-[150px]" />
             <col className="w-[130px]" />
             <col className="w-[130px]" />
@@ -1607,6 +1610,9 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                     {props.status === "active" ? (
                       <Input
                         type="time"
+                        // Q2-2: пустой time-инпут печатает браузерную «рыбу»
+                        // `--:--`. Флаг ловится в @media print (app-theme.css).
+                        data-empty={row.data.startTime ? undefined : "true"}
                         value={row.data.startTime}
                         onChange={(event) =>
                           setRows((current) =>
@@ -1630,6 +1636,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                     {props.status === "active" ? (
                       <Input
                         type="time"
+                        data-empty={row.data.endTime ? undefined : "true"}
                         value={row.data.endTime}
                         onChange={(event) =>
                           setRows((current) =>
