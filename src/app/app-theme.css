@@ -797,10 +797,19 @@ body:has(.app-shell[data-app-theme="dark"]) {
   }
 
   /* Всё внутри кабинета — прозрачный фон и чёрный текст. Рамки
-     таблиц задаются отдельно (`table, th, td` в globals.css). */
+     таблиц задаются отдельно (`table, th, td` в globals.css).
+     ВАЖНО: dark-тема состоит из сотен правил вида
+     `.app-shell[data-app-theme="dark"] .bg-white { … !important }` со
+     специфичностью (0,3,0) — голый `.app-shell *` (0,2,0) их НЕ бьёт
+     даже с !important (проверено реальной печатью: лист оставался
+     тёмным). Поэтому каждый селектор сброса продублирован в
+     dark-варианте (0,4,0) — печать всегда светлая, в любой теме. */
   .app-shell *:not([data-print-keep-bg]),
   .app-shell *:not([data-print-keep-bg])::before,
-  .app-shell *:not([data-print-keep-bg])::after {
+  .app-shell *:not([data-print-keep-bg])::after,
+  .app-shell[data-app-theme="dark"] *:not([data-print-keep-bg]),
+  .app-shell[data-app-theme="dark"] *:not([data-print-keep-bg])::before,
+  .app-shell[data-app-theme="dark"] *:not([data-print-keep-bg])::after {
     background-color: transparent !important;
     background-image: none !important;
     color: #000 !important;
@@ -812,16 +821,21 @@ body:has(.app-shell[data-app-theme="dark"]) {
 
   /* Иконки lucide рисуются `stroke: currentColor` — после сброса выше
      они уже чёрные. Явно фиксируем на случай inline fill. */
-  .app-shell svg {
+  .app-shell svg,
+  .app-shell[data-app-theme="dark"] svg {
     color: #000 !important;
   }
 
   /* ── Q2-2. ПОЛЯ ВВОДА → ПРОСТО ТЕКСТ ──────────────────────────────
    * На бумаге ячейка журнала должна выглядеть как значение в клетке,
-   * а не как control: без рамки, без заливки, без стрелок и иконок. */
+   * а не как control: без рамки, без заливки, без стрелок и иконок.
+   * Dark-твины — по той же причине специфичности, что у сброса выше. */
   .app-shell input,
   .app-shell select,
-  .app-shell textarea {
+  .app-shell textarea,
+  .app-shell[data-app-theme="dark"] input,
+  .app-shell[data-app-theme="dark"] select,
+  .app-shell[data-app-theme="dark"] textarea {
     -webkit-appearance: none !important;
     appearance: none !important;
     background: transparent !important;
