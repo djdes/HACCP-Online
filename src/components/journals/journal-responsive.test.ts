@@ -62,8 +62,8 @@ test("journal responsive tokens keep mobile-first stacking and tighter shells", 
 
 test("page-level horizontal geometry is declared exactly once", () => {
   // Оболочка документа — прозрачная обёртка на белом фоне раздела.
-  // Горизонтальные паддинги задаёт контейнер страницы (max-w-[1296px]
-  // px-4 md:px-6 в (dashboard)/layout.tsx и journals/[code]/layout.tsx),
+  // Горизонтальные паддинги задаёт контейнер страницы (max-w-[1800px]
+  // px-4 md:px-8 в (dashboard)/layout.tsx и journals/[code]/layout.tsx),
   // поэтому у оболочки их быть не должно — иначе H1 документа уезжает
   // правее хлебных крошек.
   assert.doesNotMatch(JOURNAL_DOCUMENT_SHELL_CLASS, /(^|\s|:)px-\d/);
@@ -81,8 +81,9 @@ test("journal tokens follow the haccp-online reference typography", () => {
   assert.match(JOURNAL_TAB_RAIL_CLASS, /text-\[14px\]/);
   assert.match(JOURNAL_TAB_RAIL_CLASS, /font-semibold/);
   assert.doesNotMatch(JOURNAL_TAB_RAIL_CLASS, /sm:text-/);
-  // Контент центрируется по контейнеру эталона — 1296px.
-  assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /max-w-\[1296px\]/);
+  // R1: контент во всю ширину экрана, потолок — только 1800px.
+  assert.match(REGISTER_DOCUMENT_PAGE_CLASS, /max-w-\[1800px\]/);
+  assert.doesNotMatch(REGISTER_DOCUMENT_PAGE_CLASS, /max-w-\[1296px\]/);
 });
 
 test("document list card matches the reference geometry", () => {
@@ -109,12 +110,16 @@ test("document rhythm tokens follow the canonical block order spacing", () => {
   // Полоса → бумажная шапка: 40px, полоса не печатается.
   assert.match(DOC_AUTOFILL_STRIP_CLASS, /\bmb-10\b/);
   assert.match(DOC_AUTOFILL_STRIP_CLASS, /print:hidden/);
-  // Бумажная шапка → КАПС-заголовок: 28px.
-  assert.match(DOC_PAPER_HEADER_CLASS, /\bmb-7\b/);
-  // КАПС-заголовок → «Добавить»: 20px.
-  assert.match(DOC_CAPS_TITLE_CLASS, /\bmb-5\b/);
-  // «Добавить» → таблица: 12px, кнопки слева, в печать не идут.
-  assert.match(DOC_ADD_ROW_CLASS, /\bmb-3\b/);
+  // R1 «единый бланк»: шапка примыкает к титулу и таблице без зазора,
+  // титул — компактная строка 8px, ряд «Добавить» — такая же строка py-2.
+  // Раньше здесь стояли 28px и 20px, и ХАССП-шапка читалась отдельной
+  // карточкой, а не первым блоком одного листа.
+  assert.match(DOC_PAPER_HEADER_CLASS, /\bmb-0\b/);
+  assert.doesNotMatch(DOC_PAPER_HEADER_CLASS, /\bmb-[1-9]/);
+  assert.match(DOC_CAPS_TITLE_CLASS, /\bmy-2\b/);
+  assert.doesNotMatch(DOC_CAPS_TITLE_CLASS, /\bmb-5\b/);
+  assert.match(DOC_ADD_ROW_CLASS, /\bpy-2\b/);
+  assert.doesNotMatch(DOC_ADD_ROW_CLASS, /\bmb-\d/);
   assert.match(DOC_ADD_ROW_CLASS, /items-center/);
   assert.match(DOC_ADD_ROW_CLASS, /print:hidden/);
   // Таблица → легенда: 24px. Легенда → доп. таблица: 32px.
@@ -169,9 +174,9 @@ test("selection bar sticks under the app header and never prints", () => {
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /\bz-40\b/);
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_CLASS, /print:hidden/);
   // Горизонтально — ровно по контентной колонке страницы.
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /max-w-\[1296px\]/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /max-w-\[1800px\]/);
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /\bpx-4\b/);
-  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /md:px-6/);
+  assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_INNER_CLASS, /md:px-8/);
   // Сама «пилюля» — белая с blur, чтобы читаться поверх таблицы.
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS, /backdrop-blur/);
   assert.match(JOURNAL_DOCUMENT_SELECTION_BAR_PILL_CLASS, /bg-white\/95/);
@@ -194,10 +199,12 @@ test("dialog fields are one full-width column with floating labels", () => {
   assert.match(JOURNAL_DIALOG_HINT_CLASS, /bg-\[#fff8e8\]/);
 });
 
-test("paper canvas centers the blank at the reference width", () => {
-  // S8 аудита: бланк эталона — центрированный блок ~1150px внутри
-  // контентной колонки 1296px, а не «во всю ширину».
-  assert.match(DOC_PAPER_CANVAS_CLASS, /max-w-\[1150px\]/);
+test("paper canvas spans the full content column", () => {
+  // R1: своей max-w у бланка больше нет — горизонтальную геометрию
+  // задаёт ровно один контейнер, `journals/[code]/layout.tsx`
+  // (max-w-[1800px] + px-4 md:px-8). Прежние 1150px владелец назвал
+  // «узко»: бумага висела островом посреди широкой страницы.
+  assert.doesNotMatch(DOC_PAPER_CANVAS_CLASS, /max-w-\[\d+px\]/);
   assert.match(DOC_PAPER_CANVAS_CLASS, /\bmx-auto\b/);
   assert.match(DOC_PAPER_CANVAS_CLASS, /\bw-full\b/);
   // На печати ограничение снимается — лист задаёт @page.
@@ -225,7 +232,7 @@ test("autofill strip is one full-bleed ribbon, never a rounded card", () => {
   // и фон #f5f6ff (уборка) — полоса выглядела по-разному на каждой
   // странице.
   assert.match(DOC_AUTOFILL_STRIP_CLASS, /-mx-4/);
-  assert.match(DOC_AUTOFILL_STRIP_CLASS, /md:-mx-6/);
+  assert.match(DOC_AUTOFILL_STRIP_CLASS, /md:-mx-8/);
   assert.match(DOC_AUTOFILL_STRIP_CLASS, /bg-\[#f3f4fe\]/);
   assert.doesNotMatch(DOC_AUTOFILL_STRIP_CLASS, /rounded/);
   assert.doesNotMatch(DOC_AUTOFILL_STRIP_CLASS, /\bborder\b/);

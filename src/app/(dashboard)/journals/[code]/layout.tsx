@@ -20,7 +20,7 @@ import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide"
 export default function JournalCodeLayout({ children }: { children: React.ReactNode }) {
   return (
     // Full-bleed белая подложка: `<main>` в (dashboard)/layout ограничен
-    // 1296px, поэтому выходим из контейнера через w-screen + центрирование —
+    // 1800px, поэтому выходим из контейнера через w-screen + центрирование —
     // белый фон тянется от края до края, как на эталоне (body имеет
     // overflow-x-clip, поэтому скроллбар не появляется).
     // `min-h-[calc(100vh-140px)]` — белая подложка раздела доходит до низа
@@ -29,19 +29,19 @@ export default function JournalCodeLayout({ children }: { children: React.ReactN
     // `bg-gray-50` из (dashboard)/layout — видимая граница, которой нет
     // на эталоне. 140px ≈ шапка кабинета (72px) + футер дашборда.
     <div className="relative left-1/2 -my-4 min-h-[calc(100vh-140px)] w-screen -translate-x-1/2 bg-white py-4 md:-my-6 md:py-6">
-      {/* 1296px — ширина контейнера эталона. Широкие таблицы журналов
-          скроллятся внутри собственного viewport-контейнера
-          (JOURNAL_TABLE_VIEWPORT_CLASS), поэтому сужение их не режет. */}
+      {/* 1800px — раздел журналов идёт во всю ширину экрана (R1).
+          Широкие таблицы журналов скроллятся внутри собственного
+          viewport-контейнера (JOURNAL_TABLE_VIEWPORT_CLASS). */}
       {/* space-y-3 — шаг «хлебные крошки → H1» эталона (12px). Дальше
           ритм страницы задают токены DOC_* из journal-responsive.ts. */}
-      {/* px-4 md:px-6 — ВНУТРИ коробки 1296px, один в один как в <Header>
+      {/* px-4 md:px-8 — ВНУТРИ коробки 1800px, один в один как в <Header>
           и в контейнере (dashboard)/layout.tsx. Раньше padding стоял на
           full-bleed обёртке (снаружи коробки) и сдвигал весь раздел
           журналов на 24px влево относительно шапки. */}
       {/* pb-24 — запас под плавающую кнопку «Как заполнять»: без него
           она накрывала последние строки широких таблиц документа и
           последняя дата не выскроллировалась. */}
-      <div className="mx-auto w-full max-w-[1296px] space-y-3 px-4 pb-24 md:px-6">
+      <div className="mx-auto w-full max-w-[1800px] space-y-3 px-4 pb-24 md:px-8">
         {children}
         <JournalDocGuideOverlay />
       </div>

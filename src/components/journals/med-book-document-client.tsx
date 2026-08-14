@@ -729,10 +729,13 @@ export function MedBookDocumentClient({
         </div>
       ) : null}
 
-      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
-          Обе таблицы медкнижек шире полотна и скроллятся внутри своих
-          GRID_VIEWPORT_CLASS. */}
-      <div className={`${DOC_PAPER_CANVAS_CLASS} space-y-2`}>
+      {/* R1: бумажное полотно во всю ширину контентной колонки.
+          Обе таблицы медкнижек шире экрана и скроллятся внутри своих
+          GRID_VIEWPORT_CLASS.
+          `space-y-2` снят: blanket-отступ вставлял 8px МЕЖДУ ХАССП-шапкой,
+          КАПС-титулом и таблицей и разрывал единый бланк. Вертикальный
+          ритм задают токены DOC_* (см. journal-responsive.ts). */}
+      <div className={DOC_PAPER_CANVAS_CLASS}>
         <div className="sm:hidden print:hidden">
           <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
         </div>

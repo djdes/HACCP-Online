@@ -979,7 +979,7 @@ export function CleaningVentilationChecklistDocumentClient({
           </div>
 
           {panelOpen ? (
-            <div className="-mx-4 mb-10 bg-[#f3f4fe] px-4 pb-6 print:hidden md:-mx-6 md:px-6">
+            <div className="-mx-4 mb-10 bg-[#f3f4fe] px-4 pb-6 print:hidden md:-mx-8 md:px-8">
             <div className="space-y-7">
               {activeProcedures.map((procedure) => (
                 <div key={procedure.id} className="space-y-4">
@@ -1059,7 +1059,7 @@ export function CleaningVentilationChecklistDocumentClient({
             </div>
           ) : null}
 
-        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон):
+        {/* R1: бумажное полотно — во всю ширину контентной колонки:
             шапка ХАССП, блоки «Процедура/Периодичность/Ответственные»,
             «Добавить» и сама сетка чек-листа. */}
         <div className={DOC_PAPER_CANVAS_CLASS}>

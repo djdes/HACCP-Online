@@ -136,17 +136,18 @@ export default async function DashboardLayout({
             isRoot={session.user.isRoot === true}
             telegramBotUsername={process.env.TELEGRAM_BOT_USERNAME ?? ""}
           />
-          {/* Контент по центру, 1296px — контейнер эталона
-              (docs/reference/haccp-online/typography.json → listPage.container).
+          {/* Контент во всю ширину экрана (R1: владельцу было «узко»
+              на 1296px). Ограничение max-w-[1800px] оставлено только ради
+              сверхшироких мониторов, где строка таблицы иначе теряет глаз.
               Вертикальный ритм: 24px сверху, как на эталоне.
 
-              ВАЖНО: горизонтальные паддинги живут ВНУТРИ коробки 1296px
-              (px-4 md:px-6), ровно как в <Header>. Раньше padding был на
+              ВАЖНО: горизонтальные паддинги живут ВНУТРИ коробки 1800px
+              (px-4 md:px-8), ровно как в <Header>. Раньше padding был на
               <main> (снаружи коробки), из-за чего левая граница контента
               оказывалась на 24px левее левой границы шапки. Единственное
               место, где задаётся горизонтальная геометрия страницы. */}
           <main className="flex-1 py-4 md:py-6">
-            <div className="mx-auto w-full max-w-[1296px] px-4 md:px-6">
+            <div className="mx-auto w-full max-w-[1800px] px-4 md:px-8">
               {children}
             </div>
           </main>

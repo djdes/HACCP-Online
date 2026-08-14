@@ -527,7 +527,7 @@ export function HealthDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+        {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
         <div
           className={`${DOC_PAPER_CANVAS_CLASS} ${
             mobileView === "cards" ? "hidden sm:block print:block" : ""

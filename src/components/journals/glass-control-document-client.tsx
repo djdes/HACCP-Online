@@ -857,7 +857,7 @@ export function GlassControlDocumentClient(props: Props) {
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/glass_control" documentId={props.documentId} />
       {selectedCount > 0 && !isClosed && (
-        <div className="sticky top-0 z-30 -mx-4 flex items-center gap-4 rounded-[20px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:-mx-6 md:px-6">
+        <div className="sticky top-0 z-30 -mx-4 flex items-center gap-4 rounded-[20px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:-mx-8 md:px-8">
           <button
             type="button"
             className="rounded-xl px-4 py-2 text-[18px] text-[#5566f6]"

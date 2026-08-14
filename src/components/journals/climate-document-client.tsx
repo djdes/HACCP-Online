@@ -1497,7 +1497,7 @@ export function ClimateDocumentClient({
           </span>
         </div>
 
-        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+        {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Широкая сетка климата (min-w 1280) скроллится внутри своего
             GRID_VIEWPORT_CLASS, который лежит ВНУТРИ полотна. */}
         <div className={DOC_PAPER_CANVAS_CLASS}>

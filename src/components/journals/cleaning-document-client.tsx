@@ -2111,7 +2111,7 @@ export function CleaningDocumentClient(props: Props) {
         ) : null}
 
         <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
-        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+        {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Сетка уборки шире (min-w 1200) и продолжает скроллиться внутри
             своего GRID_VIEWPORT_CLASS, который лежит ВНУТРИ полотна. */}
         <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>

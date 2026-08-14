@@ -2332,7 +2332,7 @@ export function AcceptanceDocumentClient(props: Props) {
           </label>
         )}
 
-        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+        {/* R1: бумажное полотно — во всю ширину контентной колонки.
             11 колонок приёмки шире полотна и продолжают скроллиться
             внутри своего GRID_VIEWPORT_CLASS. */}
         <div className={DOC_PAPER_CANVAS_CLASS}>

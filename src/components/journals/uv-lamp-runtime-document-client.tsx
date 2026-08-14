@@ -1420,7 +1420,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         </div>
       </div>
 
-      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+      {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
       <div className={DOC_PAPER_CANVAS_CLASS}>
       {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки.
           По эталону (uv_lamp_runtime-grid.png) он стоит НАД справочными

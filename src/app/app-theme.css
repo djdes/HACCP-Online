@@ -55,8 +55,9 @@
    * next/font (см. src/app/layout.tsx, класс на <body>). Лендинг её не
    * использует — область действия ровно `.app-shell`.
    *
-   * Ширина контента: 1296px — контейнер списка на эталоне. */
-  --app-content-max: 1296px;
+   * Ширина контента: 1800px — кабинет живёт во всю ширину экрана,
+   * ограничение нужно только сверхшироким мониторам (R1). */
+  --app-content-max: 1800px;
 
   font-family: var(--font-manrope, "Manrope"), "Manrope", "Segoe UI",
     "Helvetica Neue", Arial, sans-serif;

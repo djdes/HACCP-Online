@@ -1042,7 +1042,7 @@ export function ColdEquipmentDocumentClient({
             Карандаши убраны: по строке кликают целиком. Последняя
             строка — селект «ФИО отв. лица», как на эталоне. */}
         {checkedAutoFill && summaryOpen ? (
-          <div className="-mx-4 mb-10 bg-[#f3f4fe] px-4 pb-4 print:hidden md:-mx-6 md:px-6">
+          <div className="-mx-4 mb-10 bg-[#f3f4fe] px-4 pb-4 print:hidden md:-mx-8 md:px-8">
             <div className="space-y-1.5">
               {config.equipment.map((item) => (
                 <button
@@ -1266,7 +1266,7 @@ export function ColdEquipmentDocumentClient({
           </div>
         ) : null}
 
-        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон).
+        {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Сетка на 15 дней шире полотна и продолжает скроллиться внутри
             своего GRID_VIEWPORT_CLASS. */}
         <div className={`${DOC_PAPER_CANVAS_CLASS} ${mobileView === "cards" ? "hidden sm:block print:block" : ""}`}>

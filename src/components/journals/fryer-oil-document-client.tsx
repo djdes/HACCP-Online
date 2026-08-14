@@ -615,7 +615,7 @@ export function FryerOilDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+        {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
         <div className={DOC_PAPER_CANVAS_CLASS}>
           <div>
             {/* Бумажная шапка — общие строки в той же сетке, что и таблица

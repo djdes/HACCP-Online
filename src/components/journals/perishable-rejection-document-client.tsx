@@ -672,7 +672,7 @@ export function PerishableRejectionDocumentClient({
           `overflow-hidden`. Именно `overflow-hidden` на карточке резал
           таблицу по правому краю: горизонтальный скролл живёт ВНУТРИ
           GRID_VIEWPORT_CLASS, а внешний клип его перекрывал. */}
-      {/* S8: бумажное полотно — центрированный блок ~1150px (эталон). */}
+      {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
       <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
         {/* HACCP header table */}
         <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
