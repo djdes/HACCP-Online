@@ -162,10 +162,10 @@ test("dialog grid keeps exactly two widths and one typography scale", () => {
   assert.match(JOURNAL_DIALOG_TITLE_CLASS, /text-\[18px\]/);
   assert.match(JOURNAL_DIALOG_TITLE_CLASS, /font-semibold/);
   assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpx-6\b/);
-  // A17: снизу 32px вместо 20px — иначе при прокрутке до конца последнее
-  // поле упиралось в непрозрачный подвал и читалось как перекрытое им.
+  // T1-12: снизу 96px — при прокрутке до конца последнее поле должно
+  // полностью выходить из-под непрозрачного фиксированного подвала.
   assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpt-5\b/);
-  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpb-8\b/);
+  assert.match(JOURNAL_DIALOG_BODY_CLASS, /\bpb-24\b/);
   assert.match(JOURNAL_DIALOG_LABEL_CLASS, /text-\[13px\]/);
 });
 
