@@ -777,8 +777,13 @@ html, body {
   animation-delay: 540ms;
 }
 
-.hero-fan > div {
-  animation: landing-float 7.5s ease-in-out 1.4s infinite;
+/* Покачивание — только на десктопе. На телефоне мокапы лежат в
+   горизонтальном scroll-snap-ряду, и плавающие карточки мешали бы
+   попадать пальцем по нужной. */
+@media (min-width: 640px) {
+  .hero-fan > div {
+    animation: landing-float 7.5s ease-in-out 1.4s infinite;
+  }
 }
 
 .landing-hero [aria-hidden="true"] > div:nth-child(1) {
@@ -827,8 +832,10 @@ html, body {
     transform: translate3d(0, 22px, 0) scale(0.996);
   }
 
-  .hero-fan > div {
-    animation-duration: 6.5s;
+  @media (min-width: 640px) {
+    .hero-fan > div {
+      animation-duration: 6.5s;
+    }
   }
 }
 

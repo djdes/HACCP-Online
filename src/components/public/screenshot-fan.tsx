@@ -22,32 +22,52 @@ import { BrandLogo } from "@/components/brand/logo";
  */
 export function ScreenshotFan() {
   return (
-    <div className="absolute inset-0">
-      {/* DESKTOP DASHBOARD — centre, only shown sm+; hard-capped to
-          container so narrow tablets don't horizontal-scroll */}
-      <div className="absolute left-1/2 top-0 hidden w-[min(760px,100%)] -translate-x-1/2 sm:block">
-        <DesktopMockup />
+    <>
+      {/* ДЕСКТОП: веер — дашборд по центру, телефон с ботом слева,
+          лист А4 справа. Абсолютное позиционирование, потому что
+          карточки намеренно перекрываются и наклонены. */}
+      <div className="absolute inset-0 hidden sm:block">
+        <div className="absolute left-1/2 top-0 w-[min(700px,100%)] -translate-x-1/2">
+          <DesktopMockup />
+        </div>
+
+        <div className="absolute bottom-0 left-[2%] w-[min(210px,21vw)] -rotate-[8deg] md:left-[5%] md:w-[228px]">
+          <TelegramMockup />
+        </div>
+
+        {/* Лист А4 — справа и крупнее телефона: это главный аргумент
+            секции, инспектору отдают именно его. */}
+        <div className="absolute bottom-0 right-[1%] w-[min(250px,24vw)] rotate-[6deg] md:right-[4%] md:w-[268px]">
+          <A4SheetMockup />
+        </div>
       </div>
 
-      {/* Mobile variant — only one phone, centred; smaller width so it
-          fits under the hero chips on 320px devices. Soft fade-mask on the
-          bottom 15% of the phone makes the inevitable chat clip (aspect
-          9:19 caps height at 380px, chat content is longer) read as a
-          deliberate preview rather than a broken render. */}
-      <div className="absolute left-1/2 top-0 block w-[min(180px,65vw)] -translate-x-1/2 sm:hidden [mask-image:linear-gradient(to_bottom,black_82%,transparent)]">
-        <TelegramMockup />
+      {/* ТЕЛЕФОН: три мокапа в ряд со scroll-snap вместо одного
+          обрезанного телефона. Раньше здесь показывали только бота, и
+          лист А4 с дашбордом мобильный посетитель не видел вовсе.
+          Лист стоит первым и центрируется при загрузке. */}
+      <div className="sm:hidden">
+        {/* Ширины подобраны так, чтобы три разных пропорции дали
+            примерно одну высоту (~360px): лист 1:1.414, телефон 9:19,
+            окно браузера — широкое. items-center добирает остаток,
+            иначе под коротким листом висела пустая полоса высотой
+            в половину телефона. */}
+        <div className="-mx-4 flex snap-x snap-mandatory items-center gap-4 overflow-x-auto px-[17vw] pb-4 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="w-[66vw] shrink-0 snap-center">
+            <A4SheetMockup />
+          </div>
+          <div className="w-[45vw] shrink-0 snap-center">
+            <TelegramMockup />
+          </div>
+          <div className="w-[84vw] shrink-0 snap-center">
+            <DesktopMockup />
+          </div>
+        </div>
+        <div className="mt-1 text-center text-[11px] text-[#9b9fb3]">
+          Листайте вбок: бланк для проверки, бот для смены, кабинет
+        </div>
       </div>
-
-      {/* TELEGRAM BOT PHONE — left, tilted -8° (sm+ only) */}
-      <div className="absolute left-[2%] bottom-0 hidden w-[min(220px,22vw)] -rotate-[8deg] sm:block md:left-[6%] md:w-[240px]">
-        <TelegramMockup />
-      </div>
-
-      {/* PDF PHONE — right, tilted +8° (sm+ only) */}
-      <div className="absolute right-[2%] bottom-0 hidden w-[min(220px,22vw)] rotate-[8deg] sm:block md:right-[6%] md:w-[240px]">
-        <PdfMockup />
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -281,84 +301,121 @@ function TelegramMockup() {
  * PDF export phone mockup
  * -------------------------------------------------------------------- */
 
-function PdfMockup() {
+/* ----------------------------------------------------------------------
+ * A4 sheet mockup — «Журнал уборки»
+ *
+ * Заменил телефон с гигиеническим журналом. Посетитель лендинга — чаще
+ * всего управляющая, которая держала в руках именно бумажный бланк:
+ * лист А4 с шапкой ХАССП узнаётся мгновенно, а список фамилий на
+ * телефоне — нет. Разметка статическая, «по мотивам» реального бланка,
+ * а не рендер настоящего документа: это витрина, ей не нужен доступ
+ * к чужим данным.
+ * -------------------------------------------------------------------- */
+
+const A4_ROOMS = [
+  { name: "Горячий цех", marks: ["Т", "Т", "Г", "Т", "Т", "Т", "Т"] },
+  { name: "Холодный цех", marks: ["Т", "Т", "Т", "Т", "Г", "Т", "Т"] },
+  { name: "Моечная", marks: ["Т", "Г", "Т", "Т", "Т", "Т", "Г"] },
+  { name: "Склад сухих продуктов", marks: ["Т", "Т", "Т", "Г", "Т", "Т", "Т"] },
+  { name: "Зал", marks: ["Т", "Т", "Т", "Т", "Т", "Г", "Т"] },
+];
+
+const A4_DAYS = ["01", "02", "03", "04", "05", "06", "07"];
+
+function A4SheetMockup() {
   return (
-    // Matched aspect with TelegramMockup so the "веер" reads as three phones
-    // of the same shape, not three rectangles of different proportions.
-    <div className="aspect-[9/19] overflow-hidden rounded-[34px] border-[6px] border-[#0b1024] bg-[#0b1024] shadow-[0_30px_60px_-20px_rgba(11,16,36,0.4)]">
-      <div className="h-full rounded-[28px] bg-[#fafbff]">
-        {/* header */}
-        <div className="flex items-center justify-between bg-white px-4 py-3">
-          <div className="text-[#0b1024]">
-            <BrandLogo height={18} title="" />
+    <div className="aspect-[1/1.414] overflow-hidden rounded-[6px] bg-white p-[5%] shadow-[0_30px_60px_-20px_rgba(11,16,36,0.35)] ring-1 ring-[#e3e6f2]">
+      {/* Шапка бланка: организация | система | учётные даты */}
+      <div className="grid grid-cols-[1.3fr_1fr_1fr] border border-[#0b1024] text-[#0b1024]">
+        <div className="border-r border-[#0b1024] px-2 py-1.5">
+          <div className="text-[6px] uppercase tracking-[0.12em] text-[#6f7282]">
+            Организация
           </div>
-          <div className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[9px] font-medium text-[#116b2a]">
-            <FileText className="size-3" />
-            PDF
+          <div className="mt-0.5 text-[8px] font-semibold leading-tight">
+            ООО «Ромашка»
           </div>
         </div>
-        {/* paper */}
-        <div className="p-3">
-          <div className="rounded-xl bg-white p-3 shadow-[0_0_0_1px_rgba(220,223,237,0.8)]">
-            <div className="text-[10px] font-semibold text-[#0b1024]">
-              Гигиенический журнал
-            </div>
-            <div className="mt-0.5 text-[9px] text-[#6f7282]">
-              Период: 01.04 — 15.04.2026
-            </div>
+        <div className="flex items-center justify-center border-r border-[#0b1024] px-2 py-1.5 text-center text-[8px] font-semibold uppercase leading-tight tracking-[0.08em]">
+          Система
+          <br />
+          ХАССП
+        </div>
+        <div className="px-2 py-1.5 text-[6px] leading-[1.5] text-[#3c4053]">
+          <div>Начат: 01.04.2026</div>
+          <div>Окончен: —</div>
+          <div className="font-semibold text-[#0b1024]">СТР. 1 ИЗ 1</div>
+        </div>
+      </div>
 
-            <div className="mt-2 space-y-1">
-              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md bg-[#fafbff] px-2 py-1.5 text-[9px]">
-                <span className="font-medium text-[#0b1024]">
-                  Волков Д.В.
-                </span>
-                <span className="text-[#6f7282]">15.04</span>
-                <span className="inline-flex size-3 items-center justify-center rounded-full bg-[#5566f6] text-[7px] text-white">
-                  ✓
-                </span>
-              </div>
-              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md bg-[#fafbff] px-2 py-1.5 text-[9px]">
-                <span className="font-medium text-[#0b1024]">
-                  Петрова Н.А.
-                </span>
-                <span className="text-[#6f7282]">15.04</span>
-                <span className="inline-flex size-3 items-center justify-center rounded-full bg-[#5566f6] text-[7px] text-white">
-                  ✓
-                </span>
-              </div>
-              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md bg-[#fff4f2] px-2 py-1.5 text-[9px]">
-                <span className="font-medium text-[#0b1024]">
-                  Соколов А.М.
-                </span>
-                <span className="text-[#6f7282]">15.04</span>
-                <span className="inline-flex size-3 items-center justify-center rounded-full bg-[#d2453d] text-[7px] text-white">
-                  !
-                </span>
-              </div>
-              <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md bg-[#fafbff] px-2 py-1.5 text-[9px]">
-                <span className="font-medium text-[#0b1024]">
-                  Иванова Е.П.
-                </span>
-                <span className="text-[#6f7282]">15.04</span>
-                <span className="inline-flex size-3 items-center justify-center rounded-full bg-[#5566f6] text-[7px] text-white">
-                  ✓
-                </span>
-              </div>
-            </div>
+      <div className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0b1024]">
+        Журнал уборки и дезинфекции
+      </div>
 
-            <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#dcdfed] pt-2 text-[8px] text-[#9b9fb3]">
-              <span>стр. 1 из 12</span>
-              <span>подпись: ________</span>
-            </div>
-          </div>
-        </div>
-        {/* action */}
-        <div className="flex items-center gap-2 px-4 pb-4 pt-1">
-          <div className="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-full bg-[#0b1024] text-[10px] font-medium text-white">
-            Скачать для проверки
-            <ArrowRight className="size-3" />
-          </div>
-        </div>
+      {/* Сетка: помещения по строкам, дни по столбцам */}
+      <table className="mt-2 w-full border-collapse text-[#0b1024]">
+        <thead>
+          <tr>
+            <th className="border border-[#9aa0b8] bg-[#f4f5fa] px-1.5 py-1 text-left text-[6px] font-semibold uppercase tracking-[0.08em]">
+              Помещение
+            </th>
+            {A4_DAYS.map((d) => (
+              <th
+                key={d}
+                className="border border-[#9aa0b8] bg-[#f4f5fa] px-1 py-1 text-center text-[6px] font-semibold tabular-nums"
+              >
+                {d}
+              </th>
+            ))}
+            <th className="border border-[#9aa0b8] bg-[#f4f5fa] px-1 py-1 text-center text-[6px] font-semibold uppercase">
+              Средство
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {A4_ROOMS.map((room) => (
+            <tr key={room.name}>
+              <td className="border border-[#9aa0b8] px-1.5 py-[3px] text-[6.5px] leading-tight">
+                {room.name}
+              </td>
+              {room.marks.map((m, i) => (
+                <td
+                  key={i}
+                  className={`border border-[#9aa0b8] px-1 py-[3px] text-center text-[6.5px] font-semibold ${
+                    m === "Г" ? "text-[#3848c7]" : "text-[#3c4053]"
+                  }`}
+                >
+                  {m}
+                </td>
+              ))}
+              <td className="border border-[#9aa0b8] px-1 py-[3px] text-center text-[6.5px] tabular-nums text-[#3c4053]">
+                С1
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[5.5px] leading-relaxed text-[#6f7282]">
+        <span>
+          <b className="text-[#3c4053]">Т</b> — текущая уборка
+        </span>
+        <span>
+          <b className="text-[#3848c7]">Г</b> — генеральная
+        </span>
+        <span>
+          <b className="text-[#3c4053]">С1</b> — дезсредство, рабочий раствор
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#dcdfed] pt-2">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-1.5 py-0.5 text-[6px] font-medium text-[#116b2a]">
+          <FileText className="size-2" />
+          PDF для проверки
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#0b1024] px-2 py-1 text-[6.5px] font-medium text-white">
+          Скачать для проверки
+          <ArrowRight className="size-2" />
+        </span>
       </div>
     </div>
   );

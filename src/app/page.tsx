@@ -557,13 +557,12 @@ export default async function LandingPage() {
             )}
           </div>
 
-          {/* Screenshot fan — single mobile phone needs ~400px (9:19 ratio
-              at 180px width = 380px tall + 20px breathing room). Fan with
-              two tilted phones + desktop mockup needs ~680px. Height scales
-              down aggressively on <sm so the hero isn't 90% whitespace on
-              a phone — previous `min-h-[420px]` left ~40px dead strip below
-              the phone that made the mobile hero look broken. */}
-          <div className="hero-fan relative mx-auto mt-10 min-h-[400px] max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
+          {/* Мокапы продукта. На телефоне высота идёт по содержимому:
+              там теперь горизонтальный ряд карточек, и фиксированный
+              min-h оставлял под ним пустую полосу. На sm+ высота задана
+              явно — веер собран из absolute-элементов и сам её не
+              держит. */}
+          <div className="hero-fan relative mx-auto mt-10 max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
             <ScreenshotFan />
           </div>
         </div>
