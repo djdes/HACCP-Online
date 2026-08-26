@@ -44,6 +44,42 @@ export type SeoJournalConfig = {
   downloadHref?: string;
 };
 
+/**
+ * Журналы, у которых есть публичный образец. Список повторяет
+ * SAMPLE_JOURNAL_CODES из journal-sample-fixtures: импортировать оттуда
+ * нельзя — тот модуль тянет за собой jsPDF, а этот компонент рисуется
+ * на клиенте.
+ */
+const SAMPLE_CODES = new Set([
+  "hygiene",
+  "health_check",
+  "climate_control",
+  "cold_equipment_control",
+  "cleaning_ventilation_checklist",
+  "cleaning",
+  "general_cleaning",
+  "uv_lamp_runtime",
+  "finished_product",
+  "perishable_rejection",
+  "incoming_control",
+  "fryer_oil",
+  "med_books",
+]);
+
+/**
+ * Ссылка на образец. Раньше кнопка «Скачать шаблон PDF» была
+ * свёрстана, но `downloadHref` никто не заполнял — она просто не
+ * показывалась. Теперь путь выводится из relatedCode: отдельное поле
+ * пришлось бы держать в актуальном состоянии руками.
+ */
+function sampleHref(c: SeoJournalConfig): string | undefined {
+  if (c.downloadHref) return c.downloadHref;
+  if (c.relatedCode && SAMPLE_CODES.has(c.relatedCode)) {
+    return `/api/journal-samples/${c.relatedCode}/pdf`;
+  }
+  return undefined;
+}
+
 export function getSeoMetadata(c: SeoJournalConfig) {
   return {
     title: c.metaTitle,
@@ -109,15 +145,15 @@ export function SeoJournalLanding({ config }: { config: SeoJournalConfig }) {
               Вести этот журнал бесплатно
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
-            {c.downloadHref ? (
+            {sampleHref(c) ? (
               <a
-                href={c.downloadHref}
+                href={sampleHref(c)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex h-12 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-5 text-[15px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#fafbff]"
               >
                 <Download className="size-4" />
-                Скачать шаблон PDF
+                Скачать заполненный образец
               </a>
             ) : null}
           </div>

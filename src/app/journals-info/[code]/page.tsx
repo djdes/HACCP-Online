@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BookOpenCheck,
   CheckCircle2,
+  FileDown,
   Lightbulb,
   ScrollText,
 } from "lucide-react";
@@ -16,6 +17,10 @@ import {
 import { JOURNAL_SEO } from "@/content/journal-seo";
 import { JournalScreenshot } from "@/components/public/journal-screenshot";
 import { jsonLdSafeString } from "@/lib/json-ld";
+import {
+  DOCX_SAMPLE_CODES,
+} from "@/lib/document-docx";
+import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
 import {
   DEFAULT_OG_IMAGES,
   DEFAULT_TWITTER_CARD,
@@ -57,6 +62,10 @@ export async function generateMetadata({
     },
   };
 }
+
+/** Журналы с публичным образцом — страница серверная, импорт безопасен. */
+const SAMPLE_CODES = new Set<string>(SAMPLE_JOURNAL_CODES);
+const DOCX_CODES = new Set<string>(DOCX_SAMPLE_CODES);
 
 export default async function JournalInfoDetailPage({
   params,
@@ -158,6 +167,46 @@ export default async function JournalInfoDetailPage({
         </div>
         <JournalScreenshot code={code} label={info.tagline} />
       </section>
+
+      {/* ОБРАЗЕЦ — сразу под скриншотом: человек, который дочитал до
+          сюда, хочет увидеть готовый бланк, а не читать дальше. */}
+      {SAMPLE_CODES.has(code) ? (
+        <section className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6">
+          <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-5 sm:p-6">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white">
+              <FileDown className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[15px] font-semibold text-[#0b1024]">
+                Заполненный образец этого журнала
+              </div>
+              <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
+                Тот же бланк, который сервис выдаёт инспектору. Данные
+                вымышленные — можно распечатать и посмотреть, как
+                выглядит готовый журнал.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={`/api/journal-samples/${code}/pdf`}
+                className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+              >
+                <FileDown className="size-4" />
+                PDF
+              </a>
+              {DOCX_CODES.has(code) ? (
+                <a
+                  href={`/api/journal-samples/${code}/docx`}
+                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <FileDown className="size-4 text-[#5566f6]" />
+                  DOCX
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-12">
         <div className="grid gap-6 md:grid-cols-[1fr_320px]">

@@ -1,4 +1,6 @@
 import fs from "fs";
+import path from "path";
+import type { Prisma } from "@prisma/client";
 import { jsPDF } from "jspdf";
 import autoTable, { type CellDef, type CellHookData, type RowInput } from "jspdf-autotable";
 import { getCalendarDayKind } from "@/lib/production-calendar-data";
@@ -275,7 +277,25 @@ import {
   VACCINATION_TYPE_LABELS,
 } from "@/lib/med-book-document";
 
+/**
+ * Шрифт для PDF. Первым идёт свой, лежащий в репозитории: раньше список
+ * состоял только из системных путей, и на машине без единого из них
+ * jsPDF откатывался на helvetica — а она не знает кириллицы, и весь
+ * журнал печатался кракозябрами. Системные пути оставлены запасными.
+ *
+ * DejaVu распространяется по лицензии Bitstream Vera; её текст лежит
+ * рядом в LICENSE-DejaVu.txt, как эта лицензия и требует.
+ */
+const BUNDLED_FONT_PATH = path.join(
+  process.cwd(),
+  "src",
+  "lib",
+  "pdf-fonts",
+  "DejaVuSans.ttf"
+);
+
 const FONT_CANDIDATES = [
+  BUNDLED_FONT_PATH,
   "C:\\Windows\\Fonts\\arial.ttf",
   "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
   "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
@@ -5816,10 +5836,55 @@ function drawGlassControlPdf(doc: jsPDF, params: {
   });
 }
 
-export async function generateJournalDocumentPdf(params: {
+/**
+ * Документ в том виде, в каком его ждёт рендерер.
+ *
+ * Выведен из Prisma, а не переписан руками: тело рендера трогает
+ * десятки полей, и структурный тип «на глаз» разъехался бы со схемой
+ * при первой же миграции. Образцы журналов для лендинга собирают
+ * объект этой же формы — см. src/lib/journal-sample-fixtures.ts.
+ */
+export type JournalDocumentForPdf = Prisma.JournalDocumentGetPayload<{
+  include: {
+    template: true;
+    organization: { select: { name: true; inn: true; address: true; phone: true } };
+    entries: true;
+  };
+}>;
+
+/**
+ * Что нужно рендереру PDF, кроме самого документа.
+ *
+ * Тип структурный, а не Prisma-payload: по этим же данным собираются
+ * образцы журналов для публичного лендинга, где ни организации, ни
+ * пользователей в БД нет.
+ */
+export type JournalDocumentPdfUser = {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  positionTitle: string;
+};
+
+export type JournalDocumentPdfInput = {
+  document: JournalDocumentForPdf;
+  users: JournalDocumentPdfUser[];
+  equipment: { id: string; name: string }[];
+  /// Помещения организации. Нужны только журналу уборки в rooms-mode —
+  /// у остальных пустой список, лишнего запроса не делаем.
+  rooms: { id: string; name: string }[];
+};
+
+/**
+ * Загрузка входных данных из БД. Единственная часть генерации, которая
+ * ходит в базу, — вынесена отдельно, чтобы `renderJournalDocumentPdf`
+ * оставался чистым и его можно было позвать на выдуманных данных.
+ */
+export async function loadJournalDocumentPdfInput(params: {
   documentId: string;
   organizationId: string;
-}): Promise<{ buffer: Buffer; fileName: string }> {
+}): Promise<JournalDocumentPdfInput> {
   const { documentId, organizationId } = params;
 
   const document = await db.journalDocument.findUnique({
@@ -5882,6 +5947,38 @@ export async function generateJournalDocumentPdf(params: {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+
+  // Помещения раньше подгружались из середины рендера — из-за этого он
+  // не мог быть чистой функцией. Тянем их здесь и только для журнала
+  // уборки: остальным формам они не нужны.
+  const rooms =
+    document.template.code === CLEANING_DOCUMENT_TEMPLATE_CODE
+      ? await db.room.findMany({
+          where: { building: { organizationId } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+  return { document, users, equipment, rooms };
+}
+
+/** Совместимость: загрузка + рендер одним вызовом, как было раньше. */
+export async function generateJournalDocumentPdf(params: {
+  documentId: string;
+  organizationId: string;
+}): Promise<{ buffer: Buffer; fileName: string }> {
+  return renderJournalDocumentPdf(await loadJournalDocumentPdfInput(params));
+}
+
+/**
+ * Чистый рендер: ни одного обращения к БД, только jsPDF поверх
+ * переданных данных.
+ */
+export function renderJournalDocumentPdf(
+  input: JournalDocumentPdfInput
+): { buffer: Buffer; fileName: string } {
+  const { document, users, equipment, rooms } = input;
+
 
   const doc = new jsPDF({
     orientation: "landscape",
@@ -6017,11 +6114,7 @@ export async function generateJournalDocumentPdf(params: {
     const cleaningRoomNamesById: Record<string, string> = {};
     const cleaningUserInitialsById: Record<string, string> = {};
     if (cleaningConfig?.cleaningMode === "rooms") {
-      const orgRooms = await db.room.findMany({
-        where: { building: { organizationId: document.organizationId } },
-        select: { id: true, name: true },
-      });
-      for (const r of orgRooms) cleaningRoomNamesById[r.id] = r.name;
+      for (const r of rooms) cleaningRoomNamesById[r.id] = r.name;
       for (const u of users) {
         const parts = (u.name ?? "").trim().split(/\s+/);
         cleaningUserInitialsById[u.id] = parts

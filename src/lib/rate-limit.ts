@@ -157,6 +157,16 @@ export const destructiveOpsRateLimiter = createRateLimiter({
  * 5 запросов / 10 минут на IP — нормальному пользователю хватит на
  * 2-3 retry'я если первый код потерялся. Боту не хватит для спама.
  */
+/**
+ * Публичные образцы журналов. Роут без сессии и генерирует PDF/DOCX —
+ * то есть тратит CPU на каждый запрос. 20 файлов в минуту с одного
+ * адреса хватает живому человеку и не даёт скачивать их пачкой в цикле.
+ */
+export const journalSampleRateLimiter = createRateLimiter({
+  tokensPerInterval: 20,
+  intervalMs: 60_000,
+});
+
 export const registrationCodeRateLimiter = createRateLimiter({
   tokensPerInterval: 5,
   intervalMs: 10 * 60 * 1000,

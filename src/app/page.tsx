@@ -573,7 +573,7 @@ export default async function LandingPage() {
           человека меняется; карточки «было / стало» отвечают именно на
           это. Секция вынесена из героя: карусель на первом экране
           отодвигала бы кнопку регистрации. */}
-      <section className="mx-auto max-w-[1200px] px-4 pb-20 pt-20 sm:px-6">
+      <section className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6">
         <div className="mb-10 max-w-[640px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <Store className="size-4" />
@@ -637,9 +637,9 @@ export default async function LandingPage() {
             Заполните журнал прямо здесь — без регистрации
           </h2>
           <p className="mt-3 text-[15px] text-[#6f7282]">
-            Это контроль температуры холодильника — типичный ежедневный
-            журнал. Введите данные и сохраните, чтобы увидеть как это
-            работает в реальном WeSetup.
+            Пять самых частых журналов с настоящими полями. Переключите
+            вкладку, заполните и сохраните — а рядом скачайте
+            заполненный образец этого же бланка в PDF или Word.
           </p>
         </div>
         <DemoJournalWidget />
