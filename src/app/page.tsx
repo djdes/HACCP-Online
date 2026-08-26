@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { EquipmentPricing } from "@/components/landing/equipment-pricing";
+import { AudienceCarousel } from "@/components/landing/audience-carousel";
+import { TestimonialsCarousel } from "@/components/landing/testimonials-carousel";
 import { BrandLogo } from "@/components/brand/logo";
 import {
   HARDWARE_BUNDLES,
@@ -149,21 +151,6 @@ const STEPS = [
     title: "Переход на платный тариф",
     text: "Если сотрудников больше пяти — платный тариф и индивидуальная консультация по настройке под ваше заведение.",
   },
-];
-
-const AUDIENCE_CHIPS: string[] = [
-  "Рестораны",
-  "Кафе",
-  "Пекарни",
-  "Кондитерские",
-  "Столовые",
-  "Отели",
-  "Фуд-корты",
-  "Кейтеринг",
-  "Школьные кухни",
-  "Производственные цеха",
-  "Тёмные кухни",
-  "Сети общепита",
 ];
 
 const AUDIENCE = [
@@ -570,23 +557,6 @@ export default async function LandingPage() {
             )}
           </div>
 
-          {/* Audience chips */}
-          <div className="hero-chips mx-auto mt-14 max-w-[860px]">
-            <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9b9fb3]">
-              Подходит для
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              {AUDIENCE_CHIPS.map((a) => (
-                <span
-                  key={a}
-                  className="inline-flex items-center rounded-full border border-[#ececf4] bg-white px-4 py-2 text-[13px] font-medium text-[#3c4053] shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
-                >
-                  {a}
-                </span>
-              ))}
-            </div>
-          </div>
-
           {/* Screenshot fan — single mobile phone needs ~400px (9:19 ratio
               at 180px width = 380px tall + 20px breathing room). Fan with
               two tilted phones + desktop mockup needs ~680px. Height scales
@@ -597,6 +567,28 @@ export default async function LandingPage() {
             <ScreenshotFan />
           </div>
         </div>
+      </section>
+
+      {/* ПОДХОДИТ ДЛЯ — было рядом чипов в герое. Слова «Рестораны,
+          Кафе, Пекарни» говорили, кому продают, но не говорили, что у
+          человека меняется; карточки «было / стало» отвечают именно на
+          это. Секция вынесена из героя: карусель на первом экране
+          отодвигала бы кнопку регистрации. */}
+      <section className="mx-auto max-w-[1200px] px-4 pb-20 pt-20 sm:px-6">
+        <div className="mb-10 max-w-[640px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Store className="size-4" />
+            Подходит для
+          </div>
+          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Кухня любого размера — от одной точки до сети
+          </h2>
+          <p className="mt-3 text-[15px] text-[#6f7282]">
+            Найдите своё заведение и посмотрите, что меняется в первую
+            неделю после перехода с бумаги.
+          </p>
+        </div>
+        <AudienceCarousel />
       </section>
 
       {/* FEATURES */}
@@ -1025,6 +1017,10 @@ export default async function LandingPage() {
           показ.
         </div>
       </section>
+
+      {/* ОТЗЫВЫ — секция сама себя прячет, пока нет ни одного
+          подтверждённого отзыва (src/content/testimonials.ts). */}
+      <TestimonialsCarousel />
 
       {/* AUDIENCE */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
