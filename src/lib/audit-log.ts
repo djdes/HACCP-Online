@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { clientIp } from "@/lib/client-ip";
 
 /**
  * Минимальный helper для записи admin-действий в `AuditLog`. Точка
@@ -28,15 +29,6 @@ export interface AuditLogInput {
   entity: string;
   entityId?: string | null;
   details?: Record<string, unknown>;
-}
-
-function clientIp(request?: Request): string | null {
-  if (!request) return null;
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  const xri = request.headers.get("x-real-ip");
-  if (xri) return xri.trim();
-  return null;
 }
 
 export async function recordAuditLog(input: AuditLogInput): Promise<void> {

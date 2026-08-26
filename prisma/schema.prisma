@@ -402,6 +402,16 @@ model User {
   ///   "cleaner"   — уборщик, только мини-апп задачи (узкий список)
   /// null → derive from role (legacy).
   permissionPreset            String?
+  /// IP, с которого создан аккаунт. Заполняется один раз при регистрации
+  /// и больше не меняется — ROOT по нему видит, откуда пришёл клиент,
+  /// и отличает живую регистрацию от накрутки с одного адреса.
+  registrationIp              String?
+  /// IP и время последнего успешного входа. Перезаписываются при каждом
+  /// логине (свой /api/auth/login, NextAuth-credentials и Telegram).
+  /// Нужны в /root/metrics, чтобы понять, жив ли аккаунт и не сменился
+  /// ли город/провайдер.
+  lastLoginIp                 String?
+  lastLoginAt                 DateTime?
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])

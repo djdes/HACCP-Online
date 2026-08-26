@@ -32,6 +32,8 @@ export async function POST(request: Request) {
   // от concurrent-параллельного перебора 6-значного кода.
   const xff = request.headers.get("x-forwarded-for") ?? "";
   const ip = xff.split(",")[0].trim() || "unknown";
+  // «unknown» — рабочий ключ для rate-limit, но в БД от него нет пользы.
+  const ipForLog = ip === "unknown" ? null : ip;
   if (!registrationConfirmRateLimiter.consume(`confirm:${ip}`)) {
     return NextResponse.json(
       { error: "Слишком много попыток. Подождите 5 минут." },
@@ -163,6 +165,11 @@ export async function POST(request: Request) {
         // jobPositionId — null на старте. positionTitle тоже пустой,
         // пусть менеджер впишет что ему удобно.
         journalAccessMigrated: true,
+        // Подтверждение кода завершается автоматическим входом, поэтому
+        // адрес регистрации он же и адрес первого входа.
+        registrationIp: ipForLog,
+        lastLoginIp: ipForLog,
+        lastLoginAt: new Date(),
       },
     });
 

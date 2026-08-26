@@ -41,6 +41,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export async function POST(request: Request) {
   const xff = request.headers.get("x-forwarded-for") ?? "";
   const ip = xff.split(",")[0].trim() || "unknown";
+  // Для rate-limit «unknown» — рабочий ключ, для БД это мусор: пусть
+  // лучше стоит NULL, чем строка, по которой ROOT ничего не найдёт.
+  const ipForLog = ip === "unknown" ? null : ip;
 
   const body = await request.json().catch(() => null);
   const email =
@@ -118,6 +121,11 @@ export async function POST(request: Request) {
           role: "manager",
           organizationId: organization.id,
           journalAccessMigrated: true,
+          // Регистрация с лендинга сразу же и логинит человека, поэтому
+          // адрес пишем в оба поля: первый вход — он же и есть.
+          registrationIp: ipForLog,
+          lastLoginIp: ipForLog,
+          lastLoginAt: new Date(),
         },
       });
       return { organization, user };

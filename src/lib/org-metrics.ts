@@ -15,6 +15,12 @@ export type OrgMetrics = {
   /// потом заблокировали, это всё ещё адрес, по которому ROOT ищет
   /// клиента в поддержке. null — в организации не осталось никого.
   ownerEmail: string | null;
+  /// IP владельца: с какого адреса завели организацию и с какого заходили
+  /// последний раз. Оба null у аккаунтов, созданных до появления полей,
+  /// и у тех, кого завели вручную из кабинета.
+  ownerRegistrationIp: string | null;
+  ownerLastLoginIp: string | null;
+  ownerLastLoginAt: string | null;
   type: string;
   subscriptionPlan: string;
   subscriptionEnd: string | null;
@@ -137,14 +143,21 @@ export async function getAllOrgMetrics(
       // id вторым ключом — у сотрудников из одного импорта createdAt
       // совпадает до миллисекунды, и без него выбор был бы случайным.
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      select: { organizationId: true, email: true },
+      select: {
+        organizationId: true,
+        email: true,
+        registrationIp: true,
+        lastLoginIp: true,
+        lastLoginAt: true,
+      },
     }),
   ]);
 
-  const ownerEmailByOrg = new Map<string, string>();
+  type OwnerRow = (typeof usersForOwner)[number];
+  const ownerByOrg = new Map<string, OwnerRow>();
   for (const u of usersForOwner) {
-    if (!ownerEmailByOrg.has(u.organizationId)) {
-      ownerEmailByOrg.set(u.organizationId, u.email);
+    if (!ownerByOrg.has(u.organizationId)) {
+      ownerByOrg.set(u.organizationId, u);
     }
   }
 
@@ -205,6 +218,8 @@ export async function getAllOrgMetrics(
           : lastDoc
         : (lastField ?? lastDoc);
 
+    const owner = ownerByOrg.get(org.id);
+
     const calc = calculatePerEmployeePrice(activeUsers);
     const isPaid =
       org.subscriptionPlan === "paid" || org.subscriptionPlan === "pro";
@@ -212,7 +227,10 @@ export async function getAllOrgMetrics(
     return {
       organizationId: org.id,
       organizationName: org.name,
-      ownerEmail: ownerEmailByOrg.get(org.id) ?? null,
+      ownerEmail: owner?.email ?? null,
+      ownerRegistrationIp: owner?.registrationIp ?? null,
+      ownerLastLoginIp: owner?.lastLoginIp ?? null,
+      ownerLastLoginAt: owner?.lastLoginAt?.toISOString() ?? null,
       type: org.type,
       subscriptionPlan: org.subscriptionPlan,
       subscriptionEnd: org.subscriptionEnd?.toISOString() ?? null,

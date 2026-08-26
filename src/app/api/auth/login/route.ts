@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { issueSession } from "@/lib/issue-session";
 import { loginRateLimiter } from "@/lib/rate-limit";
+import { recordLogin } from "@/lib/login-trace";
 
 // Pre-computed bcrypt hash для несуществующих email'ов. Без этого
 // ответ на «пользователь не найден» приходит в ~5ms, а на
@@ -58,6 +59,10 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+
+    // Отметка о входе — до выдачи сессии, но не в блокирующем смысле:
+    // recordLogin глотает свои ошибки, вход от неё не зависит.
+    await recordLogin(user.id, ip === "unknown" ? null : ip);
 
     // Минт JWT и раскладка кук вынесены в lib/issue-session.ts —
     // мгновенная регистрация выдаёт сессию тем же кодом.

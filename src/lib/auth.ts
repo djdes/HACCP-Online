@@ -1,5 +1,7 @@
 import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { clientIpFromHeaderBag } from "@/lib/client-ip";
+import { recordLogin } from "@/lib/login-trace";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { getPermissionRole } from "@/lib/user-roles";
@@ -63,7 +65,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Введите email и пароль");
         }
@@ -102,6 +104,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Неверный email или пароль");
         }
 
+        // Отметка о входе для /root/metrics. NextAuth не даёт сюда
+        // настоящий Request — только мешок заголовков от адаптера.
+        await recordLogin(user.id, clientIpFromHeaderBag(req?.headers));
+
         return {
           id: user.id,
           email: user.email,
@@ -125,7 +131,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         initData: { label: "initData", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const initData = credentials?.initData;
         if (!initData) {
           throw new Error("Не найдены данные Telegram");
@@ -144,6 +150,7 @@ export const authOptions: NextAuthOptions = {
             "Аккаунт не связан с Telegram. Получите приглашение у руководителя."
           );
         }
+        await recordLogin(user.id, clientIpFromHeaderBag(req?.headers));
         return {
           id: user.id,
           email: user.email,

@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Minus, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  ExternalLink,
+  Minus,
+  Search,
+} from "lucide-react";
 import type { OrgMetrics } from "@/lib/org-metrics";
 
 /**
@@ -16,6 +23,7 @@ import type { OrgMetrics } from "@/lib/org-metrics";
 type SortKey =
   | "organizationName"
   | "ownerEmail"
+  | "ownerRegistrationIp"
   | "createdAt"
   | "subscriptionPlan"
   | "activeUsers"
@@ -33,6 +41,7 @@ const COLUMNS: {
 }[] = [
   { key: "organizationName", label: "Организация", align: "left" },
   { key: "ownerEmail", label: "Email владельца", align: "left" },
+  { key: "ownerRegistrationIp", label: "IP", align: "left" },
   { key: "createdAt", label: "Регистрация", align: "right" },
   { key: "subscriptionPlan", label: "Тариф", align: "center" },
   { key: "activeUsers", label: "Сотрудники", align: "right" },
@@ -49,6 +58,8 @@ function sortValue(m: OrgMetrics, key: SortKey): string | number | null {
       return m.organizationName.toLowerCase();
     case "ownerEmail":
       return m.ownerEmail ? m.ownerEmail.toLowerCase() : null;
+    case "ownerRegistrationIp":
+      return ipSortKey(m.ownerRegistrationIp ?? m.ownerLastLoginIp);
     case "createdAt":
       return new Date(m.createdAt).getTime();
     case "subscriptionPlan":
@@ -81,6 +92,8 @@ export function MetricsTable({
           (m) =>
             m.organizationName.toLowerCase().includes(q) ||
             (m.ownerEmail ?? "").toLowerCase().includes(q) ||
+            (m.ownerRegistrationIp ?? "").includes(q) ||
+            (m.ownerLastLoginIp ?? "").includes(q) ||
             m.type.toLowerCase().includes(q) ||
             m.subscriptionPlan.toLowerCase().includes(q),
         )
@@ -112,6 +125,7 @@ export function MetricsTable({
     const isText =
       key === "organizationName" ||
       key === "ownerEmail" ||
+      key === "ownerRegistrationIp" ||
       key === "subscriptionPlan";
     setSortDir(isText ? "asc" : "desc");
   }
@@ -124,7 +138,7 @@ export function MetricsTable({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по почте, названию, тарифу"
+            placeholder="Поиск по почте, IP, названию, тарифу"
             className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white pl-10 pr-4 text-[14px] text-[#0b1024] outline-none transition-colors placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </label>
@@ -229,6 +243,13 @@ export function MetricsTable({
                       </span>
                     )}
                   </td>
+                  <td className="px-5 py-3">
+                    <OwnerIpCell
+                      registrationIp={m.ownerRegistrationIp}
+                      lastLoginIp={m.ownerLastLoginIp}
+                      lastLoginAt={m.ownerLastLoginAt}
+                    />
+                  </td>
                   <td className="px-5 py-3 text-right text-[13px] tabular-nums text-[#3c4053]">
                     {new Date(m.createdAt).toLocaleDateString("ru-RU")}
                   </td>
@@ -321,4 +342,82 @@ function formatRelative(date: Date, now: number): string {
   if (days < 30) return `${days} дн назад`;
   const months = Math.floor(days / 30);
   return `${months} мес назад`;
+}
+
+/**
+ * Ключ сортировки для IP. Лексикографически «10.0.0.2» стоит раньше
+ * «9.9.9.9», поэтому октеты IPv4 добиваем нулями до трёх знаков —
+ * тогда обычное сравнение строк совпадает с числовым. IPv6 и мусор
+ * возвращаем как есть: их мало, и точный порядок между ними неважен.
+ */
+function ipSortKey(ip: string | null): string | null {
+  if (!ip) return null;
+  const parts = ip.split(".");
+  if (parts.length !== 4) return ip;
+  const padded = parts.map((p) => p.padStart(3, "0"));
+  return padded.every((p) => /^\d{3}$/.test(p)) ? padded.join(".") : ip;
+}
+
+/**
+ * IP владельца: адрес регистрации и адрес последнего входа. Совпадают
+ * они чаще всего, поэтому одинаковые схлопываем в одну строку — иначе
+ * колонка на весь список выглядит как дубли.
+ */
+function OwnerIpCell({
+  registrationIp,
+  lastLoginIp,
+  lastLoginAt,
+}: {
+  registrationIp: string | null;
+  lastLoginIp: string | null;
+  lastLoginAt: string | null;
+}) {
+  if (!registrationIp && !lastLoginIp) {
+    return <span className="text-[13px] text-[#9b9fb3]">—</span>;
+  }
+
+  const loginTitle = lastLoginAt
+    ? `Последний вход: ${new Date(lastLoginAt).toLocaleString("ru-RU")}`
+    : "Последний вход: не зафиксирован";
+
+  if (registrationIp && registrationIp === lastLoginIp) {
+    return (
+      <div className="text-[13px] leading-snug">
+        <IpLink ip={registrationIp} title={loginTitle} />
+        <div className="text-[11px] text-[#9b9fb3]">регистрация и вход</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0.5 text-[13px] leading-snug">
+      {registrationIp ? (
+        <div>
+          <IpLink ip={registrationIp} title="IP при регистрации" />
+          <span className="ml-1.5 text-[11px] text-[#9b9fb3]">рег.</span>
+        </div>
+      ) : null}
+      {lastLoginIp ? (
+        <div>
+          <IpLink ip={lastLoginIp} title={loginTitle} />
+          <span className="ml-1.5 text-[11px] text-[#9b9fb3]">вход</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IpLink({ ip, title }: { ip: string; title: string }) {
+  return (
+    <a
+      href={`https://ipinfo.io/${encodeURIComponent(ip)}`}
+      target="_blank"
+      rel="noreferrer noopener"
+      title={title}
+      className="group inline-flex items-center gap-1 tabular-nums text-[#3848c7] hover:underline"
+    >
+      {ip}
+      <ExternalLink className="size-3 opacity-0 transition-opacity group-hover:opacity-70" />
+    </a>
+  );
 }
