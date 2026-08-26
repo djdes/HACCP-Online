@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { PricingCalculator } from "@/components/public/pricing-calculator";
+import { BrandLogo } from "@/components/brand/logo";
 import { PublicFooter } from "@/components/public/public-chrome";
 import { ScreenshotFan } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
@@ -413,11 +414,8 @@ export default async function LandingPage() {
       {/* NAV — solid white, sticky so hero blobs don't bleed through on scroll */}
       <div className="landing-nav sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
-          <Link
-            href="/"
-            className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024] sm:text-[17px]"
-          >
-            WESETUP
+          <Link href="/" className="text-[#0b1024]" aria-label="WeSetup — на главную">
+            <BrandLogo height={34} className="sm:h-[38px]" title="" />
           </Link>
           <div className="flex items-center gap-3 sm:gap-6">
             <Link

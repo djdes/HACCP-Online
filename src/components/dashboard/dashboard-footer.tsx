@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/logo";
 
 /**
  * Компактный футер дашборда — одна строка вместо трёхколоночного
@@ -16,8 +17,8 @@ export function DashboardFooter() {
     <footer className="mt-auto border-t border-[#ececf4] px-4 py-5 text-[12.5px] text-[#9b9fb3] md:px-6 print:hidden">
       <div className="mx-auto flex max-w-[1760px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-[13px] font-semibold tracking-[0.22em] text-[#6f7282]">
-            WESETUP
+          <span className="text-[#6f7282]">
+            <BrandLogo height={26} title="WeSetup" />
           </span>
           <span>© 2026</span>
         </div>

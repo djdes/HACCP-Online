@@ -28,6 +28,13 @@ const transporter = nodemailer.createTransport({
 const FROM = process.env.SMTP_FROM || "WeSetup <noreply@wesetup.ru>";
 const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
+/**
+ * Откуда почтовый клиент получателя тянет картинки письма. Всегда
+ * боевой домен: в dev NEXTAUTH_URL смотрит на localhost, и логотип
+ * в отправленном письме просто не загрузился бы.
+ */
+const EMAIL_ASSET_ORIGIN = "https://wesetup.ru";
+
 function layout(title: string, body: string) {
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -36,8 +43,8 @@ function layout(title: string, body: string) {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px">
 <tr><td align="center">
 <table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
-  <tr><td style="background:#18181b;padding:24px 32px">
-    <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700">WeSetup</h1>
+  <tr><td style="background:#0b1024;padding:22px 32px">
+    <img src="${EMAIL_ASSET_ORIGIN}/brand/logo-email.png" width="116" height="36" alt="WeSetup" style="display:block;border:0;height:36px;width:116px">
   </td></tr>
   <tr><td style="padding:32px">
     <h2 style="margin:0 0 16px;font-size:18px;color:#18181b">${title}</h2>

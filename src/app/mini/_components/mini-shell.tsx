@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/logo";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
@@ -180,11 +181,8 @@ export function MiniTopBar() {
             />
           </span>
           <div className="min-w-0">
-            <div
-              className="mini-eyebrow"
-              style={{ letterSpacing: "0.28em", fontSize: 9 }}
-            >
-              WESETUP · HACCP
+            <div className="mini-eyebrow" style={{ opacity: 0.75 }}>
+              <BrandLogo height={18} title="WeSetup" />
             </div>
             <div
               className="mini-display-bold truncate"

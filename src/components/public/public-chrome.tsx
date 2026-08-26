@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/logo";
 import { ArrowRight } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
@@ -40,11 +41,8 @@ export async function PublicHeader({
   return (
     <div className="public-header sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
-        <Link
-          href="/"
-          className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024] sm:text-[17px]"
-        >
-          WESETUP
+        <Link href="/" className="text-[#0b1024]" aria-label="WeSetup — на главную">
+          <BrandLogo height={34} className="sm:h-[38px]" title="" />
         </Link>
         <div className="flex items-center gap-3 sm:gap-5">
           {link("journals-info", "Журналы", "/journals-info")}
@@ -131,12 +129,12 @@ export function PublicFooter() {
     <footer className="public-footer border-t border-[#ececf4]">
       <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 sm:py-12 md:gap-10 md:grid-cols-[1.4fr_auto_auto]">
         <div>
-          <div className="text-[16px] font-semibold tracking-[0.22em] text-[#0b1024]">
-            WESETUP
+          <div className="text-[#0b1024]">
+            <BrandLogo height={38} />
           </div>
           <p className="mt-3 max-w-[440px] text-[13px] text-[#9b9fb3]">
             Сервис электронных журналов СанПиН и ХАССП для общепита и пищевых
-            производств. © 2026 WESETUP.
+            производств. © 2026 WeSetup.
           </p>
         </div>
 

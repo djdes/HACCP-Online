@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/logo";
 import { ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { EmailHint, useEmailField } from "@/components/ui/email-field";
@@ -98,13 +99,10 @@ function RegisterScreen() {
         />
 
         <div className="relative z-10">
-          {/* Тот же текстовый локап, что в шапке лендинга и в футере —
-              один бренд на всех публичных экранах. */}
-          <Link
-            href="/"
-            className="text-[15px] font-semibold tracking-[0.22em] text-white sm:text-[17px]"
-          >
-            WESETUP
+          {/* Тот же знак, что в шапке лендинга и в футере — один бренд
+              на всех публичных экранах. */}
+          <Link href="/" className="text-white" aria-label="WeSetup — на главную">
+            <BrandLogo height={36} title="" />
           </Link>
         </div>
 
@@ -140,7 +138,7 @@ function RegisterScreen() {
           </div>
 
           <div className="mt-10 flex items-center gap-4 text-[12px] text-white/50">
-            <span>© 2026 WESETUP</span>
+            <span>© 2026 WeSetup</span>
             <span className="size-1 rounded-full bg-white/25" />
             <Link
               href="/login"
@@ -164,11 +162,8 @@ function RegisterScreen() {
 
         <div className="relative w-full max-w-[420px]">
           <div className="mb-8 lg:hidden">
-            <Link
-              href="/"
-              className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024]"
-            >
-              WESETUP
+            <Link href="/" className="text-[#0b1024]" aria-label="WeSetup — на главную">
+              <BrandLogo height={34} title="" />
             </Link>
           </div>
 

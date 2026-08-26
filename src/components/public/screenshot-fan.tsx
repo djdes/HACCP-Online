@@ -7,6 +7,7 @@ import {
   Send,
   Users,
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand/logo";
 
 /**
  * Three stacked/tilted mockups showing the product surfaces: a desktop
@@ -69,8 +70,8 @@ function DesktopMockup() {
       {/* app chrome */}
       <div className="flex items-center justify-between border-b border-[#ececf4] bg-white px-5 py-3">
         <div className="flex items-center gap-6">
-          <div className="text-[13px] font-semibold tracking-[0.14em] text-[#0b1024]">
-            WESETUP
+          <div className="text-[#0b1024]">
+            <BrandLogo height={22} title="" />
           </div>
           <div className="flex gap-4 text-[12px] font-medium text-[#6f7282]">
             <span className="text-[#0b1024]">Дашборд</span>
@@ -288,8 +289,8 @@ function PdfMockup() {
       <div className="h-full rounded-[28px] bg-[#fafbff]">
         {/* header */}
         <div className="flex items-center justify-between bg-white px-4 py-3">
-          <div className="text-[11px] font-semibold tracking-[0.1em] text-[#0b1024]">
-            WESETUP
+          <div className="text-[#0b1024]">
+            <BrandLogo height={18} title="" />
           </div>
           <div className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[9px] font-medium text-[#116b2a]">
             <FileText className="size-3" />

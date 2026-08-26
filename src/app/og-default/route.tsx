@@ -87,11 +87,40 @@ export async function GET() {
               boxShadow: "0 12px 36px -12px rgba(85,102,246,0.65)",
             }}
           >
-            W
+            <svg
+              width="46"
+              height="55"
+              viewBox="-14 -14 112 128"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={24}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M 0 0 L 18 100 L 42 22 L 66 100 L 84 0" />
+            </svg>
           </div>
-          <div style={{ display: "flex", fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>
-            WeSetup
-          </div>
+          {/* Wordmark рисуем путями: Satori не подхватывает внешние
+              шрифты, а брендовое начертание и не должно от них зависеть. */}
+          <svg
+            width="232"
+            height="72"
+            viewBox="-14 -48 696 216"
+            fill="none"
+            stroke="#0b1024"
+            strokeWidth={20}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M 0 0 L 18 100 L 42 22 L 66 100 L 84 0" />
+            <path d="M 167 78 C 160 84 151 88 142 88 C 121 88 104 71 104 50 C 104 29 121 12 142 12 C 163 12 180 29 180 50 L 104 50" />
+            <path d="M 272 24 C 272 6 208 4 208 30 C 208 50 272 52 272 74 C 272 98 208 96 208 78" />
+            <path d="M 363 78 C 356 84 347 88 338 88 C 317 88 300 71 300 50 C 300 29 317 12 338 12 C 359 12 376 29 376 50 L 300 50" />
+            <path d="M 426 -34 L 426 74 C 426 94 438 100 452 96 M 404 4 L 454 4" />
+            <path d="M 486 0 L 486 60 C 486 84 503 100 524 100 C 545 100 562 84 562 60 L 562 0" />
+            <path d="M 592 0 L 592 148" />
+            <path d="M 592 50 C 592 29 609 12 630 12 C 651 12 668 29 668 50 C 668 71 651 88 630 88 C 609 88 592 71 592 50" />
+          </svg>
         </div>
 
         <div

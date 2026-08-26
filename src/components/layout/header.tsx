@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/logo";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -223,7 +224,7 @@ export function Header({
         <Link
           href={homeHref}
           className="shrink-0 flex items-center gap-2"
-          aria-label={`${organizationName || "WESETUP"} — на дашборд`}
+          aria-label={`${organizationName || "WeSetup"} — на дашборд`}
         >
           {organizationLogoUrl ? (
             <>
@@ -242,12 +243,16 @@ export function Header({
                 }}
               />
               <span className="text-[14px] font-semibold text-[#0b1024]">
-                {organizationName || "WESETUP"}
+                {organizationName || "WeSetup"}
               </span>
             </>
           ) : (
-            <span className="text-[15px] font-semibold tracking-[0.22em] text-[#0b1024]">
-              WESETUP
+            // Цвет знака — currentColor. В тёмной теме кабинета
+            // `text-[#0b1024]` перекрашивается слоем app-theme.css,
+            // отдельный dark:-вариант не нужен и был бы опасен: он
+            // сработал бы по системной теме на светлом кабинете.
+            <span className="text-[#0b1024]">
+              <BrandLogo height={32} title="" />
             </span>
           )}
           <span
