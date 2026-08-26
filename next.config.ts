@@ -148,8 +148,14 @@ const nextConfig: NextConfig = {
         headers: denyFrameHeaders,
       },
       {
+        // api/journal-samples исключены намеренно: это публичные
+        // образцы журналов с зафиксированным периодом — один и тот же
+        // файл при каждом запросе. Под глобальным no-store каждое
+        // скачивание заново гоняло jsPDF на полмегабайта, а роут открыт
+        // без сессии — бесплатная нагрузка на CPU для любого желающего.
+        // Свой Cache-Control роут выставляет сам.
         source:
-          "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
+          "/((?!_next/static|_next/image|api/journal-samples|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
         headers: [
           {
             key: "Cache-Control",
