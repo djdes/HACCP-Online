@@ -16,6 +16,7 @@ import {
   NotebookText,
   Plug,
   Rocket,
+  RotateCcw,
   Send,
   ShieldCheck,
   Smartphone,
@@ -25,11 +26,14 @@ import {
   UserCheck,
   Users,
   Wand2,
-  Wrench,
 } from "lucide-react";
 import { db } from "@/lib/db";
-import { PricingCalculator } from "@/components/public/pricing-calculator";
+import { EquipmentPricing } from "@/components/landing/equipment-pricing";
 import { BrandLogo } from "@/components/brand/logo";
+import {
+  HARDWARE_BUNDLES,
+  bundleTotal,
+} from "@/lib/hardware-pricing";
 import { PublicFooter } from "@/components/public/public-chrome";
 import { ScreenshotFan } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
@@ -126,22 +130,24 @@ const JOURNAL_PREVIEW: Array<{ code: string; name: string }> = [
   { code: "med_books", name: "Медицинские книжки" },
 ];
 
+/**
+ * Шаги подключения. Заявка и созвон убраны: их не существует —
+ * регистрация открыта, аккаунт создаётся мгновенно. Пункты, которых
+ * человек не делает, только оттягивают старт и выглядят как «сначала
+ * поговорим с менеджером».
+ */
 const STEPS = [
   {
-    title: "Оставьте заявку",
-    text: "Напишите нам в Telegram или через форму — уточним формат и количество заведений.",
-  },
-  {
-    title: "Первичный созвон",
-    text: "Покажем систему, ответим на вопросы, обсудим тариф и план перехода.",
-  },
-  {
-    title: "Бесплатный старт",
-    text: "Регистрируетесь и сразу ведёте настоящие журналы — без пробного периода и карты. До 5 сотрудников всё бесплатно навсегда.",
+    title: "Бесплатный тариф",
+    text: "Регистрируетесь и сразу ведёте настоящие журналы — без пробного периода и карты. До 5 сотрудников бесплатно навсегда.",
   },
   {
     title: "Ведение журналов",
     text: "Смена за сменой — сервис напоминает, подставляет автозначения, хранит историю для проверок.",
+  },
+  {
+    title: "Переход на платный тариф",
+    text: "Если сотрудников больше пяти — платный тариф и индивидуальная консультация по настройке под ваше заведение.",
   },
 ];
 
@@ -189,41 +195,19 @@ const AUDIENCE = [
 ];
 
 /**
- * Бонусный стек к подписке. Тот же продукт, разобранный на части, —
- * так виден объём работы, который иначе пришлось бы делать самому.
+ * Что входит в подписку — чипами на блоке гарантии.
  *
- * ВАЖНО: перечислено только то, что реально существует в сервисе.
- * Суммы «сколько стоило бы отдельно» — оценка, а не прайс подрядчика;
- * согласованы с владельцем как ориентир.
+ * Раньше здесь был «бонусный стек» с зачёркнутыми ценами и итогом
+ * «отдельно это стоило бы 49 000 ₽». Суммы были оценкой, а не
+ * прайсом подрядчика, и на странице читались как рекламный приём.
+ * Оставили только перечень — он честный и проверяемый.
  */
-const OFFER_BONUSES = [
-  {
-    icon: NotebookText,
-    title: "35 журналов под ваш тип заведения",
-    worth: "18 000 ₽",
-    text: "Кафе, столовая, пекарня, дарк-китчен — шаблоны уже заполнены нужными полями и периодичностью. Не нужно собирать формы с нуля.",
-  },
-  {
-    icon: Wand2,
-    title: "Пошаговые инструкции для смены",
-    worth: "12 000 ₽",
-    text: "В каждом журнале — гайд «как правильно заполнить»: что взять, что проверить, типичные ошибки. Новый сотрудник справляется без обучения.",
-  },
-  {
-    icon: Send,
-    title: "Telegram-бот для сотрудников",
-    worth: "9 000 ₽",
-    text: "Напоминания, заполнение и отметка смены прямо в мессенджере. Не нужно ставить приложение и раздавать пароли.",
-  },
-  {
-    icon: Handshake,
-    title: "Помощь с настройкой",
-    worth: "10 000 ₽",
-    text: "Поможем завести заведение, сотрудников и оборудование, разложить ответственных по журналам. Пишете в поддержку — разбираемся вместе.",
-  },
+const INCLUDED_CHIPS = [
+  { icon: NotebookText, label: "35 журналов" },
+  { icon: Wand2, label: "Инструкции для смены" },
+  { icon: Send, label: "Telegram-бот" },
+  { icon: Handshake, label: "Помощь с настройкой" },
 ] as const;
-
-const OFFER_BONUSES_TOTAL = 49000;
 
 const FAQ = [
   {
@@ -313,6 +297,11 @@ export default async function LandingPage() {
   const tariffs = await readTariffs().catch(() => fallbackTariffs());
   const monthly =
     tariffs.find((t) => t.key === TARIFF_MONTHLY) ?? fallbackTariffs()[0];
+
+  // «от N ₽» в карточке оборудования — самый дешёвый готовый комплект.
+  // Считаем, а не хардкодим: состав комплектов меняется в
+  // lib/hardware-pricing.ts, и цена на лендинге обязана идти следом.
+  const hardwareFromRub = Math.min(...HARDWARE_BUNDLES.map(bundleTotal));
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -498,33 +487,30 @@ export default async function LandingPage() {
         </div>
 
         <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6 pt-8 text-center sm:pt-16">
-          {/* Registry badge */}
-          <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
-            <ShieldCheck className="size-3.5" />
-            В реестре отечественного ПО
-            <span className="text-[#9b9fb3]">·</span>
-            <span className="text-[#6f7282]">заявка №27419</span>
+          {/* Два бейджа в ряд: слева — легитимность, справа — снятие
+              риска. Обещание возврата стоит там же, где человек первый
+              раз смотрит на цену решения, а не через пять экранов. */}
+          <div className="hero-badge flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
+              <ShieldCheck className="size-3.5" />
+              В реестре отечественного ПО
+              <span className="text-[#9b9fb3]">·</span>
+              <span className="text-[#6f7282]">заявка №27419</span>
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#5566f6]/25 bg-[#f5f6ff] px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7]">
+              <RotateCcw className="size-3.5" />
+              30 дней — вернём деньги, если не подойдёт
+            </span>
           </div>
 
           {/* Headline — fluid scale: 32 px on phones → 72 px on desktop,
               linear in between via clamp() so the headline reads well on
               every viewport width without breakpoint jumps. */}
-          {/* H1 — вариант B, выбран как основной. Интервал заявлен через
-              ДЕЙСТВИЕ («первый журнал заполнен»), а не через результат
-              («пройдёте проверку»): обещание результата со сроком
-              рекламные площадки трактуют как гарантию и блокируют.
-
-              Варианты для A/B-теста:
-              A (контроль): «Электронные журналы для вашей кухни»
-              B (текущий):  «Журналы СанПиН и ХАССП — первый заполнен
-                             за 5 минут» — давит на скорость (время)
-              C (статус):   «Кухня ведёт журналы сама — вы только
-                             проверяете» — давит на усилия (DFY) */}
           <h1 className="hero-title mx-auto mt-8 max-w-[920px] text-[clamp(2rem,6.5vw+0.25rem,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024]">
             Журналы СанПиН и ХАССП —
             <br />
             <span className="relative inline-block">
-              <span className="relative z-10">первый заполнен за 5 минут</span>
+              <span className="relative z-10">без бумаги и штрафов</span>
               <span
                 aria-hidden="true"
                 className="absolute inset-x-0 bottom-[0.08em] -z-0 h-[0.28em] bg-[#5566f6]/15"
@@ -573,15 +559,12 @@ export default async function LandingPage() {
                 <HeroEmailStart />
                 {/* Гарантия — прямо в первом экране: снимать риск нужно
                     там же, где просим действие, а не через два экрана. */}
+                {/* Возврат вынесен в бейдж над заголовком — здесь он
+                    был бы вторым упоминанием на одном экране. */}
                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[12px] text-[#9b9fb3]">
                   <span>Без карты</span>
                   <span aria-hidden>·</span>
                   <span>Всё включено на бесплатном тарифе</span>
-                  <span aria-hidden>·</span>
-                  <span className="inline-flex items-center gap-1 font-medium text-[#116b2a]">
-                    <ShieldCheck className="size-3.5" />
-                    30 дней — вернём деньги
-                  </span>
                 </div>
               </>
             )}
@@ -761,150 +744,96 @@ export default async function LandingPage() {
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {/* Free tier */}
+        {/* Три карточки одной высоты. Длинные описания убраны: в ряду
+            тарифов человек сравнивает цену и три отличия, а не читает
+            абзацы. Подписка перечисляет только то, чего нет в
+            бесплатном, — иначе половина списка дублируется. */}
+        <EquipmentPricing
+          subscriptionMonthly={monthly.priceRub}
+          hardwareFromRub={hardwareFromRub}
+        >
           <PricingCard
             kind="free"
             name="Бесплатный"
             from="0 ₽"
             period="навсегда"
-            description="Доступ ко всем журналам без ограничений по времени. Для заведения с небольшой сменой."
             points={[
               "До 5 сотрудников",
-              "Все 35 журналов СанПиН + ХАССП",
-              "Telegram-бот с wizard заполнения",
-              "PDF для проверок, без привязки карты",
+              "Все 35 журналов СанПиН и ХАССП",
+              "PDF для проверок, без карты",
             ]}
             ctaLabel="Начать бесплатно"
             ctaHref="/register"
           />
 
-          {/* Subscription tier (user brings own equipment) */}
           <PricingCard
             kind="team"
             name={monthly.title}
             from={formatRub(monthly.priceRub)}
             period="в месяц"
-            description="Если датчики, планшеты и брелоки уже есть — подключаем их к WeSetup и снимаем все ограничения."
+            pointsIntro="Всё из Бесплатного, плюс:"
             points={[
-              "30 дней — вернём деньги, если не подойдёт",
               "Без лимита по сотрудникам",
-              "Подключение своих IoT-датчиков",
-              "Автозаполнение температур и гигиены",
+              "Свои IoT-датчики и автозаполнение",
               "Приоритетная поддержка в Telegram",
             ]}
             ctaLabel="Оплатить картой"
             ctaHref="/order?plan=monthly"
             highlighted
             badge="Популярный"
+            note="30 дней — вернём деньги"
           />
-
-          {/* Subscription + equipment bundle with live calculator */}
-          <div className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8">
-            <div className="flex items-center gap-3">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-                <Wrench className="size-5" />
-              </span>
-              <div className="text-[20px] font-semibold tracking-[-0.01em] text-[#0b1024]">
-                Подписка + оборудование
-              </div>
-            </div>
-            <p className="mt-4 text-[14px] leading-[1.55] text-[#6f7282]">
-              Выберите, что нужно — цена пересчитается. Уже есть планшет
-              или датчики — снимите галочку, и останется только подписка.
-            </p>
-            <div className="mt-5">
-              <PricingCalculator subscriptionMonthly={monthly.priceRub} />
-            </div>
-          </div>
-        </div>
+        </EquipmentPricing>
         <div className="mt-4 text-center text-[13px] text-[#9b9fb3]">
           Годовая оплата подписки — −20%. Железо — один раз.
         </div>
 
-        {/* ГАРАНТИЯ + БОНУСЫ — снимаем главное возражение («а вдруг не
-            подойдёт») и наращиваем разрыв цена/ценность бонусами, не
-            трогая цену ядра. */}
-        <div className="mt-14 grid gap-5 lg:grid-cols-[1fr_1.1fr]">
-          <div className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] p-6 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:p-8">
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute -left-20 -top-20 size-[320px] rounded-full bg-[#5566f6] opacity-40 blur-[110px]" />
-              <div className="absolute -bottom-28 -right-24 size-[340px] rounded-full bg-[#7a5cff] opacity-30 blur-[120px]" />
-            </div>
-            <div className="relative z-10">
-              <span className="inline-flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <ShieldCheck className="size-6" />
+        {/* ГАРАНТИЯ — один светлый блок во всю ширину. Раньше здесь
+            стояли тёмная карточка и список бонусов с зачёркнутыми
+            ценами: «отдельно это стоило бы 49 000» считывалось как
+            рекламный приём, а не как факт, и уводило внимание от
+            единственного, что тут важно, — что деньги можно вернуть. */}
+        <div className="mt-14 overflow-hidden rounded-3xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-9">
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+            <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-start">
+              <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#5566f6] text-white shadow-[0_16px_40px_-16px_rgba(85,102,246,0.65)]">
+                <RotateCcw className="size-8" />
               </span>
-              <div className="mt-5 text-[22px] font-semibold tracking-[-0.01em]">
-                Гарантия спокойного месяца
+              <div className="min-w-0">
+                <div className="text-[clamp(1.375rem,1.4vw+1rem,1.75rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
+                  Не понравится — вернём деньги
+                </div>
+                <p className="mt-3 max-w-[520px] text-[15px] leading-[1.65] text-[#3c4053]">
+                  Автоматический возврат всей суммы в течение 30 дней
+                  после оформления. Без вопросов и удержаний.
+                </p>
+                <Link
+                  href="/oferta"
+                  className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-[#3848c7] underline-offset-4 hover:underline"
+                >
+                  Условия в договоре-оферте
+                  <ArrowRight className="size-3.5" />
+                </Link>
               </div>
-              <p className="mt-3 text-[15px] leading-[1.65] text-white/75">
-                Оплатили подписку и в течение 30 дней поняли, что не
-                подошло — вернём всю сумму. Без вопросов, без «объясните
-                причину», без удержаний.
-              </p>
-              <p className="mt-4 text-[13px] leading-[1.6] text-white/50">
-                Условия возврата закреплены в{" "}
-                <Link href="/oferta" className="text-white/80 underline underline-offset-4">
-                  договоре-оферте
-                </Link>{" "}
-                — это обязательство, а не обещание в рекламе.
-              </p>
             </div>
-          </div>
 
-          <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
-              Входит в подписку
-            </div>
-            <div className="mt-2 text-[20px] font-semibold tracking-[-0.01em] text-[#0b1024]">
-              Всё, что обычно приходится делать самому
-            </div>
-            <ul className="mt-5 space-y-3.5">
-              {OFFER_BONUSES.map((bonus) => (
-                <li key={bonus.title} className="flex gap-3">
-                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
-                    <bonus.icon className="size-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="text-[14px] font-semibold text-[#0b1024]">
-                        {bonus.title}
-                      </span>
-                      <span className="text-[12px] text-[#9b9fb3] line-through">
-                        {bonus.worth}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-[13px] leading-[1.55] text-[#6f7282]">
-                      {bonus.text}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#ececf4] pt-5">
-              {/* Разрыв ценность/цена показываем в одну строку: так он
-                  считывается сразу, без арифметики в уме. */}
-              <div className="text-[13px] leading-[1.5] text-[#6f7282]">
-                Отдельно это стоило бы{" "}
-                <span className="font-semibold text-[#0b1024]">
-                  от {formatRub(OFFER_BONUSES_TOTAL)}
-                </span>
-                <br className="hidden sm:block" />
-                <span>
-                  Входит в подписку за{" "}
-                  <span className="font-semibold text-[#0b1024]">
-                    {formatRub(monthly.priceRub)}/мес
-                  </span>
-                </span>
+            {/* Что входит — чипами, без цен. Список нужен, чтобы было
+                видно объём, а не чтобы считать «экономию». */}
+            <div className="lg:border-l lg:border-[#dcdfed] lg:pl-8">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+                Всё включено
               </div>
-              <Link
-                href="/order?plan=monthly"
-                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-              >
-                Оформить подписку
-                <ArrowRight className="size-4" />
-              </Link>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {INCLUDED_CHIPS.map((chip) => (
+                  <span
+                    key={chip.label}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#ececf4] bg-white px-3 py-1.5 text-[13px] font-medium text-[#3c4053]"
+                  >
+                    <chip.icon className="size-3.5 text-[#5566f6]" />
+                    {chip.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -983,10 +912,10 @@ export default async function LandingPage() {
             Как подключиться
           </div>
           <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Переход на электронный журнал — полдня работы
+            Старт — за 5 минут, без заявок и созвонов
           </h2>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {STEPS.map((step, idx) => (
             <div
               key={step.title}
@@ -1484,23 +1413,28 @@ function PricingCard({
   name,
   from,
   period,
-  description,
+  pointsIntro,
   points,
   ctaLabel,
   ctaHref,
   highlighted,
   badge,
+  note,
 }: {
   kind: "free" | "team" | "network";
   name: string;
   from: string;
   period: string;
-  description: string;
+  /// Подводка над списком — «Всё из Бесплатного, плюс:». Нужна, чтобы
+  /// не дублировать в платном тарифе половину бесплатного.
+  pointsIntro?: string;
   points: string[];
   ctaLabel: string;
   ctaHref: string;
   highlighted?: boolean;
   badge?: string;
+  /// Мелкая строка под кнопкой — снятие риска у платного тарифа.
+  note?: string;
 }) {
   const Icon =
     kind === "free" ? Gift : kind === "network" ? Building2 : Users;
@@ -1508,8 +1442,8 @@ function PricingCard({
     <div
       className={
         highlighted
-          ? "relative overflow-hidden rounded-3xl bg-[#0b1024] p-5 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:p-8"
-          : "relative rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8"
+          ? "relative flex h-full flex-col overflow-hidden rounded-3xl bg-[#0b1024] p-5 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:p-8"
+          : "relative flex h-full flex-col rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8"
       }
     >
       {highlighted && (
@@ -1518,7 +1452,7 @@ function PricingCard({
           <div className="absolute -left-16 -bottom-10 size-[240px] rounded-full bg-[#7a5cff] opacity-30 blur-[120px]" />
         </div>
       )}
-      <div className="relative z-10">
+      <div className="relative z-10 flex h-full flex-col">
         <div className="flex items-center gap-3">
           <span
             className={
@@ -1538,15 +1472,6 @@ function PricingCard({
             </span>
           )}
         </div>
-        <p
-          className={
-            highlighted
-              ? "mt-4 text-[14px] leading-[1.55] text-white/70"
-              : "mt-4 text-[14px] leading-[1.55] text-[#6f7282]"
-          }
-        >
-          {description}
-        </p>
         <div className="mt-6 flex items-baseline gap-2">
           <span className="text-[34px] font-semibold tracking-[-0.02em]">
             {from}
@@ -1561,11 +1486,22 @@ function PricingCard({
             {period}
           </span>
         </div>
+        {pointsIntro ? (
+          <div
+            className={
+              highlighted
+                ? "mt-6 text-[13px] font-medium text-white/60"
+                : "mt-6 text-[13px] font-medium text-[#9b9fb3]"
+            }
+          >
+            {pointsIntro}
+          </div>
+        ) : null}
         <ul
           className={
             highlighted
-              ? "mt-6 space-y-2.5 text-[14px] text-white/85"
-              : "mt-6 space-y-2.5 text-[14px] text-[#3c4053]"
+              ? "mt-3 space-y-2.5 pb-8 text-[14px] text-white/85"
+              : "mt-6 space-y-2.5 pb-8 text-[14px] text-[#3c4053]"
           }
         >
           {points.map((p) => (
@@ -1585,13 +1521,24 @@ function PricingCard({
           href={ctaHref}
           className={
             highlighted
-              ? "mt-8 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
-              : "mt-8 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+              ? "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
+              : "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
           }
         >
           {ctaLabel}
           <ArrowRight className="size-4" />
         </Link>
+        {note ? (
+          <div
+            className={
+              highlighted
+                ? "mt-2.5 text-center text-[12px] text-white/60"
+                : "mt-2.5 text-center text-[12px] text-[#9b9fb3]"
+            }
+          >
+            {note}
+          </div>
+        ) : null}
       </div>
     </div>
   );
