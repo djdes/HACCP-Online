@@ -1,14 +1,8 @@
 import Link from "next/link";
-import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowUp,
-  ChartLine,
-  Coins,
-  Minus,
-} from "lucide-react";
+import { ArrowLeft, ChartLine, Coins } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { getAllOrgMetrics } from "@/lib/org-metrics";
+import { MetricsTable } from "./metrics-table";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +11,13 @@ const PLATFORM_ORG_ID = process.env.PLATFORM_ORG_ID || "platform";
 export default async function RootMetricsPage() {
   await requireRoot();
 
-  const metrics = await getAllOrgMetrics(PLATFORM_ORG_ID);
+  // Один момент времени на весь рендер: и окна 7/14/30 дней в метриках,
+  // и относительные подписи «N дн назад» в таблице считаются от него.
+  const refDate = new Date();
+  const metrics = await getAllOrgMetrics(PLATFORM_ORG_ID, refDate);
 
+  // Порядок по умолчанию — тот же, что стартовый в <MetricsTable>
+  // (MRR по убыванию), чтобы первый кадр не прыгал после гидратации.
   const sorted = [...metrics].sort((a, b) => b.actualMrrRub - a.actualMrrRub);
 
   const totalActualMrr = sorted.reduce((s, m) => s + m.actualMrrRub, 0);
@@ -52,7 +51,9 @@ export default async function RootMetricsPage() {
               Активность, retention и выручка по всем организациям.
               Расчётный MRR — `calculatePerEmployeePrice(activeUsers)`,
               реальный — 0 для trial-org. Trend — % изменения 7-дневной
-              активности vs предыдущая неделя.
+              активности vs предыдущая неделя. Email — адрес того, кто
+              зарегистрировал организацию. Заголовки колонок кликабельны,
+              поиск ищет по части адреса или названия.
             </p>
           </div>
         </div>
@@ -76,104 +77,7 @@ export default async function RootMetricsPage() {
         />
       </div>
 
-      <section className="rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-[14px]">
-            <thead className="bg-[#fafbff] text-[12px] uppercase tracking-wider text-[#6f7282]">
-              <tr>
-                <th className="px-5 py-3 text-left font-medium">Организация</th>
-                <th className="px-5 py-3 text-center font-medium">Тариф</th>
-                <th className="px-5 py-3 text-right font-medium">
-                  Сотрудники
-                </th>
-                <th className="px-5 py-3 text-right font-medium">
-                  Записи 7д
-                </th>
-                <th className="px-5 py-3 text-right font-medium">Trend</th>
-                <th className="px-5 py-3 text-right font-medium">
-                  Last activity
-                </th>
-                <th className="px-5 py-3 text-right font-medium">MRR ₽</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-12 text-center text-[#6f7282]"
-                  >
-                    Пока нет организаций.
-                  </td>
-                </tr>
-              ) : null}
-              {sorted.map((m) => {
-                const lastActivity = m.lastEntryAt
-                  ? formatRelative(new Date(m.lastEntryAt))
-                  : "никогда";
-                const isStale =
-                  !m.lastEntryAt ||
-                  Date.now() - new Date(m.lastEntryAt).getTime() >
-                    14 * 24 * 60 * 60 * 1000;
-                return (
-                  <tr
-                    key={m.organizationId}
-                    className="border-t border-[#eef0f6] transition-colors hover:bg-[#fafbff]"
-                  >
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/root/organizations/${m.organizationId}`}
-                        className="text-[#0b1024] hover:text-[#3848c7]"
-                      >
-                        <div className="font-medium">{m.organizationName}</div>
-                        <div className="text-[12px] text-[#9b9fb3]">
-                          {m.type} · с{" "}
-                          {new Date(m.createdAt).toLocaleDateString("ru-RU")}
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <PlanPill plan={m.subscriptionPlan} />
-                    </td>
-                    <td className="px-5 py-3 text-right tabular-nums">
-                      {m.activeUsers}
-                    </td>
-                    <td className="px-5 py-3 text-right tabular-nums">
-                      {m.entries7d}
-                      <span className="ml-1 text-[12px] text-[#9b9fb3]">
-                        / {m.entries30d} за 30
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <TrendBadge value={m.weeklyTrendPct} />
-                    </td>
-                    <td
-                      className={`px-5 py-3 text-right text-[13px] ${
-                        isStale ? "text-[#a13a32]" : "text-[#3c4053]"
-                      }`}
-                    >
-                      {lastActivity}
-                    </td>
-                    <td className="px-5 py-3 text-right tabular-nums">
-                      {m.actualMrrRub > 0 ? (
-                        <span className="font-semibold text-[#0b1024]">
-                          {m.actualMrrRub.toLocaleString("ru-RU")}
-                        </span>
-                      ) : (
-                        <span className="text-[#9b9fb3]">
-                          {m.potentialMrrRub > 0
-                            ? `(${m.potentialMrrRub.toLocaleString("ru-RU")})`
-                            : "—"}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <MetricsTable rows={sorted} now={refDate.getTime()} />
     </div>
   );
 }
@@ -209,50 +113,4 @@ function StatCard({
       ) : null}
     </div>
   );
-}
-
-function PlanPill({ plan }: { plan: string }) {
-  const styles: Record<string, { bg: string; fg: string }> = {
-    trial: { bg: "#fff8eb", fg: "#7a4a00" },
-    paid: { bg: "#ecfdf5", fg: "#116b2a" },
-    pro: { bg: "#eef1ff", fg: "#3848c7" },
-  };
-  const s = styles[plan] ?? { bg: "#f5f6ff", fg: "#6f7282" };
-  return (
-    <span
-      className="inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium"
-      style={{ backgroundColor: s.bg, color: s.fg }}
-    >
-      {plan}
-    </span>
-  );
-}
-
-function TrendBadge({ value }: { value: number | null }) {
-  if (value === null) {
-    return <span className="text-[12px] text-[#9b9fb3]">—</span>;
-  }
-  const Icon = value > 5 ? ArrowUp : value < -5 ? ArrowDown : Minus;
-  const fg = value > 5 ? "#116b2a" : value < -5 ? "#a13a32" : "#6f7282";
-  return (
-    <span
-      className="inline-flex items-center gap-1 text-[13px] font-medium tabular-nums"
-      style={{ color: fg }}
-    >
-      <Icon className="size-3.5" />
-      {value > 0 ? "+" : ""}
-      {value}%
-    </span>
-  );
-}
-
-function formatRelative(date: Date): string {
-  const diff = Date.now() - date.getTime();
-  const hours = Math.floor(diff / (60 * 60 * 1000));
-  if (hours < 1) return "только что";
-  if (hours < 24) return `${hours} ч назад`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} дн назад`;
-  const months = Math.floor(days / 30);
-  return `${months} мес назад`;
 }

@@ -10,6 +10,11 @@ import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 export type OrgMetrics = {
   organizationId: string;
   organizationName: string;
+  /// Почта владельца — самый ранний пользователь организации: именно он
+  /// её и регистрировал. Архивных не отсеиваем: даже если владельца
+  /// потом заблокировали, это всё ещё адрес, по которому ROOT ищет
+  /// клиента в поддержке. null — в организации не осталось никого.
+  ownerEmail: string | null;
   type: string;
   subscriptionPlan: string;
   subscriptionEnd: string | null;
@@ -67,6 +72,7 @@ export async function getAllOrgMetrics(
     docEntries14to7Raw,
     lastFieldByOrg,
     lastDocByOrgRaw,
+    usersForOwner,
   ] = await Promise.all([
     db.user.groupBy({
       by: ["organizationId"],
@@ -124,7 +130,23 @@ export async function getAllOrgMetrics(
         document: { select: { organizationId: true } },
       },
     }),
+    // Владелец организации: берём самого раннего пользователя. Сортируем
+    // по возрастанию, поэтому первый встреченный на организацию — он и есть.
+    db.user.findMany({
+      where: { isRoot: false, organizationId: { not: excludeOrgId } },
+      // id вторым ключом — у сотрудников из одного импорта createdAt
+      // совпадает до миллисекунды, и без него выбор был бы случайным.
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      select: { organizationId: true, email: true },
+    }),
   ]);
+
+  const ownerEmailByOrg = new Map<string, string>();
+  for (const u of usersForOwner) {
+    if (!ownerEmailByOrg.has(u.organizationId)) {
+      ownerEmailByOrg.set(u.organizationId, u.email);
+    }
+  }
 
   function bucket(rows: { document: { organizationId: string } }[]) {
     const map = new Map<string, number>();
@@ -190,6 +212,7 @@ export async function getAllOrgMetrics(
     return {
       organizationId: org.id,
       organizationName: org.name,
+      ownerEmail: ownerEmailByOrg.get(org.id) ?? null,
       type: org.type,
       subscriptionPlan: org.subscriptionPlan,
       subscriptionEnd: org.subscriptionEnd?.toISOString() ?? null,
