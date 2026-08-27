@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { ServiceWorkerRegister } from "@/components/layout/sw-register";
 import { BuildVersionWatcher } from "@/components/layout/build-version-watcher";
@@ -78,6 +78,20 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+};
+
+/**
+ * Явный viewport вместо неявного Next-дефолта: раньше поведение
+ * масштаба на телефоне было «как получится», и разбираться с
+ * самопроизвольным зумом приходилось вслепую.
+ *
+ * maximumScale намеренно НЕ ставим: жёсткий запрет зума ломает
+ * WCAG 1.4.4 (слабовидящие не смогут увеличить текст). Причина
+ * авто-зума — шрифты полей меньше 16px, они подняты до 16px.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

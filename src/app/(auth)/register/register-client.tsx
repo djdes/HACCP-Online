@@ -192,7 +192,10 @@ function RegisterScreen() {
               inputMode="email"
               autoFocus={!prefilled}
               required
-              className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              // text-[16px]: поле стоит с autoFocus, а iOS Safari при
+              // фокусе в поле со шрифтом < 16px зумит страницу — до этой
+              // правки регистрация открывалась уже «увеличенной».
+              className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[16px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
             />
 
             <EmailHint

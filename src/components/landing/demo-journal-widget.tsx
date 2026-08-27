@@ -321,6 +321,9 @@ export function DemoJournalWidget() {
           if (formValid) setSaved(true);
         }}
       >
+        {/* Поля демо — 16px: это первое, что посетитель трогает
+            пальцем, а iOS Safari при фокусе в поле со шрифтом меньше
+            16px зумит страницу и масштаб назад не возвращает. */}
         {journal.fields.map((field) => (
           <label key={field.key} className="block">
             <span className="mb-1.5 block text-[13px] font-medium text-[#3c4053]">
@@ -333,7 +336,7 @@ export function DemoJournalWidget() {
                   setField(field.key, e.target.value);
                   setSaved(false);
                 }}
-                className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+                className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[16px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
               >
                 <option value="">Выберите…</option>
                 {field.options.map((o) => (
@@ -352,7 +355,7 @@ export function DemoJournalWidget() {
                   }}
                   inputMode={field.kind === "number" ? "decimal" : "text"}
                   placeholder={field.placeholder}
-                  className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+                  className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
                 />
                 {field.kind === "number" ? (
                   <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[13px] text-[#9b9fb3]">

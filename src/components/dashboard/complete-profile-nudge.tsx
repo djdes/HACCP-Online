@@ -388,11 +388,13 @@ function CompleteProfileModal({
   );
 }
 
+// text-[16px] во всех полях анкеты: ниже 16px iOS Safari зумит
+// страницу при фокусе и обратно масштаб не возвращает.
 const selectCls =
-  "h-11 w-full appearance-none rounded-2xl border border-[#dcdfed] bg-white pl-4 pr-10 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15";
+  "h-11 w-full appearance-none rounded-2xl border border-[#dcdfed] bg-white pl-4 pr-10 text-[16px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15";
 
 function inputCls(invalid: boolean) {
-  return `h-11 w-full rounded-2xl border bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:outline-none focus:ring-4 ${
+  return `h-11 w-full rounded-2xl border bg-white px-4 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:outline-none focus:ring-4 ${
     invalid
       ? "border-[#ff8d7d] focus:border-[#d2453d] focus:ring-[#d2453d]/15"
       : "border-[#dcdfed] focus:border-[#5566f6] focus:ring-[#5566f6]/15"

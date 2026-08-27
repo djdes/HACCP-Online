@@ -106,7 +106,10 @@ export function HeroEmailStart({
           autoComplete="email"
           inputMode="email"
           className={
-            "h-12 w-full flex-1 rounded-2xl border px-4 text-[15px] outline-none transition-colors focus:ring-4 sm:h-[56px] " +
+            // 16px, а не 15: iOS Safari автоматически зумит страницу при
+            // фокусе в поле со шрифтом меньше 16px и обратно уже не
+            // отъезжает — это и был «непонятный zoom in» на лендинге.
+            "h-12 w-full flex-1 rounded-2xl border px-4 text-[16px] outline-none transition-colors focus:ring-4 sm:h-[56px] " +
             (dark
               ? "border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-white/40 focus:ring-white/10"
               : "border-[#dcdfed] bg-white text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:ring-[#5566f6]/15")

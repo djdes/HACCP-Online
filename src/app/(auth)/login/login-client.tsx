@@ -350,7 +350,9 @@ function Field({
           placeholder={placeholder}
           autoComplete={autoComplete}
           required={required}
-          className="peer h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 pr-11 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          // text-[16px]: ниже 16px iOS Safari зумит страницу при фокусе
+          // в поле и не возвращает масштаб обратно.
+          className="peer h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 pr-11 text-[16px] text-[#0b1024] placeholder:text-[#c1c5d6] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
         />
         {adornment ? (
           <div className="absolute right-3 flex items-center">{adornment}</div>
