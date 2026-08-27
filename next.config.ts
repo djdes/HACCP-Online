@@ -144,7 +144,11 @@ const nextConfig: NextConfig = {
         // path-to-regexp запрещает capturing groups, поэтому
         // `(?:$|/)` non-capturing вместо `($|/)`. Без `(?:` build
         // фейлится с «Capturing groups are not allowed».
-        source: "/((?!mini(?:$|/)).*)",
+        // api/journal-samples тоже исключены: страница журнала
+        // показывает собственный образец во встроенном просмотре, а
+        // X-Frame-Options: DENY запрещает даже свой же origin. В файле
+        // нет ни сессии, ни чужих данных — вставлять его безопасно.
+        source: "/((?!mini(?:$|/)|api/journal-samples).*)",
         headers: denyFrameHeaders,
       },
       {

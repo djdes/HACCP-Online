@@ -168,42 +168,62 @@ export default async function JournalInfoDetailPage({
         <JournalScreenshot code={code} label={info.tagline} />
       </section>
 
-      {/* ОБРАЗЕЦ — сразу под скриншотом: человек, который дочитал до
-          сюда, хочет увидеть готовый бланк, а не читать дальше. */}
+      {/* ОБРАЗЕЦ — показываем сам PDF, а не картинку с него. Встроенный
+          файл всегда совпадает с тем, что скачается: отдельное превью
+          пришлось бы перегенерировать при каждой правке бланка, и оно
+          бы тихо разъехалось. На телефонах встроенный просмотр PDF
+          работает не везде, поэтому под рамкой всегда есть кнопки. */}
       {SAMPLE_CODES.has(code) ? (
         <section className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6">
-          <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-5 sm:p-6">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white">
-              <FileDown className="size-5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-semibold text-[#0b1024]">
-                Заполненный образец этого журнала
+          <div className="overflow-hidden rounded-3xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-5 sm:p-6">
+            <div className="flex flex-wrap items-start gap-4">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white">
+                <FileDown className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold text-[#0b1024]">
+                  Так выглядит заполненный журнал
+                </div>
+                <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
+                  Тот же файл, который сервис выдаёт инспектору. Данные
+                  вымышленные — организация «Ромашка» и пять сотрудников.
+                </p>
               </div>
-              <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
-                Тот же бланк, который сервис выдаёт инспектору. Данные
-                вымышленные — можно распечатать и посмотреть, как
-                выглядит готовый журнал.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <a
-                href={`/api/journal-samples/${code}/pdf`}
-                className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-              >
-                <FileDown className="size-4" />
-                PDF
-              </a>
-              {DOCX_CODES.has(code) ? (
+              <div className="flex gap-2">
                 <a
-                  href={`/api/journal-samples/${code}/docx`}
-                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  href={`/api/journal-samples/${code}/pdf`}
+                  className="inline-flex h-11 items-center gap-1.5 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
                 >
-                  <FileDown className="size-4 text-[#5566f6]" />
-                  DOCX
+                  <FileDown className="size-4" />
+                  PDF
                 </a>
-              ) : null}
+                {DOCX_CODES.has(code) ? (
+                  <a
+                    href={`/api/journal-samples/${code}/docx`}
+                    className="inline-flex h-11 items-center gap-1.5 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  >
+                    <FileDown className="size-4 text-[#5566f6]" />
+                    DOCX
+                  </a>
+                ) : null}
+              </div>
             </div>
+
+            {/* Журналы печатаются альбомной A4 — 297×210, отсюда 1.414/1 */}
+            <object
+              data={`/api/journal-samples/${code}/pdf?inline=1#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+              type="application/pdf"
+              aria-label="Образец заполненного журнала"
+              className="mt-5 hidden aspect-[1.414/1] w-full rounded-2xl border border-[#dcdfed] bg-white sm:block"
+            >
+              <div className="flex h-full items-center justify-center p-6 text-center text-[13px] text-[#6f7282]">
+                Браузер не показывает PDF на странице — откройте файл
+                кнопкой выше.
+              </div>
+            </object>
+            <p className="mt-2 hidden text-[12px] text-[#9b9fb3] sm:block">
+              Пролистайте прямо здесь или скачайте, чтобы распечатать.
+            </p>
           </div>
         </section>
       ) : null}

@@ -41,13 +41,17 @@ export async function GET(
       buildJournalSampleInput(code)
     );
 
+    // ?inline=1 — для встроенного просмотра на странице журнала:
+    // attachment заставил бы браузер скачать файл вместо показа.
+    const inline = new URL(request.url).searchParams.get("inline") === "1";
+
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         // filename* — иначе кириллица в имени файла превращается в
         // «_______.pdf» у половины браузеров.
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(
           `obrazec-${fileName}`
         )}`,
         // Образец детерминирован (период зафиксирован в фикстурах),
