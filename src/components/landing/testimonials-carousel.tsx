@@ -1,20 +1,21 @@
 import { Star } from "lucide-react";
 import { AutoCarousel } from "@/components/landing/auto-carousel";
 import {
-  APPROVED_TESTIMONIALS,
+  HAS_ILLUSTRATIVE_TESTIMONIALS,
+  TESTIMONIALS,
   type Testimonial,
 } from "@/content/testimonials";
 
 /**
  * «Что говорят заведения».
  *
- * Секция не рисуется, пока нет ни одного подтверждённого отзыва —
- * см. `src/content/testimonials.ts`. Придуманные цитаты от
- * несуществующих людей на боевом лендинге неотличимы от настоящих,
- * а решение о покупке человек принимает в том числе по ним.
+ * Пока подписанных разрешений на публикацию нет, реплики
+ * иллюстративные — подпись без выдуманных ФИО, а под секцией стоит
+ * оговорка. Та же честная схема, что и у блока «До и после».
+ * Подробности — в `src/content/testimonials.ts`.
  */
 export function TestimonialsCarousel() {
-  if (APPROVED_TESTIMONIALS.length === 0) return null;
+  if (TESTIMONIALS.length === 0) return null;
 
   return (
     <section className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6">
@@ -31,10 +32,18 @@ export function TestimonialsCarousel() {
       <AutoCarousel
         ariaLabel="Отзывы заведений"
         slideClassName="flex-[0_0_88%] md:flex-[0_0_58%] lg:flex-[0_0_46%]"
-        items={APPROVED_TESTIMONIALS.map((t) => (
+        items={TESTIMONIALS.map((t) => (
           <TestimonialCard key={t.id} testimonial={t} />
         ))}
       />
+
+      {HAS_ILLUSTRATIVE_TESTIMONIALS ? (
+        <div className="mt-6 text-[12px] text-[#9b9fb3]">
+          * Часть реплик — иллюстративные примеры, а не слова конкретных
+          клиентов. Именные отзывы появятся, когда заведения дадут
+          разрешение на публикацию.
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -80,9 +89,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
           <div className="text-[14px] font-semibold text-[#0b1024]">
             {testimonial.author}
           </div>
-          <div className="text-[13px] text-[#6f7282]">
-            {testimonial.role} · {testimonial.place}
-          </div>
+          <div className="text-[13px] text-[#6f7282]">{testimonial.place}</div>
         </div>
       </figcaption>
     </figure>
