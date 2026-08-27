@@ -8,6 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
+import { AutoCarousel } from "@/components/landing/auto-carousel";
 
 /**
  * Three stacked/tilted mockups showing the product surfaces: a desktop
@@ -42,32 +43,59 @@ export function ScreenshotFan() {
         </div>
       </div>
 
-      {/* ТЕЛЕФОН: три мокапа в ряд со scroll-snap вместо одного
-          обрезанного телефона. Раньше здесь показывали только бота, и
-          лист А4 с дашбордом мобильный посетитель не видел вовсе.
-          Лист стоит первым и центрируется при загрузке. */}
+      {/* ТЕЛЕФОН: та же карусель, что в «Подходит для» — центральный
+          мокап активен и крупнее, соседние приглушены, снизу точки и
+          стрелки. Раньше здесь был голый scroll-snap-ряд: карточки
+          разной высоты не выравнивались, подпись уезжала за край, а
+          понять, что ряд листается, было неоткуда. */}
       <div className="sm:hidden">
-        {/* Ширины подобраны так, чтобы три разных пропорции дали
-            примерно одну высоту (~360px): лист 1:1.414, телефон 9:19,
-            окно браузера — широкое. items-center добирает остаток,
-            иначе под коротким листом висела пустая полоса высотой
-            в половину телефона. */}
-        <div className="-mx-4 flex snap-x snap-mandatory items-center gap-4 overflow-x-auto px-[17vw] pb-4 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="w-[66vw] shrink-0 snap-center">
-            <A4SheetMockup />
-          </div>
-          <div className="w-[45vw] shrink-0 snap-center">
-            <TelegramMockup />
-          </div>
-          <div className="w-[84vw] shrink-0 snap-center">
-            <DesktopMockup />
-          </div>
-        </div>
-        <div className="mt-1 text-center text-[11px] text-[#9b9fb3]">
-          Листайте вбок: бланк для проверки, бот для смены, кабинет
-        </div>
+        <AutoCarousel
+          ariaLabel="Как выглядит WeSetup"
+          slideClassName="flex-[0_0_74%]"
+          autoplayMs={6500}
+          items={[
+            <MobileSlide key="a4" caption="Бланк для проверки" widthClass="w-[228px]">
+              <A4SheetMockup />
+            </MobileSlide>,
+            <MobileSlide key="bot" caption="Бот для смены" widthClass="w-[152px]">
+              <TelegramMockup />
+            </MobileSlide>,
+            <MobileSlide key="app" caption="Кабинет" widthClass="w-full">
+              <DesktopMockup />
+            </MobileSlide>,
+          ]}
+        />
       </div>
     </>
+  );
+}
+
+/**
+ * Слайд мобильной карусели. Высота фиксирована и одинакова для всех
+ * трёх: лист 1:1.414, телефон 9:19 и окно браузера сами по себе дают
+ * разную высоту, и без общей коробки карусель прыгала на каждом
+ * пролистывании. Мокап вписывается по высоте и центрируется.
+ */
+function MobileSlide({
+  children,
+  caption,
+  widthClass,
+}: {
+  children: React.ReactNode;
+  caption: string;
+  /// Ширина подобрана под общую высоту: у листа 1:1.414, у телефона
+  /// 9:19 — при одинаковой ширине они разъезжались бы вдвое.
+  widthClass: string;
+}) {
+  return (
+    <figure className="flex h-[368px] flex-col">
+      <div className="flex flex-1 items-center justify-center">
+        <div className={widthClass}>{children}</div>
+      </div>
+      <figcaption className="mt-3 text-center text-[12px] font-medium text-[#6f7282]">
+        {caption}
+      </figcaption>
+    </figure>
   );
 }
 

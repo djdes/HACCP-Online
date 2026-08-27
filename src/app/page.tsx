@@ -558,7 +558,7 @@ export default async function LandingPage() {
               min-h оставлял под ним пустую полосу. На sm+ высота задана
               явно — веер собран из absolute-элементов и сам её не
               держит. */}
-          <div className="hero-fan relative mx-auto mt-10 max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
+          <div className="hero-fan relative mx-auto mt-8 max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
             <ScreenshotFan />
           </div>
         </div>
