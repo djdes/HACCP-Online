@@ -1,7 +1,24 @@
+import {
+  MAX_LOCATIONS,
+  ORG_OWNERSHIP,
+  ORG_SPHERES,
+  normalizeSphere,
+} from "@/lib/org-profile";
 import { z } from "zod";
 
 // Max bytes for bcrypt — anything longer is silently truncated and wastes bandwidth.
 const PASSWORD_MAX = 72;
+
+/** Кортежи значений для z.enum — он не принимает readonly-массив объектов. */
+export const ORG_SPHERE_VALUES = ORG_SPHERES.map((s) => s.value) as [
+  string,
+  ...string[],
+];
+const ORG_OWNERSHIP_VALUES = ORG_OWNERSHIP.map((o) => o.value) as [
+  string,
+  ...string[],
+];
+
 
 export const loginSchema = z.object({
   email: z.string().email("Введите корректный email").max(320),
@@ -13,9 +30,9 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   organizationName: z.string().min(2, "Название организации должно содержать минимум 2 символа").max(200),
-  organizationType: z.enum(["meat", "dairy", "bakery", "confectionery", "other"], {
-    message: "Выберите тип организации",
-  }),
+  // Сфера заведения. Значения — из общего словаря org-profile, чтобы
+  // список не разъезжался с модалкой анкеты и настройками.
+  organizationType: z.string().transform((v) => normalizeSphere(v)),
   name: z.string().min(2, "Имя должно содержать минимум 2 символа").max(100),
   email: z.string().email("Введите корректный email").max(320),
   password: z
@@ -77,3 +94,26 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   deviations: true,
   compliance: true,
 };
+
+/**
+ * Анкета после мгновенной регистрации.
+ *
+ * Обязательны только название организации и телефон: без первого
+ * кабинет и PDF подписаны заглушкой, без второго не работает
+ * авто-связка сотрудника с TasksFlow по номеру. Остальное человек
+ * дозаполнит в настройках, и держать его в модалке незачем.
+ */
+export const completeProfileSchema = z.object({
+  organizationName: z
+    .string()
+    .trim()
+    .min(2, "Название организации — минимум 2 символа")
+    .max(200),
+  phone: z.string().trim().min(1, "Укажите телефон").max(40),
+  sphere: z.enum(ORG_SPHERE_VALUES).default("restaurant"),
+  ownershipKind: z.enum(ORG_OWNERSHIP_VALUES).default("private"),
+  locationsCount: z.coerce.number().int().min(1).max(MAX_LOCATIONS).default(1),
+  inn: z.string().trim().max(20).optional().or(z.literal("")),
+  name: z.string().trim().max(100).optional().or(z.literal("")),
+  newPassword: z.string().min(6, "Пароль — минимум 6 символов").max(200).optional().or(z.literal("")),
+});

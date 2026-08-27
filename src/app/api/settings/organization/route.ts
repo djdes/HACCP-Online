@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
+import {
+  normalizeOwnership,
+  normalizeSphere,
+} from "@/lib/org-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,15 +25,9 @@ export const dynamic = "force-dynamic";
  *   • requireAdminForJournalEdit / shiftEndHour / lockPastDayEdits →
  *     /api/settings/compliance (оставляем там для back-compat)
  */
-const VALID_TYPES = new Set([
-  "restaurant",
-  "production",
-  "retail",
-  "catering",
-  "school",
-  "hospital",
-  "other",
-]);
+// Сфера и форма собственности приводятся общими нормализаторами:
+// список значений живёт в одном месте (src/lib/org-profile.ts), иначе
+// он снова разъедется с модалкой анкеты.
 
 const VALID_LOCALES = new Set(["ru", "en"]);
 
@@ -68,13 +66,14 @@ export async function PATCH(request: Request) {
     else if (name.length > 200) errors.push("Название слишком длинное");
     else data.name = name;
   }
+  // `type` — сфера заведения. Не валидируем перечислением, а
+  // нормализуем: старые значения из базы (meat, dairy…) должны
+  // сохраняться без ошибки, а не ронять всю форму.
   if ("type" in body) {
-    const type = typeof body.type === "string" ? body.type : "";
-    if (!VALID_TYPES.has(type)) {
-      errors.push(`Тип должен быть одним из: ${[...VALID_TYPES].join(", ")}`);
-    } else {
-      data.type = type;
-    }
+    data.type = normalizeSphere(body.type);
+  }
+  if ("ownershipKind" in body) {
+    data.ownershipKind = normalizeOwnership(body.ownershipKind);
   }
   if ("inn" in body) {
     const inn =
@@ -188,6 +187,8 @@ export async function PATCH(request: Request) {
     select: {
       name: true,
       type: true,
+      ownershipKind: true,
+      locationsCount: true,
       inn: true,
       address: true,
       phone: true,

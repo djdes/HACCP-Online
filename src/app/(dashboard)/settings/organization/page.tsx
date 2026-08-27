@@ -19,6 +19,8 @@ export default async function OrganizationInfoPage() {
     select: {
       name: true,
       type: true,
+      ownershipKind: true,
+      locationsCount: true,
       inn: true,
       address: true,
       phone: true,
@@ -91,6 +93,7 @@ export default async function OrganizationInfoPage() {
         initial={{
           name: org.name,
           type: org.type,
+          ownershipKind: org.ownershipKind,
           inn: org.inn,
           address: org.address,
           phone: org.phone,
@@ -104,6 +107,7 @@ export default async function OrganizationInfoPage() {
           requireAdminForJournalEdit: org.requireAdminForJournalEdit,
         }}
         meta={{
+          locationsCount: org.locationsCount,
           subscriptionPlan: org.subscriptionPlan,
           subscriptionEnd: org.subscriptionEnd?.toISOString() ?? null,
           createdAt: org.createdAt.toISOString(),

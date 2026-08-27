@@ -11,6 +11,7 @@ import {
   type OrgType,
 } from "@/lib/onboarding-presets";
 import { recordAuditLog } from "@/lib/audit-log";
+import { sphereToPreset } from "@/lib/org-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
   }
 
   const type = (body.data.type ?? org.type) as OrgType;
-  const preset = getOnboardingPreset(type);
+  const preset = getOnboardingPreset(sphereToPreset(type));
   const applyJournals = body.data.applyJournalAccess ?? true;
   const seedStaff = body.data.seedDemoStaff ?? false;
   const applyDisabledJournals = body.data.applyDisabledJournals ?? true;

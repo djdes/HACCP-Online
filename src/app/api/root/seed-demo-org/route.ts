@@ -12,6 +12,7 @@ import {
   type OrgType,
 } from "@/lib/onboarding-presets";
 import { recordAuditLog } from "@/lib/audit-log";
+import { sphereToPreset } from "@/lib/org-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
   const orgType = (parsed.type ?? "restaurant") as OrgType;
   const orgName = parsed.name ?? `Демо ресторан ${todayStr()}`;
   const days = parsed.daysOfHistory ?? 7;
-  const preset = getOnboardingPreset(orgType);
+  const preset = getOnboardingPreset(sphereToPreset(orgType));
 
   const t0 = Date.now();
 

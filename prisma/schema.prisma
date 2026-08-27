@@ -9,7 +9,17 @@ datasource db {
 model Organization {
   id                       String                     @id @default(cuid())
   name                     String
+  /// Сфера заведения: restaurant | cafe | education | bakery | fastfood |
+  /// production | other. Колонка переиспользована — раньше здесь лежал
+  /// «тип производства» (meat/dairy/…), старые значения переводит
+  /// LEGACY_SPHERE_MAP в src/lib/org-profile.ts.
   type                     String
+  /// Форма собственности: private | chain | state | other.
+  ownershipKind            String                     @default("private")
+  /// Сколько точек назвали при регистрации. Отдельных организаций под
+  /// них пока не создаётся — это счётчик обещанного и материал для
+  /// аналитики.
+  locationsCount           Int                        @default(1)
   inn                      String?
   address                  String?
   phone                    String?
@@ -412,6 +422,9 @@ model User {
   /// ли город/провайдер.
   lastLoginIp                 String?
   lastLoginAt                 DateTime?
+  /// Когда человек подтвердил почту кодом. null — не подтверждал.
+  /// Ничего не блокирует: это отметка для настроек и быстрого старта.
+  emailVerifiedAt             DateTime?
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])

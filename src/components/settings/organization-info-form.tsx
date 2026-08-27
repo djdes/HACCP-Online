@@ -19,10 +19,18 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ORG_OWNERSHIP,
+  ORG_SPHERES,
+  normalizeOwnership,
+  normalizeSphere,
+} from "@/lib/org-profile";
 
 type Form = {
   name: string;
+  /// Сфера заведения (в БД колонка называется `type`).
   type: string;
+  ownershipKind: string;
   inn: string | null;
   address: string | null;
   phone: string | null;
@@ -37,20 +45,17 @@ type Form = {
 };
 
 type Meta = {
+  /// Сколько точек назвали при регистрации. Только для показа —
+  /// отдельных организаций под них пока не создаётся.
+  locationsCount?: number;
   subscriptionPlan: string;
   subscriptionEnd: string | null;
   createdAt: string;
 };
 
-const TYPE_OPTIONS = [
-  { value: "restaurant", label: "Ресторан / кафе" },
-  { value: "production", label: "Производство" },
-  { value: "retail", label: "Розничная торговля" },
-  { value: "catering", label: "Кейтеринг / доставка" },
-  { value: "school", label: "Школа / детсад" },
-  { value: "hospital", label: "Больница / соц.учреждение" },
-  { value: "other", label: "Другое" },
-];
+// Списки живут в src/lib/org-profile.ts — раньше их было четыре штуки
+// в разных файлах, и они успели разъехаться между собой.
+const TYPE_OPTIONS = ORG_SPHERES;
 
 const TIMEZONE_OPTIONS = [
   "Europe/Kaliningrad",
@@ -241,9 +246,9 @@ export function OrganizationInfoForm({
             maxLength={200}
           />
         </FormRow>
-        <FormRow label="Тип бизнеса" hint="Влияет на пресеты журналов и pipelines">
+        <FormRow label="Сфера" hint="Влияет на пресеты журналов и pipelines">
           <select
-            value={form.type}
+            value={normalizeSphere(form.type)}
             onChange={(e) => set("type", e.target.value)}
             className="form-input"
           >
@@ -253,6 +258,27 @@ export function OrganizationInfoForm({
               </option>
             ))}
           </select>
+        </FormRow>
+        <FormRow label="Тип" hint="Частное, сетевое или государственное заведение">
+          <select
+            value={normalizeOwnership(form.ownershipKind)}
+            onChange={(e) => set("ownershipKind", e.target.value)}
+            className="form-input"
+          >
+            {ORG_OWNERSHIP.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </FormRow>
+        {/* Точек — только чтение: значение приходит из анкеты
+            регистрации. Менять его здесь нечему: отдельных организаций
+            под точки пока не создаётся. */}
+        <FormRow label="Точек" hint="Указано при регистрации">
+          <span className="inline-flex h-11 items-center rounded-2xl bg-[#f5f6ff] px-4 text-[15px] font-medium tabular-nums text-[#3848c7]">
+            {meta.locationsCount ?? 1}
+          </span>
         </FormRow>
         <FormRow
           label="ИНН"
