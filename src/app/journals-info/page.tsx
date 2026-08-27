@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
 import {
   ArrowRight,
   BookOpenCheck,
@@ -53,6 +54,9 @@ const CATEGORY_ORDER: Array<JournalInfo["category"]> = [
   "sanpin_periodic",
   "haccp",
 ];
+
+/** Журналы, у которых есть готовое превью образца. */
+const SAMPLE_CODES = new Set<string>(SAMPLE_JOURNAL_CODES);
 
 export default function JournalsInfoListPage() {
   const all = Object.values(JOURNAL_INFO);
@@ -110,6 +114,20 @@ export default function JournalsInfoListPage() {
                   href={`/journals-info/${j.code}`}
                   className="group flex min-w-0 flex-col rounded-2xl border border-[#ececf4] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/40 hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)]"
                 >
+                  {/* Превью первой страницы образца. Одним взглядом
+                      понятно, что это за бланк — по названию и коду
+                      человек этого не понимает. Картинки лежат в
+                      public/journal-samples и пересобираются скриптом
+                      render-journal-sample-thumbs.ts. */}
+                  {SAMPLE_CODES.has(j.code) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/journal-samples/${j.code}.png`}
+                      alt=""
+                      loading="lazy"
+                      className="mb-4 aspect-[1228/862] w-full rounded-xl border border-[#ececf4] bg-white object-cover object-top"
+                    />
+                  ) : null}
                   <div className="break-all text-[11px] font-medium uppercase tracking-[0.14em] text-[#6f7282]">
                     {j.code}
                   </div>

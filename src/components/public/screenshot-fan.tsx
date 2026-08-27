@@ -1,10 +1,13 @@
 import {
   ArrowRight,
+  Building2,
   CheckCircle2,
+  ChevronDown,
+  Cloud,
   FileText,
   MessageSquare,
-  Snowflake,
   Send,
+  Sun,
   Users,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
@@ -21,52 +24,64 @@ import { AutoCarousel } from "@/components/landing/auto-carousel";
  * Content is stylised miniature UI: the proportions and typography
  * read as «it's our app», not «it's a random chart».
  */
+/**
+ * Веер мокапов для sm+ — дашборд по центру, телефон слева, лист А4
+ * справа. Абсолютное позиционирование: карточки намеренно
+ * перекрываются и наклонены.
+ */
 export function ScreenshotFan() {
   return (
-    <>
-      {/* ДЕСКТОП: веер — дашборд по центру, телефон с ботом слева,
-          лист А4 справа. Абсолютное позиционирование, потому что
-          карточки намеренно перекрываются и наклонены. */}
-      <div className="absolute inset-0 hidden sm:block">
-        <div className="absolute left-1/2 top-0 w-[min(700px,100%)] -translate-x-1/2">
-          <DesktopMockup />
-        </div>
-
-        <div className="absolute bottom-0 left-[2%] w-[min(210px,21vw)] -rotate-[8deg] md:left-[5%] md:w-[228px]">
-          <TelegramMockup />
-        </div>
-
-        {/* Лист А4 — справа и крупнее телефона: это главный аргумент
-            секции, инспектору отдают именно его. */}
-        <div className="absolute bottom-0 right-[1%] w-[min(250px,24vw)] rotate-[6deg] md:right-[4%] md:w-[268px]">
-          <A4SheetMockup />
-        </div>
+    <div className="absolute inset-0">
+      <div className="absolute left-1/2 top-0 w-[min(700px,100%)] -translate-x-1/2">
+        <DesktopMockup />
       </div>
 
-      {/* ТЕЛЕФОН: та же карусель, что в «Подходит для» — центральный
-          мокап активен и крупнее, соседние приглушены, снизу точки и
-          стрелки. Раньше здесь был голый scroll-snap-ряд: карточки
-          разной высоты не выравнивались, подпись уезжала за край, а
-          понять, что ряд листается, было неоткуда. */}
-      <div className="sm:hidden">
-        <AutoCarousel
-          ariaLabel="Как выглядит WeSetup"
-          slideClassName="flex-[0_0_74%]"
-          autoplayMs={6500}
-          items={[
-            <MobileSlide key="a4" caption="Бланк для проверки" widthClass="w-[228px]">
-              <A4SheetMockup />
-            </MobileSlide>,
-            <MobileSlide key="bot" caption="Бот для смены" widthClass="w-[152px]">
-              <TelegramMockup />
-            </MobileSlide>,
-            <MobileSlide key="app" caption="Кабинет" widthClass="w-full">
-              <DesktopMockup />
-            </MobileSlide>,
-          ]}
-        />
+      <div className="absolute bottom-0 left-[2%] w-[min(210px,21vw)] -rotate-[8deg] md:left-[5%] md:w-[228px]">
+        <TelegramMockup />
       </div>
-    </>
+
+      {/* Лист А4 — справа и крупнее телефона: это главный аргумент
+          секции, инспектору отдают именно его. */}
+      <div className="absolute bottom-4 right-[1%] w-[min(330px,30vw)] rotate-[5deg] md:right-[3%] md:w-[360px]">
+        <A4SheetMockup />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Мокапы для телефона — по одному на экран, листаются свайпом.
+ *
+ * Отдельным компонентом, а не веткой внутри веера: веер живёт в
+ * контейнере `.hero-fan` с `perspective` и анимациями, и мобильный
+ * блок внутри него раздувался шире экрана. Здесь он рисуется в
+ * обычной колонке страницы.
+ */
+export function ScreenshotStack() {
+  return (
+    <div className="w-full max-w-full overflow-hidden">
+      <AutoCarousel
+        ariaLabel="Как выглядит WeSetup"
+        slideClassName="flex-[0_0_100%]"
+        autoplayMs={6500}
+        items={[
+          <MobileSlide key="a4" caption="Бланк для проверки" widthClass="w-full">
+            <A4SheetMockup />
+          </MobileSlide>,
+          <MobileSlide key="bot" caption="Бот для смены" widthClass="w-[196px]">
+            <TelegramMockup />
+          </MobileSlide>,
+          <MobileSlide
+            key="app"
+            caption="Кабинет"
+            widthClass="w-full"
+            scaleClass="scale-[0.66]"
+          >
+            <DesktopMockup />
+          </MobileSlide>,
+        ]}
+      />
+    </div>
   );
 }
 
@@ -80,17 +95,42 @@ function MobileSlide({
   children,
   caption,
   widthClass,
+  scaleClass,
 }: {
   children: React.ReactNode;
   caption: string;
-  /// Ширина подобрана под общую высоту: у листа 1:1.414, у телефона
-  /// 9:19 — при одинаковой ширине они разъезжались бы вдвое.
+  /// Своя ширина у каждого: лист альбомный и берёт всю строку,
+  /// телефону нужна узкая колонка — во всю ширину он вышел бы
+  /// двухметровым.
   widthClass: string;
+  /// Уменьшение для окна браузера: по содержимому оно выше коробки,
+  /// а сузить его нельзя — текст внутри стал бы нечитаемым.
+  scaleClass?: string;
 }) {
   return (
-    <figure className="flex h-[368px] flex-col">
+    // Коробка одной высоты для всех трёх: у листа, телефона и окна
+    // браузера пропорции разные, и без неё ряд вставал по самому
+    // высокому, а под остальными зияла пустота в пол-экрана.
+    <figure className="flex h-[500px] flex-col">
+      {/* Без overflow-hidden на общей коробке: он срезал мягкую тень
+          мокапа ровным краем, и при свайпе за карточкой ехал серый
+          прямоугольник. */}
       <div className="flex flex-1 items-center justify-center">
-        <div className={widthClass}>{children}</div>
+        {scaleClass ? (
+          // `scale` не уменьшает layout-коробку: у окна браузера она
+          // оставалась ~650px и вылезала за слайд, унося с собой
+          // подпись. Поэтому уменьшенный мокап живёт в собственной
+          // коробке по высоте слайда и растёт от её верха.
+          // Высота задана числом, а не h-full: процент от flex-родителя
+          // не разрешился, коробка осталась в натуральные 650px и
+          // вытолкнула подпись за пределы слайда. 430px — это те же
+          // 650 после scale-[0.66].
+          <div className={`h-[430px] ${widthClass} overflow-hidden`}>
+            <div className={`origin-top ${scaleClass}`}>{children}</div>
+          </div>
+        ) : (
+          <div className={widthClass}>{children}</div>
+        )}
       </div>
       <figcaption className="mt-3 text-center text-[12px] font-medium text-[#6f7282]">
         {caption}
@@ -105,7 +145,7 @@ function MobileSlide({
 
 function DesktopMockup() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_40px_80px_-30px_rgba(11,16,36,0.25),0_0_0_1px_rgba(240,240,250,0.7)]">
+    <div className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_12px_30px_-18px_rgba(11,16,36,0.18),0_0_0_1px_rgba(240,240,250,0.7)] sm:shadow-[0_40px_80px_-30px_rgba(11,16,36,0.25),0_0_0_1px_rgba(240,240,250,0.7)]">
       {/* browser chrome */}
       <div className="flex items-center gap-2 border-b border-[#ececf4] bg-[#fafbff] px-4 py-2.5">
         <span className="size-2.5 rounded-full bg-[#ff6059]" />
@@ -115,123 +155,142 @@ function DesktopMockup() {
           wesetup.ru/dashboard
         </div>
       </div>
-      {/* app chrome */}
-      <div className="flex items-center justify-between border-b border-[#ececf4] bg-white px-5 py-3">
-        <div className="flex items-center gap-6">
-          <div className="text-[#0b1024]">
-            <BrandLogo height={22} title="" />
-          </div>
-          <div className="flex gap-4 text-[12px] font-medium text-[#6f7282]">
-            <span className="text-[#0b1024]">Дашборд</span>
-            <span>Журналы</span>
-            <span>Сотрудники</span>
-            <span>Отчёты</span>
-          </div>
+
+      {/* Шапка кабинета — те же элементы и в том же порядке, что в
+          настоящем: переключатель организации и «Сотрудники» слева,
+          статус и действия справа. */}
+      <div className="flex items-center gap-2 border-b border-[#ececf4] bg-white px-4 py-2.5">
+        <div className="text-[#0b1024]">
+          <BrandLogo height={20} title="" />
         </div>
-        <div className="flex size-7 items-center justify-center rounded-full bg-[#eef1ff] text-[10px] font-semibold text-[#3848c7]">
-          ДВ
-        </div>
+        <span className="ml-2 inline-flex items-center gap-1.5 rounded-xl border border-[#ececf4] bg-white px-2.5 py-1 text-[10px] font-medium text-[#0b1024]">
+          <Building2 className="size-3 text-[#5566f6]" />
+          Ромашка
+          <ChevronDown className="size-3 text-[#9b9fb3]" />
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#ececf4] bg-white px-2.5 py-1 text-[10px] font-medium text-[#0b1024]">
+          <Users className="size-3 text-[#5566f6]" />
+          Сотрудники
+        </span>
+        <span className="ml-auto inline-flex items-center gap-1 rounded-xl bg-[#ecfdf5] px-2 py-1 text-[10px] font-medium text-[#116b2a]">
+          <Cloud className="size-3" />
+          В сети
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-xl bg-[#5566f6] px-2.5 py-1 text-[10px] font-medium text-white">
+          <MessageSquare className="size-3" />
+          Обратная связь
+        </span>
+        <span className="flex size-6 items-center justify-center rounded-full bg-[#eef1ff] text-[9px] font-semibold text-[#3848c7]">
+          М
+        </span>
       </div>
-      {/* body */}
-      <div className="grid gap-3 bg-[#fafbff] p-5 md:grid-cols-[1.2fr_1fr]">
-        {/* left: journals list */}
-        <div className="rounded-xl border border-[#ececf4] bg-white p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-[12px] font-semibold text-[#0b1024]">
-              Сегодня незаполнено
+
+      <div className="space-y-3 bg-[#f6f7fb] p-4">
+        <div className="px-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+          Что сделать сегодня
+        </div>
+
+        {/* Тёмная карточка приветствия с четырьмя плитками — первое,
+            что видит управляющая, открыв кабинет. */}
+        <div className="relative overflow-hidden rounded-xl bg-[#0b1024] p-4 text-white">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-10 -top-10 size-[180px] rounded-full bg-[#5566f6] opacity-40 blur-[70px]" />
+            <div className="absolute -bottom-16 right-0 size-[200px] rounded-full bg-[#7a5cff] opacity-30 blur-[80px]" />
+          </div>
+          <div className="relative flex items-start gap-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
+              <Sun className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[15px] font-semibold leading-tight tracking-[-0.01em]">
+                Доброе утро, Мария
+              </div>
+              <div className="mt-0.5 text-[10px] text-white/60">
+                Четверг, 27 августа · ООО «Ромашка»
+              </div>
             </div>
-            <span className="rounded-full bg-[#fff4f2] px-2 py-0.5 text-[10px] font-medium text-[#a13a32]">
-              3
+            <span className="ml-auto shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[9px] font-medium uppercase tracking-wider text-white/80 ring-1 ring-white/15">
+              Готовность сегодня: 72%
             </span>
           </div>
-          <ul className="space-y-2">
+          <div className="relative mt-3 grid grid-cols-4 gap-2">
+            {[
+              { n: "18", l: "Записей сегодня" },
+              { n: "3", l: "На проверке" },
+              { n: "8", l: "Сотрудников" },
+              { n: "35", l: "Журналов" },
+            ].map((t) => (
+              <div
+                key={t.l}
+                className="rounded-lg bg-white/[0.06] px-2.5 py-2 ring-1 ring-white/10"
+              >
+                <div className="text-[16px] font-semibold leading-none tabular-nums">
+                  {t.n}
+                </div>
+                <div className="mt-1 text-[9px] leading-tight text-white/55">
+                  {t.l}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Незаполненное за сегодня — то, ради чего кабинет открывают. */}
+        <div className="rounded-xl border border-[#ececf4] bg-white p-3.5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
+              <CheckCircle2 className="size-3.5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold text-[#0b1024]">
+                Закрыть день
+              </div>
+              <div className="text-[9px] text-[#6f7282]">
+                Незаполненные журналы за сегодня
+              </div>
+            </div>
+            <span className="ml-auto rounded-full bg-[#fff4f2] px-2 py-0.5 text-[9px] font-medium text-[#a13a32]">
+              3 осталось
+            </span>
+          </div>
+          <ul className="mt-2.5 space-y-1.5">
             {[
               { name: "Гигиенический журнал", time: "09:00", done: true },
               { name: "Температура холодильников", time: "10:00", done: true },
               { name: "Бракераж готовой продукции", time: "12:00", done: false },
               { name: "Уборка зала", time: "18:00", done: false },
-              { name: "Учёт фритюра", time: "20:00", done: false },
             ].map((r) => (
               <li
                 key={r.name}
-                className="flex items-center gap-3 rounded-lg bg-[#fafbff] px-3 py-2"
+                className="flex items-center gap-2.5 rounded-lg bg-[#fafbff] px-2.5 py-1.5"
               >
                 <CheckCircle2
-                  className={`size-3.5 shrink-0 ${
+                  className={`size-3 shrink-0 ${
                     r.done ? "text-[#5566f6]" : "text-[#dcdfed]"
                   }`}
                 />
-                <span className="text-[11px] font-medium text-[#0b1024]">
+                <span className="text-[10px] font-medium text-[#0b1024]">
                   {r.name}
                 </span>
-                <span className="ml-auto text-[10px] text-[#9b9fb3]">
+                <span className="ml-auto text-[9px] text-[#9b9fb3]">
                   {r.time}
                 </span>
               </li>
             ))}
           </ul>
         </div>
-        {/* right: chart card + stat card */}
-        <div className="flex flex-col gap-3">
-          <div className="rounded-xl border border-[#ececf4] bg-white p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-[11px] font-medium text-[#6f7282]">
-                Холодильник №3
-              </div>
-              <Snowflake className="size-3.5 text-[#5566f6]" />
+
+        <div className="rounded-xl border border-[#ececf4] bg-white p-3.5">
+          <div className="flex items-baseline justify-between">
+            <div className="text-[11px] font-semibold text-[#0b1024]">
+              Заполнено за сегодня
             </div>
-            <div className="mt-1 flex items-baseline gap-1.5 text-[#0b1024]">
-              <span className="text-[24px] font-semibold tabular-nums">
-                +2.8
-              </span>
-              <span className="text-[11px] text-[#9b9fb3]">°C</span>
-            </div>
-            {/* mini chart */}
-            <svg
-              viewBox="0 0 200 50"
-              className="mt-2 block h-[42px] w-full"
-              fill="none"
-              stroke="#5566f6"
-              strokeWidth="1.8"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            >
-              <path d="M0 30 L20 28 L40 32 L60 26 L80 30 L100 20 L120 24 L140 18 L160 22 L180 16 L200 20" />
-              <path
-                d="M0 30 L20 28 L40 32 L60 26 L80 30 L100 20 L120 24 L140 18 L160 22 L180 16 L200 20 L200 50 L0 50 Z"
-                fill="url(#chartGrad)"
-                stroke="none"
-              />
-              <defs>
-                <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#5566f6" stopOpacity="0.2" />
-                  <stop offset="100%" stopColor="#5566f6" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div className="rounded-xl border border-[#ececf4] bg-[#0b1024] p-4 text-white">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-white/60">
-              CAPA открыто
-            </div>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="text-[22px] font-semibold tabular-nums">2</span>
-              <span className="text-[10px] text-white/60">задачи</span>
-            </div>
-            <div className="mt-2 text-[11px] text-white/80">
-              Температура витрины ↑ · Просрочка молочки
+            <div className="text-[9px] tabular-nums text-[#6f7282]">
+              25 из 35
             </div>
           </div>
-          <div className="rounded-xl border border-[#ececf4] bg-white p-4">
-            <div className="flex items-center gap-2">
-              <Users className="size-3.5 text-[#5566f6]" />
-              <span className="text-[11px] font-medium text-[#6f7282]">
-                На смене
-              </span>
-            </div>
-            <div className="mt-1 text-[22px] font-semibold tabular-nums text-[#0b1024]">
-              8
-            </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#eef0f6]">
+            <div className="h-full w-[72%] rounded-full bg-[#5566f6]" />
           </div>
         </div>
       </div>
@@ -251,7 +310,7 @@ function TelegramMockup() {
     // strips next to the desktop mockup — user feedback «телефоны в веере
     // вытянулись и стало некрасиво». `overflow-hidden` clips surplus chat
     // messages that don't fit inside the locked ratio.
-    <div className="aspect-[9/19] overflow-hidden rounded-[34px] border-[6px] border-[#0b1024] bg-[#0b1024] shadow-[0_30px_60px_-20px_rgba(11,16,36,0.4)]">
+    <div className="aspect-[9/19] overflow-hidden rounded-[34px] border-[6px] border-[#0b1024] bg-[#0b1024] shadow-[0_10px_28px_-16px_rgba(11,16,36,0.25)] sm:shadow-[0_30px_60px_-20px_rgba(11,16,36,0.4)]">
       <div className="h-full rounded-[28px] bg-white">
         {/* header */}
         <div className="flex items-center gap-2 bg-[#4680c2] px-4 py-3 text-white">
@@ -340,109 +399,224 @@ function TelegramMockup() {
  * к чужим данным.
  * -------------------------------------------------------------------- */
 
-const A4_ROOMS = [
-  { name: "Горячий цех", marks: ["Т", "Т", "Г", "Т", "Т", "Т", "Т"] },
-  { name: "Холодный цех", marks: ["Т", "Т", "Т", "Т", "Г", "Т", "Т"] },
-  { name: "Моечная", marks: ["Т", "Г", "Т", "Т", "Т", "Т", "Г"] },
-  { name: "Склад сухих продуктов", marks: ["Т", "Т", "Т", "Г", "Т", "Т", "Т"] },
-  { name: "Зал", marks: ["Т", "Т", "Т", "Т", "Т", "Г", "Т"] },
+/**
+ * Дни месяца в шапке сетки. Выходные подкрашены — ровно как в
+ * настоящей печатной форме.
+ */
+const A4_DAYS = [
+  { d: "1", off: false },
+  { d: "2", off: false },
+  { d: "3", off: false },
+  { d: "4", off: true },
+  { d: "5", off: true },
+  { d: "6", off: false },
+  { d: "7", off: false },
+  { d: "8", off: false },
+  { d: "9", off: false },
+  { d: "10", off: false },
+  { d: "11", off: true },
+  { d: "12", off: true },
+  { d: "13", off: false },
+  { d: "14", off: false },
 ];
 
-const A4_DAYS = ["01", "02", "03", "04", "05", "06", "07"];
+/** Кто расписывается в сетке. Инициалы — как в заполненном журнале. */
+const A4_SIGN_ROWS = [
+  { title: "Ответственный за уборку", agent: "С1", mark: "МЕА" },
+  { title: "Ответственный за контроль", agent: "С1", mark: "ИМП" },
+];
+
+/** Нижняя таблица помещений: что входит в текущую и генеральную уборку. */
+const A4_ROOMS = [
+  { name: "гостевая зона", current: "Т", general: "Г" },
+  { name: "помещение мойки", current: "Т", general: "Г" },
+  { name: "горячий цех/кухня", current: "Т", general: "Г" },
+  { name: "Бар", current: "Т", general: "—" },
+];
+
+/* ----------------------------------------------------------------------
+ * A4 sheet mockup — «Журнал уборки»
+ *
+ * Повторяет НАСТОЯЩУЮ печатную форму, которую отдаёт
+ * /api/journal-samples/cleaning/pdf: та же шапка ХАССП, та же строка
+ * периодичности, та же сетка «помещение | средства | месяц по дням» и
+ * та же нижняя таблица помещений. Не «похожий бланк», а тот же —
+ * иначе витрина обещала бы одно, а человек после регистрации получал
+ * другое.
+ *
+ * Разметка статическая: витрине не нужен доступ к чужим данным.
+ * -------------------------------------------------------------------- */
 
 function A4SheetMockup() {
   return (
-    <div className="aspect-[1/1.414] overflow-hidden rounded-[6px] bg-white p-[5%] shadow-[0_30px_60px_-20px_rgba(11,16,36,0.35)] ring-1 ring-[#e3e6f2]">
-      {/* Шапка бланка: организация | система | учётные даты */}
-      <div className="grid grid-cols-[1.3fr_1fr_1fr] border border-[#0b1024] text-[#0b1024]">
-        <div className="border-r border-[#0b1024] px-2 py-1.5">
-          <div className="text-[6px] uppercase tracking-[0.12em] text-[#6f7282]">
-            Организация
-          </div>
-          <div className="mt-0.5 text-[8px] font-semibold leading-tight">
-            ООО «Ромашка»
-          </div>
-        </div>
-        <div className="flex items-center justify-center border-r border-[#0b1024] px-2 py-1.5 text-center text-[8px] font-semibold uppercase leading-tight tracking-[0.08em]">
-          Система
-          <br />
-          ХАССП
-        </div>
-        <div className="px-2 py-1.5 text-[6px] leading-[1.5] text-[#3c4053]">
-          <div>Начат: 01.04.2026</div>
-          <div>Окончен: —</div>
-          <div className="font-semibold text-[#0b1024]">СТР. 1 ИЗ 1</div>
-        </div>
+    <div className="overflow-hidden rounded-[6px] bg-white p-4 sm:aspect-[1.414/1] sm:p-[3.5%] shadow-[0_10px_28px_-16px_rgba(11,16,36,0.22)] ring-1 ring-[#e3e6f2] sm:shadow-[0_30px_60px_-20px_rgba(11,16,36,0.35)]">
+      {/* Шапка бланка: организация | система и название | учётные даты */}
+      <table className="w-full border-collapse text-[#0b1024]">
+        <tbody>
+          <tr>
+            <td
+              rowSpan={2}
+              className="w-[26%] border border-[#0b1024] px-1.5 py-1 text-center text-[5.5px] leading-tight"
+            >
+              ООО «Ромашка» · ИНН 7701234567 · г. Москва, ул. Пищевая, д. 12
+            </td>
+            <td className="border border-[#0b1024] px-1.5 py-1 text-center text-[6px] leading-tight">
+              СИСТЕМА ХАССП
+            </td>
+            <td className="w-[20%] border border-[#0b1024] px-1.5 py-1 text-[5.5px] leading-tight">
+              Начат 01-04-2026
+              <br />
+              Окончен ________
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-[#0b1024] px-1.5 py-1 text-center text-[6px] leading-tight">
+              ЖУРНАЛ УБОРКИ
+            </td>
+            <td className="border border-[#0b1024] px-1.5 py-1 text-center text-[5.5px] leading-tight">
+              СТР. 1 ИЗ 1
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-[#0b1024] px-1.5 py-1 text-center text-[5.5px] leading-tight">
+              Периодичность контроля
+            </td>
+            <td
+              colSpan={2}
+              className="border border-[#0b1024] px-1.5 py-1 text-[5.5px] leading-tight"
+            >
+              Текущая уборка — ежедневно (ежесменно); генеральная уборка —
+              не реже одного раза в месяц по графику.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="mt-2 text-center text-[7px] font-medium text-[#0b1024]">
+        ЖУРНАЛ УБОРКИ
       </div>
 
-      <div className="mt-3 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-[#0b1024]">
-        Журнал уборки и дезинфекции
+      {/* Сетка: кто расписался, каким средством и по каким дням */}
+      <table className="mt-1.5 w-full border-collapse text-[#0b1024]">
+        <thead>
+          <tr>
+            <th
+              rowSpan={2}
+              className="w-[22%] border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-normal leading-tight text-[#1b3a8f]"
+            >
+              Наименование помещения
+            </th>
+            <th
+              rowSpan={2}
+              className="w-[14%] border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-normal leading-tight text-[#1b3a8f]"
+            >
+              Моющие и дезинфицирующие средства
+            </th>
+            <th
+              colSpan={A4_DAYS.length}
+              className="border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-normal"
+            >
+              Месяц Апрель 2026 г.
+            </th>
+          </tr>
+          <tr>
+            {A4_DAYS.map((d) => (
+              <th
+                key={d.d}
+                className={`border border-[#0b1024] px-0.5 py-0.5 text-center text-[5px] font-normal tabular-nums ${
+                  d.off ? "bg-[#fbe3e1]" : ""
+                }`}
+              >
+                {d.d}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {A4_SIGN_ROWS.map((row) => (
+            <tr key={row.title}>
+              <td className="border border-[#0b1024] px-1 py-0.5 text-center text-[5px] leading-tight">
+                {row.title}
+              </td>
+              <td className="border border-[#0b1024] px-1 py-0.5 text-center text-[5px]">
+                {row.agent}
+              </td>
+              {A4_DAYS.map((d) => (
+                <td
+                  key={d.d}
+                  className={`border border-[#0b1024] px-0.5 py-0.5 text-center text-[4.5px] ${
+                    d.off ? "bg-[#fbe3e1] text-[#9b9fb3]" : "text-[#3c4053]"
+                  }`}
+                >
+                  {d.off ? "" : row.mark}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[5px] text-[#3c4053]">
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block size-1.5 border border-[#0b1024] bg-[#fbe3e1]" />
+          Выходной или праздник
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block size-1.5 border border-[#0b1024] bg-[#fff6d9]" />
+          Сокращённый день
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block size-1.5 border border-[#0b1024] bg-white" />
+          Рабочий день
+        </span>
       </div>
 
-      {/* Сетка: помещения по строкам, дни по столбцам */}
+      <div className="mt-1.5 text-[5px] leading-[1.6] text-[#3c4053]">
+        <div className="text-[5.5px] text-[#0b1024]">Условные обозначения:</div>
+        <div>/-/ — Уборка не проводилась</div>
+        <div>Т — Текущая</div>
+        <div>Г — Генеральная</div>
+      </div>
+
       <table className="mt-2 w-full border-collapse text-[#0b1024]">
         <thead>
           <tr>
-            <th className="border border-[#9aa0b8] bg-[#f4f5fa] px-1.5 py-1 text-left text-[6px] font-semibold uppercase tracking-[0.08em]">
-              Помещение
+            <th className="w-[30%] border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-normal text-[#1b3a8f]">
+              Наименование помещения
             </th>
-            {A4_DAYS.map((d) => (
-              <th
-                key={d}
-                className="border border-[#9aa0b8] bg-[#f4f5fa] px-1 py-1 text-center text-[6px] font-semibold tabular-nums"
-              >
-                {d}
-              </th>
-            ))}
-            <th className="border border-[#9aa0b8] bg-[#f4f5fa] px-1 py-1 text-center text-[6px] font-semibold uppercase">
-              Средство
+            <th className="border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-normal">
+              Текущая уборка
+            </th>
+            <th className="border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-normal">
+              Генеральная уборка
             </th>
           </tr>
         </thead>
         <tbody>
-          {A4_ROOMS.map((room) => (
-            <tr key={room.name}>
-              <td className="border border-[#9aa0b8] px-1.5 py-[3px] text-[6.5px] leading-tight">
-                {room.name}
+          {A4_ROOMS.map((r) => (
+            <tr key={r.name}>
+              <td className="border border-[#0b1024] px-1 py-0.5 text-[5px]">
+                {r.name}
               </td>
-              {room.marks.map((m, i) => (
-                <td
-                  key={i}
-                  className={`border border-[#9aa0b8] px-1 py-[3px] text-center text-[6.5px] font-semibold ${
-                    m === "Г" ? "text-[#3848c7]" : "text-[#3c4053]"
-                  }`}
-                >
-                  {m}
-                </td>
-              ))}
-              <td className="border border-[#9aa0b8] px-1 py-[3px] text-center text-[6.5px] tabular-nums text-[#3c4053]">
-                С1
+              <td className="border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-medium">
+                {r.current}
+              </td>
+              <td className="border border-[#0b1024] px-1 py-0.5 text-center text-[5px] font-medium text-[#1b3a8f]">
+                {r.general}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[5.5px] leading-relaxed text-[#6f7282]">
-        <span>
-          <b className="text-[#3c4053]">Т</b> — текущая уборка
-        </span>
-        <span>
-          <b className="text-[#3848c7]">Г</b> — генеральная
-        </span>
-        <span>
-          <b className="text-[#3c4053]">С1</b> — дезсредство, рабочий раствор
-        </span>
-      </div>
-
-      <div className="mt-3 flex items-center justify-between border-t border-dashed border-[#dcdfed] pt-2">
-        <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-1.5 py-0.5 text-[6px] font-medium text-[#116b2a]">
-          <FileText className="size-2" />
+      <div className="mt-2 flex items-center justify-between border-t border-dashed border-[#dcdfed] pt-1.5">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-1.5 py-0.5 text-[5px] font-medium text-[#116b2a]">
+          <FileText className="size-1.5" />
           PDF для проверки
         </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-[#0b1024] px-2 py-1 text-[6.5px] font-medium text-white">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#0b1024] px-2 py-0.5 text-[5.5px] font-medium text-white">
           Скачать для проверки
-          <ArrowRight className="size-2" />
+          <ArrowRight className="size-1.5" />
         </span>
       </div>
     </div>

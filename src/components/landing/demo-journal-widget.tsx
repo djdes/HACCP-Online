@@ -430,7 +430,7 @@ export function DemoJournalWidget() {
           href="/journals-info"
           className="ml-auto text-[13px] font-medium text-[#3848c7] underline-offset-4 hover:underline"
         >
-          Все 13 обязательных →
+          Все 35 журналов →
         </Link>
       </div>
     </div>

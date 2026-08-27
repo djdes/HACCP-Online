@@ -1,3 +1,4 @@
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { getDefaultConfigForJournal } from "@/lib/journal-default-configs";
 import {
   buildExampleHygieneEntryMap,
@@ -116,27 +117,23 @@ export const SAMPLE_PRODUCTS = [
 export const SAMPLE_DATE_FROM = new Date("2026-04-01T00:00:00.000Z");
 export const SAMPLE_DATE_TO = new Date("2026-04-14T00:00:00.000Z");
 
-/** Журналы, для которых отдаём образец. Список обязательных из каталога. */
-export const SAMPLE_JOURNAL_CODES = [
-  "hygiene",
-  "health_check",
-  "climate_control",
-  "cold_equipment_control",
-  "cleaning_ventilation_checklist",
-  "cleaning",
-  "general_cleaning",
-  "uv_lamp_runtime",
-  "finished_product",
-  "perishable_rejection",
-  "incoming_control",
-  "fryer_oil",
-  "med_books",
-] as const;
+/**
+ * Журналы, для которых отдаём образец, — весь активный каталог.
+ *
+ * Список не дублируем: коды и названия берём из journal-catalog, иначе
+ * при добавлении журнала образец пришлось бы вписывать вторым местом,
+ * и он бы про него забыли.
+ */
+export const SAMPLE_JOURNAL_CODES = ACTIVE_JOURNAL_CATALOG.map(
+  (item) => item.code
+);
 
-export type SampleJournalCode = (typeof SAMPLE_JOURNAL_CODES)[number];
+export type SampleJournalCode = string;
+
+const SAMPLE_CODE_SET = new Set<string>(SAMPLE_JOURNAL_CODES);
 
 export function isSampleJournalCode(code: string): code is SampleJournalCode {
-  return (SAMPLE_JOURNAL_CODES as readonly string[]).includes(code);
+  return SAMPLE_CODE_SET.has(code);
 }
 
 /** Ключи дат образца: 14 дней подряд, ISO YYYY-MM-DD. */
@@ -229,22 +226,9 @@ function sampleEntry(
 }
 
 /** Названия журналов — из каталога, чтобы не разъезжались с сайтом. */
-const SAMPLE_TITLES: Record<SampleJournalCode, string> = {
-  hygiene: "Гигиенический журнал",
-  health_check: "Журнал здоровья",
-  climate_control: "Бланк контроля температуры и влажности",
-  cold_equipment_control:
-    "Журнал контроля температурного режима холодильного оборудования",
-  cleaning_ventilation_checklist: "Чек-лист уборки и проветривания",
-  cleaning: "Журнал уборки",
-  general_cleaning: "График и учет генеральных уборок",
-  uv_lamp_runtime: "Журнал учета работы бактерицидной установки",
-  finished_product: "Журнал бракеража готовой продукции",
-  perishable_rejection: "Журнал бракеража скоропортящейся продукции",
-  incoming_control: "Журнал входного контроля",
-  fryer_oil: "Журнал учета использования фритюрных жиров",
-  med_books: "Медицинские книжки",
-};
+const SAMPLE_TITLES: Record<string, string> = Object.fromEntries(
+  ACTIVE_JOURNAL_CATALOG.map((item) => [item.code, item.name])
+);
 
 /**
  * Показания приборов образца. Значения в пределах нормы, кроме одной
@@ -356,7 +340,7 @@ export function buildJournalSampleInput(
     products: SAMPLE_PRODUCTS,
   });
 
-  const title = SAMPLE_TITLES[code];
+  const title = SAMPLE_TITLES[code] ?? code;
   const document = sampleDocument(code, title, config);
 
   let entries: ReturnType<typeof sampleEntry>[] = [];

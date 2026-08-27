@@ -30,6 +30,9 @@ import {
 import { db } from "@/lib/db";
 import { EquipmentPricing } from "@/components/landing/equipment-pricing";
 import { AudienceCarousel } from "@/components/landing/audience-carousel";
+import { SampleGallery } from "@/components/landing/sample-gallery";
+import { DOCX_SAMPLE_CODES } from "@/lib/document-docx";
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { TestimonialsCarousel } from "@/components/landing/testimonials-carousel";
 import { BrandLogo } from "@/components/brand/logo";
 import {
@@ -37,7 +40,10 @@ import {
   bundleTotal,
 } from "@/lib/hardware-pricing";
 import { PublicFooter } from "@/components/public/public-chrome";
-import { ScreenshotFan } from "@/components/public/screenshot-fan";
+import {
+  ScreenshotFan,
+  ScreenshotStack,
+} from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
@@ -289,6 +295,15 @@ export default async function LandingPage() {
   // Считаем, а не хардкодим: состав комплектов меняется в
   // lib/hardware-pricing.ts, и цена на лендинге обязана идти следом.
   const hardwareFromRub = Math.min(...HARDWARE_BUNDLES.map(bundleTotal));
+
+  // Список для галереи образцов собираем на сервере: клиенту незачем
+  // тянуть каталог и модуль DOCX ради тринадцати строк.
+  const docxCodes = new Set<string>(DOCX_SAMPLE_CODES);
+  const sampleGalleryItems = ACTIVE_JOURNAL_CATALOG.map((item) => ({
+    code: item.code,
+    name: item.name,
+    docx: docxCodes.has(item.code),
+  }));
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -558,7 +573,14 @@ export default async function LandingPage() {
               min-h оставлял под ним пустую полосу. На sm+ высота задана
               явно — веер собран из absolute-элементов и сам её не
               держит. */}
-          <div className="hero-fan relative mx-auto mt-8 max-w-[1100px] sm:mt-20 sm:min-h-[620px] md:min-h-[680px]">
+          {/* Телефон: мокапы по одному, обычной колонкой. Внутри
+              .hero-fan они разъезжались — там perspective и анимации
+              под десктопный веер. */}
+          <div className="mt-8 sm:hidden">
+            <ScreenshotStack />
+          </div>
+
+          <div className="hero-fan relative mx-auto hidden max-w-[1100px] sm:mt-20 sm:block sm:min-h-[620px] md:min-h-[680px]">
             <ScreenshotFan />
           </div>
         </div>
@@ -643,6 +665,13 @@ export default async function LandingPage() {
           </p>
         </div>
         <DemoJournalWidget />
+
+        {/* Галерея образцов: все журналы каталога с превью бланка и
+            кнопками скачивания. Демо-виджет выше даёт «потрогать
+            форму», здесь — посмотреть готовый документ. */}
+        <div className="mt-6">
+          <SampleGallery items={sampleGalleryItems} />
+        </div>
       </section>
 
       {/* TRIAL BANNER */}
