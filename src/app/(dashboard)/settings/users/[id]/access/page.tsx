@@ -4,6 +4,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { isManagementRole } from "@/lib/user-roles";
 import { db } from "@/lib/db";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
+import { OrganizationAccessCard } from "@/components/settings/organization-access-card";
 import { UserAccessEditor } from "./user-access-editor";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,29 @@ export default async function UserJournalAccessPage({ params }: PageProps) {
     notFound();
   }
 
+  // Организации аккаунта — только владельцу и только для руководителей:
+  // линейный сотрудник работает в одной точке, переключаться ему некуда.
+  const ownerAccount = await db.account.findUnique({
+    where: { ownerUserId: session.user.id },
+    select: { id: true },
+  });
+  const canManageOrganizations =
+    Boolean(ownerAccount) && isManagementRole(user.role);
+  const accountOrganizations = canManageOrganizations
+    ? await db.organization.findMany({
+        where: { accountId: ownerAccount!.id },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          members: {
+            where: { userId: user.id },
+            select: { role: true },
+          },
+        },
+      })
+    : [];
+
   const accessRows = await db.userJournalAccess.findMany({
     where: { userId: id },
     select: {
@@ -54,6 +78,19 @@ export default async function UserJournalAccessPage({ params }: PageProps) {
           { label: user.name || user.email },
         ]}
       />
+
+      {accountOrganizations.length > 1 ? (
+        <OrganizationAccessCard
+          userId={user.id}
+          userName={user.name || user.email}
+          organizations={accountOrganizations.map((organization) => ({
+            id: organization.id,
+            name: organization.name,
+            isHome: organization.id === user.organizationId,
+            enabled: organization.members.length > 0,
+          }))}
+        />
+      ) : null}
 
       <div>
         <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.03em] text-black">
