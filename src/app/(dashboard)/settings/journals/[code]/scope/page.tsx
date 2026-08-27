@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { ArrowLeft, ListChecks } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
@@ -43,13 +42,7 @@ export default async function JournalScopePage({
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/settings/journals"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К списку журналов
-        </Link>
+
         <div className="mt-4 flex items-start gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
             <ListChecks className="size-5" />

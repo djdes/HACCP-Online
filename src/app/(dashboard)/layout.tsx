@@ -17,6 +17,7 @@ import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
+import { PageNav, PageNavProvider } from "@/components/layout/page-nav";
 import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
@@ -144,7 +145,16 @@ export default async function DashboardLayout({
               место, где задаётся горизонтальная геометрия страницы. */}
           <main className="flex-1 py-4 md:py-6">
             <div className="mx-auto w-full max-w-[1800px] px-4 md:px-8">
-              {children}
+              {/* Провайдер оборачивает и навигацию, и контент: страницы
+                  уточняют крошки через <PageCrumbs>, а рисует их PageNav. */}
+              <PageNavProvider>
+                <PageNav
+                  organizationName={
+                    impersonatedName ?? session.user.organizationName ?? ""
+                  }
+                />
+                {children}
+              </PageNavProvider>
             </div>
           </main>
           {/* Футер дашборда — виден на каждой странице (требование

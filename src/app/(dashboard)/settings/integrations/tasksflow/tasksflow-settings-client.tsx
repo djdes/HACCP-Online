@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   ClipboardCopy,
   ExternalLink,
@@ -363,15 +362,7 @@ export function TasksFlowSettingsClient({
           <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
           <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
         </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <Link
-            href="/settings"
-            className="mb-6 inline-flex items-center gap-1.5 text-[13px] text-white/70 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="size-4" />
-            Настройки
-          </Link>
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
                 <Plug className="size-6" />

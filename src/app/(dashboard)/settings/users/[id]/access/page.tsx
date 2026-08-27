@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { PageCrumbs } from "@/components/layout/page-nav";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { isManagementRole } from "@/lib/user-roles";
 import { db } from "@/lib/db";
@@ -48,13 +47,13 @@ export default async function UserJournalAccessPage({ params }: PageProps) {
 
   return (
     <div className="space-y-5">
-      <Link
-        href="/settings/users"
-        className="inline-flex h-11 items-center gap-2 rounded-2xl px-3 text-[15px] text-[#5566f6] hover:bg-[#eef1ff]"
-      >
-        <ArrowLeft className="size-5" />
-        Назад
-      </Link>
+      <PageCrumbs
+        items={[
+          { label: "Настройки", href: "/settings" },
+          { label: "Сотрудники", href: "/settings/users" },
+          { label: user.name || user.email },
+        ]}
+      />
 
       <div>
         <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.03em] text-black">

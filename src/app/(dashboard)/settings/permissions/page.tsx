@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { sessionHasPermission } from "@/lib/permissions-server";
@@ -75,13 +74,7 @@ export default async function PermissionsSettingsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К настройкам
-        </Link>
+
         <div className="mt-4 flex items-start gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
             <ShieldCheck className="size-5" />

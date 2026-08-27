@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, ListChecks } from "lucide-react";
+import { BookOpen, ListChecks } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
@@ -154,15 +154,7 @@ export default async function JournalPipelinesPage() {
           <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
           <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
         </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <Link
-            href="/settings"
-            className="mb-6 inline-flex items-center gap-1.5 text-[13px] text-white/70 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="size-4" />
-            Настройки
-          </Link>
-          <div className="flex items-start gap-4">
+        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex items-start gap-4">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
               <ListChecks className="size-6" />
             </div>

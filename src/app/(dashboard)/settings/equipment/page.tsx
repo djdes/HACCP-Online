@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowLeft,
   MapPin,
   QrCode,
   Thermometer,
@@ -100,13 +99,7 @@ export default async function EquipmentSettingsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link
-            href="/settings"
-            className="mb-3 inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
-          >
-            <ArrowLeft className="size-4" />
-            Настройки
-          </Link>
+
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-[#f0edff] text-[#7a5cff]">
               <Wrench className="size-5" />

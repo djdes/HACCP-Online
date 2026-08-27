@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { PageCrumbs } from "@/components/layout/page-nav";
 import { notFound } from "next/navigation";
-import { ArrowLeft, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
@@ -65,11 +66,14 @@ export default async function CapaDetailPage({
 
   return (
     <div className="space-y-5">
+      <PageCrumbs
+        items={[
+          { label: "CAPA", href: "/capa" },
+          { label: ticket.title },
+        ]}
+      />
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/capa"><ArrowLeft className="size-4" /></Link>
-        </Button>
-        <div className="flex-1">
+                <div className="flex-1">
           <h1 className="text-xl font-bold">{ticket.title}</h1>
           <div className="flex items-center gap-2 mt-1">
             <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusInfo.color}`}>

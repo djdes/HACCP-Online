@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Network } from "lucide-react";
+import { Network } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
@@ -69,13 +69,7 @@ export default async function JournalsByPositionPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К настройкам
-        </Link>
+
         <div className="mt-4 flex items-start gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
             <Network className="size-5" />

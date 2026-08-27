@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   ShieldCheck,
@@ -58,13 +57,6 @@ export default async function ComplianceAuditPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-1">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-      >
-        <ArrowLeft className="size-4" /> К дашборду
-      </Link>
-
       {/* Hero with score */}
       <section
         className={`relative overflow-hidden rounded-3xl border-2 bg-gradient-to-br p-6 sm:p-8 ${GRADE_LABEL[report.grade].tone}`}

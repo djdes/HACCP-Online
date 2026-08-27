@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { PageCrumbs } from "@/components/layout/page-nav";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
@@ -55,13 +56,14 @@ export default async function BatchDetailPage({
 
   return (
     <div className="space-y-5">
+      <PageCrumbs
+        items={[
+          { label: "Партии", href: "/batches" },
+          { label: batch.code },
+        ]}
+      />
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/batches">
-            <ArrowLeft className="size-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
+                <div className="flex-1">
           <div className="flex items-center gap-2">
             <Package className="size-5 text-muted-foreground" />
             <h1 className="text-xl font-bold font-mono">{batch.code}</h1>

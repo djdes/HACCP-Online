@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft, Building2, MapPin, Wrench } from "lucide-react";
+import { Building2, MapPin, Wrench } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { AreaDialog } from "@/components/settings/area-dialog";
@@ -37,13 +36,7 @@ export default async function AreasSettingsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link
-            href="/settings"
-            className="mb-3 inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
-          >
-            <ArrowLeft className="size-4" />
-            Настройки
-          </Link>
+
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
               <Building2 className="size-5" />

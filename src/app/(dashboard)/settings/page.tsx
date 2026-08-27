@@ -36,14 +36,17 @@ import { EmailVerifyCard } from "@/components/settings/email-verify-card";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
+import { getRouteTitle } from "@/lib/route-titles";
 // ThemeSwitcher убран отсюда — занимал много места. Переключатель темы
 // живёт компактной иконкой-popover'ом в шапке (ThemeQuickSwitch).
 
 export const dynamic = "force-dynamic";
 
+// Подписи карточек живут в `route-titles.ts` — оттуда же их берут
+// хлебные крошки, поэтому название раздела в карточке и в пути всегда
+// совпадает. Здесь остаются только иконка, описание и адрес.
 const settingsCards = [
   {
-    title: "Быстрая настройка",
     description: "За 3 шага: должности, сотрудники, TasksFlow",
     href: "/settings/onboarding",
     icon: Sparkles,
@@ -51,7 +54,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Информация об организации",
     description: "Название, ИНН, адрес, бренд, часовой пояс — для договоров и printable PDF",
     href: "/settings/organization",
     icon: Building2,
@@ -59,7 +61,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Цеха и участки",
     description: "Производственные зоны и помещения",
     href: "/settings/areas",
     icon: Building2,
@@ -67,7 +68,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Здания и помещения",
     description:
       "Точки бизнеса (корпуса) и помещения внутри — для журнала уборки",
     href: "/settings/buildings",
@@ -76,7 +76,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Оборудование",
     description: "Холодильники, печи, датчики",
     href: "/settings/equipment",
     icon: Wrench,
@@ -84,7 +83,6 @@ const settingsCards = [
     bgClass: "bg-[#f0edff]",
   },
   {
-    title: "Сотрудники",
     description: "Роли, доступы, приглашения",
     href: "/settings/users",
     icon: Users,
@@ -92,7 +90,6 @@ const settingsCards = [
     bgClass: "bg-[#e8f7ff]",
   },
   {
-    title: "Иерархия управления",
     description: "Кто каких сотрудников видит и кому назначает",
     href: "/settings/staff-hierarchy",
     icon: Network,
@@ -100,7 +97,6 @@ const settingsCards = [
     bgClass: "bg-[#fff8eb]",
   },
   {
-    title: "Кто видит коллег",
     description: "Видимость сотрудников по должностям — драйвит TasksFlow и бот",
     href: "/settings/position-staff-visibility",
     icon: Users,
@@ -108,7 +104,6 @@ const settingsCards = [
     bgClass: "bg-[#e8f7ff]",
   },
   {
-    title: "Набор журналов",
     description: "Какие журналы ваша компания ведёт",
     href: "/settings/journals",
     icon: ClipboardList,
@@ -116,7 +111,6 @@ const settingsCards = [
     bgClass: "bg-[#fdf4ff]",
   },
   {
-    title: "Настройки журналов (pipeline)",
     description:
       "Pipeline-инструкции для каждого журнала — что взять, куда идти, что делать",
     href: "/settings/journal-pipelines",
@@ -125,7 +119,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Кто забирает задачу",
     description:
       "Гонка / свободно / только админ — стиль работы команды над одной задачей",
     href: "/settings/journal-flow",
@@ -134,7 +127,6 @@ const settingsCards = [
     bgClass: "bg-[#f0edff]",
   },
   {
-    title: "Пресеты ролей",
     description:
       "Какие возможности у каждого preset'а (admin / head_chef / cook / …)",
     href: "/settings/role-presets",
@@ -143,7 +135,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Периоды журналов",
     description:
       "На какой срок создаётся каждый журнал — месяц, N дней, год…",
     href: "/settings/journal-periods",
@@ -152,7 +143,6 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
-    title: "Справочник продуктов",
     description: "Импорт из Excel, iiko, 1С",
     href: "/settings/products",
     icon: Package,
@@ -160,7 +150,6 @@ const settingsCards = [
     bgClass: "bg-[#fff8eb]",
   },
   {
-    title: "Привязка телефона",
     description: "Связать аккаунт с TasksFlow по номеру",
     href: "/settings/phone",
     icon: Phone,
@@ -168,7 +157,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Автосоздание журналов",
     description: "Чтобы каждый месяц не заводить вручную",
     href: "/settings/auto-journals",
     icon: Sparkles,
@@ -176,7 +164,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Права доступа",
     description: "Группы, должности, индивидуальные права",
     href: "/settings/permissions",
     icon: ShieldCheck,
@@ -184,7 +171,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "График смен",
     description: "Кто сегодня на смене — для авто-назначений",
     href: "/settings/schedule",
     icon: CalendarRange,
@@ -192,7 +178,6 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
-    title: "Журналы для сотрудников",
     description: "Кто какие журналы видит и заполняет",
     href: "/settings/journal-access",
     icon: KeyRound,
@@ -200,7 +185,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Ответственные за журналы",
     description:
       "Кто заполняет каждый журнал. Один клик — умные пресеты (уборка → уборщикам)",
     href: "/settings/journal-responsibles",
@@ -209,7 +193,6 @@ const settingsCards = [
     bgClass: "bg-[#f0edff]",
   },
   {
-    title: "Раздача и проверка задач",
     description:
       "Per-журнал: как создаются TasksFlow-задачи (по помещениям/сотрудникам/смене) и нужна ли двойная проверка завед. Здесь — «Без проверки» для журналов где сотрудник заполнил → готово",
     href: "/settings/journal-task-mode",
@@ -218,7 +201,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Шаблоны заведений",
     description:
       "Один клик — и настроены должности, помещения, оборудование, обязательные журналы под тип бизнеса (прилавок/кафе/ресторан/школа/производство)",
     href: "/settings/onboarding-template",
@@ -227,7 +209,6 @@ const settingsCards = [
     bgClass: "bg-[#f0edff]",
   },
   {
-    title: "Чек-листы для журналов",
     description:
       "Список действий для каждого журнала (например «разобрать → промыть → продезинфицировать»). Сотрудник видит чек-лист в форме и отмечает галочки. Обязательные пункты блокируют отправку. Все отметки в audit-log",
     href: "/settings/journal-checklists",
@@ -236,7 +217,6 @@ const settingsCards = [
     bgClass: "bg-emerald-100",
   },
   {
-    title: "Сложность журналов",
     description:
       "Если в команде нет шеф-повара — поставьте сложность 1-5 и распределите задачи между поварами равномерно",
     href: "/settings/journal-difficulty",
@@ -245,7 +225,6 @@ const settingsCards = [
     bgClass: "bg-[#fff8eb]",
   },
   {
-    title: "Дашборд нагрузки",
     description:
       "Кто сколько журналов ведёт в месяц — таблица с подсветкой перекоса между поварами на одинаковой зарплате",
     href: "/settings/workload-balance",
@@ -254,7 +233,6 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
-    title: "Admin-флаг в TasksFlow",
     description:
       "Кто из руководства видит ВСЕ задачи в TasksFlow (admin-режим). По умолчанию — никто; включай только для одной должности (обычно «Админ»)",
     href: "/settings/task-visibility",
@@ -263,7 +241,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Матрица «должность × журнал»",
     description: "Тот же выбор, но в виде матрицы должность × журнал — для power-юзеров",
     href: "/settings/journals-by-position",
     icon: Network,
@@ -271,7 +248,6 @@ const settingsCards = [
     bgClass: "bg-[#f0edff]",
   },
   {
-    title: "Премии за журналы",
     description: "Сколько ₽ за «единичные» журналы — мотивация в TasksFlow",
     href: "/settings/journal-bonuses",
     icon: Coins,
@@ -279,7 +255,6 @@ const settingsCards = [
     bgClass: "bg-[#fef3c7]",
   },
   {
-    title: "Уведомления",
     description: "Telegram-бот, типы оповещений",
     href: "/settings/notifications",
     icon: Bell,
@@ -287,7 +262,6 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
-    title: "Подписка",
     description: "Тариф и период подписки",
     href: "/settings/subscription",
     icon: CreditCard,
@@ -295,7 +269,6 @@ const settingsCards = [
     bgClass: "bg-[#fdf2f8]",
   },
   {
-    title: "Журнал действий",
     description: "Аудит всех событий",
     href: "/settings/audit",
     icon: ScrollText,
@@ -303,7 +276,6 @@ const settingsCards = [
     bgClass: "bg-[#f3f4f6]",
   },
   {
-    title: "Compliance",
     description: "Кто может править выполненные записи журналов",
     href: "/settings/compliance",
     icon: ShieldCheck,
@@ -311,7 +283,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Бета-функции",
     description: "Экспериментальные фичи: Design v2 и др.",
     href: "/settings/experimental",
     icon: FlaskConical,
@@ -319,7 +290,6 @@ const settingsCards = [
     bgClass: "bg-[#f5f6ff]",
   },
   {
-    title: "Портал инспектора",
     description: "Read-only ссылка для СЭС / Роспотребнадзора с TTL",
     href: "/settings/inspector-portal",
     icon: ShieldCheck,
@@ -327,7 +297,6 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
-    title: "Справочник СанПиН",
     description: "Нормативы и требования",
     href: "/sanpin",
     icon: BookOpen,
@@ -335,7 +304,6 @@ const settingsCards = [
     bgClass: "bg-[#f0fdfa]",
   },
   {
-    title: "API интеграций",
     description: "Ключ для внешних систем и датчиков",
     href: "/settings/api",
     icon: KeyRound,
@@ -343,7 +311,6 @@ const settingsCards = [
     bgClass: "bg-[#f5f3ff]",
   },
   {
-    title: "TasksFlow",
     description: "Автозадачи уборщикам через tasksflow.ru",
     href: "/settings/integrations/tasksflow",
     icon: Plug,
@@ -351,7 +318,6 @@ const settingsCards = [
     bgClass: "bg-[#e8f7ff]",
   },
   {
-    title: "Авто-бэкап на Я.Диск",
     description: "Еженедельный JSON-дамп журналов в облако",
     href: "/settings/backup",
     icon: CloudUpload,
@@ -359,7 +325,6 @@ const settingsCards = [
     bgClass: "bg-[#eef1ff]",
   },
   {
-    title: "Бухгалтерия",
     description: "Еженедельная выгрузка списаний в 1С на email",
     href: "/settings/accounting",
     icon: FileSpreadsheet,
@@ -659,7 +624,7 @@ function SettingsGroup({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[15px] font-semibold text-[#0b1024]">
-                      {card.title}
+                      {getRouteTitle(card.href) ?? card.href}
                     </div>
                     <ArrowRight className="size-4 text-[#c7ccea] transition-all group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
                   </div>

@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ListChecks } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
@@ -90,13 +90,7 @@ export default async function JournalChecklistEditorPage({
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/settings/journal-responsibles"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К ответственным
-        </Link>
+
       </div>
 
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">

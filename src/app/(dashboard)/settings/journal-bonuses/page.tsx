@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Coins } from "lucide-react";
+import { Coins } from "lucide-react";
 import { requireAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
@@ -51,13 +50,7 @@ export default async function JournalBonusesPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] transition-colors hover:text-[#0b1024] dark:text-white/70 dark:hover:text-white"
-        >
-          <ArrowLeft className="size-4" />
-          К настройкам
-        </Link>
+
         <div className="mt-4 flex items-start gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#fde68a] to-[#fbbf24] text-[#7c2d12] shadow-[0_8px_24px_-12px_rgba(217,119,6,0.5)]">
             <Coins className="size-5" />

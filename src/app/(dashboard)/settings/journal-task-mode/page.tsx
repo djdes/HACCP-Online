@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
@@ -53,13 +53,7 @@ export default async function JournalTaskModePage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К настройкам
-        </Link>
+
       </div>
 
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">

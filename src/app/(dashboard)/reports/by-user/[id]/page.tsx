@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -98,13 +97,7 @@ export default async function ByUserReportPage({
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/reports"
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К отчётам
-        </Link>
+
         <h1 className="mt-3 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
           {user.name}
         </h1>

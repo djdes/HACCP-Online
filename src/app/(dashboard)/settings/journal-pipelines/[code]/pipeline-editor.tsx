@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
-  ArrowLeft,
   Camera,
   GripVertical,
   Loader2,
@@ -104,15 +103,7 @@ export function PipelineEditor({
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
         </div>
-        <div className="relative z-10 p-5 sm:p-8">
-          <Link
-            href="/settings/journal-pipelines"
-            className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-white/70 hover:text-white"
-          >
-            <ArrowLeft className="size-4" />
-            Все журналы
-          </Link>
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
+        <div className="relative z-10 p-5 sm:p-8">          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
             Pipeline · <span className="font-mono text-[18px]">{code}</span>
           </h1>
           <p className="mt-2 max-w-[600px] text-[14px] text-white/70">

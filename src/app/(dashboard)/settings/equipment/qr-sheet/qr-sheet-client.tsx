@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 
 type Item = {
   id: string;
@@ -32,13 +32,7 @@ export function QrSheetClient({
     <div className="space-y-5 print:space-y-0">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
-          <Link
-            href="/settings/equipment"
-            className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-          >
-            <ArrowLeft className="size-4" />
-            К списку оборудования
-          </Link>
+
           <h1 className="mt-2 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
             QR-коды для оборудования
           </h1>
