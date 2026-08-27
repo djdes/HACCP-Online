@@ -47,7 +47,7 @@ export const dynamic = "force-dynamic";
 // совпадает. Здесь остаются только иконка, описание и адрес.
 const settingsCards = [
   {
-    description: "За 3 шага: должности, сотрудники, TasksFlow",
+    description: "За 3 шага: объект, команда, журналы",
     href: "/settings/onboarding",
     icon: Sparkles,
     iconClass: "text-[#5566f6]",
@@ -415,7 +415,7 @@ export default async function SettingsPage() {
       </section>
 
       {/* БОЛЬШАЯ кнопка «Быстрый старт» — прямо под hero. Open
-          /settings/onboarding где живёт полный список 16 шагов. Не
+          /settings/onboarding — 3 этапа по 2 карточки. Не
           теряется среди настроечных групп — сразу видна. */}
       <Link
         href="/settings/onboarding"
