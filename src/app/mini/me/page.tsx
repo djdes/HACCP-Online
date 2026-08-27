@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MiniOrgSwitcher } from "@/app/mini/_components/mini-org-switcher";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { ArrowLeft, LogOut, Moon, Sun, Unlink } from "lucide-react";
@@ -87,6 +88,8 @@ export default function MiniMePage() {
           Профиль
         </h1>
       </header>
+
+      <MiniOrgSwitcher />
 
       <section className="mini-card p-4">
         <dl className="space-y-3 text-[14px]">

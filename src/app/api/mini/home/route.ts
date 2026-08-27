@@ -79,6 +79,9 @@ export async function GET() {
   const user = {
     name: session.user.name ?? "",
     organizationName: session.user.organizationName ?? "",
+    // Активная организация — для переключателя в профиле Mini App:
+    // человек должен видеть, в какой точке он сейчас работает.
+    organizationId: getActiveOrgId(session),
   };
 
   // Expose resolved permissions so the client can gate UI without
