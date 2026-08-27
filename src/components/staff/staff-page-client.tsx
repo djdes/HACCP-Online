@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
 import { useRouter } from "next/navigation";
 import {
   Archive,
@@ -559,66 +560,42 @@ export function StaffPageClient(props: StaffPageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Dark hero, same visual language as login + settings hub */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.08]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-            maskImage:
-              "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
-          }}
-        />
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <UsersIcon className="size-6" />
-              </div>
-              <div>
-                <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold leading-tight tracking-[-0.02em]">
-                  Сотрудники
-                </h1>
-                <p className="mt-1 max-w-[540px] text-[15px] text-white/70">
-                  {props.organization.name} · настройка должностей и графиков
-                  для автозаполнения Гигиенического журнала.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 self-start">
-              <button
-                type="button"
-                onClick={() => setDlg({ kind: "qr-invite" })}
-                className="inline-flex items-center gap-2 rounded-full bg-[#5566f6] px-3 py-1.5 text-[12px] font-medium uppercase tracking-[0.18em] text-white shadow-[0_8px_24px_-12px_rgba(85,102,246,0.85)] transition-colors hover:bg-[#4a5bf0]"
-              >
-                <QrCode className="size-4" />
-                Пригласить по QR
-              </button>
-              <button
-                type="button"
-                onClick={() => setDlg({ kind: "instruction" })}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur transition-colors hover:bg-white/10"
-              >
-                <BookOpen className="size-4" />
-                Инструкция
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            <StatPill label="Всего" value={totalEmployees} />
-            <StatPill label="Должностей" value={totalPositions} />
-            <StatPill label="Сейчас в отпуске" value={activeVacations} />
-            <StatPill label="На больничном" value={activeSickLeaves} />
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        title="Сотрудники"
+        description="Должности и графики: по ним раздаются задачи и заполняется Гигиенический журнал."
+        actions={
+          <>
+            <PageHeaderStat>Всего: {totalEmployees}</PageHeaderStat>
+            <PageHeaderStat>Должностей: {totalPositions}</PageHeaderStat>
+            {activeVacations > 0 ? (
+              <PageHeaderStat tone="warn">
+                В отпуске: {activeVacations}
+              </PageHeaderStat>
+            ) : null}
+            {activeSickLeaves > 0 ? (
+              <PageHeaderStat tone="warn">
+                На больничном: {activeSickLeaves}
+              </PageHeaderStat>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setDlg({ kind: "qr-invite" })}
+              className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_12px_36px_-16px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
+            >
+              <QrCode className="size-4" />
+              Пригласить по QR
+            </button>
+            <button
+              type="button"
+              onClick={() => setDlg({ kind: "instruction" })}
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              <BookOpen className="size-4" />
+              Инструкция
+            </button>
+          </>
+        }
+      />
 
       {/* Bulk-action toolbar. */}
       {anySelected ? (
@@ -993,17 +970,6 @@ export function StaffPageClient(props: StaffPageProps) {
           onConfirm={handlePeriodAdd}
         />
       ) : null}
-    </div>
-  );
-}
-
-function StatPill({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10 backdrop-blur-sm">
-      <div className="text-[26px] font-semibold leading-none tabular-nums">
-        {value}
-      </div>
-      <div className="mt-1.5 text-[12px] text-white/60">{label}</div>
     </div>
   );
 }
