@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Building2, ChartLine } from "lucide-react";
+import { ownershipLabel, sphereLabel } from "@/lib/org-profile";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { SeedDemoButton } from "./seed-demo-button";
@@ -18,6 +19,8 @@ export default async function RootOrganizationsPage() {
       id: true,
       name: true,
       type: true,
+      ownershipKind: true,
+      locationsCount: true,
       inn: true,
       subscriptionPlan: true,
       subscriptionEnd: true,
@@ -59,7 +62,8 @@ export default async function RootOrganizationsPage() {
           <thead className="bg-[#f6f7fb] text-[14px] text-[#6f7282]">
             <tr>
               <th className="px-6 py-3 text-left font-medium">Название</th>
-              <th className="px-6 py-3 text-left font-medium">Тип</th>
+              <th className="px-6 py-3 text-left font-medium">Сфера</th>
+              <th className="px-6 py-3 text-center font-medium">Точек</th>
               <th className="px-6 py-3 text-left font-medium">ИНН</th>
               <th className="px-6 py-3 text-left font-medium">Тариф</th>
               <th className="px-6 py-3 text-center font-medium">Сотрудники</th>
@@ -71,7 +75,7 @@ export default async function RootOrganizationsPage() {
             {organizations.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-6 py-12 text-center text-[#6f7282]"
                 >
                   Пока нет зарегистрированных организаций.
@@ -98,7 +102,23 @@ export default async function RootOrganizationsPage() {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-[14px] text-black">{org.type}</td>
+                <td className="px-6 py-4 text-[14px] text-black">
+                  {sphereLabel(org.type)}
+                  <div className="text-[13px] text-[#8a8ea4]">
+                    {ownershipLabel(org.ownershipKind)}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-center text-[14px]">
+                  {org.locationsCount > 1 ? (
+                    // Больше одной точки — владелец ждёт multi-org, которого
+                    // в продукте пока нет. Подсвечиваем, чтобы не забыть.
+                    <span className="inline-flex items-center rounded-full bg-[#fff3ed] px-3 py-1 font-medium text-[#b45309]">
+                      {org.locationsCount}
+                    </span>
+                  ) : (
+                    <span className="text-[#6f7282]">1</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-[14px] text-[#6f7282]">
                   {org.inn || "—"}
                 </td>
