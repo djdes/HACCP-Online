@@ -18,7 +18,7 @@ export function DashboardFooter() {
       <div className="mx-auto flex max-w-[1760px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="text-[#6f7282]">
-            <BrandLogo height={26} title="WeSetup" />
+            <BrandLogo height={18} title="WeSetup" />
           </span>
           <span>© 2026</span>
         </div>

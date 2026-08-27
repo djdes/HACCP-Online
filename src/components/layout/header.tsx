@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
@@ -123,58 +123,6 @@ export function Header({
     !fullAccess &&
     (userRole === "head_chef" || userRole === "technologist");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [buildInfo, setBuildInfo] = useState({
-    buildId: "...",
-    buildTime: "",
-  });
-
-  // Close the mobile nav drawer automatically when the route changes —
-  // иначе после тапа на пункт меню Sheet остаётся открытым и перекрывает
-  // новую страницу. Reacts on `pathname` from usePathname().
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    let cancelled = false;
-    let inFlight = false;
-
-    async function syncBuildInfo() {
-      if (cancelled || inFlight) return;
-      inFlight = true;
-      try {
-        const response = await fetch(`/api/build-info?t=${Date.now()}`, {
-          cache: "no-store",
-        });
-        if (!response.ok || cancelled) return;
-        const data = await response.json();
-        if (!data?.buildId || cancelled) return;
-
-        setBuildInfo({
-          buildId: data.buildId,
-          buildTime: data.buildTime || "",
-        });
-      } catch {
-        // silent
-      } finally {
-        inFlight = false;
-      }
-    }
-
-    void syncBuildInfo();
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        void syncBuildInfo();
-      }
-    };
-    window.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -252,15 +200,9 @@ export function Header({
             // отдельный dark:-вариант не нужен и был бы опасен: он
             // сработал бы по системной теме на светлом кабинете.
             <span className="text-[#0b1024]">
-              <BrandLogo height={32} title="" />
+              <BrandLogo height={22} title="" />
             </span>
           )}
-          <span
-            className="hidden text-[10px] font-mono text-[#9b9fb3] sm:inline"
-            title={`Build: ${buildInfo.buildTime}`}
-          >
-            {buildInfo.buildId}
-          </span>
         </Link>
 
         {/*

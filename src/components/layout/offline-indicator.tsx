@@ -13,22 +13,11 @@ import { useOfflineQueue } from "@/lib/use-offline-submit";
 export function OfflineIndicator() {
   const { online, pending, flushNow, busy } = useOfflineQueue();
 
-  // Quiet state — ничего лишнего не показываем.
-  // Показываем только от lg+ (1024): на md (768–1023) шапка и так плотная,
-  // «В сети» будет overlap'ить pill «Сотрудники». Проблемные состояния
-  // (offline / pending queue) показываем и на md — их важнее увидеть.
-  if (online && pending === 0) {
-    return (
-      <span
-        aria-label="В сети"
-        title="В сети, очередь пуста"
-        className="hidden h-10 items-center gap-1.5 rounded-lg bg-[#ecfdf5] px-3 text-[13px] font-semibold text-[#116b2a] lg:inline-flex"
-      >
-        <Cloud className="size-4" />
-        В сети
-      </span>
-    );
-  }
+  // Всё в порядке — молчим. Зелёная плашка «В сети» висела в шапке
+  // постоянно и не несла информации: связь есть у всех и почти всегда.
+  // Показываем индикатор только когда есть о чём сказать — офлайн или
+  // неотправленная очередь.
+  if (online && pending === 0) return null;
 
   const label = online
     ? `В сети · ждёт отправки ${pending}`

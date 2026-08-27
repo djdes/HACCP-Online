@@ -182,7 +182,7 @@ export function MiniTopBar() {
           </span>
           <div className="min-w-0">
             <div className="mini-eyebrow" style={{ opacity: 0.75 }}>
-              <BrandLogo height={18} title="WeSetup" />
+              <BrandLogo height={14} title="WeSetup" />
             </div>
             <div
               className="mini-display-bold truncate"

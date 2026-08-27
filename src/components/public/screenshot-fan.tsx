@@ -161,7 +161,7 @@ function DesktopMockup() {
           статус и действия справа. */}
       <div className="flex items-center gap-2 border-b border-[#ececf4] bg-white px-4 py-2.5">
         <div className="text-[#0b1024]">
-          <BrandLogo height={20} title="" />
+          <BrandLogo height={15} title="" />
         </div>
         <span className="ml-2 inline-flex items-center gap-1.5 rounded-xl border border-[#ececf4] bg-white px-2.5 py-1 text-[10px] font-medium text-[#0b1024]">
           <Building2 className="size-3 text-[#5566f6]" />

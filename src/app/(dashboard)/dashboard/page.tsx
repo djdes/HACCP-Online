@@ -11,7 +11,6 @@ import {
   Coins,
   FileDown,
   GraduationCap,
-  Hand,
   Inbox,
   ListChecks,
   Medal,
@@ -35,6 +34,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
+import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
 import { AnomaliesCard } from "@/components/dashboard/anomalies-card";
 import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { MedBooksExpiryCard } from "@/components/dashboard/med-books-expiry-card";
@@ -125,6 +125,9 @@ function getEntryData(data: unknown): EntryData {
   }
   return {};
 }
+
+/** Журналы, для которых есть готовое превью бланка. */
+const SAMPLE_CODES = new Set<string>(SAMPLE_JOURNAL_CODES);
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -340,73 +343,52 @@ export default async function DashboardPage() {
           в TF без time-фильтра — для итеративного тестирования. */}
       <SuperUserDevTools enabled={isSuperUser(session)} />
 
-      <ZoneHeading>Что сделать сегодня</ZoneHeading>
+      {/* Одна тонкая строка: приветствие слева, цифры справа. Дата и
+          подписи к числам убраны — они не меняют ни одного решения, а
+          вместе съедали две строки над списком журналов. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <h1 className="text-[19px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
+          {greeting}
+          {greetingName ? `, ${greetingName}` : ""}
+        </h1>
 
-      {/* Dark hero with greeting + stat pills */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-          <div className="absolute left-1/3 top-1/2 size-[280px] rounded-full bg-[#3d4efc] opacity-25 blur-[100px]" />
+        <div className="flex items-center gap-2 text-[13px] text-[#6f7282]">
+          <span className="tabular-nums">
+            <b className="font-semibold text-[#0b1024]">{totalTodayEntries}</b>{" "}
+            записей
+          </span>
+          <span className="text-[#dcdfed]">·</span>
+          <span className="tabular-nums">
+            <b
+              className={cn(
+                "font-semibold",
+                pendingApproval > 0 ? "text-[#a13a32]" : "text-[#0b1024]"
+              )}
+            >
+              {pendingApproval}
+            </b>{" "}
+            на проверке
+          </span>
+          <span className="text-[#dcdfed]">·</span>
+          <span className="tabular-nums">
+            <b className="font-semibold text-[#0b1024]">{activeUsers}</b> в
+            команде
+          </span>
+          <span className="text-[#dcdfed]">·</span>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium",
+              compliancePercent >= 90
+                ? "bg-[#ecfdf5] text-[#116b2a]"
+                : compliancePercent >= 60
+                  ? "bg-[#fff8eb] text-[#a16d32]"
+                  : "bg-[#fff4f2] text-[#a13a32]"
+            )}
+          >
+            Готовность {compliancePercent}%
+          </span>
         </div>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.08]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-            maskImage: "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
-          }}
-        />
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <Hand className="size-6" />
-              </div>
-              <div>
-                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                  {greeting}
-                  {greetingName ? `, ${greetingName}` : ""}
-                </h1>
-                <p className="mt-1 text-[15px] text-white/70">
-                  {formatDayLabel(now).charAt(0).toUpperCase() + formatDayLabel(now).slice(1)} · {orgDisplayName(session.user.organizationName, "ваша организация")}
-                </p>
-              </div>
-            </div>
-
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
-              <span
-                className={cn(
-                  "size-1.5 rounded-full",
-                  compliancePercent >= 90
-                    ? "bg-[#7cf5c0]"
-                    : compliancePercent >= 60
-                      ? "bg-[#ffd466]"
-                      : "bg-[#ffb0a6]"
-                )}
-              />
-              Готовность сегодня: {compliancePercent}%
-            </div>
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            <StatPill
-              label="Записей сегодня"
-              value={totalTodayEntries}
-              hint={totalTodayEntries === 0 ? "пока пусто" : undefined}
-            />
-            <StatPill
-              label="На проверке"
-              value={pendingApproval}
-              hint={pendingApproval > 0 ? "нужно подтвердить" : undefined}
-              alert={pendingApproval > 0}
-            />
-            <StatPill label="Сотрудников" value={activeUsers} />
-            <StatPill label="Журналов" value={activeTemplates} />
-          </div>
-        </div>
-      </section>
+      </div>
 
       {/* Quick Start — большая карточка прогресса настройки для новых
           организаций. Auto-hide когда всё настроено. Свёртывается
@@ -419,135 +401,99 @@ export default async function DashboardPage() {
           Карточка получает мягкий gradient-фон в зависимости от
           compliance-tone (зелёный 100%, жёлтый частично, красный
           ничего) — сразу понятно как дела с заполнением. */}
-      <section
-        className={`relative overflow-hidden rounded-3xl border bg-white p-5 shadow-[0_10px_30px_-15px_rgba(11,16,36,0.1)] sm:p-6 ${
-          complianceItems.length === 0 || isFreshOrg
-            ? "border-[#ececf4]"
-            : unfilledCount === 0
-              ? "border-emerald-200"
-              : compliancePercent >= 50
-                ? "border-amber-200"
-                : "border-rose-200"
-        }`}
-      >
-        {/* Subtle gradient accent sweep — лёгкий цвет «настроения» */}
-        <div
-          className={`pointer-events-none absolute -right-32 -top-32 size-[400px] rounded-full opacity-30 blur-3xl ${
-            complianceItems.length === 0 || isFreshOrg
-              ? "bg-[#5566f6]/20"
-              : unfilledCount === 0
-                ? "bg-emerald-300"
-                : compliancePercent >= 50
-                  ? "bg-amber-300"
-                  : "bg-rose-300"
-          }`}
-        />
-        <div className="relative flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-            <span
-              className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${complianceTone.bgClass}`}
+      {/* Без собственной рамки: внутри уже лежат карточки-секции, и
+          обёртка добавляла третий уровень коробок — «блок в блоке в
+          блоке». Заголовок и прогресс просто стоят на фоне страницы. */}
+      <section className="space-y-4">
+          {complianceItems.length > 0 && (
+            <DashboardSection
+              storageKey="compliance-grid"
+              title="Обязательные журналы"
+              icon={ListChecks}
+              defaultOpen={true}
+              actions={<CloseDayCard unfilledCount={unfilledCount} compact />}
+              badge={
+                unfilledCount > 0
+                  ? {
+                      text: `${filledCount}/${complianceItems.length}`,
+                      tone: unfilledCount === complianceItems.length ? "danger" : "warn",
+                    }
+                  : { text: "все ✓", tone: "ok" }
+              }
             >
-              {unfilledCount === 0 ? (
-                <CheckCircle2 className="size-6" />
-              ) : (
-                <ClipboardList className="size-6" />
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[22px]">
-                {complianceItems.length === 0 ? (
-                  "Журналы ещё не настроены"
-                ) : unfilledCount === 0 ? (
-                  "Все журналы начаты сегодня"
-                ) : (
-                  <>
-                    {isFreshOrg ? "Можно начинать — всего" : "Нужно начать"}{" "}
+              <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {complianceItems.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={`/journals/${item.code}`}
+                    className={cn(
+                      "group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border transition-all hover:-translate-y-0.5",
+                      // Цветное свечение под карточкой: статус читается
+                      // боковым зрением, ещё до того как глаз дошёл до
+                      // иконки и названия.
+                      item.filled
+                        ? "border-[#c8f0d5] shadow-[0_8px_24px_-14px_rgba(19,107,42,0.45)] hover:border-[#7cf5c0] hover:shadow-[0_14px_32px_-14px_rgba(19,107,42,0.6)]"
+                        : "border-[#ffd2cd] shadow-[0_8px_24px_-14px_rgba(210,69,61,0.45)] hover:border-[#ff8d7d] hover:shadow-[0_14px_32px_-14px_rgba(210,69,61,0.6)]"
+                    )}
+                  >
+                    {/* Превью настоящего бланка: по названию вроде
+                        «Чек-лист (памятка) проведения санитарного дня»
+                        невозможно вспомнить, что там за форма. Картинки
+                        те же, что на публичных страницах журналов. */}
+                    {SAMPLE_CODES.has(item.code) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/journal-samples/${item.code}.png`}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top"
+                      />
+                    ) : null}
+
                     <span
-                      className={
-                        isFreshOrg
-                          ? "text-[#3848c7]"
-                          : compliancePercent >= 50
-                            ? "text-amber-700"
-                            : "text-rose-700"
-                      }
+                      className={cn(
+                        // flex-1: в ряду карточки одной высоты, но у одних
+                        // заголовок в строку, у других в две. Без растяжения
+                        // цветная полоса кончалась по тексту и под ней
+                        // оставалась белая щель до низа карточки.
+                        "flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-[14px]",
+                        item.filled ? "bg-[#effaf1]" : "bg-[#fff4f2]"
+                      )}
                     >
-                      {unfilledCount}{" "}
-                      {unfilledCount === 1
-                        ? "журнал"
-                        : unfilledCount < 5
-                          ? "журнала"
-                          : "журналов"}
+                      <span
+                        className={cn(
+                          "flex size-7 shrink-0 items-center justify-center rounded-lg",
+                          item.filled
+                            ? "bg-[#d9f4e1] text-[#136b2a]"
+                            : "bg-[#ffe1dc] text-[#d2453d]"
+                        )}
+                      >
+                        {item.filled ? (
+                          <CheckCircle2 className="size-4" />
+                        ) : (
+                          <XCircle className="size-4" />
+                        )}
+                      </span>
+                      <span
+                        className={cn(
+                          "line-clamp-2 min-w-0 flex-1 text-[15px] font-semibold leading-snug tracking-[-0.01em]",
+                          item.filled ? "text-[#136b2a]" : "text-[#a1362f]"
+                        )}
+                      >
+                        {item.name}
+                      </span>
+                      <ArrowRight
+                        className={cn(
+                          "size-4 shrink-0 transition-transform group-hover:translate-x-0.5",
+                          item.filled ? "text-[#7cf5c0]" : "text-[#ffb0a6]"
+                        )}
+                      />
                     </span>
-                  </>
-                )}
-              </h2>
-              <p className="mt-1 text-[13px] leading-snug text-[#6f7282] sm:text-[14px]">
-                {complianceItems.length === 0
-                  ? "Создайте первый документ в журналах — после этого журнал попадёт в готовность сегодня."
-                  : unfilledCount === 0
-                    ? "Отличная работа — в каждом журнале есть хотя бы одна запись за сегодня."
-                    : "Нажмите на карточку ниже, чтобы открыть журнал и внести первую запись."}
-              </p>
-              {/* Inline-stat: filled / total с прогресс-баром */}
-              {complianceItems.length > 0 ? (
-                <div className="mt-3">
-                  <div className="flex items-end justify-between gap-2 text-[12px] text-[#6f7282]">
-                    <span>
-                      <strong className="text-[#0b1024]">{filledCount}</strong>
-                      {" из "}
-                      <strong className="text-[#0b1024]">
-                        {complianceItems.length}
-                      </strong>
-                      {" заполнено"}
-                    </span>
-                    <span className={`font-semibold ${complianceTone.fgClass}`}>
-                      {compliancePercent}% · {complianceTone.label}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#ececf4]">
-                    <div
-                      className={`h-full transition-all ${
-                        unfilledCount === 0
-                          ? "bg-emerald-500"
-                          : compliancePercent >= 50
-                            ? "bg-amber-500"
-                            : "bg-rose-500"
-                      }`}
-                      style={{ width: `${compliancePercent}%` }}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <ComplianceRing percent={compliancePercent} />
-        </div>
-
-        {/* Раскрывающиеся секции — каждая помнит state в localStorage.
-            По умолчанию открыты только самые важные «Закрыть день» и
-            «Превью отправки задач»; остальные свёрнуты чтобы дашборд
-            не выглядел как лендинг. Юзер открывает то что ему нужно.
-            mt-6 + border-t — визуальный divider между hero и секциями,
-            раньше прогресс-бар «склеивался» с первой секцией. */}
-        <div className="mt-6 space-y-3 border-t border-[#ececf4] pt-5 sm:mt-7 sm:pt-6">
-          <DashboardSection
-            storageKey="close-day"
-            title="Закрыть день"
-            subtitle="Незаполненные журналы за сегодня и быстрая отчётность."
-            icon={CheckCircle2}
-            defaultOpen={true}
-            badge={
-              unfilledCount > 0
-                ? { text: `${unfilledCount} осталось`, tone: "warn" }
-                : { text: "всё закрыто", tone: "ok" }
-            }
-          >
-            <CloseDayCard unfilledCount={unfilledCount} />
-          </DashboardSection>
-
-          {/* TimeWindowAlerts — server-async. Server-component
-              DashboardSection (native <details>) поддерживает
-              async children без Suspense boundary. */}
+                  </Link>
+                ))}
+              </div>
+            </DashboardSection>
+          )}
           <DashboardSection
             storageKey="time-window-alerts"
             title="Срочно нужно заполнить"
@@ -627,67 +573,6 @@ export default async function DashboardPage() {
           >
             <StaffTrainingCard />
           </DashboardSection>
-
-          {complianceItems.length > 0 && (
-            <DashboardSection
-              storageKey="compliance-grid"
-              title="Compliance — все журналы за сегодня"
-              subtitle="Карточный обзор: зелёные заполнены, красные нет. Клик ведёт на журнал."
-              icon={ListChecks}
-              defaultOpen={false}
-              badge={
-                unfilledCount > 0
-                  ? {
-                      text: `${filledCount}/${complianceItems.length}`,
-                      tone: unfilledCount === complianceItems.length ? "danger" : "warn",
-                    }
-                  : { text: "все ✓", tone: "ok" }
-              }
-            >
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {complianceItems.map((item) => (
-              <Link
-                key={item.id}
-                href={`/journals/${item.code}`}
-                className={cn(
-                  "group flex w-full min-w-0 items-start gap-3 rounded-2xl border px-4 py-3 text-[14px] transition-all sm:items-center",
-                  item.filled
-                    ? "border-[#c8f0d5] bg-[#effaf1] hover:border-[#7cf5c0] hover:shadow-[0_6px_20px_-12px_rgba(19,107,42,0.25)]"
-                    : "border-[#ffd2cd] bg-[#fff4f2] hover:border-[#ff8d7d] hover:shadow-[0_6px_20px_-12px_rgba(210,69,61,0.25)]"
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-xl",
-                    item.filled ? "bg-[#d9f4e1] text-[#136b2a]" : "bg-[#ffe1dc] text-[#d2453d]"
-                  )}
-                >
-                  {item.filled ? (
-                    <CheckCircle2 className="size-4" />
-                  ) : (
-                    <XCircle className="size-4" />
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "min-w-0 flex-1 font-medium leading-snug line-clamp-2 sm:truncate",
-                    item.filled ? "text-[#136b2a]" : "text-[#d2453d]"
-                  )}
-                >
-                  {item.name}
-                </span>
-                <ArrowRight
-                  className={cn(
-                    "size-4 shrink-0 transition-transform group-hover:translate-x-0.5",
-                    item.filled ? "text-[#7cf5c0]" : "text-[#ffb0a6]"
-                  )}
-                />
-              </Link>
-            ))}
-              </div>
-            </DashboardSection>
-          )}
-        </div>
       </section>
 
       {/* Зона «Требует внимания» показывается только когда есть что
@@ -940,6 +825,104 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {/* Общий прогресс по журналам — справочная цифра, а не
+          действие. Стоит внизу, чтобы не отодвигать список того, что
+          надо заполнить прямо сейчас. */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-6">
+        {/* Subtle gradient accent sweep — лёгкий цвет «настроения» */}
+        <div
+          className={`pointer-events-none absolute -right-32 -top-32 size-[400px] rounded-full opacity-30 blur-3xl ${
+            complianceItems.length === 0 || isFreshOrg
+              ? "bg-[#5566f6]/20"
+              : unfilledCount === 0
+                ? "bg-emerald-300"
+                : compliancePercent >= 50
+                  ? "bg-amber-300"
+                  : "bg-rose-300"
+          }`}
+        />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+            <span
+              className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${complianceTone.bgClass}`}
+            >
+              {unfilledCount === 0 ? (
+                <CheckCircle2 className="size-6" />
+              ) : (
+                <ClipboardList className="size-6" />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[22px]">
+                {complianceItems.length === 0 ? (
+                  "Журналы ещё не настроены"
+                ) : unfilledCount === 0 ? (
+                  "Все журналы начаты сегодня"
+                ) : (
+                  <>
+                    {isFreshOrg ? "Можно начинать — всего" : "Нужно начать"}{" "}
+                    <span
+                      className={
+                        isFreshOrg
+                          ? "text-[#3848c7]"
+                          : compliancePercent >= 50
+                            ? "text-amber-700"
+                            : "text-rose-700"
+                      }
+                    >
+                      {unfilledCount}{" "}
+                      {unfilledCount === 1
+                        ? "журнал"
+                        : unfilledCount < 5
+                          ? "журнала"
+                          : "журналов"}
+                    </span>
+                  </>
+                )}
+              </h2>
+              <p className="mt-1 text-[13px] leading-snug text-[#6f7282] sm:text-[14px]">
+                {complianceItems.length === 0
+                  ? "Создайте первый документ в журналах — после этого журнал попадёт в готовность сегодня."
+                  : unfilledCount === 0
+                    ? "Отличная работа — в каждом журнале есть хотя бы одна запись за сегодня."
+                    : "Нажмите на карточку ниже, чтобы открыть журнал и внести первую запись."}
+              </p>
+              {/* Inline-stat: filled / total с прогресс-баром */}
+              {complianceItems.length > 0 ? (
+                <div className="mt-3">
+                  <div className="flex items-end justify-between gap-2 text-[12px] text-[#6f7282]">
+                    <span>
+                      <strong className="text-[#0b1024]">{filledCount}</strong>
+                      {" из "}
+                      <strong className="text-[#0b1024]">
+                        {complianceItems.length}
+                      </strong>
+                      {" заполнено"}
+                    </span>
+                    <span className={`font-semibold ${complianceTone.fgClass}`}>
+                      {compliancePercent}% · {complianceTone.label}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#ececf4]">
+                    <div
+                      className={`h-full transition-all ${
+                        unfilledCount === 0
+                          ? "bg-emerald-500"
+                          : compliancePercent >= 50
+                            ? "bg-amber-500"
+                            : "bg-rose-500"
+                      }`}
+                      style={{ width: `${compliancePercent}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <ComplianceRing percent={compliancePercent} />
+        </div>
+      </section>
+
       <ZoneHeading>Разделы и настройка</ZoneHeading>
 
       {/* Quick actions — big tappable buttons */}
@@ -1127,42 +1110,6 @@ function ZoneHeading({ children }: { children: React.ReactNode }) {
     <h2 className="px-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
       {children}
     </h2>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  hint,
-  alert,
-}: {
-  label: string;
-  value: number;
-  hint?: string;
-  alert?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm ring-1 ring-white/10",
-        alert && "bg-white/15 ring-white/30"
-      )}
-    >
-      <div className="text-[26px] font-semibold leading-none tabular-nums">
-        {value}
-      </div>
-      <div className="mt-1.5 text-[12px] text-white/60">{label}</div>
-      {hint ? (
-        <div
-          className={cn(
-            "mt-0.5 text-[11px]",
-            alert ? "text-[#ffd466]" : "text-white/40"
-          )}
-        >
-          {hint}
-        </div>
-      ) : null}
-    </div>
   );
 }
 

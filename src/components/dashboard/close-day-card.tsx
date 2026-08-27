@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, ArrowDownToLine, AlertTriangle, CheckCircle2, Wand2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 type Summary = {
@@ -49,11 +50,19 @@ const journalWord = pluralRu("журнал", "журнала", "журналов
  * BulkAssignTodayButton; вместе они закрывают пару «есть пропуски —
  * либо разошлите задачи всем, либо просто скопируйте вчера за смену».
  */
-export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
+export function CloseDayCard({
+  unfilledCount,
+  compact,
+}: {
+  unfilledCount: number;
+  /** Только кнопки — для строки над списком журналов. */
+  compact?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   async function handleClose() {
     setSubmitting(true);
@@ -69,7 +78,9 @@ export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
         throw new Error(data?.error || "Не удалось закрыть день");
       }
       const r = data as Result;
-      setResult(r);
+      // В компактном режиме подробную панель не показываем: тост уже
+      // сказал главное, а в шапке секции панели негде развернуться.
+      setResult(compact ? null : r);
       if (r.totalCopied === 0) {
         toast.info(
           r.processed === 0
@@ -93,8 +104,67 @@ export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
 
   const busy = submitting || pending;
 
+  // Без рамки и подложки: карточка живёт внутри секции, и своя коробка
+  // делала из неё блок в блоке.
+  //
+  // `compact` — только две кнопки в строку, без иконки и объяснения:
+  // над списком журналов нужна кнопка, а не абзац.
+  if (compact) {
+    return (
+      // Секция раскрывается по клику на <summary>; кнопки лежат внутри
+      // него, поэтому событие гасим здесь — иначе каждое нажатие
+      // сворачивало бы список журналов.
+      <div
+        className="flex w-full items-center gap-2"
+        onClick={(e) => e.preventDefault()}
+      >
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          disabled={busy}
+          className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+        >
+          <ArrowDownToLine className="size-4" />
+          {busy ? "Копирую…" : "Закрыть день одним кликом"}
+        </button>
+        <Link
+          href="/dashboard/catch-up"
+          className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          <Wand2 className="size-4 text-[#5566f6]" />
+          Закрыть выборочно
+        </Link>
+        {/* Итог показываем тостом, а не строкой рядом с кнопками:
+            в шапке секции ей негде развернуться, а цифры нужны сразу
+            и заметно. */}
+        <ConfirmDialog
+          open={confirming}
+          onClose={() => setConfirming(false)}
+          onConfirm={async () => {
+            setConfirming(false);
+            await handleClose();
+          }}
+          variant="info"
+          icon={ArrowDownToLine}
+          title="Закрыть день одним кликом?"
+          description={`Вчерашние записи скопируются в сегодня для всех ежедневных журналов с активным документом.${
+            unfilledCount > 0
+              ? ` Сейчас ${unfilledCount} ${journalWord(unfilledCount)} без записей за сегодня.`
+              : ""
+          }`}
+          bullets={[
+            { label: "Уже заполненные строки не перезаписываются" },
+            { label: "Журналы без вчерашних записей пропускаются" },
+            { label: "Действие можно повторить — оно ничего не портит" },
+          ]}
+          confirmLabel="Закрыть день"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3.5 sm:px-5 sm:py-4">
+    <div>
       <div className="flex flex-wrap items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
           <Sparkles className="size-5" />
@@ -121,14 +191,14 @@ export function CloseDayCard({ unfilledCount }: { unfilledCount: number }) {
             className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-none"
           >
             <ArrowDownToLine className="size-4" />
-            {busy ? "Копирую…" : "Закрыть день"}
+            {busy ? "Копирую…" : "Закрыть день одним кликом"}
           </button>
           <Link
             href="/dashboard/catch-up"
             className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] transition-colors hover:bg-[#5566f6]/[0.09] sm:flex-none"
           >
             <Wand2 className="size-4" />
-            Догнать пропуски
+            Закрыть выборочно
           </Link>
         </div>
       </div>

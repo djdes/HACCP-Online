@@ -102,7 +102,7 @@ function RegisterScreen() {
           {/* Тот же знак, что в шапке лендинга и в футере — один бренд
               на всех публичных экранах. */}
           <Link href="/" className="text-white" aria-label="WeSetup — на главную">
-            <BrandLogo height={36} title="" />
+            <BrandLogo height={26} title="" />
           </Link>
         </div>
 
@@ -163,7 +163,7 @@ function RegisterScreen() {
         <div className="relative w-full max-w-[420px]">
           <div className="mb-8 lg:hidden">
             <Link href="/" className="text-[#0b1024]" aria-label="WeSetup — на главную">
-              <BrandLogo height={34} title="" />
+              <BrandLogo height={24} title="" />
             </Link>
           </div>
 

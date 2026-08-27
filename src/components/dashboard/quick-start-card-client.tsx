@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  ChevronDown,
   Sparkles,
   Bell,
   Boxes,
@@ -92,7 +90,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Bell,
 };
 
-const STORAGE_KEY = "wesetup.quick-start-collapsed";
 const BLOCKING_IDS = new Set([
   "company",
   "positions",
@@ -116,31 +113,8 @@ export function QuickStartCardCompact({
   completed: number;
   total: number;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "true");
-    }
-    setMounted(true);
-  }, []);
-
-  function toggle() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      if (typeof window !== "undefined") {
-        if (next) window.localStorage.setItem(STORAGE_KEY, "true");
-        else window.localStorage.removeItem(STORAGE_KEY);
-      }
-      return next;
-    });
-  }
 
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const blockedCount = items.filter(
-    (i) => i.status === "empty" && BLOCKING_IDS.has(i.id),
-  ).length;
 
   return (
     <section
@@ -151,65 +125,60 @@ export function QuickStartCardCompact({
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -right-24 -top-24 size-[320px] rounded-full bg-[#5566f6] opacity-[0.07] blur-[100px]" />
       </div>
-      <div className="relative z-10 p-5 sm:p-7">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-              <Sparkles className="size-5" />
+      {/* Три колонки на одной линии: слева — что настраиваем, по центру
+          прогресс во всю оставшуюся ширину, справа — действие. Раньше
+          полоса лежала отдельной строкой под заголовком и читалась как
+          не связанная ни с текстом слева, ни с кнопкой справа. */}
+      <div className="relative z-10 p-4 sm:p-5">
+        {/* Полоса стоит ровно по центру блока: боковые группы одной
+            ширины (220px), левая прижата влево, правая вправо. Пока
+            ширины были разные, «центр» полосы уезжал вслед за длиной
+            заголовка. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+          <div className="flex items-center gap-2.5 sm:w-[260px] sm:shrink-0">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+              <Sparkles className="size-4" />
             </span>
-            <div>
-              <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024] sm:text-[20px]">
-                Быстрый старт
-              </h2>
-              <p className="mt-1 text-[13px] text-[#6f7282]">
-                {completed} из {total} шагов готово
-                {blockedCount > 0 ? ` · ${blockedCount} критичных не настроено` : null}
-              </p>
+            {/* whitespace-nowrap: «Завершите начальную настройку» ломалось
+                на две строки и перекашивало всю полосу. Заголовок
+                укорочен до одной строки — смысл тот же. */}
+            <h2 className="whitespace-nowrap text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[16px]">
+              Начальная настройка
+            </h2>
+          </div>
+
+          {/* Процент вынут из потока: в колонке он поднимал полосу над
+              центром блока. Абсолютом он висит над ней, а сама полоса
+              остаётся единственным содержимым и центрируется и по
+              горизонтали, и по вертикали. */}
+          <div className="relative flex min-w-0 flex-1 items-center">
+            <span className="pointer-events-none absolute bottom-full left-0 mb-1.5 w-full text-center text-[11px] font-semibold tabular-nums text-[#6f7282]">
+              {percent}%
+            </span>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#ececf4]">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  percent >= 80
+                    ? "bg-emerald-400"
+                    : percent >= 50
+                      ? "bg-amber-400"
+                      : "bg-[#5566f6]"
+                }`}
+                style={{ width: `${percent}%` }}
+              />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={toggle}
-            className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#f5f6ff] text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
-            aria-label={collapsed ? "Развернуть быстрый старт" : "Свернуть быстрый старт"}
-            suppressHydrationWarning
-          >
-            <ChevronDown
-              className={`size-5 transition-transform ${mounted && collapsed ? "rotate-180" : ""}`}
-            />
-          </button>
-        </div>
 
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#ececf4]">
-          <div
-            className={`h-full transition-all ${
-              percent >= 80
-                ? "bg-emerald-400"
-                : percent >= 50
-                  ? "bg-amber-400"
-                  : "bg-[#5566f6]"
-            }`}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-
-        {!collapsed ? (
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[13px] leading-relaxed text-[#6f7282]">
-              Пошаговое руководство: что нужно настроить чтобы команда могла заполнять журналы.
-              {blockedCount > 0
-                ? " Без этих шагов система не будет работать корректно."
-                : " Закончите оставшиеся пункты когда будет время."}
-            </p>
+          <div className="flex items-center justify-end sm:w-[260px] sm:shrink-0">
             <Link
               href="/settings/onboarding"
-              className="inline-flex items-center justify-center gap-2 self-start rounded-2xl bg-[#5566f6] px-5 py-3 text-[14px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+              className="inline-flex h-10 w-[180px] items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
             >
-              Открыть быстрый старт
+              Завершить
               <ArrowRight className="size-4" />
             </Link>
           </div>
-        ) : null}
+        </div>
       </div>
     </section>
   );

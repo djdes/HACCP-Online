@@ -133,13 +133,9 @@ export async function TimeWindowAlerts({
   const allNeverFilled = alerts.every((a) => a.hoursOverdue === null);
 
   return (
-    <div
-      className={
-        allNeverFilled
-          ? "rounded-3xl border border-[#dcdfed] bg-gradient-to-br from-[#f5f6ff] to-white p-5 shadow-[0_10px_30px_-12px_rgba(85,102,246,0.15)]"
-          : "rounded-3xl border border-[#ffd2cd] bg-gradient-to-br from-[#fff4f2] to-white p-5 shadow-[0_10px_30px_-12px_rgba(161,58,50,0.2)]"
-      }
-    >
+    // Без собственной рамки: блок живёт внутри секции дашборда, и своя
+    // коробка давала «блок в блоке». Тон задаёт иконка и подписи.
+    <div>
       <div className="flex items-start gap-3">
         <span
           className={

@@ -89,16 +89,9 @@ export default function RootLayout({
     <html lang="ru">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link
-          rel="apple-touch-icon"
-          sizes="192x192"
-          href="/icons/icon-192.png"
-        />
-        <link
-          rel="apple-touch-icon"
-          sizes="512x512"
-          href="/icons/icon-512.png"
-        />
+        {/* Иконки вкладки и домашнего экрана берёт App Router из
+            src/app/icon.png и src/app/apple-icon.png — ручные <link>
+            здесь дублировали бы их и расходились при замене. */}
         <meta name="theme-color" content="#0b1024" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
