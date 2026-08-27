@@ -10,6 +10,7 @@ import {
   registerOwnerExtendedHandlers,
 } from "./handlers/owner-stats";
 import { registerStaffToolsHandlers } from "./handlers/staff-tools";
+import { registerSupportHandlers } from "./handlers/support";
 import { registerShiftGateHandler } from "./handlers/shift-gate";
 import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import {
@@ -97,6 +98,9 @@ export function getInboundBot(): Bot | null {
   registerStaffToolsHandlers(composer);
   registerEditHandlers(composer);
   registerInlineQueryHandler(composer);
+  // Строго последним из message-обработчиков: catch-all `on("message:text")`
+  // ловит всё, что не разобрали команды выше, и отправляет это в поддержку.
+  registerSupportHandlers(composer);
   cachedBot.use(composer);
   return cachedBot;
 }

@@ -94,6 +94,7 @@ export function registerShortcutHandlers(composer: Composer<Context>): void {
         "• /health — диагностика бота (build sha, DB, Telegram API)\n" +
         "• /reports — PDF и ZIP для инспектора\n\n" +
         "<b>Прочее</b>\n" +
+        "• Любой текст — вопрос в поддержку: напишите его прямо сюда, ответ придёт в этот чат\n" +
         "• /stop — отвязать Telegram\n\n" +
         "Поддержка: пишите в @wesetupbot — отвечаем лично.\n" +
         "Сайт: wesetup.ru",

@@ -878,10 +878,20 @@ model FeedbackReport {
   userName         String?
   organizationId   String?
   organizationName String?
-  /// "bug" | "suggestion"
+  /// "bug" | "suggestion" | "support"
   type             String
   message          String
   phone            String?
+  /// "site" | "telegram" — откуда пришло обращение. Форма на сайте и в
+  /// Mini App даёт "site", произвольное сообщение боту — "telegram".
+  source           String   @default("site")
+  /// Для source="telegram" — chat id автора: единственный адрес, по
+  /// которому ответ поддержки может до него дойти (аккаунта может не быть).
+  telegramChatId   String?
+  /// Когда админ-уведомление реально ушло. null = канал промолчал, и это
+  /// видно в /root/feedback, а не только в console.error.
+  adminTgNotifiedAt DateTime?
+  adminEmailedAt    DateTime?
   responseMessage  String?
   respondedAt      DateTime?
   respondedById    String?
@@ -890,6 +900,7 @@ model FeedbackReport {
 
   @@index([createdAt])
   @@index([type])
+  @@index([source])
 }
 
 /// In-app notifications that surface state-drift hints ("add these new
