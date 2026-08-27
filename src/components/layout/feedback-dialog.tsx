@@ -22,11 +22,19 @@ type FeedbackType = "bug" | "suggestion";
 type FeedbackDialogProps = {
   telegramBotUsername: string;
   triggerClassName?: string;
+  /**
+   * Свой триггер вместо кнопки шапки. Нужен там, где форма живёт не в
+   * правом кластере хедера, а карточкой в списке — например на
+   * `/mini/me`: там иконко-кнопка 40×40 с подписью, скрытой до `sm`,
+   * выглядела бы безымянным квадратом.
+   */
+  trigger?: React.ReactNode;
 };
 
 export function FeedbackDialog({
   telegramBotUsername,
   triggerClassName,
+  trigger,
 }: FeedbackDialogProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<FeedbackType | "">("");
@@ -75,22 +83,24 @@ export function FeedbackDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          className={cn(
-            // Единственный primary-контрол в правом кластере шапки:
-            // та же геометрия (h-10 / rounded-lg / size-5 иконка), что и у
-            // tinted-кнопок рядом, но со сплошной индиго-заливкой.
-            "h-10 w-10 shrink-0 gap-2 rounded-lg bg-[#5566f6] px-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_-12px_rgba(85,102,246,0.6)] transition-colors duration-200 hover:bg-[#4a5bf0]",
-            // До sm подпись скрыта — тогда кнопка должна быть квадратом
-            // 40×40, как остальные иконко-кнопки шапки.
-            "max-sm:px-0 sm:w-auto",
-            triggerClassName
-          )}
-        >
-          <MessageCircleMore className="size-5" />
-          <span className="hidden sm:inline">Обратная связь</span>
-        </Button>
+        {trigger ?? (
+          <Button
+            type="button"
+            className={cn(
+              // Единственный primary-контрол в правом кластере шапки:
+              // та же геометрия (h-10 / rounded-lg / size-5 иконка), что и у
+              // tinted-кнопок рядом, но со сплошной индиго-заливкой.
+              "h-10 w-10 shrink-0 gap-2 rounded-lg bg-[#5566f6] px-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_-12px_rgba(85,102,246,0.6)] transition-colors duration-200 hover:bg-[#4a5bf0]",
+              // До sm подпись скрыта — тогда кнопка должна быть квадратом
+              // 40×40, как остальные иконко-кнопки шапки.
+              "max-sm:px-0 sm:w-auto",
+              triggerClassName
+            )}
+          >
+            <MessageCircleMore className="size-5" />
+            <span className="hidden sm:inline">Обратная связь</span>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[520px]">
         <DialogHeader className="border-b px-6 py-5">
@@ -159,7 +169,9 @@ export function FeedbackDialog({
             placeholder="Ваше обращение"
             required
             rows={5}
-            className="resize-none rounded-xl border-[#e2e5ef] bg-white text-[14px] placeholder:text-[#9b9fb3] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+            // На мобиле 16px: iOS Safari зумит страницу при фокусе в поле
+            // со шрифтом меньше 16px. На десктопе оставляем прежние 14px.
+            className="resize-none rounded-xl border-[#e2e5ef] bg-white text-[16px] placeholder:text-[#9b9fb3] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 sm:text-[14px]"
           />
 
           <Input
@@ -168,7 +180,9 @@ export function FeedbackDialog({
             placeholder="Введите номер телефона для ответа"
             type="tel"
             inputMode="tel"
-            className="h-11 rounded-xl border-[#e2e5ef] bg-white text-[14px] placeholder:text-[#9b9fb3] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+            // Те же 16px на мобиле, что и у поля выше — иначе телефон
+            // «прыгает» в зум ровно на этом поле.
+            className="h-11 rounded-xl border-[#e2e5ef] bg-white text-[16px] placeholder:text-[#9b9fb3] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 sm:text-[14px]"
           />
 
           <DialogFooter className="flex-row justify-end gap-2 px-0">

@@ -4,8 +4,16 @@ import Link from "next/link";
 import { MiniOrgSwitcher } from "@/app/mini/_components/mini-org-switcher";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { ArrowLeft, LogOut, Moon, Sun, Unlink } from "lucide-react";
+import {
+  ArrowLeft,
+  LogOut,
+  MessageCircleMore,
+  Moon,
+  Sun,
+  Unlink,
+} from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { useMiniTheme } from "../_components/mini-theme";
 
 /**
@@ -18,7 +26,13 @@ import { useMiniTheme } from "../_components/mini-theme";
  *     valid initData on this device we no longer have a User mapping and
  *     the user must re-accept a fresh invite.
  */
-export default function MiniMePage() {
+export function MiniMeClient({
+  telegramBotUsername,
+}: {
+  // Читается на сервере в page.tsx: TELEGRAM_BOT_USERNAME — не
+  // NEXT_PUBLIC-переменная, из клиентского компонента её не видно.
+  telegramBotUsername: string;
+}) {
   const { data: session, status } = useSession();
   const { theme, setTheme } = useMiniTheme();
   const [busy, setBusy] = useState<"none" | "signout" | "unlink">("none");
@@ -198,6 +212,40 @@ export default function MiniMePage() {
             Светлая
           </button>
         </div>
+      </section>
+
+      {/* Обратная связь — паритет с сайтом (П-3): на сайте форма живёт
+          в шапке, в Mini App шапки нет, поэтому она стоит карточкой в
+          профиле. Форма и эндпоинт те же, что на сайте. */}
+      <section>
+        <FeedbackDialog
+          telegramBotUsername={telegramBotUsername}
+          trigger={
+            <button
+              type="button"
+              className="mini-press flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-[14px] font-medium"
+              style={{
+                background: "var(--mini-card-solid-bg)",
+                color: "var(--mini-text)",
+                border: "1px solid var(--mini-divider)",
+              }}
+            >
+              <span className="inline-flex items-center gap-2">
+                <MessageCircleMore
+                  className="size-4"
+                  style={{ color: "var(--mini-text-muted)" }}
+                />
+                Обратная связь
+              </span>
+              <span
+                className="text-[11px]"
+                style={{ color: "var(--mini-text-faint)" }}
+              >
+                ошибка или идея
+              </span>
+            </button>
+          }
+        />
       </section>
 
       {error ? (
