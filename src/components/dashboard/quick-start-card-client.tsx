@@ -130,19 +130,24 @@ export function QuickStartCardCompact({
           полоса лежала отдельной строкой под заголовком и читалась как
           не связанная ни с текстом слева, ни с кнопкой справа. */}
       <div className="relative z-10 p-4 sm:p-5">
-        {/* Полоса стоит ровно по центру блока: боковые группы одной
-            ширины (220px), левая прижата влево, правая вправо. Пока
-            ширины были разные, «центр» полосы уезжал вслед за длиной
-            заголовка. */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-          <div className="flex items-center gap-2.5 sm:w-[260px] sm:shrink-0">
+        {/* На sm+ полоса стоит ровно по центру блока: боковые группы
+            одной ширины (260px), левая прижата влево, правая вправо.
+            Пока ширины были разные, «центр» полосы уезжал вслед за
+            длиной заголовка.
+
+            На мобиле не колонка, а обёртка: заголовок и «Завершить»
+            держатся в одной строке, полоса уходит вниз. Колонкой кнопка
+            падала третьей строкой под прогресс-баром — до неё надо было
+            доскроллить, и главное действие карточки терялось. */}
+        <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap sm:gap-5">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:w-[260px] sm:flex-none sm:shrink-0">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
               <Sparkles className="size-4" />
             </span>
             {/* whitespace-nowrap: «Завершите начальную настройку» ломалось
                 на две строки и перекашивало всю полосу. Заголовок
                 укорочен до одной строки — смысл тот же. */}
-            <h2 className="whitespace-nowrap text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[16px]">
+            <h2 className="truncate whitespace-nowrap text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[16px]">
               Начальная настройка
             </h2>
           </div>
@@ -151,7 +156,11 @@ export function QuickStartCardCompact({
               центром блока. Абсолютом он висит над ней, а сама полоса
               остаётся единственным содержимым и центрируется и по
               горизонтали, и по вертикали. */}
-          <div className="relative flex min-w-0 flex-1 items-center">
+          {/* order-last + basis-full: на мобиле полоса встаёт отдельной
+              второй строкой во всю ширину, mt компенсирует висящий над
+              ней абсолютный «NN%» — иначе процент налезал бы на строку
+              заголовка. */}
+          <div className="relative flex min-w-0 flex-1 items-center max-sm:order-last max-sm:mt-2 max-sm:basis-full">
             <span className="pointer-events-none absolute bottom-full left-0 mb-1.5 w-full text-center text-[11px] font-semibold tabular-nums text-[#6f7282]">
               {percent}%
             </span>
@@ -169,10 +178,13 @@ export function QuickStartCardCompact({
             </div>
           </div>
 
-          <div className="flex items-center justify-end sm:w-[260px] sm:shrink-0">
+          <div className="flex shrink-0 items-center justify-end sm:w-[260px]">
             <Link
               href="/settings/onboarding"
-              className="inline-flex h-10 w-[180px] items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+              // max-sm:w-auto — на 360px «Начальная настройка» и
+              // «Завершить →» помещаются в одну строку только если кнопка
+              // сжимается по содержимому.
+              className="inline-flex h-10 w-[180px] items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] max-sm:w-auto"
             >
               Завершить
               <ArrowRight className="size-4" />

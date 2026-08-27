@@ -69,13 +69,33 @@ export function DashboardSection({
     >
       {/* items-center: иконка 40px и заголовок выравниваются друг по
           другу. При items-start однострочный заголовок прижимался к
-          верху и стоял выше центра иконки. */}
-      <summary className="flex cursor-pointer list-none items-center gap-3 p-4 transition-colors hover:bg-[#fafbff] sm:p-5">
+          верху и стоял выше центра иконки.
+
+          flex-wrap только на мобиле: действия секции (например две
+          кнопки «Закрыть день») не помещаются в строку заголовка на
+          390px и раньше выталкивали её за экран — теперь они уезжают
+          отдельной строкой под заголовок. */}
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 p-4 transition-colors hover:bg-[#fafbff] sm:flex-nowrap sm:p-5">
         {/* Иконка входит В левую группу: снаружи она делала левую
-            сторону шире правой на свою ширину плюс отступ. */}
-        <div className="flex min-w-0 items-center gap-3 sm:w-[430px] sm:shrink-0">
+            сторону шире правой на свою ширину плюс отступ.
+            flex-1 на мобиле: группа занимает всю строку заголовка и
+            больше не сжимается в ноль под напором кнопок справа.
+            `no-mobile-wrap` — opt-out из глобального правила
+            «.app-shell main .flex.gap-3 { flex-wrap: wrap }»
+            (globals.css): из-за него иконка отрывалась от заголовка и
+            вставала строкой выше.
+            На sm+ ширина 430px — ориентир, а не жёсткая рамка
+            (shrink разрешён): на узком ноутбуке фиксированная ширина
+            выдавливала стрелку за край карточки. */}
+        <div className="no-mobile-wrap flex min-w-0 flex-1 items-center gap-3 sm:w-[430px] sm:shrink sm:grow-0 sm:basis-auto">
           {Icon ? (
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
+            // max-sm:self-start — на узком экране строка заголовка
+            // переносится (бейджи, ссылка-настройка), и по центру иконка
+            // оказывалась напротив ВТОРОЙ строки, будто оторвана от
+            // названия. Сверху она стоит ровно у заголовка. Для
+            // однострочных секций высота строки и так равна иконке —
+            // там ничего не меняется.
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7] max-sm:self-start">
               <Icon className="size-5" />
             </span>
           ) : null}
@@ -106,16 +126,22 @@ export function DashboardSection({
             одинаковом расстоянии от краёв. */}
         <div className="hidden flex-1 sm:block" />
 
-        {/* Стрелка входит В правую группу, а не стоит за ней: иначе
-            правая сторона была шире левой ровно на её ширину плюс
-            отступ, и симметрия ломалась. */}
-        <div className="flex shrink-0 items-center justify-end gap-3 sm:w-[430px]">
-          {actions}
-          <ChevronDown
-            className="size-5 shrink-0 text-[#9b9fb3] transition-transform group-open:rotate-180 group-open:text-[#5566f6]"
-            aria-hidden
-          />
-        </div>
+        {/* Действия и стрелка — соседи, а не вложенная группа: на
+            мобиле действия уезжают отдельной строкой (order-3 +
+            basis-full), а стрелка обязана остаться в строке заголовка.
+            На sm+ симметрия 430/430 сохраняется арифметикой:
+            398 (действия) + 12 (gap-3) + 20 (стрелка) = 430.
+            Именно min-w, а не w: при фиксированной ширине длинные
+            действия вылезали за неё и наезжали на стрелку. */}
+        {actions ? (
+          <div className="flex items-center justify-end gap-3 max-sm:order-3 max-sm:basis-full sm:min-w-[398px] sm:shrink-0">
+            {actions}
+          </div>
+        ) : null}
+        <ChevronDown
+          className="size-5 shrink-0 text-[#9b9fb3] transition-transform group-open:rotate-180 group-open:text-[#5566f6] max-sm:order-2"
+          aria-hidden
+        />
       </summary>
       <div className="border-t border-[#ececf4] p-4 sm:p-5">{children}</div>
     </details>

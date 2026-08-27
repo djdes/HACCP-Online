@@ -107,29 +107,33 @@ export function CloseDayCard({
   // Без рамки и подложки: карточка живёт внутри секции, и своя коробка
   // делала из неё блок в блоке.
   //
-  // `compact` — только две кнопки в строку, без иконки и объяснения:
-  // над списком журналов нужна кнопка, а не абзац.
+  // `compact` — только две кнопки, без иконки и объяснения: над
+  // списком журналов нужна кнопка, а не абзац. На десктопе они стоят
+  // в строку, на мобиле — друг под другом.
   if (compact) {
     return (
       // Секция раскрывается по клику на <summary>; кнопки лежат внутри
       // него, поэтому событие гасим здесь — иначе каждое нажатие
       // сворачивало бы список журналов.
+      // На мобиле кнопки идут друг под другом во всю ширину: в строку
+      // они не влезали (~380px текста) и выталкивали шапку секции за
+      // край экрана. Заодно тап-таргет становится полноширинным.
       <div
-        className="flex w-full items-center gap-2"
+        className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center"
         onClick={(e) => e.preventDefault()}
       >
         <button
           type="button"
           onClick={() => setConfirming(true)}
           disabled={busy}
-          className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-1"
         >
           <ArrowDownToLine className="size-4" />
           {busy ? "Копирую…" : "Закрыть день одним кликом"}
         </button>
         <Link
           href="/dashboard/catch-up"
-          className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:flex-1"
         >
           <Wand2 className="size-4 text-[#5566f6]" />
           Закрыть выборочно

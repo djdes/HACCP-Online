@@ -362,12 +362,16 @@ export default async function DashboardPage() {
           {greetingName ? `, ${greetingName}` : ""}
         </h1>
 
+        {/* На мобиле из четырёх метрик остаются две: «на проверке» —
+            единственная, которая требует действия, и пилюля готовности.
+            «записей» и «в команде» решения не меняют, а вчетвером они
+            мялись в рваные две-три строки. */}
         <div className="flex items-center gap-2 text-[13px] text-[#6f7282]">
-          <span className="tabular-nums">
+          <span className="tabular-nums max-sm:hidden">
             <b className="font-semibold text-[#0b1024]">{totalTodayEntries}</b>{" "}
             записей
           </span>
-          <span className="text-[#dcdfed]">·</span>
+          <span className="text-[#dcdfed] max-sm:hidden">·</span>
           <span className="tabular-nums">
             <b
               className={cn(
@@ -379,8 +383,8 @@ export default async function DashboardPage() {
             </b>{" "}
             на проверке
           </span>
-          <span className="text-[#dcdfed]">·</span>
-          <span className="tabular-nums">
+          <span className="text-[#dcdfed] max-sm:hidden">·</span>
+          <span className="tabular-nums max-sm:hidden">
             <b className="font-semibold text-[#0b1024]">{activeUsers}</b> в
             команде
           </span>
@@ -431,9 +435,11 @@ export default async function DashboardPage() {
                     href="/settings/journals"
                     aria-label="Выбрать журналы"
                     title="Выбрать, какие журналы вести"
-                    className="inline-flex size-7 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
+                    // 28px — меньше минимального тап-таргета, пальцем
+                    // на телефоне попасть в ползунки было тяжело.
+                    className="inline-flex size-9 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-colors hover:bg-[#eef1ff] max-sm:size-10"
                   >
-                    <SlidersHorizontal className="size-3.5" />
+                    <SlidersHorizontal className="size-4" />
                   </Link>
                   {paperItems.length > 0 ? (
                     <span

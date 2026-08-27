@@ -598,15 +598,17 @@ html, body {
   }
 
   /* ── Toolbars: всегда wrap ────────────────────────────────── */
-  .app-shell main .flex.gap-3,
-  .app-shell main .flex.gap-4,
-  .app-shell main .flex.gap-5,
-  .app-shell main .flex.gap-6 {
+  /* `.no-mobile-wrap` — явный opt-out (по образцу .no-mobile-shrink
+     для grid'ов). Нужен там, где flex — это layout, а не панель
+     кнопок: например «иконка + заголовок» в шапке секции дашборда.
+     Без opt-out иконка отрывалась и вставала строкой ВЫШЕ заголовка —
+     именно это владелец и увидел на телефоне. */
+  .app-shell main .flex.gap-3:not(.no-mobile-wrap),
+  .app-shell main .flex.gap-4:not(.no-mobile-wrap),
+  .app-shell main .flex.gap-5:not(.no-mobile-wrap),
+  .app-shell main .flex.gap-6:not(.no-mobile-wrap) {
     flex-wrap: wrap;
   }
-  /* НО внутри hero (где flex используется как layout) — не wrap'аем,
-     иначе иконка над заголовком прыгает. Hero обычно identifies через
-     gap-4 + items-start: оставляем как есть. */
 
   /* ── Inputs: 16px font-size чтобы iOS Safari не зумил ───────── */
   .app-shell input,
