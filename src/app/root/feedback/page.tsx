@@ -2,8 +2,11 @@ import Link from "next/link";
 import {
   Bug,
   Lightbulb,
+  LifeBuoy,
   MessageSquareText,
   Phone,
+  Send,
+  Globe,
   User,
   Building2,
   Filter,
@@ -11,8 +14,15 @@ import {
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import {
+  getPlatformAdminChatIds,
+  getPlatformAdminEmail,
+  maskChatId,
+  maskEmail,
+} from "@/lib/platform-admin";
 import type { Prisma } from "@prisma/client";
 import { FeedbackReply } from "./feedback-reply";
+import { TestNotifyButton } from "./test-notify-button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +41,25 @@ const TYPE_LABELS: Record<string, { label: string; icon: typeof Bug; color: stri
     bg: "#eef1ff",
     border: "#c7ccea",
   },
+  // Обращение из Telegram-бота — человек просто написал в поддержку.
+  support: {
+    label: "Поддержка",
+    icon: LifeBuoy,
+    color: "#116b2a",
+    bg: "#ecfdf5",
+    border: "#b6e3d2",
+  },
+};
+
+const SOURCE_LABELS: Record<string, { label: string; icon: typeof Globe }> = {
+  site: { label: "Сайт", icon: Globe },
+  telegram: { label: "Telegram", icon: Send },
 };
 
 type SearchParams = {
   type?: string;
   org?: string;
+  answered?: string;
 };
 
 export default async function RootFeedbackPage({
@@ -44,19 +68,31 @@ export default async function RootFeedbackPage({
   searchParams: Promise<SearchParams>;
 }) {
   await requireRoot();
-  const { type: rawType, org: rawOrg } = await searchParams;
+  const { type: rawType, org: rawOrg, answered: rawAnswered } = await searchParams;
 
   const typeFilter =
-    rawType === "bug" || rawType === "suggestion" ? rawType : null;
+    rawType === "bug" || rawType === "suggestion" || rawType === "support"
+      ? rawType
+      : null;
   const orgFilter = rawOrg && rawOrg.trim() !== "" ? rawOrg : null;
+  // «Без ответа» — рабочий inbox: что осталось разобрать.
+  const unansweredOnly = rawAnswered === "no";
 
   const where: Prisma.FeedbackReportWhereInput = {
     ...(typeFilter ? { type: typeFilter } : {}),
     ...(orgFilter ? { organizationId: orgFilter } : {}),
+    ...(unansweredOnly ? { responseMessage: null } : {}),
   };
 
-  const [reports, totalAll, totalBugs, totalSuggestions, orgs] =
-    await Promise.all([
+  const [
+    reports,
+    totalAll,
+    totalBugs,
+    totalSuggestions,
+    totalSupport,
+    totalUnanswered,
+    orgs,
+  ] = await Promise.all([
       db.feedbackReport.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -65,12 +101,17 @@ export default async function RootFeedbackPage({
       db.feedbackReport.count(),
       db.feedbackReport.count({ where: { type: "bug" } }),
       db.feedbackReport.count({ where: { type: "suggestion" } }),
+      db.feedbackReport.count({ where: { type: "support" } }),
+      db.feedbackReport.count({ where: { responseMessage: null } }),
       db.feedbackReport.groupBy({
         by: ["organizationId", "organizationName"],
         _count: { _all: true },
         orderBy: { _count: { organizationId: "desc" } },
       }),
     ]);
+
+  const adminChatIds = getPlatformAdminChatIds().map(maskChatId);
+  const adminEmail = getPlatformAdminEmail();
 
   const orgOptions = orgs
     .filter((o) => o.organizationId)
@@ -80,7 +121,7 @@ export default async function RootFeedbackPage({
       count: o._count._all,
     }));
 
-  const filtered = Boolean(typeFilter || orgFilter);
+  const filtered = Boolean(typeFilter || orgFilter || unansweredOnly);
 
   return (
     <div className="space-y-8">
@@ -91,10 +132,15 @@ export default async function RootFeedbackPage({
           </h1>
           <p className="mt-2 text-[15px] text-[#6f7282]">
             Все обращения пользователей. Всего: {totalAll} · ошибок: {totalBugs}
-            {" "}· предложений: {totalSuggestions}
+            {" "}· предложений: {totalSuggestions} · поддержка: {totalSupport}
+            {" "}· без ответа: {totalUnanswered}
             {filtered ? ` · отфильтровано: ${reports.length}` : ""}
           </p>
         </div>
+        <TestNotifyButton
+          chatIdsMasked={adminChatIds}
+          emailMasked={adminEmail ? maskEmail(adminEmail) : null}
+        />
       </div>
 
       <div className="rounded-2xl border border-[#ececf4] bg-white p-5">
@@ -122,6 +168,25 @@ export default async function RootFeedbackPage({
               <option value="">Все типы</option>
               <option value="bug">Ошибка ({totalBugs})</option>
               <option value="suggestion">Предложение ({totalSuggestions})</option>
+              <option value="support">Поддержка ({totalSupport})</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="answered"
+              className="text-[12px] font-medium uppercase tracking-wider text-[#9b9fb3]"
+            >
+              Статус
+            </label>
+            <select
+              id="answered"
+              name="answered"
+              defaultValue={unansweredOnly ? "no" : ""}
+              className="h-10 w-full rounded-xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15 sm:w-auto sm:min-w-[180px]"
+            >
+              <option value="">Все обращения</option>
+              <option value="no">Без ответа ({totalUnanswered})</option>
             </select>
           </div>
 
@@ -184,6 +249,8 @@ export default async function RootFeedbackPage({
           {reports.map((r) => {
             const theme = TYPE_LABELS[r.type] ?? TYPE_LABELS.suggestion;
             const Icon = theme.icon;
+            const source = SOURCE_LABELS[r.source] ?? SOURCE_LABELS.site;
+            const SourceIcon = source.icon;
             return (
               <li
                 key={r.id}
@@ -213,6 +280,15 @@ export default async function RootFeedbackPage({
                       >
                         {theme.label}
                       </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#3848c7]">
+                        <SourceIcon className="size-3" />
+                        {source.label}
+                      </span>
+                      {r.responseMessage ? null : (
+                        <span className="inline-flex items-center rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                          Без ответа
+                        </span>
+                      )}
                       {r.organizationName ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
                           <Building2 className="size-3" />
@@ -261,8 +337,20 @@ export default async function RootFeedbackPage({
                         </a>
                       ) : null}
                     </div>
+                    {/* Статусы появились вместе с этой панелью: у старых
+                        обращений обеих отметок нет, и «✗✗» там врало бы. */}
+                    <div className="mt-2 text-[11px] text-[#9b9fb3]">
+                      {r.adminTgNotifiedAt || r.adminEmailedAt
+                        ? `уведомления админу: TG ${r.adminTgNotifiedAt ? "✓" : "✗"} · почта ${r.adminEmailedAt ? "✓" : "✗"}`
+                        : "уведомления админу: нет данных"}
+                    </div>
                     <div className="mt-4">
-                      <FeedbackReply reportId={r.id} hasRecipient={Boolean(r.userId && r.organizationId)} />
+                      <FeedbackReply
+                        reportId={r.id}
+                        hasRecipient={Boolean(r.userId && r.organizationId)}
+                        hasTelegram={Boolean(r.telegramChatId)}
+                        hasEmail={Boolean(r.userEmail)}
+                      />
                     </div>
                   </div>
                 </div>

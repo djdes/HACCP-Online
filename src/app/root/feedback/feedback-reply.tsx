@@ -16,7 +16,32 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
-export function FeedbackReply({ reportId, hasRecipient }: { reportId: string; hasRecipient: boolean }) {
+/** Куда ответ уйдёт — говорим до отправки, а не «куда-то в базу». */
+function describeChannels(args: {
+  hasRecipient: boolean;
+  hasTelegram: boolean;
+  hasEmail: boolean;
+}): string {
+  const channels: string[] = [];
+  if (args.hasRecipient) channels.push("уведомления в приложении");
+  if (args.hasTelegram) channels.push("Telegram");
+  if (args.hasEmail) channels.push("почта");
+  return channels.length > 0
+    ? `Ответ придёт: ${channels.join(" · ")}.`
+    : "У автора нет ни аккаунта, ни Telegram, ни почты: ответ сохранится, но доставить его некуда.";
+}
+
+export function FeedbackReply({
+  reportId,
+  hasRecipient,
+  hasTelegram,
+  hasEmail,
+}: {
+  reportId: string;
+  hasRecipient: boolean;
+  hasTelegram: boolean;
+  hasEmail: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -34,7 +59,19 @@ export function FeedbackReply({ reportId, hasRecipient }: { reportId: string; ha
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error ?? "Не удалось отправить ответ");
-      toast.success(data?.notified ? "Ответ отправлен, пользователь получит уведомление" : "Ответ сохранён. Уведомление пользователю недоступно");
+
+      // Показываем только реально сработавшие каналы: иначе «отправлено»
+      // означало бы всего лишь «записано в базу», как было раньше.
+      const delivered: string[] = [];
+      if (data?.channels?.inApp) delivered.push("в приложении");
+      if (data?.channels?.telegram) delivered.push("Telegram");
+      if (data?.channels?.email) delivered.push("почта");
+
+      if (delivered.length > 0) {
+        toast.success(`Ответ отправлен: ${delivered.join(" · ")}`);
+      } else {
+        toast.warning("Ответ сохранён, но доставить его не удалось ни по одному каналу");
+      }
       setOpen(false);
       setMessage("");
       router.refresh();
@@ -57,7 +94,7 @@ export function FeedbackReply({ reportId, hasRecipient }: { reportId: string; ha
         <DialogHeader>
           <DialogTitle>Ответ на обращение</DialogTitle>
           <DialogDescription>
-            {hasRecipient ? "Пользователь получит ответ в уведомлениях приложения." : "Автор не привязан к аккаунту: ответ сохранится, но уведомление отправить нельзя."}
+            {describeChannels({ hasRecipient, hasTelegram, hasEmail })}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
