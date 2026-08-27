@@ -23,15 +23,17 @@ export type EnsurePlanResult = {
 };
 
 /**
- * Пересчитывает численность организации и, если бесплатный лимит
- * превышен, переводит её на платный тариф.
+ * Пересчитывает численность и, если бесплатный лимит превышен, переводит
+ * на платный тариф.
+ *
+ * Считаем по аккаунту, а не по организации: у сети из трёх кафе один
+ * договор, и пять бесплатных мест — общие. Пока организация не привязана
+ * к аккаунту (миграция scripts/migrate-multi-org.ts ещё не прогонялась),
+ * работаем по-старому — по одной организации.
  *
  * Вызывается после КАЖДОГО создания пользователя. Идемпотентна:
- * повторный вызов на уже платной организации ничего не делает.
+ * повторный вызов на уже платном тарифе ничего не делает.
  *
- * @param organizationId — пока лимит считается по одной организации.
- *   Когда появится Account (Часть H плана), сюда придёт accountId и
- *   счёт станет суммарным по всем организациям аккаунта.
  * @param options.force — перевести на платный независимо от численности
  *   (ручное «Улучшить тариф» со страницы `/settings/subscription`).
  */
@@ -44,34 +46,69 @@ export async function ensurePlanForHeadcount(
 
   const org = await db.organization.findUnique({
     where: { id: organizationId },
-    select: { id: true, name: true, subscriptionPlan: true },
+    select: {
+      id: true,
+      name: true,
+      subscriptionPlan: true,
+      accountId: true,
+      account: { select: { id: true, subscriptionPlan: true } },
+    },
   });
 
   if (!org) {
     return { upgraded: false, plan: "trial", activeUsers: 0 };
   }
 
+  // Организации аккаунта. Человек, работающий в двух точках, живёт в
+  // одной из них как «домашней» — поэтому двойного счёта нет.
+  const scopeOrgIds = org.accountId
+    ? (
+        await db.organization.findMany({
+          where: { accountId: org.accountId },
+          select: { id: true },
+        })
+      ).map((row) => row.id)
+    : [org.id];
+
   const activeUsers = await db.user.count({
-    where: { organizationId, isActive: true },
+    where: { organizationId: { in: scopeOrgIds }, isActive: true },
   });
+
+  const currentPlan = org.account?.subscriptionPlan ?? org.subscriptionPlan;
 
   const overLimit = activeUsers > FREE_MAX_USERS;
   const shouldUpgrade =
-    isFreePlan(org.subscriptionPlan) && (options.force === true || overLimit);
+    isFreePlan(currentPlan) && (options.force === true || overLimit);
 
   if (!shouldUpgrade) {
-    return { upgraded: false, plan: org.subscriptionPlan, activeUsers };
+    return { upgraded: false, plan: currentPlan, activeUsers };
   }
 
-  await db.organization.update({
-    where: { id: organizationId },
-    data: {
-      subscriptionPlan: "paid",
-      // Платный тариф без даты окончания: в тестовом режиме нечего
-      // продлевать, а «просроченная» дата ломала бы read-only-логику.
-      subscriptionEnd: null,
-      planAutoUpgradedAt: new Date(),
-    },
+  const upgradedAt = new Date();
+  // Тариф живёт на аккаунте, но пишем и в организации: часть кода ещё
+  // читает legacy-зеркало, и разъехавшиеся значения выглядели бы как
+  // «на одной странице платный, на другой бесплатный».
+  await db.$transaction(async (tx) => {
+    if (org.accountId) {
+      await tx.account.update({
+        where: { id: org.accountId },
+        data: {
+          subscriptionPlan: "paid",
+          subscriptionEnd: null,
+          planAutoUpgradedAt: upgradedAt,
+        },
+      });
+    }
+    await tx.organization.updateMany({
+      where: org.accountId ? { accountId: org.accountId } : { id: org.id },
+      data: {
+        subscriptionPlan: "paid",
+        // Платный тариф без даты окончания: в тестовом режиме нечего
+        // продлевать, а «просроченная» дата ломала бы read-only-логику.
+        subscriptionEnd: null,
+        planAutoUpgradedAt: upgradedAt,
+      },
+    });
   });
 
   // Аудит — best-effort, ошибка записи не должна валить создание сотрудника.
