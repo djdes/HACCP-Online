@@ -649,12 +649,25 @@ export function getDefaultEntryDataForTemplate(
   };
 }
 
+/**
+ * Служебные ключи ячейки, которые НЕ являются заполнением. `_autoSeeded`
+ * кладёт посев строк при создании документа (см.
+ * `journal-document-entries-seed.ts`) — это болванка «строка есть,
+ * данных нет».
+ */
+const SERVICE_ENTRY_KEYS = new Set(["_autoSeeded"]);
+
 export function isEntryDataEmpty(data: unknown): boolean {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return true;
   }
 
-  return Object.keys(data as Record<string, unknown>).length === 0;
+  // Без этого фильтра автосозданный документ НИКОГДА не автозаполнялся:
+  // посев клал `{ _autoSeeded: true }`, ячейка считалась непустой, и
+  // автозаполнение её пропускало.
+  return Object.keys(data as Record<string, unknown>).every((key) =>
+    SERVICE_ENTRY_KEYS.has(key)
+  );
 }
 
 export function getJournalHeading(templateCode: string): string {

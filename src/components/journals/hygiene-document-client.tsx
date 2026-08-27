@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   StaffJournalAddButton,
@@ -42,12 +42,12 @@ import {
   getHygienePositionLabel,
   getStatusMeta,
   normalizeHygieneEntryData,
-  toDateKey,
   type HygieneEntryData,
   type HygieneStatus,
 } from "@/lib/hygiene-document";
 
 import { toast } from "sonner";
+import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
 import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
@@ -77,6 +77,18 @@ type Props = {
   initialEntries: { employeeId: string; date: string; data: HygieneEntryData }[];
   /** Design v2 flag — пробрасывается в StaffJournalToolbar для v2-модалки. */
   useV2?: boolean;
+  /**
+   * Документ ведёт автоматика: прошлые дни закрыты на редактирование
+   * («изменения день в день»). Значение считает сервер — клиент только
+   * рисует замок и не даёт кликнуть.
+   */
+  pastDaysLocked?: boolean;
+  /**
+   * Сегодняшний день (YYYY-MM-DD) с сервера. Считать `new Date()` в
+   * рендере нельзя (react-hooks/purity) — и дата сервера всё равно
+   * честнее, чем часы на планшете кухни.
+   */
+  todayKey?: string;
 };
 
 /**
@@ -243,6 +255,8 @@ export function HygieneDocumentClient({
   employees,
   initialEntries,
   useV2 = false,
+  pastDaysLocked = false,
+  todayKey = "",
 }: Props) {
   const router = useRouter();
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
@@ -383,8 +397,24 @@ export function HygieneDocumentClient({
     }
   }
 
+  /**
+   * Прошлый день автодокумента. Сравниваем строки `YYYY-MM-DD` —
+   * лексикографический порядок совпадает с хронологическим.
+   */
+  function isDayLocked(dateKey: string) {
+    return pastDaysLocked && todayKey !== "" && dateKey < todayKey;
+  }
+
+  function refusePastDay() {
+    toast.error(PAST_DAY_LOCKED_MESSAGE);
+  }
+
   async function handleStatusClick(employeeId: string, dateKey: string) {
     if (!isActive) return;
+    if (isDayLocked(dateKey)) {
+      refusePastDay();
+      return;
+    }
 
     const key = makeCellKey(employeeId, dateKey);
     const current = normalizeHygieneEntryData(entryMap[key]);
@@ -396,6 +426,10 @@ export function HygieneDocumentClient({
 
   async function handleTemperatureClick(employeeId: string, dateKey: string) {
     if (!isActive) return;
+    if (isDayLocked(dateKey)) {
+      refusePastDay();
+      return;
+    }
 
     const key = makeCellKey(employeeId, dateKey);
     const current = normalizeHygieneEntryData(entryMap[key]);
@@ -427,6 +461,9 @@ export function HygieneDocumentClient({
     interactive: boolean
   ) {
     if (!isActive || !interactive) return;
+    // Прошлый день автодокумента: контекстное меню не открываем — иначе
+    // человек выберет статус и получит 403 от сервера.
+    if (isDayLocked(dateKey)) return;
     event.preventDefault();
     event.stopPropagation();
     // Координаты кладём «как есть»: прижатие к краям вьюпорта делает
@@ -735,6 +772,7 @@ export function HygieneDocumentClient({
                         const tempLabel = getTemperatureLabel(entry);
                         const isSaving = savingCellKey === key;
                         const dayNum = getDayNumber(dateKey);
+                        const locked = isDayLocked(dateKey);
 
                         return (
                           <div
@@ -746,6 +784,12 @@ export function HygieneDocumentClient({
                             <span className="w-8 shrink-0 text-center text-[13px] font-medium text-[#6f7282]">
                               {dayNum}
                             </span>
+                            {locked ? (
+                              <Lock
+                                className="size-3.5 shrink-0 text-[#9b9fb3]"
+                                aria-label={PAST_DAY_LOCKED_MESSAGE}
+                              />
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => {
@@ -755,8 +799,9 @@ export function HygieneDocumentClient({
                                   dateKey
                                 ).catch(() => {});
                               }}
-                              disabled={!isActive}
-                              className="min-w-0 flex-1 rounded-lg border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-left text-[12px] font-medium text-[#0b1024] hover:bg-[#f5f6ff] disabled:opacity-60"
+                              disabled={!isActive || locked}
+                              title={locked ? PAST_DAY_LOCKED_MESSAGE : undefined}
+                              className="min-w-0 flex-1 rounded-lg border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-left text-[12px] font-medium text-[#0b1024] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {statusMeta?.code ? (
                                 <>
@@ -780,9 +825,9 @@ export function HygieneDocumentClient({
                                   dateKey
                                 ).catch(() => {});
                               }}
-                              disabled={!isActive}
-                              title="Температура >37°C"
-                              className="shrink-0 rounded-lg border border-[#ececf4] bg-[#fafbff] px-2 py-2 text-[12px] text-[#6f7282] hover:bg-[#f5f6ff] disabled:opacity-60"
+                              disabled={!isActive || locked}
+                              title={locked ? PAST_DAY_LOCKED_MESSAGE : "Температура >37°C"}
+                              className="shrink-0 rounded-lg border border-[#ececf4] bg-[#fafbff] px-2 py-2 text-[12px] text-[#6f7282] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               T°: {tempLabel || "—"}
                             </button>
@@ -900,7 +945,7 @@ export function HygieneDocumentClient({
                   {dateKeys.map((dateKey) => (
                     <th
                       key={dateKey}
-                      data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
+                      data-focus-today={dateKey === todayKey ? "" : undefined}
                       className={`w-[58px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     >
                       {getDayNumber(dateKey)}
@@ -939,15 +984,21 @@ export function HygieneDocumentClient({
                         const entry = normalizeHygieneEntryData(entryMap[key]);
                         const statusMeta = getStatusMeta(entry.status);
                         const isSaving = savingCellKey === key;
+                        const locked = isDayLocked(dateKey);
 
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
                             data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
+                            title={locked ? PAST_DAY_LOCKED_MESSAGE : undefined}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
                               dateKey
                             )} ${
-                              isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
+                              locked
+                                ? "cursor-not-allowed text-[#9b9fb3]"
+                                : isActive && employee.name
+                                  ? "cursor-pointer hover:bg-[#f5f6ff]"
+                                  : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
                               if (!employee.name) return;
@@ -976,15 +1027,21 @@ export function HygieneDocumentClient({
                         const key = makeCellKey(employee.id, dateKey);
                         const entry = normalizeHygieneEntryData(entryMap[key]);
                         const isSaving = savingCellKey === key;
+                        const locked = isDayLocked(dateKey);
 
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
                             data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
+                            title={locked ? PAST_DAY_LOCKED_MESSAGE : undefined}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
                               dateKey
                             )} ${
-                              isActive && employee.name ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
+                              locked
+                                ? "cursor-not-allowed text-[#9b9fb3]"
+                                : isActive && employee.name
+                                  ? "cursor-pointer hover:bg-[#f5f6ff]"
+                                  : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
                             onClick={() => {
                               if (!employee.name) return;

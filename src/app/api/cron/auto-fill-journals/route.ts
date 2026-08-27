@@ -28,6 +28,7 @@ import {
 import { UV_LAMP_RUNTIME_TEMPLATE_CODE, normalizeUvRuntimeDocumentConfig } from "@/lib/uv-lamp-runtime-document";
 import { applyUvRuntimeAutoFill } from "@/lib/uv-lamp-runtime-autofill";
 import { pickPrimaryManager } from "@/lib/user-roles";
+import { listAutomationOwnedCodes } from "@/lib/journal-automation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,6 +90,22 @@ async function handle(request: Request) {
     },
   });
 
+  // Журналы, которые целиком ведёт cron автоматизации 06:00, здесь
+  // пропускаем — иначе одну и ту же работу делают два разных cron'а и
+  // в логах невозможно понять, кто что заполнил.
+  const automationByOrg = new Map<string, Set<string>>();
+  async function getAutomationOwned(organizationId: string): Promise<Set<string>> {
+    const cached = automationByOrg.get(organizationId);
+    if (cached) return cached;
+    const org = await db.organization.findUnique({
+      where: { id: organizationId },
+      select: { journalAutomationJson: true, autoJournalCodes: true },
+    });
+    const owned = new Set(listAutomationOwnedCodes(org));
+    automationByOrg.set(organizationId, owned);
+    return owned;
+  }
+
   const usersByOrg = new Map<string, OrgUser[]>();
   async function getUsers(organizationId: string): Promise<OrgUser[]> {
     const cached = usersByOrg.get(organizationId);
@@ -111,6 +128,8 @@ async function handle(request: Request) {
   for (const document of documents) {
     const code = document.template.code;
     try {
+      const owned = await getAutomationOwned(document.organizationId);
+      if (owned.has(code)) continue;
       const users = await getUsers(document.organizationId);
       let result = { created: 0, updated: 0 };
 

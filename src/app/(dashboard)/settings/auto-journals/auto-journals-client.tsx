@@ -9,6 +9,7 @@ import {
   Save,
   Search,
   Sparkles,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,12 @@ type Item = {
   name: string;
   description: string | null;
   isMandatory: boolean;
+  /** Автосоздание документа на текущий период. */
   enabled: boolean;
+  /** Ежедневное автозаполнение сегодняшнего дня (cron 06:00). */
+  autoFill: boolean;
+  /** Умеет ли автозаполнение работать с этим журналом. */
+  autoFillSupported: boolean;
   hasActiveDocumentToday: boolean;
 };
 
@@ -66,7 +72,33 @@ export function AutoJournalsClient({ items }: Props) {
 
   function toggle(code: string) {
     setState((prev) =>
-      prev.map((i) => (i.code === code ? { ...i, enabled: !i.enabled } : i))
+      prev.map((i) =>
+        i.code === code
+          ? {
+              ...i,
+              enabled: !i.enabled,
+              // Выключили автосоздание — автозаполнять нечего.
+              autoFill: !i.enabled ? i.autoFill : false,
+            }
+          : i
+      )
+    );
+    setDirty(true);
+  }
+
+  function toggleAutoFill(code: string) {
+    setState((prev) =>
+      prev.map((i) =>
+        i.code === code && i.autoFillSupported
+          ? {
+              ...i,
+              autoFill: !i.autoFill,
+              // Автозаполнять можно только существующий документ —
+              // включаем автосоздание заодно.
+              enabled: !i.autoFill ? true : i.enabled,
+            }
+          : i
+      )
     );
     setDirty(true);
   }
@@ -88,7 +120,13 @@ export function AutoJournalsClient({ items }: Props) {
       const response = await fetch("/api/organizations/auto-journals", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codes }),
+        body: JSON.stringify({
+          items: state.map((i) => ({
+            code: i.code,
+            autoCreate: i.enabled,
+            autoFill: i.autoFillSupported ? i.autoFill : false,
+          })),
+        }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
@@ -221,6 +259,28 @@ export function AutoJournalsClient({ items }: Props) {
                   ) : null}
                 </div>
               </label>
+              <div className="pb-3 pl-9 pr-1">
+                {item.autoFillSupported ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleAutoFill(item.code)}
+                    className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors duration-150 ${
+                      item.autoFill
+                        ? "bg-[#eef1ff] text-[#3848c7] hover:bg-[#e4e8ff]"
+                        : "bg-[#f5f6ff] text-[#6f7282] hover:bg-[#eef1ff]"
+                    }`}
+                  >
+                    <Wand2 className="size-3.5" />
+                    {item.autoFill
+                      ? "Автозаполнение включено · каждый день в 06:00"
+                      : "Автозаполнение выключено"}
+                  </button>
+                ) : (
+                  <span className="text-[12px] text-[#9b9fb3]">
+                    Автозаполнение для этого журнала недоступно
+                  </span>
+                )}
+              </div>
             </li>
           ))}
           {filtered.length === 0 ? (
@@ -317,10 +377,11 @@ export function AutoJournalsClient({ items }: Props) {
             Автоматика
           </div>
           <p className="mt-2 text-[13px] leading-relaxed text-[#3c4053]">
-            Каждый день в 01:00 проверяем включённые здесь журналы и
-            создаём недостающие документы на текущий месяц. Вам не
-            нужно заходить сюда каждое 1-е число — WeSetup заведёт
-            апрельский документ 1 апреля, майский 1 мая и так далее.
+            Каждый день в 04:00 проверяем включённые здесь журналы и
+            создаём недостающие документы на текущий период. В 06:00
+            журналы с автозаполнением получают сегодняшний день:
+            «Здоров, t &lt; 37» всем, у кого не выходной. Вам не нужно
+            заходить сюда каждое 1-е число.
           </p>
         </div>
       </aside>

@@ -78,3 +78,76 @@ export function canEditEntryAt(
   }
   return { allowed: false, reason: "past_day_locked", isOverride: false };
 }
+
+/**
+ * ЖЁСТКОЕ правило «изменения день в день» для документов, которые
+ * ведёт автоматика (`JournalDocument.autoFill = true` + журнал включён
+ * в `Organization.journalAutomationJson`).
+ *
+ * Почему отдельно от `lockPastDayEdits`. Тот тумблер — опциональное
+ * правило организации и всегда пускает management. Здесь наоборот: раз
+ * сайт сам проставил всем «Здоров, t < 37» в 06:00, то дописать вчера
+ * «был с температурой» — это подделка задним числом, и запрет должен
+ * действовать на ВСЕ роли. Единственное исключение — ROOT (поддержка
+ * платформы), и каждое такое редактирование пишется в AuditLog.
+ */
+export type AutomationLockContext = {
+  /** Документ создан/ведётся автоматикой. */
+  documentAutoFill: boolean;
+  /** Журнал включён в автоматизацию у организации. */
+  automationEnabled: boolean;
+  /** Граница смены организации (см. getStartOfToday). */
+  shiftEndHour: number;
+};
+
+/** Дата записи как Date — принимаем и `YYYY-MM-DD`, и Date. */
+function toEntryDate(value: Date | string): Date {
+  return typeof value === "string"
+    ? new Date(`${value.slice(0, 10)}T00:00:00.000Z`)
+    : value;
+}
+
+/**
+ * Заперта ли ячейка автодокумента. `true` только для дат СТРОГО раньше
+ * сегодняшнего дня — сегодня и будущее редактируются свободно.
+ */
+export function isCellLocked(
+  entryDate: Date | string,
+  ctx: AutomationLockContext,
+  refDate: Date = new Date()
+): boolean {
+  if (!ctx.documentAutoFill || !ctx.automationEnabled) return false;
+  // Сравниваем ДНИ, а не моменты: дата записи хранится как полночь UTC,
+  // а `getStartOfToday` при `shiftEndHour=6` возвращает 06:00 — иначе
+  // сегодняшняя (по смене) ячейка выглядела бы «вчерашней» до 06:00.
+  const startOfToday = getStartOfToday(refDate, ctx.shiftEndHour);
+  const todayDay = Date.UTC(
+    startOfToday.getUTCFullYear(),
+    startOfToday.getUTCMonth(),
+    startOfToday.getUTCDate()
+  );
+  return toEntryDate(entryDate).getTime() < todayDay;
+}
+
+/**
+ * Решение по конкретному актору. Management НЕ является исключением —
+ * см. комментарий выше; проходит только ROOT, и это override с аудитом.
+ */
+export function canEditAutomationCell(
+  entryDate: Date | string,
+  actor: ClosedDayActor,
+  ctx: AutomationLockContext,
+  refDate: Date = new Date()
+): { allowed: boolean; reason: "ok" | "past_day_locked"; isOverride: boolean } {
+  if (!isCellLocked(entryDate, ctx, refDate)) {
+    return { allowed: true, reason: "ok", isOverride: false };
+  }
+  if (actor.isRoot) {
+    return { allowed: true, reason: "past_day_locked", isOverride: true };
+  }
+  return { allowed: false, reason: "past_day_locked", isOverride: false };
+}
+
+/** Единый текст ошибки/подсказки — один и тот же на сервере и в UI. */
+export const PAST_DAY_LOCKED_MESSAGE =
+  "Прошлые дни закрыты — изменения вносятся день в день";

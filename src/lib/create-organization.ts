@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { normalizeSphere, type OrgSphere } from "@/lib/org-profile";
 import { defaultDisabledCodesFor } from "@/lib/sphere-journal-rules";
+import { defaultJournalAutomationJson } from "@/lib/journal-automation";
 
 /**
  * Создание организации внутри аккаунта.
@@ -59,6 +60,9 @@ export async function createOrganization(
       disabledJournalCodes: donor
         ? (donor.disabledJournalCodes as never)
         : (defaultDisabledCodesFor(sphere) as never),
+      // Гигиенический журнал ведётся сам с первого дня: иначе новая
+      // компания месяцами не подозревает, что автоматика существует.
+      journalAutomationJson: defaultJournalAutomationJson() as never,
       ...(donor
         ? {
             autoJournalCodes: donor.autoJournalCodes as never,

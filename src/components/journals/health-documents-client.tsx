@@ -31,6 +31,9 @@ import {
   JournalTopBar,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
+import { JournalAutomationCard } from "@/components/journals/journal-automation-card";
+import { PageGuide } from "@/components/ui/page-guide";
+import { AUTOMATION_ENABLE_BULLETS } from "@/lib/journal-automation";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -65,6 +68,8 @@ type Props = {
   templateName: string;
   users: { id: string; name: string; role: string }[];
   documents: HealthListDocument[];
+  /** См. HygieneDocumentsClient.automation — тумблер «журнал ведётся сам». */
+  automation?: { code: string; enabled: boolean; canManage: boolean };
 };
 
 const EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 10, 15, 20];
@@ -235,6 +240,36 @@ export function HealthDocumentsClient(props: Props) {
         />
 
         <JournalTabs activeTab={props.activeTab} templateCode={props.templateCode} />
+
+        {props.automation ? (
+          <>
+            <JournalAutomationCard
+              code={props.automation.code}
+              enabled={props.automation.enabled}
+              canManage={props.automation.canManage}
+            />
+            <PageGuide
+              title="Как журнал ведётся сам"
+              storageKey="journal-automation-staff-v1"
+              bullets={[...AUTOMATION_ENABLE_BULLETS]}
+              qa={[
+                {
+                  q: "А если у сотрудника температура?",
+                  a: "Откройте журнал в тот же день и поменяйте отметку. Прошлые дни закрыты — задним числом журнал править нельзя.",
+                },
+                {
+                  q: "Нужно ли создавать документ вручную?",
+                  a: "Нет. Каждый день в 06:00 документ на текущий период создаётся сам. Вручную — только если нужен документ на другой период.",
+                },
+                {
+                  q: "Как выключить?",
+                  a: "Тумблер вверху журнала. Уже заполненное останется на месте.",
+                },
+              ]}
+            />
+          </>
+        ) : null}
+
 
         <div className={JOURNAL_LIST_CARDS_CLASS}>
           {props.documents.length === 0 && (

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -121,6 +122,24 @@ export const CASCADE_REVEAL_CLASS =
   "animate-in fade-in-0 slide-in-from-top-1 duration-200";
 
 /**
+ * Подсказка «в должности никого нет» со ссылкой на страницу сотрудников:
+ * тупик «выберите сотрудника, а их нет» без выхода — самая частая
+ * жалоба новых менеджеров.
+ */
+const DEFAULT_EMPTY_EMPLOYEE_HINT = (
+  <>
+    В этой должности пока никого —{" "}
+    <Link
+      href="/settings/users"
+      className="font-medium text-[#5566f6] underline underline-offset-2 transition-colors duration-150 hover:text-[#4a5bf0]"
+    >
+      добавить
+    </Link>
+    .
+  </>
+);
+
+/**
  * Каскад Должность → Сотрудник.
  *
  * Сначала виден ТОЛЬКО селект должности с говорящим плейсхолдером
@@ -139,7 +158,7 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   employeeLabel = "Сотрудник",
   emptyPositionPlaceholder = POSITION_PLACEHOLDER,
   emptyEmployeePlaceholder = EMPLOYEE_PLACEHOLDER,
-  emptyEmployeeHint = "На этой должности пока нет сотрудников — добавьте их в «Настройки → Сотрудники».",
+  emptyEmployeeHint = DEFAULT_EMPTY_EMPLOYEE_HINT,
   triggerClassName,
   labelClassName,
   variant = "stacked",
@@ -163,7 +182,7 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
   employeeLabel?: string;
   emptyPositionPlaceholder?: string;
   emptyEmployeePlaceholder?: string;
-  emptyEmployeeHint?: string;
+  emptyEmployeeHint?: ReactNode;
   triggerClassName?: string;
   labelClassName?: string;
   /**
@@ -179,6 +198,21 @@ export function PositionEmployeePicker<T extends UserLike & { id: string }>({
       keepUserId: value.userId,
     });
   }, [users, value.positionTitle, value.userId]);
+
+  /**
+   * Автовыбор единственного сотрудника должности. Если в должности один
+   * человек, второй селект — лишний клик с единственным вариантом: он
+   * подставляется сам, но остаётся видимым и меняемым.
+   */
+  useEffect(() => {
+    if (disabled) return;
+    if (!value.positionTitle || value.userId) return;
+    if (availableEmployees.length !== 1) return;
+    onChange({
+      positionTitle: value.positionTitle,
+      userId: availableEmployees[0].id,
+    });
+  }, [availableEmployees, disabled, onChange, value.positionTitle, value.userId]);
 
   const positionValue = value.positionTitle || "__empty__";
   const userValue = value.userId || "__empty__";

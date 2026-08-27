@@ -7,7 +7,14 @@ import { db } from "@/lib/db";
 import { reconcileEntryStaffFields } from "@/lib/journal-staff-binding";
 import { isManagementRole } from "@/lib/user-roles";
 import { detectTemperatureCapas } from "@/lib/capa-auto-detect";
-import { canEditEntryAt } from "@/lib/closed-day";
+import {
+  canEditAutomationCell,
+  canEditEntryAt,
+  isCellLocked,
+  PAST_DAY_LOCKED_MESSAGE,
+  type AutomationLockContext,
+} from "@/lib/closed-day";
+import { isJournalAutomationEnabled } from "@/lib/journal-automation";
 import { canWriteJournal } from "@/lib/journal-acl";
 
 /**
@@ -24,6 +31,66 @@ function maybeTriggerColdEquipmentCapaDetection(
   if (templateCode !== "cold_equipment_control") return;
   detectTemperatureCapas({ organizationId }).catch((err) => {
     console.warn("[capa-auto] cold-equipment detect failed:", err);
+  });
+}
+
+/**
+ * Контекст правила «изменения день в день» для документа.
+ *
+ * Живёт отдельно от `Organization.lockPastDayEdits`: тот тумблер
+ * опциональный и пускает management, а автоматика запирает прошлые дни
+ * для ВСЕХ, кроме ROOT (см. closed-day.ts). Иначе смысл автозаполнения
+ * теряется: сайт проставил «Здоров» всем, а вчера кто-то дописал
+ * «был с температурой» — и журнал перестаёт быть доказательством.
+ */
+async function loadAutomationLockContext(doc: {
+  organizationId: string;
+  autoFill: boolean;
+  template?: { code: string } | null;
+}): Promise<AutomationLockContext> {
+  const org = await db.organization.findUnique({
+    where: { id: doc.organizationId },
+    select: {
+      shiftEndHour: true,
+      journalAutomationJson: true,
+      autoJournalCodes: true,
+    },
+  });
+  return {
+    documentAutoFill: doc.autoFill === true,
+    automationEnabled: Boolean(
+      doc.template?.code && isJournalAutomationEnabled(org, doc.template.code)
+    ),
+    shiftEndHour: org?.shiftEndHour ?? 0,
+  };
+}
+
+/** Лог ROOT-override — событие, на которое смотрит ХАССП-аудит. */
+async function logPastDayOverride(args: {
+  organizationId: string;
+  userId: string;
+  userName: string | null;
+  documentId: string;
+  employeeId: string | null;
+  date: Date;
+  templateCode: string | null;
+}) {
+  await db.auditLog.create({
+    data: {
+      organizationId: args.organizationId,
+      userId: args.userId,
+      userName: args.userName,
+      action: "closed_day.override",
+      entity: "journal_document_entry",
+      entityId: args.documentId,
+      details: {
+        documentId: args.documentId,
+        employeeId: args.employeeId,
+        date: args.date.toISOString(),
+        templateCode: args.templateCode,
+        rule: "journal_automation",
+      },
+    },
   });
 }
 
@@ -117,6 +184,32 @@ export async function PUT(
       { error: "Дата записи должна попадать в период документа" },
       { status: 400 }
     );
+  }
+
+  // Жёсткое правило автоматики «день в день» — строже, чем
+  // lockPastDayEdits, и действует на все роли кроме ROOT.
+  const automationCtx = await loadAutomationLockContext(doc);
+  const automationDecision = canEditAutomationCell(
+    dateObj,
+    { role: session.user.role, isRoot: session.user.isRoot === true },
+    automationCtx
+  );
+  if (!automationDecision.allowed) {
+    return NextResponse.json(
+      { error: PAST_DAY_LOCKED_MESSAGE, code: "past_day_locked" },
+      { status: 403 }
+    );
+  }
+  if (automationDecision.isOverride) {
+    await logPastDayOverride({
+      organizationId: doc.organizationId,
+      userId: session.user.id,
+      userName: session.user.name ?? null,
+      documentId,
+      employeeId,
+      date: dateObj,
+      templateCode: doc.template?.code ?? null,
+    });
   }
 
   // «Закрытый день»: рядовой сотрудник не может править прошедшие
@@ -267,6 +360,29 @@ export async function PATCH(
     };
   });
 
+  // Автодокумент: пересобрать прошлые дни bulk-запросом тоже нельзя.
+  const patchLockCtx = await loadAutomationLockContext(doc);
+  const lockedEntry = normalizedEntries.find((entry) =>
+    isCellLocked(entry.date, patchLockCtx)
+  );
+  if (lockedEntry && session.user.isRoot !== true) {
+    return NextResponse.json(
+      { error: PAST_DAY_LOCKED_MESSAGE, code: "past_day_locked" },
+      { status: 403 }
+    );
+  }
+  if (lockedEntry) {
+    await logPastDayOverride({
+      organizationId: doc.organizationId,
+      userId: session.user.id,
+      userName: session.user.name ?? null,
+      documentId,
+      employeeId: lockedEntry.employeeId,
+      date: lockedEntry.date,
+      templateCode: doc.template?.code ?? null,
+    });
+  }
+
   const uniqueEmployeeIds = [...new Set(normalizedEntries.map((entry) => entry.employeeId))];
 
   if (employees.length !== uniqueEmployeeIds.length) {
@@ -366,6 +482,33 @@ export async function DELETE(
     employeeId?: string;
     date?: string;
   };
+
+  // Удаление — тоже правка прошлого дня: в автодокументе строку за
+  // вчера убрать нельзя, иначе запрет на редактирование обходится
+  // «удалить и создать заново».
+  const deleteLockCtx = await loadAutomationLockContext(doc);
+  if (
+    deleteLockCtx.documentAutoFill &&
+    deleteLockCtx.automationEnabled &&
+    session.user.isRoot !== true
+  ) {
+    const candidates = await db.journalDocumentEntry.findMany({
+      where: {
+        documentId,
+        ...(Array.isArray(body.ids) && body.ids.length > 0
+          ? { id: { in: body.ids } }
+          : {}),
+        ...(body.employeeId ? { employeeId: body.employeeId } : {}),
+      },
+      select: { date: true },
+    });
+    if (candidates.some((entry) => isCellLocked(entry.date, deleteLockCtx))) {
+      return NextResponse.json(
+        { error: PAST_DAY_LOCKED_MESSAGE, code: "past_day_locked" },
+        { status: 403 }
+      );
+    }
+  }
 
   if (Array.isArray(body.ids) && body.ids.length > 0) {
     const result = await db.journalDocumentEntry.deleteMany({

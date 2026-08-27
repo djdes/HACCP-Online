@@ -10,6 +10,11 @@ import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
 import { HealthDocumentsClient } from "@/components/journals/health-documents-client";
 import { readControlPeriodicity } from "@/lib/control-periodicity";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import {
+  isAutomationSupported,
+  isJournalAutomationEnabled,
+} from "@/lib/journal-automation";
 import {
   buildDateKeys,
   buildExampleHygieneEntryMap,
@@ -1324,7 +1329,12 @@ export default async function JournalDocumentsPage({
   // at the setting instead so they can re-enable it.
   const orgSettings = await db.organization.findUnique({
     where: { id: getActiveOrgId(session) },
-    select: { name: true, disabledJournalCodes: true },
+    select: {
+      name: true,
+      disabledJournalCodes: true,
+      journalAutomationJson: true,
+      autoJournalCodes: true,
+    },
   });
   const disabledCodes = Array.isArray(orgSettings?.disabledJournalCodes)
     ? (orgSettings?.disabledJournalCodes as string[])
@@ -1418,6 +1428,16 @@ export default async function JournalDocumentsPage({
       };
     });
 
+    // Тумблер «журнал ведётся сам» показываем только там, где
+    // автоматика реально умеет работать (строка на сотрудника × день).
+    const automation = isAutomationSupported(resolvedCode)
+      ? {
+          code: resolvedCode,
+          enabled: isJournalAutomationEnabled(orgSettings, resolvedCode),
+          canManage: hasFullWorkspaceAccess(session.user),
+        }
+      : undefined;
+
     if (resolvedCode === "health_check") {
       return withBanner(
         <HealthDocumentsClient
@@ -1426,6 +1446,7 @@ export default async function JournalDocumentsPage({
           templateName={template.name}
           users={orgUsers}
           documents={mappedDocuments}
+          automation={automation}
         />
       );
     }
@@ -1437,6 +1458,7 @@ export default async function JournalDocumentsPage({
         templateName={template.name}
         users={orgUsers}
         documents={mappedDocuments}
+        automation={automation}
       />
     );
   }

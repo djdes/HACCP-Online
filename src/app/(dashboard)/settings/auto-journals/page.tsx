@@ -5,6 +5,10 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { AutoJournalsClient } from "./auto-journals-client";
 import { PageGuide } from "@/components/ui/page-guide";
+import {
+  getJournalAutomation,
+  isAutomationSupported,
+} from "@/lib/journal-automation";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +34,11 @@ export default async function AutoJournalsPage() {
     }),
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { autoJournalCodes: true, disabledJournalCodes: true },
+      select: {
+        autoJournalCodes: true,
+        disabledJournalCodes: true,
+        journalAutomationJson: true,
+      },
     }),
     db.journalDocument.findMany({
       where: {
@@ -44,11 +52,6 @@ export default async function AutoJournalsPage() {
     }),
   ]);
 
-  const enabledCodes = Array.isArray(org?.autoJournalCodes)
-    ? (org.autoJournalCodes as unknown[]).filter(
-        (c): c is string => typeof c === "string"
-      )
-    : [];
   const disabledSet = new Set<string>(
     Array.isArray(org?.disabledJournalCodes)
       ? (org.disabledJournalCodes as unknown[]).filter(
@@ -66,7 +69,11 @@ export default async function AutoJournalsPage() {
       name: t.name,
       description: t.description ?? null,
       isMandatory: t.isMandatorySanpin || t.isMandatoryHaccp,
-      enabled: enabledCodes.includes(t.code),
+      enabled: getJournalAutomation(org, t.code).autoCreate,
+      // Автозаполнение умеет только «кадровая» механика (строка на
+      // сотрудника × день) — для остальных журналов колонка неактивна.
+      autoFill: getJournalAutomation(org, t.code).autoFill,
+      autoFillSupported: isAutomationSupported(t.code),
       hasActiveDocumentToday: activeTemplateIds.has(t.id),
     }));
 
@@ -80,14 +87,14 @@ export default async function AutoJournalsPage() {
           </span>
           <div>
             <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-              Автосоздание журналов
+              Автосоздание и автозаполнение журналов
             </h1>
             <p className="mt-1.5 max-w-[680px] text-[14px] leading-relaxed text-[#6f7282]">
               Отметьте журналы, для которых WeSetup должен сам заводить
-              новый документ на текущий месяц. Дальше — система делает
-              это сама: каждый день утром проверяет, есть ли активный
-              документ, и если нет — создаёт на весь текущий месяц.
-              Вам остаётся только следить за заполнением.
+              новый документ на текущий период. Вторая галочка —
+              ежедневное автозаполнение: каждый день в 06:00 сайт
+              проставит сотрудникам «Здоров, t&nbsp;&lt;&nbsp;37», а
+              выходные, отпуска и больничные отметит сам.
             </p>
           </div>
         </div>

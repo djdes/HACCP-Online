@@ -237,6 +237,16 @@ model Organization {
   /// в /settings/journal-difficulty.
   /// Структура: { [journalCode]: 1 | 2 | 3 | 4 | 5 }
   journalDifficultyJson    Json                       @default("{}")
+  /// Автоматизация журналов: автосоздание документов + ежедневное
+  /// автозаполнение сегодняшнего дня (cron 06:00,
+  /// /api/cron/journal-automation). Структура:
+  ///   { [journalCode]: { autoCreate: boolean, autoFill: boolean } }
+  /// Одна галочка в UI пишет оба флага сразу; раздельные поля оставлены
+  /// под будущий «продвинутый» режим. Если ключа нет — autoCreate
+  /// падает обратно на легаси-список `autoJournalCodes`, autoFill = false.
+  /// Для новых организаций hygiene включён по умолчанию (см.
+  /// defaultJournalAutomationJson в src/lib/journal-automation.ts).
+  journalAutomationJson    Json                       @default("{}")
   users                    User[]
   areas                    Area[]
   journalEntries           JournalEntry[]

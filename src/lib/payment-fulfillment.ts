@@ -10,6 +10,7 @@ import { sendPaymentReceiptEmail } from "@/lib/email";
 import { sendTelegramMessage } from "@/lib/telegram";
 import { describeHardwareConfig } from "@/lib/hardware-pricing";
 import { formatRub } from "@/lib/tariffs";
+import { defaultJournalAutomationJson } from "@/lib/journal-automation";
 
 /**
  * Что происходит после подтверждённой оплаты.
@@ -111,6 +112,8 @@ export async function fulfillPaidOrder(order: {
         type: "other",
         subscriptionPlan: "paid",
         subscriptionEnd,
+        // Автоматика гигиенического журнала — сразу после оплаты.
+        journalAutomationJson: defaultJournalAutomationJson(),
       },
     });
     const user = await tx.user.create({

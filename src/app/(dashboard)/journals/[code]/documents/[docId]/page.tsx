@@ -31,6 +31,7 @@ import { SanitationDayDocumentClient } from "@/components/journals/sanitation-da
 import { HealthDocumentClient } from "@/components/journals/health-document-client";
 import { HygieneDocumentClient } from "@/components/journals/hygiene-document-client";
 import { readControlPeriodicity } from "@/lib/control-periodicity";
+import { isJournalAutomationEnabled } from "@/lib/journal-automation";
 import {
   getHygieneDemoTeamUsers,
   normalizeHealthEntryData,
@@ -280,7 +281,13 @@ async function JournalDocumentBody({
       }),
       db.organization.findUnique({
         where: { id: getActiveOrgId(session) },
-        select: { name: true, disabledJournalCodes: true, experimentalUiV2: true },
+        select: {
+          name: true,
+          disabledJournalCodes: true,
+          experimentalUiV2: true,
+          journalAutomationJson: true,
+          autoJournalCodes: true,
+        },
       }),
       db.user.findMany({
         where: {
@@ -366,6 +373,14 @@ async function JournalDocumentBody({
     document.template.code
   );
 
+  // «Изменения день в день»: документ ведёт автоматика ⇒ прошлые дни
+  // закрыты на редактирование. Сегодняшний день считаем на СЕРВЕРЕ —
+  // в рендере клиента `new Date()` запрещён (react-hooks/purity).
+  const automationLocked =
+    document.autoFill === true &&
+    isJournalAutomationEnabled(organization, document.template.code);
+  const todayKey = toDateKey(new Date());
+
   if (document.template.code === "hygiene") {
     return (
       <HygieneDocumentClient
@@ -388,6 +403,8 @@ async function JournalDocumentBody({
           data: normalizeHygieneEntryData(entry.data),
         }))}
         useV2={organization?.experimentalUiV2 ?? true}
+        pastDaysLocked={automationLocked}
+        todayKey={todayKey}
       />
     );
   }

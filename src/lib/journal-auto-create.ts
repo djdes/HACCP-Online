@@ -267,6 +267,14 @@ export async function ensureActiveDocument(
      * состоять в организации и быть активным.
      */
     inheritResponsiblesFromLastDocument?: boolean;
+    /**
+     * Значение `JournalDocument.autoFill` у создаваемого документа.
+     * По умолчанию `false` — исторически автосоздание давало «пустой»
+     * документ, а автозаполнение включалось тумблером вручную. Cron
+     * автоматизации (`/api/cron/journal-automation`) передаёт `true`,
+     * иначе созданный им документ никто не заполнит.
+     */
+    autoFill?: boolean;
   }
 ): Promise<CreateReport> {
   const now = args.now ?? new Date();
@@ -359,7 +367,7 @@ export async function ensureActiveDocument(
       dateFrom: period.dateFrom,
       dateTo: period.dateTo,
       status: "active",
-      autoFill: false,
+      autoFill: args.autoFill === true,
       config: planCfg as never,
       responsibleUserId:
         prefill.responsibleUserId ?? inherited.responsibleUserId,
@@ -427,6 +435,8 @@ export async function ensureNextPeriodDocument(
     templateCode: string;
     lookaheadDays?: number;
     now?: Date;
+    /** См. `ensureActiveDocument.autoFill`. */
+    autoFill?: boolean;
   }
 ): Promise<CreateReport> {
   const now = args.now ?? new Date();
@@ -556,7 +566,7 @@ export async function ensureNextPeriodDocument(
       dateFrom: nextPeriod.dateFrom,
       dateTo: nextPeriod.dateTo,
       status: "active",
-      autoFill: false,
+      autoFill: args.autoFill === true,
       config: planCfgNext as never,
       responsibleUserId: prefillNext.responsibleUserId,
       // Phase C: verifierUserId — двухступенчатая проверка не работает

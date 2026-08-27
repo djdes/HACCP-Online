@@ -8,6 +8,7 @@ import {
 import { sendWelcomeEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
+import { defaultJournalAutomationJson } from "@/lib/journal-automation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -146,6 +147,8 @@ export async function POST(request: Request) {
         inn,
         subscriptionPlan: plan,
         subscriptionEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        // Автоматика гигиенического журнала — сразу после регистрации.
+        journalAutomationJson: defaultJournalAutomationJson(),
       },
     });
 

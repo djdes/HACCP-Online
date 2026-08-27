@@ -5,6 +5,10 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import {
+  parseJournalAutomationJson,
+  type JournalAutomationMap,
+} from "@/lib/journal-automation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +22,22 @@ export const dynamic = "force-dynamic";
  * месяц если нет. Managed через /settings/auto-journals.
  */
 const bodySchema = z.object({
-  codes: z.array(z.string().min(1)),
+  /** Легаси-формат: только автосоздание. */
+  codes: z.array(z.string().min(1)).optional(),
+  /**
+   * Новый формат: обе половинки автоматики на каждый журнал. Одна
+   * таблица в /settings/auto-journals — колонки «автосоздание» и
+   * «автозаполнение».
+   */
+  items: z
+    .array(
+      z.object({
+        code: z.string().min(1),
+        autoCreate: z.boolean(),
+        autoFill: z.boolean(),
+      })
+    )
+    .optional(),
 });
 
 export async function PUT(request: Request) {
@@ -47,7 +66,36 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Некорректный список" }, { status: 400 });
   }
   const organizationId = getActiveOrgId(session);
-  const unique = Array.from(new Set(parsed.codes));
+
+  // Новый формат побеждает: он несёт обе половинки. Легаси `codes`
+  // трактуем как «только автосоздание», не трогая автозаполнение —
+  // старый клиент про него ничего не знает.
+  if (parsed.items) {
+    const org = await db.organization.findUnique({
+      where: { id: organizationId },
+      select: { journalAutomationJson: true },
+    });
+    const map: JournalAutomationMap = parseJournalAutomationJson(
+      org?.journalAutomationJson
+    );
+    for (const item of parsed.items) {
+      map[item.code] = { autoCreate: item.autoCreate, autoFill: item.autoFill };
+    }
+    const codes = Object.entries(map)
+      .filter(([, value]) => value.autoCreate)
+      .map(([code]) => code)
+      .sort();
+    await db.organization.update({
+      where: { id: organizationId },
+      data: {
+        journalAutomationJson: map as never,
+        autoJournalCodes: codes as never,
+      },
+    });
+    return NextResponse.json({ codes, automation: map });
+  }
+
+  const unique = Array.from(new Set(parsed.codes ?? []));
   await db.organization.update({
     where: { id: organizationId },
     data: { autoJournalCodes: unique },

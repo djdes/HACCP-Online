@@ -82,6 +82,7 @@ export function FloatingInputField({
   hint,
   error,
   inputMode,
+  selectOnFocus,
 }: {
   label: string;
   value: string;
@@ -94,6 +95,12 @@ export function FloatingInputField({
   hint?: ReactNode;
   error?: ReactNode;
   inputMode?: "text" | "numeric";
+  /**
+   * Выделить всё содержимое при фокусе. Нужно полям с автоподстановкой
+   * (название документа = дата-время): человек кликает, чтобы заменить
+   * значение целиком, а не дописать к нему.
+   */
+  selectOnFocus?: boolean;
 }) {
   const generatedId = useId();
   const fieldId = id || generatedId;
@@ -113,6 +120,9 @@ export function FloatingInputField({
         required={required}
         disabled={disabled}
         inputMode={inputMode}
+        onFocus={
+          selectOnFocus ? (event) => event.currentTarget.select() : undefined
+        }
         className={JOURNAL_DIALOG_FIELD_CONTROL_CLASS}
       />
     </FloatingLabelField>

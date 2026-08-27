@@ -58,6 +58,9 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { JournalAutomationCard } from "@/components/journals/journal-automation-card";
+import { PageGuide } from "@/components/ui/page-guide";
+import { AUTOMATION_ENABLE_BULLETS } from "@/lib/journal-automation";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 type JournalListDocument = {
   id: string;
@@ -84,6 +87,12 @@ type Props = {
   templateName: string;
   users: UserProp[];
   documents: JournalListDocument[];
+  /**
+   * Тумблер «журнал ведётся сам». Передаётся только для журналов,
+   * которые автоматика умеет обслуживать (hygiene / health_check) —
+   * этот же клиент рендерит десяток других журналов.
+   */
+  automation?: { code: string; enabled: boolean; canManage: boolean };
 };
 
 function EditDocumentDialog({
@@ -260,13 +269,8 @@ function DocumentRow({
   );
 }
 
-export function HygieneDocumentsClient({
-  activeTab,
-  templateCode,
-  templateName,
-  users,
-  documents,
-}: Props) {
+export function HygieneDocumentsClient(props: Props) {
+  const { activeTab, templateCode, templateName, users, documents } = props;
   const [editingDocument, setEditingDocument] = useState<JournalListDocument | null>(null);
   const responsibleOptions = getStaffJournalResponsibleTitleOptions(users);
   // Единый источник delete / status / pdf для журнальных документов.
@@ -303,6 +307,36 @@ export function HygieneDocumentsClient({
         />
 
         <JournalTabs activeTab={activeTab} templateCode={templateCode} />
+
+        {props.automation ? (
+          <>
+            <JournalAutomationCard
+              code={props.automation.code}
+              enabled={props.automation.enabled}
+              canManage={props.automation.canManage}
+            />
+            <PageGuide
+              title="Как журнал ведётся сам"
+              storageKey="journal-automation-staff-v1"
+              bullets={[...AUTOMATION_ENABLE_BULLETS]}
+              qa={[
+                {
+                  q: "А если у сотрудника температура?",
+                  a: "Откройте журнал в тот же день и поменяйте отметку. Прошлые дни закрыты — задним числом журнал править нельзя.",
+                },
+                {
+                  q: "Нужно ли создавать документ вручную?",
+                  a: "Нет. Каждый день в 06:00 документ на текущий период создаётся сам. Вручную — только если нужен документ на другой период.",
+                },
+                {
+                  q: "Как выключить?",
+                  a: "Тумблер вверху журнала. Уже заполненное останется на месте.",
+                },
+              ]}
+            />
+          </>
+        ) : null}
+
 
         <div className={JOURNAL_LIST_CARDS_CLASS}>
           {documents.length === 0 && (

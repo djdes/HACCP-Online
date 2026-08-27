@@ -9,6 +9,7 @@ import { registrationCodeRateLimiter } from "@/lib/rate-limit";
 import { domainAcceptsMail } from "@/lib/mail-domain";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
 import { defaultDisabledCodesFor } from "@/lib/sphere-journal-rules";
+import { defaultJournalAutomationJson } from "@/lib/journal-automation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,6 +112,9 @@ export async function POST(request: Request) {
           // анкеты дашборд встречает человека счётчиком «0 из 35».
           // Сферу спросим в анкете — тогда набор пересчитается.
           disabledJournalCodes: defaultDisabledCodesFor("other"),
+          // Автоматика гигиенического журнала — сразу, см.
+          // defaultJournalAutomationJson.
+          journalAutomationJson: defaultJournalAutomationJson(),
           subscriptionPlan: "trial",
           subscriptionEnd: new Date(
             Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000,

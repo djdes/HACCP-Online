@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { canWriteJournal, hasJournalAccess } from "@/lib/journal-acl";
+import {
+  canEditAutomationCell,
+  PAST_DAY_LOCKED_MESSAGE,
+} from "@/lib/closed-day";
+import { isJournalAutomationEnabled } from "@/lib/journal-automation";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +128,35 @@ export async function POST(
     return NextResponse.json(
       { error: "Дата записи должна попадать в период документа" },
       { status: 400 }
+    );
+  }
+
+  // П-3: правило «изменения день в день» должно работать одинаково на
+  // сайте и в Mini App — иначе запрет обходится через телефон.
+  const orgAutomation = await db.organization.findUnique({
+    where: { id: orgId },
+    select: {
+      shiftEndHour: true,
+      journalAutomationJson: true,
+      autoJournalCodes: true,
+    },
+  });
+  const lockDecision = canEditAutomationCell(
+    date,
+    { role: session.user.role, isRoot: session.user.isRoot === true },
+    {
+      documentAutoFill: doc.autoFill === true,
+      automationEnabled: isJournalAutomationEnabled(
+        orgAutomation,
+        doc.template.code
+      ),
+      shiftEndHour: orgAutomation?.shiftEndHour ?? 0,
+    }
+  );
+  if (!lockDecision.allowed) {
+    return NextResponse.json(
+      { error: PAST_DAY_LOCKED_MESSAGE, code: "past_day_locked" },
+      { status: 403 }
     );
   }
 

@@ -7,6 +7,7 @@ import {
   ensureCurrentDocumentsForBrokenChains,
   ensureNextPeriodDocument,
 } from "@/lib/journal-auto-create";
+import { listAutomationOwnedCodes } from "@/lib/journal-automation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +40,7 @@ async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const orgs = await db.organization.findMany({
-    select: { id: true, autoJournalCodes: true },
+    select: { id: true, autoJournalCodes: true, journalAutomationJson: true },
   });
 
   let totalCurrentCreated = 0;
@@ -87,11 +88,17 @@ async function handle(request: Request) {
       );
     }
 
-    const codes = Array.isArray(org.autoJournalCodes)
-      ? (org.autoJournalCodes as string[]).filter(
-          (c): c is string => typeof c === "string"
-        )
-      : [];
+    // Коды, которые целиком ведёт cron автоматизации 06:00
+    // (/api/cron/journal-automation), здесь пропускаем: он создаёт
+    // документ сразу с autoFill=true, а мы бы создали его без флага.
+    const ownedByAutomation = new Set(listAutomationOwnedCodes(org));
+    const codes = (
+      Array.isArray(org.autoJournalCodes)
+        ? (org.autoJournalCodes as string[]).filter(
+            (c): c is string => typeof c === "string"
+          )
+        : []
+    ).filter((code) => !ownedByAutomation.has(code));
     if (codes.length === 0) continue;
     orgsTouched += 1;
 

@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -31,7 +24,6 @@ import {
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_ERROR_CLASS,
-  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
   JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -125,7 +117,32 @@ import {
  * «Добавлять пустых строк при печати» — тот же набор значений, что в
  * «Настройках журнала» здоровья (`health-documents-client.tsx`).
  */
-const PRINT_EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+/**
+ * Название документа подставляется автоматически: «2025.08.27 22:05».
+ *
+ * Решение владельца 2026-08-27 (отменяет прежний запрет S7 «поле всегда
+ * пустое»): человек создаёт документ раз в полмесяца и каждый раз
+ * придумывал название заново, а в списке они всё равно различаются
+ * только периодом. Поле остаётся редактируемым и выделяется целиком
+ * при фокусе.
+ */
+function formatDocumentTimestamp(
+  now: Date,
+  timeZone = "Europe/Moscow"
+): string {
+  const parts = new Intl.DateTimeFormat("ru-RU", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
+}
 
 interface Props {
   templateCode: string;
@@ -145,15 +162,19 @@ interface Props {
    * Считается на списке документов журнала — диалог сам список не видит.
    */
   nextLampNumber?: string;
+  /** IANA-таймзона организации для автоназвания. По умолчанию МСК. */
+  timezone?: string;
 }
 
 export function CreateDocumentDialog({
   templateCode,
+  templateName,
   users,
   triggerClassName,
   triggerLabel = "Создать документ",
   triggerIcon,
   nextLampNumber = "1",
+  timezone = "Europe/Moscow",
 }: Props) {
   const router = useRouter();
   const formId = useId();
@@ -220,11 +241,10 @@ export function CreateDocumentDialog({
   const showDateFields = !isColdEquipmentJournal;
 
   /**
-   * Название документа — ПУСТОЕ поле с плейсхолдером «Введите название
-   * документа» (S7 аудита). Раньше сюда подставлялось имя журнала, и
-   * все документы в списке назывались одинаково; на эталоне поле пустое
-   * и обязательное — при пустом сабмите рамка краснеет и под ней
-   * появляется «Поле не заполнено».
+   * Название документа. Подставляется при открытии диалога (см.
+   * `handleOpenChange`) — считать `new Date()` в рендере нельзя.
+   * Поле остаётся обязательным: если человек стёр значение, при сабмите
+   * рамка краснеет и под ней появляется «Поле не заполнено».
    */
   const [title, setTitle] = useState("");
   const [titleError, setTitleError] = useState("");
@@ -247,11 +267,13 @@ export function CreateDocumentDialog({
    */
   const [trackedLampNumber, setTrackedLampNumber] = useState(nextLampNumber);
   /**
-   * «Добавлять пустых строк при печати» (Z1 аудита) — та же настройка
-   * `config.printEmptyRows`, что живёт в «Настройках журнала» гигиены и
-   * журнала здоровья, только выведенная сразу в создание документа.
+   * «Добавлять пустых строк при печати» убрано из создания документа
+   * (решение владельца 2026-08-27): при создании про печать никто не
+   * думает, а поле удлиняло окно. Дефолт — 0; настройка осталась там,
+   * где она по месту — в «Настройках журнала» и в диалоге печати.
+   * Сервер и печать поле по-прежнему понимают, старые документы целы.
    */
-  const [printEmptyRows, setPrintEmptyRows] = useState("0");
+  const PRINT_EMPTY_ROWS_DEFAULT = 0;
   const [fpFieldNameMode, setFpFieldNameMode] = useState<"dish" | "semi">("dish");
   const [fpInspectorMode, setFpInspectorMode] = useState<"inspector_name" | "commission_signatures">(
     "inspector_name"
@@ -321,7 +343,7 @@ export function CreateDocumentDialog({
           responsibleTitle: responsibleTitle || undefined,
           controlPeriodicity,
           config: isStaffJournal
-            ? { printEmptyRows: Math.max(0, Number(printEmptyRows) || 0) }
+            ? { printEmptyRows: PRINT_EMPTY_ROWS_DEFAULT }
             : isPerishableRejectionJournal
             ? { showNote: perishableShowNote }
             : isCleaningJournal
@@ -465,6 +487,26 @@ export function CreateDocumentDialog({
   // не будет ни ответственного, ни строк. Показываем инструкцию.
   const hasNoEmployees = users.length === 0;
 
+  /**
+   * Открытие диалога — единственное место, где можно взять «сейчас»:
+   * в рендере `new Date()` запрещён (react-hooks/purity). Название
+   * перезаписываем только пока человек его не трогал.
+   */
+  function handleOpenChange(next: boolean) {
+    if (next && !title.trim()) {
+      const stamp = formatDocumentTimestamp(new Date(), timezone);
+      // Кадровые журналы (гигиена / здоровье / уборка) ведутся пачкой
+      // однотипных документов — там имя журнала в названии только шум.
+      // У остальных без префикса список превращается в столбик дат.
+      setTitle(
+        isStaffJournal || isCleaningJournal
+          ? stamp
+          : `${templateName} · ${stamp}`
+      );
+    }
+    setOpen(next);
+  }
+
   const trigger = (
     <DialogTrigger asChild>
       <Button className={cn(triggerClassName)}>
@@ -487,7 +529,7 @@ export function CreateDocumentDialog({
 
   if (hasNoEmployees) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         {trigger}
         <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
           {header}
@@ -557,7 +599,7 @@ export function CreateDocumentDialog({
   );
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {trigger}
       <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
         {header}
@@ -592,6 +634,7 @@ export function CreateDocumentDialog({
                   id="doc-title"
                   label="Название документа"
                   placeholder="Введите название документа"
+                  selectOnFocus
                   value={title}
                   onChange={(value) => {
                     setTitle(value);
@@ -599,32 +642,6 @@ export function CreateDocumentDialog({
                   }}
                   error={titleError || undefined}
                 />
-              )}
-
-              {isStaffJournal && (
-                <FloatingLabelField label="Добавлять пустых строк при печати">
-                  <Select value={printEmptyRows} onValueChange={setPrintEmptyRows}>
-                    <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
-                      {/*
-                        P8: значение печатаем САМИ, а не полагаемся на
-                        неявный портал Radix. Пустой `<SelectValue />`
-                        рендерит текст выбранного пункта только через
-                        `SelectItemText`, который живёт внутри закрытого
-                        `SelectContent` — и в паре с React 19 этот портал
-                        до первого открытия списка не срабатывает: поле
-                        выглядело пустой пилюлей вместо «0».
-                      */}
-                      <SelectValue placeholder="0">{printEmptyRows}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRINT_EMPTY_ROWS_OPTIONS.map((count) => (
-                        <SelectItem key={count} value={String(count)}>
-                          {count}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FloatingLabelField>
               )}
 
               {/* M2: на живом эталоне (med_books-3-create.png) под полем
@@ -777,6 +794,7 @@ export function CreateDocumentDialog({
                 id="doc-title-main"
                 label="Название документа"
                 placeholder="Введите название документа"
+                selectOnFocus
                 value={title}
                 onChange={(value) => {
                   setTitle(value);
