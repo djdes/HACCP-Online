@@ -1,98 +1,66 @@
 "use client";
 
-import { Monitor, Moon, Sun, Clock3 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteTheme, type ThemeMode } from "./site-theme";
 
 /**
- * Маленькая иконка-кнопка в header'е: при клике открывается popover с
- * 3 режимами темы (system/light/dark) + checkbox «менять по времени».
+ * Переключатель темы: три режима (system/light/dark) + чекбокс
+ * «менять по времени суток».
  *
- * Иконка отражает текущую effective theme: Sun (light), Moon (dark),
- * Monitor (system без auto), Clock3 (включено auto-by-schedule).
+ * Раньше это была отдельная иконка-popover в ряду контролов шапки.
+ * Теперь блок живёт в подменю «Тема» меню профиля (правая иконка
+ * сверху) — шапка перестала расти иконками, а тема оказалась там же,
+ * где тариф и настройки. Компонент рисует только содержимое, обёртку
+ * (popover / dropdown-submenu) даёт вызывающий.
  */
-export function ThemeQuickSwitch({ className }: { className?: string }) {
-  const { theme, mode, autoBySchedule, setMode, setAutoBySchedule } =
-    useSiteTheme();
-
-  const TriggerIcon = autoBySchedule
-    ? Clock3
-    : mode === "system"
-      ? Monitor
-      : theme === "dark"
-        ? Moon
-        : Sun;
+export function ThemeModeControls({ className }: { className?: string }) {
+  const { mode, autoBySchedule, setMode, setAutoBySchedule } = useSiteTheme();
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label="Тема оформления"
-          title="Тема оформления"
-          className={cn(
-            "hidden size-10 shrink-0 items-center justify-center rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 md:inline-flex hover:bg-[#5566f6]/[0.09]",
-            className
-          )}
-        >
-          <TriggerIcon className="size-5" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-72 rounded-2xl border border-[#ececf4] p-2 shadow-[0_20px_50px_-20px_rgba(11,16,36,0.4)]"
-      >
-        <div className="mb-1 px-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-          Тема оформления
-        </div>
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#fafbff] p-1">
-          <ModeButton
-            label="Системная"
-            icon={Monitor}
-            active={mode === "system" && !autoBySchedule}
-            disabled={autoBySchedule}
-            onClick={() => setMode("system")}
-          />
-          <ModeButton
-            label="Светлая"
-            icon={Sun}
-            active={mode === "light" && !autoBySchedule}
-            disabled={autoBySchedule}
-            onClick={() => setMode("light")}
-          />
-          <ModeButton
-            label="Тёмная"
-            icon={Moon}
-            active={mode === "dark" && !autoBySchedule}
-            disabled={autoBySchedule}
-            onClick={() => setMode("dark")}
-          />
-        </div>
+    <div className={className}>
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#fafbff] p-1">
+        <ModeButton
+          label="Системная"
+          icon={Monitor}
+          active={mode === "system" && !autoBySchedule}
+          disabled={autoBySchedule}
+          onClick={() => setMode("system")}
+        />
+        <ModeButton
+          label="Светлая"
+          icon={Sun}
+          active={mode === "light" && !autoBySchedule}
+          disabled={autoBySchedule}
+          onClick={() => setMode("light")}
+        />
+        <ModeButton
+          label="Тёмная"
+          icon={Moon}
+          active={mode === "dark" && !autoBySchedule}
+          disabled={autoBySchedule}
+          onClick={() => setMode("dark")}
+        />
+      </div>
 
-        <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-xl px-2 py-2 hover:bg-[#fafbff]">
-          <input
-            type="checkbox"
-            checked={autoBySchedule}
-            onChange={(e) => setAutoBySchedule(e.target.checked)}
-            className="mt-0.5 size-4 cursor-pointer accent-[#5566f6]"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-medium text-[#0b1024]">
-              Менять по времени суток
-            </div>
-            <div className="mt-0.5 text-[11.5px] leading-[1.4] text-[#6f7282]">
-              7:00–19:00 — светлая, остальное — тёмная. Перекрывает выбор
-              сверху, пока включено.
-            </div>
+      <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-xl px-2 py-2 hover:bg-[#fafbff]">
+        <input
+          type="checkbox"
+          checked={autoBySchedule}
+          onChange={(e) => setAutoBySchedule(e.target.checked)}
+          className="mt-0.5 size-4 cursor-pointer accent-[#5566f6]"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-medium text-[#0b1024]">
+            Менять по времени суток
           </div>
-        </label>
-      </PopoverContent>
-    </Popover>
+          <div className="mt-0.5 text-[11.5px] leading-[1.4] text-[#6f7282]">
+            7:00–19:00 — светлая, остальное — тёмная. Перекрывает выбор
+            сверху, пока включено.
+          </div>
+        </div>
+      </label>
+    </div>
   );
 }
 

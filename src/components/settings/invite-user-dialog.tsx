@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { USER_ROLE_OPTIONS } from "@/lib/user-roles";
+import { toastPlanUpgraded } from "@/lib/plan-upgraded-toast";
 
 const roles = USER_ROLE_OPTIONS;
 
@@ -74,10 +75,14 @@ export function InviteUserDialog() {
             phone: phone || undefined,
           }),
         });
+        const result = (await response.json()) as {
+          error?: string;
+          planUpgraded?: boolean;
+        };
         if (!response.ok) {
-          const result = await response.json();
           throw new Error(result.error || "Ошибка при создании сотрудника");
         }
+        if (result.planUpgraded) toastPlanUpgraded();
         resetForm();
         setOpen(false);
         router.refresh();
@@ -93,10 +98,12 @@ export function InviteUserDialog() {
         });
         const result = (await response.json()) as TgInviteResult & {
           error?: string;
+          planUpgraded?: boolean;
         };
         if (!response.ok) {
           throw new Error(result.error || "Ошибка при создании сотрудника");
         }
+        if (result.planUpgraded) toastPlanUpgraded();
         setTgResult({
           inviteUrl: result.inviteUrl,
           qrPngDataUrl: result.qrPngDataUrl,

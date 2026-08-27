@@ -1,30 +1,57 @@
 import { Coins, Users } from "lucide-react";
-import { requireRole, getActiveOrgId } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
-import { SubscriptionManager } from "@/components/settings/subscription-manager";
+import { PlanUpgrade } from "@/components/settings/plan-upgrade";
 import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
+import {
+  BILLING_TEST_MODE,
+  FREE_MAX_USERS,
+  planLabel,
+} from "@/lib/plan-limits";
 
 export default async function SubscriptionPage() {
-  const session = await requireRole(["owner"]);
+  // Раньше здесь стоял `requireRole(["owner"])`, и страница была
+  // недостижима: normalizeUserRole переводит legacy-«owner» в «manager»,
+  // так что список ["owner"] не совпадал ни с кем. Тариф правит тот же,
+  // кто имеет полный доступ к кабинету, — как и в POST /upgrade.
+  const session = await requireAuth();
+  if (!hasFullWorkspaceAccess(session.user)) {
+    redirect("/dashboard");
+  }
 
   const org = await db.organization.findUnique({
     where: { id: getActiveOrgId(session) },
     select: {
       subscriptionPlan: true,
-      subscriptionEnd: true,
       _count: { select: { users: { where: { isActive: true } } } },
     },
   });
 
   const employees = org?._count.users || 1;
   const price = calculatePerEmployeePrice(employees);
+  const plan = org?.subscriptionPlan ?? "trial";
 
   return (
     <div className="space-y-5">
-      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold">Управление подпиской</h1>
+      <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
+        Улучшение тарифа
+      </h1>
 
-      {/* Per-employee pricing card — расчёт по числу активных сотрудников.
-          До 5 чел — бесплатно (free tier), после — 100/80/60 ₽/чел. */}
+      {/* Витрина тарифов — главное на странице, поэтому первым блоком.
+          Раньше здесь висел SubscriptionManager с мёртвыми
+          starter/standard/pro, которые никогда не писались в БД. */}
+      <PlanUpgrade
+        currentPlan={plan}
+        currentPlanLabel={planLabel(plan)}
+        activeUsers={employees}
+        freeUserLimit={FREE_MAX_USERS}
+        billingTestMode={BILLING_TEST_MODE}
+      />
+
+      {/* Расчёт по числу сотрудников — «как считается платный тариф».
+          Справка второго уровня: нужна тем, кто уже решил улучшать. */}
       <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
         <div className="flex items-start gap-4">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
@@ -32,13 +59,13 @@ export default async function SubscriptionPage() {
           </span>
           <div className="flex-1">
             <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
-              Стоимость по числу сотрудников
+              Как считается стоимость
             </h2>
             <p className="mt-1 max-w-[640px] text-[13px] leading-relaxed text-[#6f7282]">
               Платите только за реально работающих в системе. До{" "}
               {price.freeAllowance} сотрудников — бесплатно. Дальше —{" "}
               {price.pricePerUserRub} ₽ за каждого активного в месяц.
-              Скидки автоматически применяются при росте.
+              Скидки применяются автоматически при росте команды.
             </p>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -90,42 +117,16 @@ export default async function SubscriptionPage() {
                 <li>30–99: 80 ₽/чел/мес</li>
                 <li>100+ (сети): 60 ₽/чел/мес</li>
               </ul>
+              {BILLING_TEST_MODE ? (
+                <p className="mt-3 text-[#3c4053]">
+                  Пока сайт в тестовом режиме, суммы выше — справочные:
+                  оплата не списывается.
+                </p>
+              ) : null}
             </div>
-
-            {/* H9 — годовая скидка 20% — отображается только при платной
-                подписке (бесплатной нечего скидывать). */}
-            {!price.isFree ? (
-              <div className="mt-3 rounded-2xl border border-[#86efac] bg-[#ecfdf5] p-4 text-[13px] leading-relaxed text-[#3c4053]">
-                <strong className="text-[#116b2a]">
-                  Годовая подписка: −20%
-                </strong>
-                <div className="mt-1">
-                  Оплатив сразу 12 месяцев, вы платите{" "}
-                  <span className="font-semibold tabular-nums">
-                    {Math.round(price.yearlyRub * 0.8).toLocaleString("ru-RU")} ₽
-                  </span>{" "}
-                  вместо{" "}
-                  <span className="line-through tabular-nums">
-                    {price.yearlyRub.toLocaleString("ru-RU")} ₽
-                  </span>{" "}
-                  — экономия{" "}
-                  <span className="font-semibold text-[#116b2a] tabular-nums">
-                    {Math.round(price.yearlyRub * 0.2).toLocaleString("ru-RU")} ₽
-                  </span>
-                  . Свяжитесь с поддержкой через виджет, мы выставим
-                  отдельный счёт.
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>
-
-      <SubscriptionManager
-        currentPlan={org?.subscriptionPlan || "trial"}
-        subscriptionEnd={org?.subscriptionEnd?.toISOString() || null}
-        activeUsers={employees}
-      />
     </div>
   );
 }
@@ -153,7 +154,7 @@ function PricingStat({
       <div className="text-[12px] font-medium uppercase tracking-[0.06em] text-[#6f7282]">
         {label}
       </div>
-      <div className="mt-1 text-[26px] font-semibold tabular-nums leading-none text-[#0b1024]">
+      <div className="mt-1 text-[26px] font-semibold leading-none tabular-nums text-[#0b1024]">
         {value}
       </div>
       <div className="mt-1.5 text-[12px]">{hint}</div>

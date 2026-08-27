@@ -25,6 +25,11 @@ model Organization {
   phone                    String?
   subscriptionPlan         String                     @default("trial")
   subscriptionEnd          DateTime?
+  /// Когда организацию автоматически перевели с бесплатного тарифа на
+  /// платный из-за превышения лимита в 5 сотрудников. Нужен, чтобы
+  /// отличать авто-переход (оплата не требовалась — тестовый режим) от
+  /// осознанной покупки и чтобы не переводить повторно.
+  planAutoUpgradedAt       DateTime?
   locale                   String                     @default("ru")
   brandColor               String?
   logoUrl                  String?

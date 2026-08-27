@@ -17,6 +17,7 @@ import {
 } from "@/lib/user-roles";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
+import { ensurePlanForHeadcount } from "@/lib/plan-limits.server";
 
 const inviteUserSchema = z.object({
   name: z.string().min(2, "Имя должно содержать минимум 2 символа"),
@@ -128,6 +129,10 @@ export async function POST(request: Request) {
       return { user };
     });
 
+    // Лимит бесплатного тарифа (5 сотрудников): при превышении молча
+    // переводим организацию на платный — блокировать приглашение нельзя.
+    const planCheck = await ensurePlanForHeadcount(organizationId);
+
     const inviteUrl = buildInviteUrl(raw);
     sendInviteTokenEmail({
       to: user.email,
@@ -159,6 +164,7 @@ export async function POST(request: Request) {
           email: user.email,
           role: user.role,
         },
+        planUpgraded: planCheck.upgraded,
       },
       { status: 201 }
     );

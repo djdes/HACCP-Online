@@ -4,6 +4,7 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { ensurePlanForHeadcount } from "@/lib/plan-limits.server";
 import { getServerSession } from "@/lib/server-session";
 import {
   botInviteExpiresAt,
@@ -138,6 +139,9 @@ export async function POST(request: Request) {
       return { user };
     });
 
+    // См. комментарий в /api/users/invite — тот же лимит бесплатного тарифа.
+    const planCheck = await ensurePlanForHeadcount(organizationId);
+
     const inviteUrl = buildBotInviteUrl(raw);
     const qrPngDataUrl = await QRCode.toDataURL(inviteUrl, {
       errorCorrectionLevel: "M",
@@ -155,6 +159,7 @@ export async function POST(request: Request) {
         inviteUrl,
         qrPngDataUrl,
         expiresAt: expiresAt.toISOString(),
+        planUpgraded: planCheck.upgraded,
       },
       { status: 201 }
     );

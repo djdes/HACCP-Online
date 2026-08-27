@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { hashInviteToken } from "@/lib/invite-tokens";
+import { ensurePlanForHeadcount } from "@/lib/plan-limits.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -240,6 +241,10 @@ export async function POST(request: Request, ctx: Ctx) {
     });
     return u;
   });
+
+  // Лимит бесплатного тарифа: самозапись по QR тоже увеличивает
+  // численность, поэтому проверяем и здесь (создание не блокируем).
+  await ensurePlanForHeadcount(r.row.organizationId);
 
   // Auto-onboarding в TasksFlow:
   //   1. Создаём worker в TF по телефону + ФИО + должности (если

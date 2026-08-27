@@ -17,6 +17,7 @@ import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
+import { BILLING_TEST_MODE, FREE_MAX_USERS } from "@/lib/plan-limits";
 import { PageNav, PageNavProvider } from "@/components/layout/page-nav";
 import "@/app/app-theme.css";
 
@@ -65,7 +66,15 @@ export default async function DashboardLayout({
     // indigo и logoUrl для замены WESETUP-лейбла в шапке.
     db.organization.findUnique({
       where: { id: activeOrgId },
-      select: { brandColor: true, logoUrl: true, name: true },
+      select: {
+        brandColor: true,
+        logoUrl: true,
+        name: true,
+        // E2: тариф и численность едут в меню профиля пропсами —
+        // клиентского fetch'а за этим ради одной строки не заводим.
+        subscriptionPlan: true,
+        _count: { select: { users: { where: { isActive: true } } } },
+      },
     }),
   ]);
 
@@ -132,6 +141,10 @@ export default async function DashboardLayout({
             positionTitle={profile?.positionTitle ?? ""}
             isRoot={session.user.isRoot === true}
             telegramBotUsername={process.env.TELEGRAM_BOT_USERNAME ?? ""}
+            subscriptionPlan={brandedOrg?.subscriptionPlan ?? "trial"}
+            activeUsers={brandedOrg?._count.users ?? 0}
+            freeUserLimit={FREE_MAX_USERS}
+            billingTestMode={BILLING_TEST_MODE}
           />
           {/* Контент во всю ширину экрана (R1: владельцу было «узко»
               на 1296px). Ограничение max-w-[1800px] оставлено только ради

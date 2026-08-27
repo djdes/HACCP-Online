@@ -7,6 +7,7 @@ import { isManagementRole } from "@/lib/user-roles";
 import { normalizePhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
 import { recordAuditLog } from "@/lib/audit-log";
+import { ensurePlanForHeadcount } from "@/lib/plan-limits.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -251,6 +252,10 @@ export async function POST(request: Request) {
     }).catch((err) => console.error("[bulk] autolink failed", err));
   }
 
+  // Импорт может разом перевалить за 5 бесплатных мест — проверяем
+  // один раз после всей пачки, а не на каждой строке.
+  const planCheck = await ensurePlanForHeadcount(orgId);
+
   await recordAuditLog({
     request,
     session,
@@ -274,5 +279,6 @@ export async function POST(request: Request) {
     autoMatched,
     errors,
     createdUsers,
+    planUpgraded: planCheck.upgraded,
   });
 }

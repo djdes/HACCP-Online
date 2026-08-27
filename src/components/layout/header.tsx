@@ -9,6 +9,7 @@ import {
   Building2,
   CalendarRange,
   ChevronDown,
+  CircleArrowUp,
   ClipboardList,
   Coins,
   FileText,
@@ -18,6 +19,7 @@ import {
   Menu,
   Package,
   Settings,
+  SunMoon,
   ShieldCheck,
   TrendingDown,
   UserRound,
@@ -33,6 +35,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -44,7 +50,8 @@ import {
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
-import { ThemeQuickSwitch } from "@/components/theme/theme-quick-switch";
+import { ThemeModeControls } from "@/components/theme/theme-quick-switch";
+import { planLabel } from "@/lib/plan-limits";
 import { orgDisplayName } from "@/lib/org-display-name";
 
 // Items inside the dropdown under the org-pill. «Сотрудники» вынесен
@@ -101,6 +108,14 @@ type HeaderProps = {
   positionTitle: string;
   isRoot: boolean;
   telegramBotUsername: string;
+  /** `Organization.subscriptionPlan`: trial | paid | paused | cancelled. */
+  subscriptionPlan: string;
+  /** Активных сотрудников в организации — считается на сервере. */
+  activeUsers: number;
+  /** Сколько мест входит в бесплатный тариф (FREE_MAX_USERS). */
+  freeUserLimit: number;
+  /** Тестовый режим биллинга — тариф меняется, деньги не списываются. */
+  billingTestMode: boolean;
 };
 
 export function Header({
@@ -112,6 +127,10 @@ export function Header({
   positionTitle,
   isRoot,
   telegramBotUsername,
+  subscriptionPlan,
+  activeUsers,
+  freeUserLimit,
+  billingTestMode,
 }: HeaderProps) {
   const pathname = usePathname();
   const fullAccess = hasFullWorkspaceAccess({ role: userRole, isRoot });
@@ -149,6 +168,23 @@ export function Header({
     : [userName.trim(), positionTitle.trim()].filter(Boolean).join(" · ");
   const HomeIcon = showsOrg ? Building2 : UserRound;
   const homeHref = getWebHomeHref({ role: userRole, isRoot });
+  // Строка тарифа в меню профиля. На бесплатном показываем занятые
+  // места (человек должен заранее видеть, что 6-й сотрудник переведёт
+  // на платный), на платном — просто численность.
+  const onFreePlan = subscriptionPlan === "trial" || subscriptionPlan === "free";
+  const planLine = [
+    planLabel(subscriptionPlan),
+    onFreePlan
+      ? `${activeUsers}/${freeUserLimit} сотрудников`
+      : `${activeUsers} сотрудников`,
+    !onFreePlan && billingTestMode ? "тестовый режим" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  // Апгрейд предлагаем только тем, кому есть куда расти и кто вправе
+  // менять тариф организации.
+  const canUpgradePlan = fullAccess && onFreePlan;
+
   const visibleSecondaryNavItems = fullAccess ? secondaryNavItems : [];
   const navItems = [
     { label: homeLabel, href: homeHref, icon: HomeIcon, tooltip: homeTooltip },
@@ -442,8 +478,6 @@ export function Header({
           <NotificationsBell />
           <FeedbackDialog telegramBotUsername={telegramBotUsername} />
 
-          <ThemeQuickSwitch />
-
           {isRoot ? (
             <Link
               href="/root"
@@ -500,30 +534,82 @@ export function Header({
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{userName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
+            <DropdownMenuContent align="end" className="w-72 p-0">
+              {/* Шапка меню: кто вошёл + строка тарифа. Тариф здесь, а
+                  не отдельной пилюлей в header'е: это редко нужная,
+                  но важная справка — ровно формат меню аккаунта. */}
+              <DropdownMenuLabel className="px-3 py-3 font-normal">
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate text-[14px] font-semibold leading-tight text-[#0b1024]">
+                    {userName}
+                  </p>
+                  <p className="truncate text-[12px] leading-tight text-[#6f7282]">
                     {userEmail}
+                  </p>
+                  <p className="truncate text-[12px] leading-tight text-[#6f7282]">
+                    {planLine}
                   </p>
                 </div>
               </DropdownMenuLabel>
-              {isRoot ? (
-                <DropdownMenuItem asChild className="md:hidden">
-                  <Link href="/root">
-                    <ShieldCheck className="mr-2 size-4" />
-                    Панель платформы
-                  </Link>
+
+              <DropdownMenuSeparator className="my-0" />
+
+              <div className="p-1">
+                {canUpgradePlan ? (
+                  <DropdownMenuItem
+                    asChild
+                    className="text-[#5566f6] focus:bg-[#f5f6ff] focus:text-[#5566f6]"
+                  >
+                    <Link href="/settings/subscription">
+                      <CircleArrowUp className="mr-2 size-4 text-[#5566f6]" />
+                      Улучшить тариф
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2">
+                    <SunMoon className="size-4" />
+                    Тема
+                  </DropdownMenuSubTrigger>
+                  {/* Содержимое — не DropdownMenuItem'ы: клик по режиму
+                      темы не должен закрывать меню, юзер обычно пробует
+                      два-три варианта подряд. */}
+                  <DropdownMenuSubContent className="w-72 rounded-2xl border-[#ececf4] p-2">
+                    <ThemeModeControls />
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                {fullAccess ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                      <Settings className="mr-2 size-4" />
+                      Настройки
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+
+                {isRoot ? (
+                  <DropdownMenuItem asChild className="md:hidden">
+                    <Link href="/root">
+                      <ShieldCheck className="mr-2 size-4" />
+                      Панель платформы
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+              </div>
+
+              <DropdownMenuSeparator className="my-0" />
+
+              <div className="p-1">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-[#a13a32] focus:bg-[#fff4f2] focus:text-[#a13a32]"
+                >
+                  <LogOut className="mr-2 size-4" />
+                  Выйти
                 </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="md:hidden"
-              >
-                <LogOut className="mr-2 size-4" />
-                Выйти
-              </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

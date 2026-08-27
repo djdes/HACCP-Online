@@ -25,6 +25,7 @@ import {
   normalizeOwnership,
   normalizeSphere,
 } from "@/lib/org-profile";
+import { planLabel } from "@/lib/plan-limits";
 
 type Form = {
   name: string;
@@ -511,11 +512,7 @@ export function OrganizationInfoForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <ReadOnlyCard
             label="Тариф"
-            value={
-              meta.subscriptionPlan === "trial"
-                ? "Триал"
-                : meta.subscriptionPlan
-            }
+            value={planLabel(meta.subscriptionPlan)}
           />
           <ReadOnlyCard
             label="Действует до"
