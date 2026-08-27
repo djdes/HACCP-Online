@@ -58,6 +58,8 @@ export type StaffDismissalRow = {
 export type StaffPageProps = {
   organization: { id: string; name: string };
   telegramBotUrl: string | null;
+  /** Интеграция TasksFlow подключена — промо-блок не показываем. */
+  hasTasksflowIntegration: boolean;
   positions: StaffPosition[];
   employees: StaffEmployee[];
   workOffDays: StaffWorkOff[];

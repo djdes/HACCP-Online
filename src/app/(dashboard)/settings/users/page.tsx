@@ -18,7 +18,16 @@ export default async function StaffPage() {
     ? `https://t.me/${process.env.TELEGRAM_BOT_USERNAME.replace(/^@/, "")}`
     : null;
 
-  const [organization, positions, employees, workOffDays, vacations, sickLeaves, dismissals] =
+  const [
+    organization,
+    positions,
+    employees,
+    workOffDays,
+    vacations,
+    sickLeaves,
+    dismissals,
+    tasksflowIntegration,
+  ] =
     await Promise.all([
       db.organization.findUnique({
         where: { id: orgId },
@@ -70,10 +79,17 @@ export default async function StaffPage() {
           user: { select: { name: true, jobPositionId: true, positionTitle: true, role: true } },
         },
       }),
+      // Промо TasksFlow в форме добавления сотрудника показываем только
+      // тем, у кого интеграции ещё нет — подключённым рекламировать нечего.
+      db.tasksFlowIntegration.findUnique({
+        where: { organizationId: orgId },
+        select: { id: true },
+      }),
     ]);
 
   return (
     <StaffPageClient
+      hasTasksflowIntegration={Boolean(tasksflowIntegration)}
       organization={{
         id: organization?.id ?? orgId,
         name: organization?.name ?? "Организация",

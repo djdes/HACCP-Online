@@ -7,6 +7,7 @@ import { isManagementRole } from "@/lib/user-roles";
 import { notifyManagement } from "@/lib/notifications";
 import { normalizePhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
+import { ensurePlanForHeadcount } from "@/lib/plan-limits.server";
 
 /**
  * Minimal "add an employee" endpoint matching the reference-staff screen:
@@ -31,10 +32,10 @@ const createSchema = z.object({
     .trim()
     .min(2, "ФИО слишком короткое")
     .max(200, "ФИО слишком длинное"),
-  phone: z
-    .string()
-    .trim()
-    .min(1, "Укажите телефон — без него не связать с TasksFlow"),
+  // Телефон необязателен: требование номера мешало первому заполнению
+  // штата (решение владельца 2026-08-27). Автосвязка с TasksFlow по
+  // номеру просто отложится до момента, когда номер добавят в карточке.
+  phone: z.string().trim().optional(),
 });
 
 function forbidden() {
@@ -80,8 +81,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const phone = normalizePhone(parsed.phone);
-  if (!phone) {
+  const rawPhone = parsed.phone?.trim() ?? "";
+  const phone = rawPhone ? normalizePhone(rawPhone) : null;
+  // Пустой номер разрешаем, а вот заведомо кривой — нет: иначе в базу
+  // попадёт мусор, по которому автосвязка никогда не сработает.
+  if (rawPhone && !phone) {
     return NextResponse.json(
       {
         error:
@@ -149,18 +153,24 @@ export async function POST(request: Request) {
     return u;
   });
 
+  // Лимит бесплатного тарифа (5 сотрудников): создание не блокируем,
+  // при превышении переводим организацию на платный (тестовый режим).
+  const planCheck = await ensurePlanForHeadcount(orgId);
+
   // Best-effort: if this org has an enabled TasksFlow integration and
   // a TF user with the matching phone already exists, create the link
   // right away. Silent on failure — owner can still link manually via
   // the staff page.
-  tryAutolinkTasksflowByPhone({
-    organizationId: orgId,
-    weSetupUserId: user.id,
-    phone,
-    name: user.name,
-  }).catch((err) => {
-    console.error("[staff] tasksflow autolink failed", err);
-  });
+  if (phone) {
+    tryAutolinkTasksflowByPhone({
+      organizationId: orgId,
+      weSetupUserId: user.id,
+      phone,
+      name: user.name,
+    }).catch((err) => {
+      console.error("[staff] tasksflow autolink failed", err);
+    });
+  }
 
   // Surface the new hire in the bell panel — managers see it on next refresh
   // and can navigate straight to the journals they need to populate.
@@ -233,5 +243,5 @@ export async function POST(request: Request) {
     console.error("[notifications] staff-create fanout failed", err);
   }
 
-  return NextResponse.json({ user });
+  return NextResponse.json({ user, planUpgraded: planCheck.upgraded });
 }

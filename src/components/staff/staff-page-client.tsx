@@ -4,7 +4,6 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
-  ArrowLeft,
   ArrowUpDown,
   BookOpen,
   ChevronDown,
@@ -26,9 +25,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { StaffQrInviteDialog } from "@/components/staff/staff-qr-invite-dialog";
 import {
-  StaffAddEmployeeDialog,
+  StaffAddFlowDialog,
   StaffAddPeriodDialog,
-  StaffAddPositionDialog,
   StaffArchiveDialog,
   StaffDeleteBlockedDialog,
   StaffEditEmployeeDialog,
@@ -92,7 +90,6 @@ export function StaffPageClient(props: StaffPageProps) {
   const [isPending, startTransition] = useTransition();
 
   // Accordion: all open by default.
-  const [orgOpen, setOrgOpen] = useState(true);
   const [categoryOpen, setCategoryOpen] = useState<
     Record<PositionCategory, boolean>
   >({ management: true, staff: true });
@@ -124,9 +121,13 @@ export function StaffPageClient(props: StaffPageProps) {
 
   // Modal state.
   const [dlg, setDlg] = useState<
-    | { kind: "add-position"; categoryKey: PositionCategory }
+    | {
+        kind: "add-flow";
+        initialStep: 1 | 2;
+        categoryKey: PositionCategory;
+        positionId: string | null;
+      }
     | { kind: "edit-position"; position: StaffPosition }
-    | { kind: "add-employee"; position: StaffPosition }
     | { kind: "edit-employee"; employee: StaffEmployee; pending: boolean }
     | {
         kind: "tg-invite";
@@ -461,14 +462,6 @@ export function StaffPageClient(props: StaffPageProps) {
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/settings"
-        className="inline-flex items-center gap-2 text-[14px] text-[#6f7282] hover:text-[#0b1024]"
-      >
-        <ArrowLeft className="size-4" />
-        Настройки
-      </Link>
-
       {/* Dark hero, same visual language as login + settings hub */}
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">
@@ -631,27 +624,13 @@ export function StaffPageClient(props: StaffPageProps) {
         </div>
       ) : null}
 
-      {/* Organisation accordion */}
+      {/* Positions by category. Синюю шапку с названием организации
+          убрали: название и так есть в hero и в крошках, а лишний
+          аккордеон только отодвигал список вниз. */}
       <div className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-        <button
-          type="button"
-          onClick={() => setOrgOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-[#f5f6ff]/60"
-        >
-          <span className="text-[16px] font-semibold text-[#5566f6]">
-            {props.organization.name}
-          </span>
-          <ChevronDown
-            className={cn(
-              "size-4 text-[#9b9fb3] transition-transform",
-              orgOpen && "rotate-180"
-            )}
-          />
-        </button>
-        {orgOpen ? (
-          <div className="grid gap-6 border-t border-[#ececf4] bg-[#f4f5fb] p-5 md:grid-cols-2 md:gap-8 md:p-6">
-            {(["management", "staff"] as PositionCategory[]).map((cat) => (
-              <CategoryColumn
+        <div className="grid gap-6 bg-[#f4f5fb] p-5 md:grid-cols-2 md:gap-8 md:p-6">
+          {(["management", "staff"] as PositionCategory[]).map((cat) => (
+            <CategoryColumn
                 key={cat}
                 title={cat === "management" ? "Руководство" : "Сотрудники"}
                 categoryKey={cat}
@@ -670,13 +649,27 @@ export function StaffPageClient(props: StaffPageProps) {
                   setDlg({ kind: "tg-unlink", employee, pending: false })
                 }
                 onEditEmployee={(employee) => void openEditEmployee(employee)}
-                onAddPosition={() => setDlg({ kind: "add-position", categoryKey: cat })}
-                onAddEmployee={(position) => setDlg({ kind: "add-employee", position })}
+                onAddPosition={() =>
+                  setDlg({
+                    kind: "add-flow",
+                    initialStep: 1,
+                    categoryKey: cat,
+                    positionId: null,
+                  })
+                }
+                onAddEmployee={(position) =>
+                  // Должность уже есть — открываем сразу шаг 2.
+                  setDlg({
+                    kind: "add-flow",
+                    initialStep: 2,
+                    categoryKey: position.categoryKey,
+                    positionId: position.id,
+                  })
+                }
                 onEditPosition={(position) => setDlg({ kind: "edit-position", position })}
               />
-            ))}
-          </div>
-        ) : null}
+          ))}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -796,15 +789,19 @@ export function StaffPageClient(props: StaffPageProps) {
       </section>
 
       {/* Modals */}
-      {dlg?.kind === "add-position" ? (
-        <StaffAddPositionDialog
+      {dlg?.kind === "add-flow" ? (
+        <StaffAddFlowDialog
+          initialStep={dlg.initialStep}
           categoryKey={dlg.categoryKey}
+          initialPositionId={dlg.positionId}
+          positions={props.positions}
+          hasTasksflowIntegration={props.hasTasksflowIntegration}
           open
           onClose={() => setDlg(null)}
-          onCreated={() => {
-            setDlg(null);
-            startTransition(() => router.refresh());
-          }}
+          // Должность создана — список обновляем, но диалог остаётся
+          // открытым: он сам уводит менеджера на шаг «сотрудник».
+          onPositionCreated={() => startTransition(() => router.refresh())}
+          onCreated={() => startTransition(() => router.refresh())}
         />
       ) : null}
       {dlg?.kind === "edit-position" ? (
@@ -815,18 +812,6 @@ export function StaffPageClient(props: StaffPageProps) {
           onUpdated={() => {
             setDlg(null);
             clearSelection();
-            startTransition(() => router.refresh());
-          }}
-        />
-      ) : null}
-      {dlg?.kind === "add-employee" ? (
-        <StaffAddEmployeeDialog
-          position={dlg.position}
-          positions={props.positions}
-          open
-          onClose={() => setDlg(null)}
-          onCreated={() => {
-            setDlg(null);
             startTransition(() => router.refresh());
           }}
         />

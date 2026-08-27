@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Send } from "lucide-react";
+import { ChevronLeft, Copy, ExternalLink, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,13 +19,30 @@ import type {
   StaffEmployee,
   StaffPosition,
 } from "@/components/staff/staff-types";
+import { TasksFlowPromoHint } from "@/components/tasksflow/tasksflow-promo-hint";
 
 type Close = { onClose: () => void; open: boolean };
 
-function shell(title: string, body: React.ReactNode, footer?: React.ReactNode) {
+/** Служебное значение select'а «+ Новая должность…» на шаге 2. */
+const NEW_POSITION_OPTION = "__new-position__";
+
+function shell(
+  title: string,
+  body: React.ReactNode,
+  footer?: React.ReactNode,
+  // `leading` — слот слева в шапке (кнопка «‹ Назад» в многошаговом
+  // диалоге), `eyebrow` — мелкая надпись «Шаг 2 из 2» над заголовком.
+  opts?: { leading?: React.ReactNode; eyebrow?: string }
+) {
   return (
     <>
       <DialogHeader className="border-b px-4 py-5 sm:px-6">
+        {opts?.leading ?? null}
+        {opts?.eyebrow ? (
+          <div className="-mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+            {opts.eyebrow}
+          </div>
+        ) : null}
         <DialogTitle className="text-[18px] font-semibold text-[#0b1024]">
           {title}
         </DialogTitle>
@@ -78,62 +95,6 @@ function floatingLabel({
       </label>
       {children}
     </div>
-  );
-}
-
-export function StaffAddPositionDialog(props: {
-  categoryKey: PositionCategory;
-  onCreated: () => void;
-} & Close) {
-  const [name, setName] = useState("");
-  const [pending, setPending] = useState(false);
-
-  async function submit() {
-    if (name.trim().length < 2) {
-      toast.error("Введите название");
-      return;
-    }
-    setPending(true);
-    try {
-      const res = await fetch("/api/positions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), categoryKey: props.categoryKey }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        toast.error(data?.error ?? "Не удалось создать");
-        return;
-      }
-      toast.success("Должность создана");
-      props.onCreated();
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <Dialog open={props.open} onOpenChange={(v) => !v && props.onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
-        {shell(
-          "Добавление должности",
-          floatingLabel({
-            id: "pos-name",
-            label: "Должность",
-            children: (
-              <Input
-                id="pos-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Например, «Повар холодного цеха»"
-                className="h-12 rounded-xl border-[#dcdfed] bg-[#f5f6ff] pl-4 pr-4 pt-6 text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-              />
-            ),
-          }),
-          primaryBtn("Добавить", submit, pending)
-        )}
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -256,36 +217,105 @@ type AddStep =
       invite: TgInvitePayload;
     };
 
-export function StaffAddEmployeeDialog(props: {
-  position: StaffPosition;
+/**
+ * Единый двухшаговый диалог «должность → сотрудник».
+ *
+ * Раньше это были два независимых диалога: создал должность — диалог
+ * закрылся, и менеджеру приходилось искать кнопку «Добавить сотрудника».
+ * Теперь после создания должности мы остаёмся открытыми и сразу
+ * переходим на шаг 2 с предвыбранной должностью — типовой сценарий
+ * «нанял человека на новую роль» закрывается без лишних кликов.
+ *
+ * Телефон на шаге 2 необязателен: обязательность мешала первому
+ * заполнению штата (решение владельца 2026-08-27, отклонение от П-8).
+ * Автосвязка с TasksFlow сработает позже, когда номер добавят в карточке.
+ */
+export function StaffAddFlowDialog(props: {
+  initialStep: 1 | 2;
+  categoryKey: PositionCategory;
   positions: StaffPosition[];
+  initialPositionId?: string | null;
+  /** Интеграция TasksFlow уже подключена — промо не показываем. */
+  hasTasksflowIntegration?: boolean;
+  /** Должность создана: обновить список, но диалог оставить открытым. */
+  onPositionCreated?: () => void;
+  /** Сотрудник создан: обновить список. */
   onCreated: () => void;
 } & Close) {
+  const [step, setStep] = useState<1 | 2>(props.initialStep);
+
+  // Шаг 1.
+  const [posName, setPosName] = useState("");
+  const [posPending, setPosPending] = useState(false);
+  // Только что созданные должности — props.positions обновится лишь
+  // после router.refresh(), а выбор в select нужен мгновенно.
+  const [createdPositions, setCreatedPositions] = useState<StaffPosition[]>([]);
+
+  const positions = useMemo(() => {
+    const byId = new Map<string, StaffPosition>();
+    for (const p of [...props.positions, ...createdPositions]) byId.set(p.id, p);
+    return [...byId.values()];
+  }, [props.positions, createdPositions]);
+
+  // Шаг 2.
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [positionId, setPositionId] = useState(props.position.id);
+  const [positionId, setPositionId] = useState(
+    () =>
+      props.initialPositionId ??
+      props.positions.find((p) => p.categoryKey === props.categoryKey)?.id ??
+      props.positions[0]?.id ??
+      ""
+  );
   const [pending, setPending] = useState(false);
-  const [step, setStep] = useState<AddStep>({ kind: "form" });
+  const [subStep, setSubStep] = useState<AddStep>({ kind: "form" });
   const [copied, setCopied] = useState(false);
 
   function closeAll() {
-    // Reset local state so the next open starts clean.
-    setFullName("");
-    setPhone("");
-    setPositionId(props.position.id);
-    setPending(false);
-    setStep({ kind: "form" });
-    setCopied(false);
     props.onClose();
   }
 
-  async function submit() {
-    if (fullName.trim().length < 2) {
-      toast.error("Введите ФИО");
+  async function submitPosition() {
+    if (posName.trim().length < 2) {
+      toast.error("Введите название");
       return;
     }
-    if (phone.trim().length < 10) {
-      toast.error("Укажите телефон — нужен для связи с TasksFlow");
+    setPosPending(true);
+    try {
+      const res = await fetch("/api/positions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: posName.trim(),
+          categoryKey: props.categoryKey,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as
+        | { position?: StaffPosition; error?: string }
+        | null;
+      if (!res.ok || !data?.position) {
+        toast.error(data?.error ?? "Не удалось создать");
+        return;
+      }
+      toast.success("Должность создана");
+      setCreatedPositions((prev) => [...prev, data.position as StaffPosition]);
+      setPositionId(data.position.id);
+      setPosName("");
+      props.onPositionCreated?.();
+      setStep(2);
+    } finally {
+      setPosPending(false);
+    }
+  }
+
+  async function submitEmployee() {
+    if (!positionId) {
+      toast.error("Сначала создайте должность");
+      setStep(1);
+      return;
+    }
+    if (fullName.trim().length < 2) {
+      toast.error("Введите ФИО");
       return;
     }
     setPending(true);
@@ -296,7 +326,8 @@ export function StaffAddEmployeeDialog(props: {
         body: JSON.stringify({
           jobPositionId: positionId,
           fullName: fullName.trim(),
-          phone: phone.trim(),
+          // Телефон необязателен — пустую строку не отправляем вовсе.
+          ...(phone.trim() ? { phone: phone.trim() } : {}),
         }),
       });
       const data = (await res.json().catch(() => null)) as
@@ -307,10 +338,10 @@ export function StaffAddEmployeeDialog(props: {
         return;
       }
       toast.success("Сотрудник добавлен");
-      // Tell the parent to refresh the list, but stay open so the manager
-      // can immediately issue a Telegram invite without hunting for the row.
+      // Список обновляем сразу, но диалог держим открытым: менеджер
+      // может тут же выдать ссылку-приглашение в Telegram.
       props.onCreated();
-      setStep({
+      setSubStep({
         kind: "created",
         userId: data.user.id,
         userName: data.user.name,
@@ -333,7 +364,7 @@ export function StaffAddEmployeeDialog(props: {
         toast.error(data?.error ?? "Не удалось создать приглашение");
         return;
       }
-      setStep({
+      setSubStep({
         kind: "tg-ready",
         userName,
         invite: {
@@ -357,12 +388,13 @@ export function StaffAddEmployeeDialog(props: {
     }
   }
 
-  if (step.kind === "tg-ready") {
+  if (subStep.kind === "tg-ready") {
+    const invite = subStep.invite;
     return (
       <Dialog open={props.open} onOpenChange={(v) => !v && closeAll()}>
         <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
           {shell(
-            `Приглашение для ${step.userName}`,
+            `Приглашение для ${subStep.userName}`,
             <div className="space-y-4">
               <div className="rounded-lg border border-[#eef0fb] bg-[#f8f9ff] p-3 text-[13px] leading-5 text-[#5464ff]">
                 Отправьте ссылку сотруднику любым способом или покажите QR.
@@ -372,7 +404,7 @@ export function StaffAddEmployeeDialog(props: {
               <div className="flex justify-center">
                 <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/5">
                   <Image
-                    src={step.invite.qrPngDataUrl}
+                    src={invite.qrPngDataUrl}
                     alt="QR-код приглашения"
                     width={220}
                     height={220}
@@ -383,13 +415,13 @@ export function StaffAddEmployeeDialog(props: {
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={step.invite.inviteUrl}
+                  value={invite.inviteUrl}
                   className="h-11 rounded-xl border-[#dcdfed] bg-white text-[13px] text-[#0b1024]"
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => copyInviteUrl(step.invite.inviteUrl)}
+                  onClick={() => copyInviteUrl(invite.inviteUrl)}
                   className="h-11 rounded-xl px-3"
                   aria-label="Скопировать ссылку"
                 >
@@ -405,7 +437,8 @@ export function StaffAddEmployeeDialog(props: {
     );
   }
 
-  if (step.kind === "created") {
+  if (subStep.kind === "created") {
+    const created = subStep;
     return (
       <Dialog open={props.open} onOpenChange={(v) => !v && closeAll()}>
         <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
@@ -413,7 +446,7 @@ export function StaffAddEmployeeDialog(props: {
             "Сотрудник добавлен",
             <div className="space-y-3 text-[14px] leading-5 text-[#0b1024]">
               <p>
-                <b>{step.userName}</b> добавлен в штат. Можно сразу выдать
+                <b>{created.userName}</b> добавлен в штат. Можно сразу выдать
                 ссылку-приглашение в Telegram — сотрудник тапнет её с телефона
                 и без пароля попадёт в рабочий кабинет бота.
               </p>
@@ -434,7 +467,7 @@ export function StaffAddEmployeeDialog(props: {
               </Button>
               <Button
                 type="button"
-                onClick={() => issueTgInvite(step.userId, step.userName)}
+                onClick={() => issueTgInvite(created.userId, created.userName)}
                 disabled={pending}
                 className="h-11 min-w-[180px] rounded-xl bg-[#5566f6] text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0] disabled:opacity-70"
               >
@@ -442,6 +475,44 @@ export function StaffAddEmployeeDialog(props: {
                 {pending ? "..." : "Выдать ссылку в Telegram"}
               </Button>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  if (step === 1) {
+    return (
+      <Dialog open={props.open} onOpenChange={(v) => !v && closeAll()}>
+        <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+          {shell(
+            "Добавление должности",
+            <div className="space-y-3">
+              {floatingLabel({
+                id: "pos-name",
+                label: "Должность",
+                children: (
+                  <Input
+                    id="pos-name"
+                    value={posName}
+                    onChange={(e) => setPosName(e.target.value)}
+                    placeholder="Например, «Повар холодного цеха»"
+                    className="h-12 rounded-xl border-[#dcdfed] bg-[#f5f6ff] pl-4 pr-4 pt-6 text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                  />
+                ),
+              })}
+              {positions.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="text-[13px] font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
+                >
+                  У меня уже есть должность → пропустить
+                </button>
+              ) : null}
+            </div>,
+            primaryBtn("Добавить", submitPosition, posPending),
+            { eyebrow: "Шаг 1 из 2" }
           )}
         </DialogContent>
       </Dialog>
@@ -461,15 +532,28 @@ export function StaffAddEmployeeDialog(props: {
                 <select
                   id="add-emp-pos"
                   value={positionId}
-                  onChange={(e) => setPositionId(e.target.value)}
+                  onChange={(e) => {
+                    // Служебное значение — уводит на шаг 1, чтобы не
+                    // закрывать форму ради создания новой должности.
+                    if (e.target.value === NEW_POSITION_OPTION) {
+                      setStep(1);
+                      return;
+                    }
+                    setPositionId(e.target.value);
+                  }}
                   className="h-12 w-full rounded-xl border border-[#dcdfed] bg-[#f5f6ff] px-4 pt-6 text-[14px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
                 >
-                  {props.positions.map((p) => (
+                  {positions.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.categoryKey === "management" ? "Руководство · " : "Сотрудники · "}
+                      {p.categoryKey === "management"
+                        ? "Руководство · "
+                        : "Сотрудники · "}
                       {p.name}
                     </option>
                   ))}
+                  <option value={NEW_POSITION_OPTION}>
+                    + Новая должность…
+                  </option>
                 </select>
               ),
             })}
@@ -484,16 +568,30 @@ export function StaffAddEmployeeDialog(props: {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Телефон · +7 985 123-45-67"
+                placeholder="Телефон · необязательно"
                 autoComplete="tel"
                 className="h-12 rounded-xl border-[#dcdfed] bg-white text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />
-              <p className="mt-1 text-[11px] leading-snug text-[#6f7282]">
-                Если у сотрудника есть TasksFlow с этим номером — автоматически свяжем аккаунты.
-              </p>
+              <TasksFlowPromoHint
+                campaign="staff_add"
+                hasIntegration={props.hasTasksflowIntegration}
+              />
             </div>
           </div>,
-          primaryBtn("Добавить", submit, pending)
+          primaryBtn("Добавить", submitEmployee, pending),
+          {
+            eyebrow: "Шаг 2 из 2",
+            leading: (
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="-ml-1 inline-flex w-fit items-center gap-1 rounded-lg px-1 py-0.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
+              >
+                <ChevronLeft className="size-4" />
+                Назад
+              </button>
+            ),
+          }
         )}
       </DialogContent>
     </Dialog>

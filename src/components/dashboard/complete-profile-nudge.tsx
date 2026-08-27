@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, ChevronDown, Loader2, Sparkles, X } from "lucide-react";
 import { NumberStepper } from "@/components/ui/number-stepper";
+import { TasksFlowPromoHint } from "@/components/tasksflow/tasksflow-promo-hint";
 import {
   MAX_LOCATIONS,
   ORG_OWNERSHIP,
@@ -235,7 +236,6 @@ function CompleteProfileModal({
             <Field
               label="Телефон"
               required
-              hint="Нужен для связки сотрудника с TasksFlow"
               error={
                 touched.phone && !phoneOk ? "Формат: +7 999 123-45-67" : null
               }
@@ -251,6 +251,15 @@ function CompleteProfileModal({
                 className={inputCls(touched.phone && !phoneOk)}
               />
             </Field>
+
+            {/* Промо вынесено из <Field>: внутри <label> ссылка и кнопка
+                «скопировать» перехватывались бы фокусом инпута.
+                Организация только что зарегистрирована — интеграции
+                TasksFlow у неё заведомо нет, промо показываем всегда. */}
+            <TasksFlowPromoHint
+              campaign="register_nudge"
+              autolinkNote="Если у вас уже есть TasksFlow с этим номером — свяжем аккаунты автоматически."
+            />
           </div>
 
           <div className="flex items-center gap-3 pt-1">
