@@ -53,6 +53,8 @@ import { OfflineIndicator } from "@/components/layout/offline-indicator";
 import { ThemeModeControls } from "@/components/theme/theme-quick-switch";
 import { planLabel } from "@/lib/plan-limits";
 import { orgDisplayName } from "@/lib/org-display-name";
+import { OrganizationSwitcher } from "@/components/layout/organization-switcher";
+import type { AccessibleOrganization } from "@/lib/organization-access";
 
 // Items inside the dropdown under the org-pill. «Сотрудники» вынесен
 // отдельной pill-кнопкой в шапке (см. разметку ниже), т.к. это самый
@@ -110,6 +112,12 @@ type HeaderProps = {
   telegramBotUsername: string;
   /** `Organization.subscriptionPlan`: trial | paid | paused | cancelled. */
   subscriptionPlan: string;
+  /** Организации аккаунта — для переключателя в меню профиля. */
+  organizations: AccessibleOrganization[];
+  activeOrganizationId: string;
+  /** Заводить новые точки может только владелец аккаунта. */
+  canCreateOrganization: boolean;
+  organizationSphere: string;
   /** Активных сотрудников в организации — считается на сервере. */
   activeUsers: number;
   /** Сколько мест входит в бесплатный тариф (FREE_MAX_USERS). */
@@ -128,6 +136,10 @@ export function Header({
   isRoot,
   telegramBotUsername,
   subscriptionPlan,
+  organizations,
+  activeOrganizationId,
+  canCreateOrganization,
+  organizationSphere,
   activeUsers,
   freeUserLimit,
   billingTestMode,
@@ -555,6 +567,15 @@ export function Header({
               <DropdownMenuSeparator className="my-0" />
 
               <div className="p-1">
+                <OrganizationSwitcher
+                  organizations={organizations}
+                  activeId={activeOrganizationId}
+                  canCreate={canCreateOrganization}
+                  currentSphere={organizationSphere}
+                />
+                {organizations.length > 1 || canCreateOrganization ? (
+                  <DropdownMenuSeparator className="my-1" />
+                ) : null}
                 {canUpgradePlan ? (
                   <DropdownMenuItem
                     asChild

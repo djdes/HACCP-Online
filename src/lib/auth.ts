@@ -182,6 +182,22 @@ export const authOptions: NextAuthOptions = {
         token.isRoot = u.isRoot === true;
         token.permissionPreset = u.permissionPreset ?? null;
         token.actingAsOrganizationId = null;
+        // Организация, в которой человек работал в прошлый раз. Членство
+        // проверяем при переключении (POST /api/me/active-organization),
+        // а здесь — при входе: доступ могли отозвать, пока он был офлайн.
+        token.activeOrganizationId = await resolveActiveOrganizationId(
+          u.id,
+          u.organizationId,
+        );
+      }
+      // Переключение между своими организациями пишет claim напрямую в
+      // cookie (см. lib/session-token.ts) — здесь только подхватываем.
+      if (trigger === "update" && session && typeof session === "object") {
+        if ("activeOrganizationId" in session) {
+          const next = session.activeOrganizationId;
+          token.activeOrganizationId =
+            typeof next === "string" && next.length > 0 ? next : null;
+        }
       }
       // Impersonation: root clicks "View as <org>" or "Stop" and the
       // client calls `update({ actingAsOrganizationId: ... })`. NextAuth v4
@@ -207,6 +223,10 @@ export const authOptions: NextAuthOptions = {
         session.user.actingAsOrganizationId =
           typeof token.actingAsOrganizationId === "string"
             ? token.actingAsOrganizationId
+            : null;
+        session.user.activeOrganizationId =
+          typeof token.activeOrganizationId === "string"
+            ? token.activeOrganizationId
             : null;
         session.user.orgPresetOverrides = null;
 
@@ -308,3 +328,34 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+/**
+ * Какая организация должна стать активной при входе.
+ *
+ * Берём последнюю, где человек работал, но только если членство ещё в
+ * силе: доступ могли отозвать, пока он был офлайн, и тогда он обязан
+ * вернуться в свою домашнюю организацию, а не в чужую.
+ */
+async function resolveActiveOrganizationId(
+  userId: string,
+  homeOrganizationId: string,
+): Promise<string> {
+  try {
+    const { db } = await import("@/lib/db");
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { lastActiveOrganizationId: true },
+    });
+    const last = user?.lastActiveOrganizationId;
+    if (!last || last === homeOrganizationId) return homeOrganizationId;
+    const member = await db.organizationMember.findUnique({
+      where: {
+        userId_organizationId: { userId, organizationId: last },
+      },
+      select: { id: true },
+    });
+    return member ? last : homeOrganizationId;
+  } catch {
+    return homeOrganizationId;
+  }
+}

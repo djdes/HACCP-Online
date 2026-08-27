@@ -101,6 +101,14 @@ export function getActiveOrgId(session: Session): string {
   ) {
     return session.user.actingAsOrganizationId;
   }
+  // Активная организация — для владельцев и руководителей, у которых их
+  // несколько. У линейного сотрудника её нет, и он всегда в домашней.
+  if (
+    typeof session.user.activeOrganizationId === "string" &&
+    session.user.activeOrganizationId.length > 0
+  ) {
+    return session.user.activeOrganizationId;
+  }
   return session.user.organizationId;
 }
 

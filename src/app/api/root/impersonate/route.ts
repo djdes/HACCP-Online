@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decode, encode } from "next-auth/jwt";
+import { rewriteSessionClaims } from "@/lib/session-token";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -18,68 +17,15 @@ function clientIp(request?: Request): string | null {
 }
 
 /**
- * Перевыпускает NextAuth session-token cookie с новым actingAsOrganizationId.
- * Делается напрямую через encode/decode из next-auth/jwt — обходит баг
- * update() в NextAuth v4 + Next.js 16, где update() возвращает успех, но
- * cookie не всегда сразу пишется в response, и следующий
- * getServerSession() видит старый JWT.
+ * Перевыпускает session-cookie с новым `actingAsOrganizationId`.
+ * Механика общая с переключением организаций — см. lib/session-token.ts.
  */
 async function rewriteSessionToken(
-  next: string | null
+  next: string | null,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) return { ok: false, reason: "NEXTAUTH_SECRET не задан" };
-
-  const isHttps =
-    process.env.NEXTAUTH_URL?.startsWith("https://") ||
-    process.env.VERCEL === "1";
-  // Custom NextAuth cookie name из src/lib/auth.ts:
-  //   __Secure-haccp-online.session-token (https) / haccp-online.session-token (http).
-  // Был баг: использовалось дефолтное "next-auth.session-token", из-за чего
-  // импersonate всегда падал с «Cookie сессии не найден».
-  const cookieName = isHttps
-    ? "__Secure-haccp-online.session-token"
-    : "haccp-online.session-token";
-
-  const cookieStore = await cookies();
-  const current = cookieStore.get(cookieName)?.value;
-  if (!current) return { ok: false, reason: "Cookie сессии не найден" };
-
-  let decoded: Record<string, unknown> | null = null;
-  try {
-    decoded = (await decode({ token: current, secret })) as Record<
-      string,
-      unknown
-    > | null;
-  } catch {
-    return { ok: false, reason: "Не удалось декодировать JWT" };
-  }
-  if (!decoded) return { ok: false, reason: "JWT пустой" };
-
-  if (decoded.isRoot !== true) {
-    return { ok: false, reason: "Только ROOT может impersonate" };
-  }
-
-  decoded.actingAsOrganizationId = next;
-
-  const maxAgeSec = 30 * 24 * 60 * 60;
-  // decode возвращает Record<string, unknown>, encode хочет JWT; для
-  // re-encode достаточно cast — все нужные поля уже есть в decoded.
-  const fresh = await encode({
-    token: decoded as Parameters<typeof encode>[0]["token"],
-    secret,
-    maxAge: maxAgeSec,
-  });
-
-  cookieStore.set(cookieName, fresh, {
-    httpOnly: true,
-    secure: isHttps,
-    sameSite: "lax",
-    path: "/",
-    maxAge: maxAgeSec,
-  });
-
-  return { ok: true };
+  return rewriteSessionClaims({ actingAsOrganizationId: next }, (token) =>
+    token.isRoot === true ? null : "Только ROOT может impersonate",
+  );
 }
 
 /**

@@ -6,6 +6,42 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Аккаунт владельца — то, что человек покупает.
+///
+/// Организация перестала быть единицей биллинга: у сети из трёх кафе три
+/// организации, но один договор и один лимит сотрудников. Тариф живёт
+/// здесь, на Organization остаются legacy-зеркала на один релиз.
+model Account {
+  id                 String         @id @default(cuid())
+  ownerUserId        String         @unique
+  owner              User           @relation("AccountOwner", fields: [ownerUserId], references: [id])
+  subscriptionPlan   String         @default("trial")
+  subscriptionEnd    DateTime?
+  planAutoUpgradedAt DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  organizations      Organization[]
+}
+
+/// Членство человека в организации сверх «домашней» (`User.organizationId`).
+///
+/// Линейный сотрудник живёт в одной организации и строк здесь не имеет.
+/// Владелец получает строку с role="owner" на каждую свою организацию,
+/// приглашённый руководитель — role="manager" там, куда его пустили.
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation("OrganizationMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation("OrganizationMembers", fields: [organizationId], references: [id], onDelete: Cascade)
+  /// "owner" | "manager"
+  role           String       @default("manager")
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
 model Organization {
   id                       String                     @id @default(cuid())
   name                     String
@@ -23,6 +59,13 @@ model Organization {
   inn                      String?
   address                  String?
   phone                    String?
+  /// Аккаунт-владелец. Nullable только на время миграции существующих
+  /// организаций — после прогона scripts/migrate-multi-org.ts пустых нет.
+  accountId                String?
+  account                  Account?                   @relation(fields: [accountId], references: [id])
+  members                  OrganizationMember[]       @relation("OrganizationMembers")
+  /// Legacy-зеркало тарифа. Правда живёт в Account; поля остаются на один
+  /// релиз, чтобы не ломать читателей, которые ещё не переведены.
   subscriptionPlan         String                     @default("trial")
   subscriptionEnd          DateTime?
   /// Когда организацию автоматически перевели с бесплатного тарифа на
@@ -349,8 +392,17 @@ model User {
   // Lets the same "cook" role user be displayed as "Повар холодного цеха" or
   // "Официант" per employee, instead of flipping between journals.
   positionTitle               String?
+  /// «Домашняя» организация: где человека завели, где его должность,
+  /// ACL и журналы. Для линейного сотрудника — единственная. Владелец и
+  /// приглашённые руководители могут работать и в других — через
+  /// OrganizationMember и активную организацию в сессии.
   organizationId              String
   organization                Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Организация, в которой человек работал в прошлый раз. Подставляется
+  /// при входе, если членство ещё в силе.
+  lastActiveOrganizationId    String?
+  organizationMemberships     OrganizationMember[]     @relation("OrganizationMemberships")
+  ownedAccount                Account?                 @relation("AccountOwner")
   telegramChatId              String?
   notificationPrefs           Json?
   isActive                    Boolean                  @default(true)
@@ -385,6 +437,11 @@ model User {
   /// follows the user across devices. localStorage caches it for FOUC
   /// suppression but DB is source of truth.
   themePreference             String                   @default("light")
+  /// Недельное правило выходных: 0=Пн … 6=Вс. Пустой массив = правило
+  /// не задано (тогда выходные видны только из явных отметок
+  /// StaffWorkOffDay). Правило избавляет управляющую от «прокликивания»
+  /// Сб/Вс каждому сотруднику на месяц вперёд.
+  weeklyDaysOff               Int[]                    @default([])
   journalEntries              JournalEntry[]
   journalAccess               UserJournalAccess[]
   inviteToken                 InviteToken?
@@ -494,6 +551,11 @@ model StaffWorkOffDay {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Day at 00:00 UTC — stored as DateTime for Prisma friendliness.
   date      DateTime
+  /// Явное исключение из недельного правила `User.weeklyDaysOff`:
+  /// "off" — этот день выходной, хотя правило говорит «рабочий»,
+  /// "work" — этот день рабочий, хотя правило говорит «выходной».
+  /// Явная отметка всегда побеждает правило (в обе стороны).
+  kind      String   @default("off")
   createdAt DateTime @default(now())
 
   @@unique([userId, date])

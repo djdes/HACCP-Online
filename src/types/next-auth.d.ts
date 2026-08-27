@@ -15,6 +15,9 @@ declare module "next-auth" {
        * instead of organizationId directly to honour this.
        */
       actingAsOrganizationId: string | null;
+    activeOrganizationId?: string | null;
+      /** Организация, в которой человек сейчас работает (multi-org). */
+      activeOrganizationId?: string | null;
       /**
        * Permission preset overlay поверх legacy `role`. Управляет:
        *   - terminology (admin видит «журналы», остальные «задачи»);

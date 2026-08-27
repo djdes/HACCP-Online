@@ -17,6 +17,7 @@ import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
+import { listAccessibleOrganizations } from "@/lib/organization-access";
 import { BILLING_TEST_MODE, FREE_MAX_USERS } from "@/lib/plan-limits";
 import { PageNav, PageNavProvider } from "@/components/layout/page-nav";
 import "@/app/app-theme.css";
@@ -43,7 +44,8 @@ export default async function DashboardLayout({
       ? session.user.actingAsOrganizationId
       : getActiveOrgId(session);
 
-  const [impersonatedOrg, profile, brandedOrg] = await Promise.all([
+  const [impersonatedOrg, profile, brandedOrg, organizations, ownedAccount] =
+    await Promise.all([
     isImpersonating(session) && session.user.actingAsOrganizationId
       ? db.organization.findUnique({
           where: { id: session.user.actingAsOrganizationId },
@@ -73,10 +75,16 @@ export default async function DashboardLayout({
         // E2: тариф и численность едут в меню профиля пропсами —
         // клиентского fetch'а за этим ради одной строки не заводим.
         subscriptionPlan: true,
+        type: true,
         _count: { select: { users: { where: { isActive: true } } } },
       },
     }),
-  ]);
+      listAccessibleOrganizations(session.user.id),
+      db.account.findUnique({
+        where: { ownerUserId: session.user.id },
+        select: { id: true },
+      }),
+    ]);
 
   const impersonatedName = impersonatedOrg?.name ?? null;
   const initialTheme: "light" | "dark" =
@@ -145,6 +153,10 @@ export default async function DashboardLayout({
             activeUsers={brandedOrg?._count.users ?? 0}
             freeUserLimit={FREE_MAX_USERS}
             billingTestMode={BILLING_TEST_MODE}
+            organizations={organizations}
+            activeOrganizationId={activeOrgId}
+            canCreateOrganization={Boolean(ownedAccount)}
+            organizationSphere={brandedOrg?.type ?? "restaurant"}
           />
           {/* Контент во всю ширину экрана (R1: владельцу было «узко»
               на 1296px). Ограничение max-w-[1800px] оставлено только ради
