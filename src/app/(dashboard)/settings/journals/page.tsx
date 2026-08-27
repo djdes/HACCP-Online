@@ -6,6 +6,7 @@ import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { getFillMode } from "@/lib/journal-routing";
 import { JournalsSettingsClient } from "./journals-settings-client";
 import { PageGuide } from "@/components/ui/page-guide";
+import { normalizeSphere } from "@/lib/org-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function JournalsSettingsPage() {
       }),
       db.organization.findUnique({
         where: { id: organizationId },
-        select: { disabledJournalCodes: true },
+        select: { disabledJournalCodes: true, type: true },
       }),
       db.jobPosition.findMany({
         where: { organizationId },
@@ -57,6 +58,7 @@ export default async function JournalsSettingsPage() {
     ]);
 
   const disabled = parseDisabledCodes(organization?.disabledJournalCodes);
+  const sphere = normalizeSphere(organization?.type);
   const accessByTemplate = new Map<string, string[]>();
   for (const row of positionAccess) {
     const list = accessByTemplate.get(row.templateId) ?? [];
@@ -81,22 +83,24 @@ export default async function JournalsSettingsPage() {
   return (
     <div className="space-y-5">
       <PageGuide
-        title="Как настроить активные журналы"
-        storageKey="settings-journals-v1"
+        title="Как выбрать набор журналов"
+        storageKey="settings-journals-v2"
         bullets={[
-          { title: "Включите только нужные", body: "Из 35 журналов оставьте те, что обязательны для вашего профиля (общепит, мясокомбинат, бар). Остальные скройте, чтобы не загромождать дашборд." },
-          { title: "Назначьте должность", body: "У каждого включённого журнала укажите, какая должность отвечает — повар, заведующая, кладовщик. Сотрудники с этой должностью увидят журнал." },
-          { title: "Поставьте бонус (опционально)", body: "Сумма в копейках за заполнение журнала. Если не нужна мотивация — оставьте 0." },
+          { title: "Начните со сферы", body: "Набор строится от вида заведения: для ресторана обязательный минимум Роспотребнадзора — несколько журналов, а не все 35. Смените сферу — пересчитаем." },
+          { title: "Остальное — по желанию", body: "Рекомендованные журналы выключены, но под рукой. «Остальные» свёрнуты: включайте, если реально ведёте." },
+          { title: "Бумажные — отдельно", body: "Охрана труда и пожарная безопасность ведутся только на бумаге с живой подписью. Мы даём бланк для печати." },
         ]}
         qa={[
-          { q: "Что значит «обязательный по СанПиН/ХАССП»?", a: "Это нормативные журналы — Роспотребнадзор может потребовать. Не выключайте их без оснований." },
-          { q: "Как добавить новую должность?", a: "Перейдите в раздел «Сотрудники» в настройках и нажмите «+ Добавить должность»." },
+          { q: "Почему включено всего несколько журналов?", a: "Это обязательный минимум для вашей сферы. Всё остальное вы решаете сами — набор в любой момент можно расширить." },
+          { q: "Что будет, если выключить обязательный?", a: "Журнал исчезнет из дашборда и задач, готовность считаться по нему не будет. За отсутствие обязательного журнала штрафуют по ст. 6.6 КоАП РФ — до 50 000 ₽ или приостановка до 90 суток." },
+          { q: "Почему бумажные нельзя вести электронно?", a: "Инструктажи по охране труда и пожарной безопасности подтверждаются личной подписью работника в журнале. Электронная форма инспектором не принимается." },
         ]}
       />
       <JournalsSettingsClient
         items={items}
         positions={positions}
         users={users}
+        sphere={sphere}
       />
     </div>
   );

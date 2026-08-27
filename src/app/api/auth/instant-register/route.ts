@@ -8,6 +8,7 @@ import { sendTelegramMessage } from "@/lib/telegram";
 import { registrationCodeRateLimiter } from "@/lib/rate-limit";
 import { domainAcceptsMail } from "@/lib/mail-domain";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
+import { defaultDisabledCodesFor } from "@/lib/sphere-journal-rules";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,6 +107,10 @@ export async function POST(request: Request) {
           // Настоящее название человек задаёт в анкете после входа.
           name: DEFAULT_ORG_NAME,
           type: "other",
+          // Сразу минимальный набор журналов, а не все 35: иначе до
+          // анкеты дашборд встречает человека счётчиком «0 из 35».
+          // Сферу спросим в анкете — тогда набор пересчитается.
+          disabledJournalCodes: defaultDisabledCodesFor("other"),
           subscriptionPlan: "trial",
           subscriptionEnd: new Date(
             Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000,

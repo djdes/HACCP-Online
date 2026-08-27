@@ -49,10 +49,9 @@ export function OnboardingApplyButton({ orgType, showSeedStaff = false, label }:
           updateOrgType: typeChanged,
           seedDemoStaff: seed,
           applyJournalAccess: true,
-          // По умолчанию включаем — клиент перестаёт видеть нерелевантные
-          // 35 журналов в дашборде, и cron auto-journals начинает сам
-          // создавать ему документы на месяц.
-          applyDisabledJournals: true,
+          // Набор журналов пресет не трогает: он строится от сферы на
+          // /settings/journals, и затирать там ручной выбор нельзя.
+          applyDisabledJournals: false,
           applyAutoJournals: true,
         }),
       });

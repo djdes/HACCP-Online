@@ -10,13 +10,16 @@ import {
   ClipboardList,
   Coins,
   FileDown,
+  FileText,
   GraduationCap,
   Inbox,
   ListChecks,
   Medal,
   Package,
+  Printer,
   Send,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Stethoscope,
   ThermometerSun,
@@ -54,6 +57,8 @@ import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { getStrugglingWorkers, getWorkerLeaderboard } from "@/lib/worker-leaderboard";
 import { getWeeklyTails } from "@/lib/weekly-tails";
+import { normalizeSphere } from "@/lib/org-profile";
+import { paperJournalsFor } from "@/lib/sphere-journal-rules";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { cn } from "@/lib/utils";
 import { orgDisplayName } from "@/lib/org-display-name";
@@ -228,7 +233,7 @@ export default async function DashboardPage() {
     }),
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { disabledJournalCodes: true },
+      select: { disabledJournalCodes: true, type: true },
     }),
   ]);
 
@@ -243,6 +248,11 @@ export default async function DashboardPage() {
   // Selected journal set comes from organization settings:
   // active templates minus disabled journal codes.
   const disabledCodes = parseDisabledCodes(org?.disabledJournalCodes);
+  // Бумажные журналы сферы. Отдельный список: они не участвуют ни в
+  // счётчике «N из M», ни в проценте готовности — заполняются ручкой,
+  // и «недозаполненными» в системе быть не могут по определению.
+  const sphere = normalizeSphere(org?.type);
+  const paperItems = paperJournalsFor(sphere);
 
   // Soft-block: количество CAPA, которые открыты > 7 дней — это
   // знак что менеджер забыл их закрыть. Показываем nag-модалку на
@@ -415,6 +425,26 @@ export default async function DashboardPage() {
               icon={ListChecks}
               defaultOpen={true}
               actions={<CloseDayCard unfilledCount={unfilledCount} compact />}
+              titleAction={
+                <>
+                  <Link
+                    href="/settings/journals"
+                    aria-label="Выбрать журналы"
+                    title="Выбрать, какие журналы вести"
+                    className="inline-flex size-7 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
+                  >
+                    <SlidersHorizontal className="size-3.5" />
+                  </Link>
+                  {paperItems.length > 0 ? (
+                    <span
+                      title="Ведутся на бумаге, на готовность не влияют"
+                      className="rounded-full bg-[#fff8f6] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]"
+                    >
+                      +{paperItems.length} бумажных
+                    </span>
+                  ) : null}
+                </>
+              }
               badge={
                 unfilledCount > 0
                   ? {
@@ -491,6 +521,35 @@ export default async function DashboardPage() {
                           item.filled ? "text-[#7cf5c0]" : "text-[#ffb0a6]"
                         )}
                       />
+                    </span>
+                  </Link>
+                ))}
+
+                {/* Бумажные журналы. Та же геометрия, но янтарные и без
+                    статуса: отметить «заполнено» в системе нельзя —
+                    подпись ставится ручкой на распечатанном листе. */}
+                {paperItems.map((paper) => (
+                  <Link
+                    key={paper.id}
+                    href={`/settings/journals/paper/${paper.id}`}
+                    className="group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ffe9b0] bg-[#fffaf0] transition-all hover:-translate-y-0.5 hover:border-[#f5c451] hover:shadow-[0_14px_32px_-14px_rgba(180,83,9,0.45)]"
+                  >
+                    <span className="flex aspect-[1228/862] w-full items-center justify-center border-b border-[#ffe9b0] bg-white">
+                      <span className="flex w-[70%] flex-col gap-1.5">
+                        <FileText className="mb-1 size-6 text-[#b45309]" />
+                        <span className="h-1.5 rounded-full bg-[#f0e2c6]" />
+                        <span className="h-1.5 rounded-full bg-[#f0e2c6]" />
+                        <span className="h-1.5 w-2/3 rounded-full bg-[#f0e2c6]" />
+                      </span>
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 py-3">
+                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#fff1d6] px-2 py-0.5 text-[11px] font-medium text-[#b45309]">
+                        <Printer className="size-3" />
+                        Бумажный · распечатать
+                      </span>
+                      <span className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[#8a4a08]">
+                        {paper.name}
+                      </span>
                     </span>
                   </Link>
                 ))}

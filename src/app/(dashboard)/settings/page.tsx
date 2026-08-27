@@ -38,7 +38,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
 import { getRouteTitle } from "@/lib/route-titles";
 // ThemeSwitcher убран отсюда — занимал много места. Переключатель темы
-// живёт компактной иконкой-popover'ом в шапке (ThemeQuickSwitch).
+// живёт в меню профиля (иконка справа вверху) → подменю «Тема».
 
 export const dynamic = "force-dynamic";
 

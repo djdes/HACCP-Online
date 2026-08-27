@@ -11,6 +11,12 @@ type Props = {
     text: string;
     tone?: "default" | "ok" | "warn" | "danger";
   };
+  /**
+   * Мелкий элемент сразу после бейджа — ссылка-настройка секции.
+   * Живёт внутри <summary>, поэтому обязан гасить клик, иначе секция
+   * свернётся вместо перехода.
+   */
+  titleAction?: React.ReactNode;
   defaultOpen?: boolean;
   /**
    * Действия в шапке секции — встают справа от заголовка, перед
@@ -47,6 +53,7 @@ export function DashboardSection({
   subtitle,
   icon: Icon,
   badge,
+  titleAction,
   defaultOpen = false,
   actions,
   children,
@@ -84,6 +91,7 @@ export function DashboardSection({
                   {badge.text}
                 </span>
               ) : null}
+              {titleAction}
             </div>
             {subtitle ? (
               <p className="mt-0.5 text-[12px] leading-snug text-[#6f7282] sm:text-[13px]">

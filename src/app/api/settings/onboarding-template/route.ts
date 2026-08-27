@@ -164,7 +164,12 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 3. Disabled journals — то что НЕ в template.enabledJournals.
+  // 3. Disabled journals — то, чего НЕТ в template.enabledJournals.
+  //
+  // `null` означает «шаблон про журналы ничего не говорит», и раньше мы
+  // трактовали это как «включить все 35», затирая набор по сфере и
+  // ручные тумблеры. Карточка обещает добавление, а не замену — поэтому
+  // при `null` набор не трогаем вовсе.
   if (template.enabledJournals !== null) {
     const enabled = new Set(template.enabledJournals);
     const allCodes = ACTIVE_JOURNAL_CATALOG.map((j) => j.code);
@@ -172,12 +177,6 @@ export async function POST(request: NextRequest) {
     await db.organization.update({
       where: { id: organizationId },
       data: { disabledJournalCodes: disabled as never },
-    });
-  } else {
-    // null = все включить
-    await db.organization.update({
-      where: { id: organizationId },
-      data: { disabledJournalCodes: [] as never },
     });
   }
 

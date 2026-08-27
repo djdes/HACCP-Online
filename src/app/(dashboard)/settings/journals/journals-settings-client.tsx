@@ -8,8 +8,10 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
-  Eye,
+  Download,
+  ExternalLink,
   EyeOff,
+  Printer,
   Save,
   Settings2,
   ShieldAlert,
@@ -19,9 +21,16 @@ import {
   Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import type { FillMode } from "@/lib/journal-routing";
+import { ORG_SPHERES, sphereLabel, type OrgSphere } from "@/lib/org-profile";
+import {
+  paperJournalsFor,
+  requiredCodesFor,
+  rulesFor,
+} from "@/lib/sphere-journal-rules";
 
 type Position = { id: string; name: string; categoryKey: string };
 type StaffUser = { id: string; name: string; jobPositionId: string | null };
@@ -62,10 +71,12 @@ export function JournalsSettingsClient({
   items,
   positions,
   users,
+  sphere,
 }: {
   items: Item[];
   positions: Position[];
   users: StaffUser[];
+  sphere: OrgSphere;
 }) {
   const router = useRouter();
   const [state, setState] = useState<Record<string, boolean>>(
@@ -98,6 +109,15 @@ export function JournalsSettingsClient({
     )
   );
   const [distSavingCode, setDistSavingCode] = useState<string | null>(null);
+  // Сфера в селекте живёт отдельно от сохранённой: пока человек не
+  // подтвердил смену, показываем прогноз, а не переписываем набор.
+  const [sphereDraft, setSphereDraft] = useState<OrgSphere>(sphere);
+  const [sphereConfirmOpen, setSphereConfirmOpen] = useState(false);
+  const [switchingSphere, setSwitchingSphere] = useState(false);
+  const [applyConfirmOpen, setApplyConfirmOpen] = useState(false);
+  const [disableRestConfirmOpen, setDisableRestConfirmOpen] = useState(false);
+  /** Код обязательного журнала, который пытаются выключить. */
+  const [requiredOffCode, setRequiredOffCode] = useState<string | null>(null);
 
   // Anchor-deep-link from disabled-card "Включить" buttons:
   //   /settings/journals#journal-<code>
@@ -130,8 +150,20 @@ export function JournalsSettingsClient({
     [items, state]
   );
 
-  function toggle(code: string) {
+  function forceToggle(code: string) {
     setState((prev) => ({ ...prev, [code]: !prev[code] }));
+  }
+
+  function toggle(code: string) {
+    // Выключение обязательного журнала — через подтверждение: человек
+    // должен увидеть, чем это грозит на проверке. Условные («нужен при
+    // наличии фритюра») выключаются молча: оборудования может не быть.
+    const rule = requiredMap.get(code);
+    if (rule && !rule.condition && state[code]) {
+      setRequiredOffCode(code);
+      return;
+    }
+    forceToggle(code);
   }
 
   function toggleExpanded(code: string) {
@@ -210,13 +242,6 @@ export function JournalsSettingsClient({
     }
   }
 
-  function selectAll() {
-    setState(Object.fromEntries(items.map((item) => [item.code, true])));
-  }
-  function deselectAll() {
-    setState(Object.fromEntries(items.map((item) => [item.code, false])));
-  }
-
   async function handleSave() {
     setSaving(true);
     try {
@@ -245,58 +270,295 @@ export function JournalsSettingsClient({
     }
   }
 
+  function renderCard(item: Item) {
+    const enabled = state[item.code];
+    const isHighlighted = highlightCode === item.code;
+    const isExpanded = expandedCode === item.code;
+    const dist = distState[item.code];
+    const ModeIcon = FILL_MODE_LABELS[dist.fillMode].icon;
+    return (
+      <div
+        key={item.code}
+        id={`journal-${item.code}`}
+        className={`flex h-full flex-col scroll-mt-24 rounded-2xl border bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
+          enabled
+            ? "border-[#ececf4] hover:border-[#d6d9ee]"
+            : "border-[#ececf4] opacity-60 hover:opacity-90"
+        } ${
+          isHighlighted
+            ? "ring-2 ring-[#5566f6] ring-offset-2 ring-offset-white"
+            : ""
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => toggle(item.code)}
+          className="flex items-start gap-4 px-5 py-5 text-left"
+        >
+          <Switch
+            checked={enabled}
+            onCheckedChange={() => toggle(item.code)}
+            className="mt-0.5"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
+              {item.name}
+            </div>
+            {item.description ? (
+              <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#6f7282]">
+                {item.description}
+              </div>
+            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {item.isMandatorySanpin ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
+                  <ShieldCheck className="size-3" />
+                  СанПиН
+                </span>
+              ) : null}
+              {item.isMandatoryHaccp ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
+                  <ShieldAlert className="size-3" />
+                  ХАССП
+                </span>
+              ) : null}
+              <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
+                {item.code}
+              </span>
+            </div>
+          </div>
+        </button>
+
+        {/* Distribution settings — раскрывается по кнопке */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleExpanded(item.code);
+          }}
+          className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Settings2 className="size-3.5" />
+            <span className="font-semibold">Распределение:</span>
+            <ModeIcon className="size-3.5" />
+            {FILL_MODE_LABELS[dist.fillMode].label}
+            {dist.bonusAmountKopecks > 0 ? (
+              <span className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[10px] font-medium text-[#116b2a]">
+                +{(dist.bonusAmountKopecks / 100).toFixed(0)} ₽
+              </span>
+            ) : null}
+          </span>
+          {isExpanded ? (
+            <ChevronUp className="size-3.5" />
+          ) : (
+            <ChevronDown className="size-3.5" />
+          )}
+        </button>
+
+        <Link
+          href={`/settings/journals/${item.code}/scope`}
+          onClick={(e) => e.stopPropagation()}
+          className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          <span className="inline-flex items-center gap-2">
+            <ClipboardList className="size-3.5" />
+            <span className="font-semibold">Тип задачи и кнопки</span>
+            <span className="text-[#6f7282]">— настроить</span>
+          </span>
+          <span className="text-[10px] text-[#9b9fb3]">→</span>
+        </Link>
+
+        {isExpanded ? (
+          <DistributionEditor
+            item={item}
+            dist={dist}
+            positions={positions}
+            users={users}
+            onModeChange={(mode) => setItemFillMode(item.code, mode)}
+            onAssigneeChange={(id) =>
+              setItemAssignee(item.code, id)
+            }
+            onPositionToggle={(id) =>
+              togglePosition(item.code, id)
+            }
+            onBonusChange={(rub) =>
+              setItemBonus(item.code, Math.round(rub * 100))
+            }
+            onSave={() => saveDistribution(item.code)}
+            saving={distSavingCode === item.code}
+          />
+        ) : null}
+      </div>
+    )
+  }
+
+  // Группы: обязательные по сфере, рекомендованные, всё остальное.
+  // Порядок внутри группы — как в каталоге, чтобы список не «прыгал»
+  // при переключении тумблеров.
+  const rules = rulesFor(sphere);
+  const requiredMap = useMemo(
+    () => new Map(rules.electronicRequired.map((rule) => [rule.code, rule])),
+    [rules],
+  );
+  const recommendedSet = useMemo(
+    () => new Set(rules.electronicRecommended),
+    [rules],
+  );
+  const groups = useMemo(() => {
+    const required: Item[] = [];
+    const recommended: Item[] = [];
+    const rest: Item[] = [];
+    for (const item of items) {
+      if (requiredMap.has(item.code)) required.push(item);
+      else if (recommendedSet.has(item.code)) recommended.push(item);
+      else rest.push(item);
+    }
+    return { required, recommended, rest };
+  }, [items, requiredMap, recommendedSet]);
+
+  const paperJournals = useMemo(() => paperJournalsFor(sphere), [sphere]);
+
+  /** Сколько журналов включим/выключим, если применить набор сферы. */
+  function diffFor(nextSphere: OrgSphere) {
+    const nextRequired = new Set(requiredCodesFor(nextSphere));
+    let willEnable = 0;
+    let willDisable = 0;
+    let manual = 0;
+    for (const item of items) {
+      const on = state[item.code];
+      if (nextRequired.has(item.code)) {
+        if (!on) willEnable += 1;
+      } else if (on) {
+        // Ручные включения вне обязательного набора сохраняем — человек
+        // сам их поставил, наш пересчёт не должен их сносить.
+        manual += 1;
+      }
+      if (requiredMap.has(item.code) && !nextRequired.has(item.code) && on) {
+        willDisable += 1;
+      }
+    }
+    return { willEnable, willDisable, manual };
+  }
+
+  function applyRequired(nextSphere: OrgSphere) {
+    const nextRequired = new Set(requiredCodesFor(nextSphere));
+    setState((prev) => {
+      const next = { ...prev };
+      for (const code of nextRequired) next[code] = true;
+      return next;
+    });
+  }
+
+  async function confirmSphereChange() {
+    const next = sphereDraft;
+    setSwitchingSphere(true);
+    try {
+      const response = await fetch("/api/settings/organization", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: next }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Не удалось сменить сферу");
+      }
+      applyRequired(next);
+      toast.success(`Сфера: ${sphereLabel(next)}. Не забудьте сохранить набор.`);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+      setSphereDraft(sphere);
+    } finally {
+      setSwitchingSphere(false);
+      setSphereConfirmOpen(false);
+    }
+  }
+
+  const sphereDiff = diffFor(sphereDraft);
+
   return (
     <div className="space-y-6">
-      {/* Dark hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <ClipboardList className="size-6" />
-              </div>
-              <div>
-                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
+      {/* Шапка страницы настроек — карточка, а не тёмный hero: hero здесь
+          занимал экран и ничего не сообщал, кроме счётчика. */}
+      <section className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+              <ClipboardList className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-[#0b1024]">
                   Набор журналов
                 </h1>
-                <p className="mt-2 max-w-[560px] text-[15px] text-white/70">
-                  Выберите журналы, которые ваша компания реально ведёт.
-                  Отключённые не будут отображаться в дашборде и не пойдут в
-                  расчёт готовности. Их всегда можно включить обратно.
-                </p>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2.5 py-1 text-[12px] font-medium text-[#5566f6]">
+                  <CheckCircle2 className="size-3.5" />
+                  Включено {enabledCount} из {totalCount}
+                </span>
               </div>
+              <p className="mt-2 max-w-[640px] text-[14px] leading-relaxed text-[#6f7282]">
+                {rules.intro}{" "}
+                <a
+                  href={rules.introLaw.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-medium text-[#5566f6] hover:underline"
+                >
+                  {rules.introLaw.label}
+                  <ExternalLink className="size-3" />
+                </a>
+              </p>
             </div>
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
-              <CheckCircle2 className="size-3.5" />
-              Включено: {enabledCount} / {totalCount}
-            </div>
+          </div>
+
+          <div className="w-full sm:w-[280px]">
+            <label className="mb-1.5 block text-[13px] font-medium text-[#3c4053]">
+              Сфера деятельности
+            </label>
+            <span className="relative block">
+              <select
+                value={sphereDraft}
+                onChange={(e) => setSphereDraft(e.target.value as OrgSphere)}
+                className="h-11 w-full appearance-none rounded-2xl border border-[#dcdfed] bg-white pl-4 pr-10 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              >
+                {ORG_SPHERES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[#9b9fb3]" />
+            </span>
+            {sphereDraft !== sphere ? (
+              <div className="mt-2 rounded-xl bg-[#f5f6ff] p-2.5 text-[12px] leading-relaxed text-[#3c4053]">
+                Включим: {sphereDiff.willEnable} · Выключим:{" "}
+                {sphereDiff.willDisable} · Ваши ручные останутся:{" "}
+                {sphereDiff.manual}
+                <button
+                  type="button"
+                  onClick={() => setSphereConfirmOpen(true)}
+                  className="mt-2 inline-flex h-9 w-full items-center justify-center rounded-xl bg-[#5566f6] text-[13px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+                >
+                  Сменить сферу
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setApplyConfirmOpen(true)}
+                className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                <ShieldCheck className="size-4 text-[#5566f6]" />
+                Включить обязательные
+              </button>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Bulk toggles + save */}
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={selectAll}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-          >
-            <Eye className="size-4 text-[#5566f6]" />
-            Включить все
-          </button>
-          <button
-            type="button"
-            onClick={deselectAll}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#d2453d]/40 hover:bg-[#fff4f2]"
-          >
-            <EyeOff className="size-4 text-[#d2453d]" />
-            Отключить все
-          </button>
-        </div>
+      <div className="flex justify-end">
         <Button
           type="button"
           onClick={handleSave}
@@ -308,132 +570,212 @@ export function JournalsSettingsClient({
         </Button>
       </div>
 
-      {/* Items grid */}
+      <GroupHeading
+        title="Обязательные электронные"
+        hint="Роспотребнадзор"
+        count={groups.required.length}
+        tone="required"
+      />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => {
-          const enabled = state[item.code];
-          const isHighlighted = highlightCode === item.code;
-          const isExpanded = expandedCode === item.code;
-          const dist = distState[item.code];
-          const ModeIcon = FILL_MODE_LABELS[dist.fillMode].icon;
-          return (
+        {groups.required.map((item) => renderCard(item))}
+      </div>
+
+      {groups.recommended.length > 0 ? (
+        <>
+          <GroupHeading
+            title={`Рекомендуем для сферы «${sphereLabel(sphere)}»`}
+            count={groups.recommended.length}
+            tone="recommended"
+          />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.recommended.map((item) => renderCard(item))}
+          </div>
+        </>
+      ) : null}
+
+      <details className="group rounded-2xl border border-[#ececf4] bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+          <span className="text-[15px] font-semibold text-[#0b1024]">
+            Остальные журналы
+            <span className="ml-2 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[12px] font-medium text-[#6f7282]">
+              {groups.rest.length}
+            </span>
+          </span>
+          <ChevronDown className="size-4 text-[#9b9fb3] transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-[#eef0f6] p-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.rest.map((item) => renderCard(item))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setDisableRestConfirmOpen(true)}
+            className="mt-4 inline-flex items-center gap-2 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#d2453d]"
+          >
+            <EyeOff className="size-4" />
+            Отключить все, кроме обязательных
+          </button>
+        </div>
+      </details>
+
+      <section id="paper" className="scroll-mt-24 space-y-3">
+        <GroupHeading
+          title="Обязательные бумажные"
+          hint="электронная форма не принимается"
+          count={paperJournals.length}
+          tone="paper"
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {paperJournals.map((journal) => (
             <div
-              key={item.code}
-              id={`journal-${item.code}`}
-              className={`flex h-full flex-col scroll-mt-24 rounded-2xl border bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
-                enabled
-                  ? "border-[#ececf4] hover:border-[#d6d9ee]"
-                  : "border-[#ececf4] opacity-60 hover:opacity-90"
-              } ${
-                isHighlighted
-                  ? "ring-2 ring-[#5566f6] ring-offset-2 ring-offset-white"
-                  : ""
-              }`}
+              key={journal.id}
+              className="flex h-full flex-col rounded-2xl border border-[#ffd9d0] bg-[#fff8f6] p-5"
             >
-              <button
-                type="button"
-                onClick={() => toggle(item.code)}
-                className="flex items-start gap-4 px-5 py-5 text-left"
-              >
-                <Switch
-                  checked={enabled}
-                  onCheckedChange={() => toggle(item.code)}
-                  className="mt-0.5"
-                  onClick={(e) => e.stopPropagation()}
-                />
+              <div className="flex items-start gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#fff4f2] text-[#a13a32]">
+                  <Printer className="size-4" />
+                </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
-                    {item.name}
+                    {journal.name}
                   </div>
-                  {item.description ? (
-                    <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#6f7282]">
-                      {item.description}
-                    </div>
-                  ) : null}
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    {item.isMandatorySanpin ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
-                        <ShieldCheck className="size-3" />
-                        СанПиН
-                      </span>
-                    ) : null}
-                    {item.isMandatoryHaccp ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
-                        <ShieldAlert className="size-3" />
-                        ХАССП
-                      </span>
-                    ) : null}
-                    <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
-                      {item.code}
-                    </span>
-                  </div>
+                  <span className="mt-1.5 inline-flex items-center rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                    Только на бумаге
+                  </span>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[#6f7282]">
+                    {journal.why} Штраф {journal.fineHint}.
+                  </p>
+                  <a
+                    href={journal.law.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-medium text-[#5566f6] hover:underline"
+                  >
+                    {journal.law.label}
+                    <ExternalLink className="size-3" />
+                  </a>
                 </div>
-              </button>
-
-              {/* Distribution settings — раскрывается по кнопке */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpanded(item.code);
-                }}
-                className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Settings2 className="size-3.5" />
-                  <span className="font-semibold">Распределение:</span>
-                  <ModeIcon className="size-3.5" />
-                  {FILL_MODE_LABELS[dist.fillMode].label}
-                  {dist.bonusAmountKopecks > 0 ? (
-                    <span className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[10px] font-medium text-[#116b2a]">
-                      +{(dist.bonusAmountKopecks / 100).toFixed(0)} ₽
-                    </span>
-                  ) : null}
-                </span>
-                {isExpanded ? (
-                  <ChevronUp className="size-3.5" />
-                ) : (
-                  <ChevronDown className="size-3.5" />
-                )}
-              </button>
-
-              <Link
-                href={`/settings/journals/${item.code}/scope`}
-                onClick={(e) => e.stopPropagation()}
-                className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <ClipboardList className="size-3.5" />
-                  <span className="font-semibold">Тип задачи и кнопки</span>
-                  <span className="text-[#6f7282]">— настроить</span>
-                </span>
-                <span className="text-[10px] text-[#9b9fb3]">→</span>
-              </Link>
-
-              {isExpanded ? (
-                <DistributionEditor
-                  item={item}
-                  dist={dist}
-                  positions={positions}
-                  users={users}
-                  onModeChange={(mode) => setItemFillMode(item.code, mode)}
-                  onAssigneeChange={(id) =>
-                    setItemAssignee(item.code, id)
-                  }
-                  onPositionToggle={(id) =>
-                    togglePosition(item.code, id)
-                  }
-                  onBonusChange={(rub) =>
-                    setItemBonus(item.code, Math.round(rub * 100))
-                  }
-                  onSave={() => saveDistribution(item.code)}
-                  saving={distSavingCode === item.code}
-                />
-              ) : null}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href={`/api/settings/journals/paper/${journal.id}/pdf`}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <Download className="size-3.5 text-[#5566f6]" />
+                  Скачать бланк
+                </a>
+                <Link
+                  href={`/settings/journals/paper/${journal.id}`}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#5566f6] px-3 text-[13px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+                >
+                  <Printer className="size-3.5" />
+                  Заполнить и распечатать
+                </Link>
+              </div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={requiredOffCode !== null}
+        onClose={() => setRequiredOffCode(null)}
+        onConfirm={() => {
+          if (requiredOffCode) forceToggle(requiredOffCode);
+          setRequiredOffCode(null);
+        }}
+        variant="warn"
+        title={`Выключить обязательный журнал?`}
+        description={`Журнал обязателен для сферы «${sphereLabel(sphere)}».`}
+        bullets={[
+          { label: "Исчезнет из дашборда и из задач сотрудникам", tone: "warn" },
+          { label: "Перестанет учитываться в готовности", tone: "default" },
+          { label: `Проверка Роспотребнадзора — ${rules.introLaw.label}, до 50 000 ₽`, tone: "warn" },
+        ]}
+        confirmLabel="Всё равно выключить"
+      />
+
+      <ConfirmDialog
+        open={sphereConfirmOpen}
+        onClose={() => {
+          setSphereConfirmOpen(false);
+          setSphereDraft(sphere);
+        }}
+        onConfirm={confirmSphereChange}
+        variant="info"
+        title={`Сменить сферу на «${sphereLabel(sphereDraft)}»?`}
+        description="Пересчитаем обязательный набор журналов. Всё, что вы включили руками, останется."
+        bullets={[
+          { label: `Включим: ${sphereDiff.willEnable}`, tone: "info" },
+          { label: `Выключим: ${sphereDiff.willDisable}`, tone: "default" },
+          { label: `Ваши ручные останутся: ${sphereDiff.manual}`, tone: "default" },
+        ]}
+        confirmLabel={switchingSphere ? "Меняю…" : "Сменить"}
+      />
+
+      <ConfirmDialog
+        open={applyConfirmOpen}
+        onClose={() => setApplyConfirmOpen(false)}
+        onConfirm={() => {
+          applyRequired(sphere);
+          setApplyConfirmOpen(false);
+        }}
+        variant="info"
+        title="Включить обязательные журналы?"
+        description={`Минимум для сферы «${sphereLabel(sphere)}». Остальное не трогаем.`}
+        bullets={[{ label: `Включим: ${diffFor(sphere).willEnable}`, tone: "info" }]}
+        confirmLabel="Включить"
+      />
+
+      <ConfirmDialog
+        open={disableRestConfirmOpen}
+        onClose={() => setDisableRestConfirmOpen(false)}
+        onConfirm={() => {
+          setState(
+            Object.fromEntries(
+              items.map((item) => [item.code, requiredMap.has(item.code)]),
+            ),
           );
-        })}
-      </div>
+          setDisableRestConfirmOpen(false);
+        }}
+        variant="warn"
+        title="Отключить все, кроме обязательных?"
+        description="Останется только минимум для вашей сферы."
+        bullets={[
+          { label: "Отключённые журналы исчезнут из дашборда", tone: "warn" },
+          { label: "Записи останутся в архиве — ничего не удаляем", tone: "default" },
+        ]}
+        confirmLabel="Отключить"
+      />
+    </div>
+  );
+}
+
+function GroupHeading({
+  title,
+  hint,
+  count,
+  tone,
+}: {
+  title: string;
+  hint?: string;
+  count: number;
+  tone: "required" | "recommended" | "paper";
+}) {
+  const dot =
+    tone === "required"
+      ? "bg-[#5566f6]"
+      : tone === "paper"
+        ? "bg-[#d2453d]"
+        : "bg-[#9b9fb3]";
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1">
+      <span className={`size-2 rounded-full ${dot}`} aria-hidden />
+      <h2 className="text-[15px] font-semibold text-[#0b1024]">{title}</h2>
+      {hint ? <span className="text-[13px] text-[#9b9fb3]">· {hint}</span> : null}
+      <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[12px] font-medium text-[#6f7282]">
+        {count}
+      </span>
     </div>
   );
 }

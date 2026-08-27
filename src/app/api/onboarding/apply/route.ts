@@ -82,7 +82,11 @@ export async function POST(request: Request) {
   const preset = getOnboardingPreset(sphereToPreset(type));
   const applyJournals = body.data.applyJournalAccess ?? true;
   const seedStaff = body.data.seedDemoStaff ?? false;
-  const applyDisabledJournals = body.data.applyDisabledJournals ?? true;
+  // По умолчанию пресет должностей больше НЕ трогает набор журналов.
+  // Раньше «Применить пресет» затирал `disabledJournalCodes`, отменяя и
+  // ручные тумблеры, и набор по сфере — три системы писали в одно поле
+  // и переигрывали друг друга. Пресет — про должности.
+  const applyDisabledJournals = body.data.applyDisabledJournals ?? false;
   const applyAutoJournals = body.data.applyAutoJournals ?? true;
   const updateOrgType = body.data.updateOrgType ?? false;
 

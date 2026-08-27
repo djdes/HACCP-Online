@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { normalizeSphere } from "@/lib/org-profile";
+import { defaultDisabledCodesFor } from "@/lib/sphere-journal-rules";
 import bcrypt from "bcryptjs";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -67,6 +69,18 @@ export async function POST(request: Request) {
   // в шапку кабинета и в подписи под записями журналов.
   const displayName = data.name?.trim() || data.organizationName;
 
+  // Набор журналов по сфере. Пишем только если организация ещё не
+  // трогала список руками: пустой `disabledJournalCodes` означает
+  // «включено всё» — состояние сразу после регистрации. Если человек
+  // уже что-то выключал, его выбор важнее нашего дефолта.
+  const current = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { disabledJournalCodes: true },
+  });
+  const untouchedJournals =
+    !Array.isArray(current?.disabledJournalCodes) ||
+    current.disabledJournalCodes.length === 0;
+
   await db.$transaction(async (tx) => {
     await tx.organization.update({
       where: { id: organizationId },
@@ -76,6 +90,9 @@ export async function POST(request: Request) {
         ownershipKind: data.ownershipKind,
         locationsCount: data.locationsCount,
         inn: data.inn?.trim() || null,
+        ...(untouchedJournals
+          ? { disabledJournalCodes: defaultDisabledCodesFor(normalizeSphere(data.sphere)) }
+          : {}),
       },
     });
     await tx.user.update({
