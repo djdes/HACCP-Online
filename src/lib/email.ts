@@ -14,18 +14,83 @@ function isLocalSmtpHost(): boolean {
   return LOCAL_SMTP_HOSTS.has((process.env.SMTP_HOST ?? "localhost").trim());
 }
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "localhost",
-  port: Number(process.env.SMTP_PORT) || 25,
-  secure: false,
-  tls: {
-    rejectUnauthorized: !isLocalSmtpHost(),
-  },
-  connectionTimeout: 5000,
-  socketTimeout: 5000,
-});
-
 const FROM = process.env.SMTP_FROM || "WeSetup <noreply@wesetup.ru>";
+
+/**
+ * Домен из SMTP_FROM — «WeSetup <noreply@wesetup.ru>» → «wesetup.ru».
+ * Нужен как дефолт для EHLO: exim на проде представляется именем
+ * машины (`yesbeat.ru`), которое не совпадает с доменом отправителя, и
+ * часть спам-фильтров это штрафует.
+ */
+function fromDomain(): string | null {
+  const match = FROM.match(/@([^\s>]+)/);
+  return match ? match[1].trim().toLowerCase() : null;
+}
+
+/**
+ * Имя, которым мы представляемся серверу в EHLO. Явно настраивается через
+ * `SMTP_HELO_NAME` — если у relay сменится хостнейм или понадобится
+ * подогнать имя под PTR-запись, это правка одной переменной окружения.
+ */
+function heloName(): string | undefined {
+  const explicit = process.env.SMTP_HELO_NAME?.trim();
+  if (explicit) return explicit;
+  return fromDomain() ?? undefined;
+}
+
+function createSmtpTransport() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "localhost",
+    port: Number(process.env.SMTP_PORT) || 25,
+    secure: false,
+    ...(heloName() ? { name: heloName() } : {}),
+    tls: {
+      rejectUnauthorized: !isLocalSmtpHost(),
+    },
+    connectionTimeout: 5000,
+    socketTimeout: 5000,
+  });
+}
+
+/**
+ * Транспорт письма. Сейчас поддерживается только локальный SMTP (exim на
+ * 127.0.0.1) — это дефолт и рабочий вариант: SPF/DKIM для wesetup.ru
+ * настроены. Ветка по `EMAIL_TRANSPORT` заложена заранее, чтобы переезд
+ * на внешнего провайдера (если письма начнут падать в спам) был правкой
+ * одного этого модуля, а не всех вызывающих мест: добавляется ещё один
+ * `case` с реализацией `deliver`, всё остальное не меняется.
+ */
+type EmailTransport = {
+  name: string;
+  deliver(message: {
+    to: string;
+    subject: string;
+    html: string;
+  }): Promise<void>;
+};
+
+let cachedTransport: EmailTransport | null = null;
+
+function getTransport(): EmailTransport {
+  if (cachedTransport) return cachedTransport;
+
+  const kind = (process.env.EMAIL_TRANSPORT ?? "smtp").trim().toLowerCase();
+  if (kind !== "smtp" && kind !== "") {
+    console.error(
+      `[email] неизвестный EMAIL_TRANSPORT="${kind}", используем smtp`
+    );
+  }
+
+  const smtp = createSmtpTransport();
+  cachedTransport = {
+    name: "smtp",
+    async deliver({ to, subject, html }) {
+      await smtp.sendMail({ from: FROM, to, subject, html });
+    },
+  };
+  return cachedTransport;
+}
+
 const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
 /**
@@ -71,7 +136,17 @@ function isSmtpConfigured(): boolean {
   return host.length > 0 && host !== "localhost";
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
+/**
+ * Возвращает true, если письмо принято транспортом. Раньше функция
+ * возвращала void и глотала ошибку в console.error — вызывающий код не мог
+ * отличить «ушло» от «упало», и в панели обращений было не видно, что
+ * почтовый канал молчит. Fire-and-forget вызовы просто игнорируют результат.
+ */
+async function sendEmail(
+  to: string,
+  subject: string,
+  html: string
+): Promise<boolean> {
   if (!isSmtpConfigured()) {
     const stripped = html
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -83,12 +158,14 @@ async function sendEmail(to: string, subject: string, html: string) {
     );
     console.info(`[email/dev] Subject: ${subject}`);
     console.info(`[email/dev] Body:    ${stripped}`);
-    return;
+    return false;
   }
   try {
-    await transporter.sendMail({ from: FROM, to, subject, html });
+    await getTransport().deliver({ to, subject, html });
+    return true;
   } catch (error) {
     console.error("Email send error:", error);
+    return false;
   }
 }
 
@@ -106,7 +183,7 @@ export async function sendVerificationEmail(to: string, code: string) {
       <p style="margin:0;font-size:32px;font-weight:700;letter-spacing:8px;color:#18181b">${escapeHtml(code)}</p>
     </div>
     <p style="margin:0;color:#71717a;font-size:13px">Код действителен 10 минут. Если вы не запрашивали регистрацию, проигнорируйте это письмо.</p>`;
-  await sendEmail(to, subject, layout(subject, body));
+  return sendEmail(to, subject, layout(subject, body));
 }
 
 export async function sendInviteTokenEmail(params: {
@@ -122,7 +199,7 @@ export async function sendInviteTokenEmail(params: {
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Вас пригласили в организацию <strong>${escapeHtml(organizationName)}</strong>. Нажмите кнопку ниже, чтобы установить пароль и войти.</p>
     <a href="${inviteUrl}" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Установить пароль</a>
     <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa">Ссылка действительна 7 дней. После установки пароля приглашение станет недействительным.</p>`;
-  await sendEmail(to, subject, layout(subject, body));
+  return sendEmail(to, subject, layout(subject, body));
 }
 
 export async function sendInviteEmail(params: {
@@ -145,7 +222,7 @@ export async function sendInviteEmail(params: {
     <a href="${APP_URL}/login" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Войти в систему</a>
     <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa">Рекомендуем сменить пароль после первого входа.</p>`;
 
-  await sendEmail(to, subject, layout("Приглашение в систему", body));
+  return sendEmail(to, subject, layout("Приглашение в систему", body));
 }
 
 /**
@@ -173,7 +250,7 @@ export async function sendAccountPasswordEmail(params: {
     <a href="${APP_URL}/dashboard" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть кабинет</a>
     <p style="margin:24px 0 0;color:#71717a;font-size:13px">Пароль можно сменить в настройках профиля. В кабинете осталось заполнить данные организации — они попадают в шапку журналов и PDF для проверок.</p>`;
 
-  await sendEmail(to, subject, layout("Аккаунт создан", body));
+  return sendEmail(to, subject, layout("Аккаунт создан", body));
 }
 
 /**
@@ -194,7 +271,7 @@ export async function sendPasswordResetEmail(params: {
     <a href="${resetUrl}" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Задать новый пароль</a>
     <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa">Ссылка действительна 7 дней. Если вы не запрашивали восстановление — просто проигнорируйте письмо, пароль останется прежним.</p>`;
 
-  await sendEmail(to, subject, layout(subject, body));
+  return sendEmail(to, subject, layout(subject, body));
 }
 
 export async function sendWelcomeEmail(params: {
@@ -217,7 +294,7 @@ export async function sendWelcomeEmail(params: {
     </div>
     <a href="${APP_URL}/dashboard" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Перейти в панель</a>`;
 
-  await sendEmail(to, subject, layout("Добро пожаловать!", body));
+  return sendEmail(to, subject, layout("Добро пожаловать!", body));
 }
 
 /**
@@ -261,12 +338,34 @@ export async function sendPaymentReceiptEmail(params: {
     }</a>
     <p style="margin:24px 0 0;color:#71717a;font-size:13px">Вопросы по оплате и возврату — support@wesetup.ru.</p>`;
 
-  await sendEmail(to, subject, layout(subject, body));
+  return sendEmail(to, subject, layout(subject, body));
 }
+
+export type FeedbackType = "bug" | "suggestion" | "support";
+
+const FEEDBACK_TYPE_THEME: Record<
+  FeedbackType,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  bug: { label: "Ошибка", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  suggestion: {
+    label: "Предложение",
+    color: "#5566f6",
+    bg: "#eef1ff",
+    border: "#c7ccea",
+  },
+  // Обращение из Telegram-бота: человек просто написал в поддержку.
+  support: {
+    label: "Поддержка",
+    color: "#0f7a5a",
+    bg: "#ecfdf5",
+    border: "#b6e3d2",
+  },
+};
 
 export async function sendFeedbackAdminEmail(params: {
   to: string;
-  type: "bug" | "suggestion";
+  type: FeedbackType;
   message: string;
   userName?: string | null;
   userEmail?: string | null;
@@ -284,10 +383,11 @@ export async function sendFeedbackAdminEmail(params: {
     phone,
     submittedAt,
   } = params;
-  const typeLabel = type === "bug" ? "Ошибка" : "Предложение";
-  const typeColor = type === "bug" ? "#dc2626" : "#5566f6";
-  const typeBg = type === "bug" ? "#fef2f2" : "#eef1ff";
-  const typeBorder = type === "bug" ? "#fecaca" : "#c7ccea";
+  const theme = FEEDBACK_TYPE_THEME[type] ?? FEEDBACK_TYPE_THEME.suggestion;
+  const typeLabel = theme.label;
+  const typeColor = theme.color;
+  const typeBg = theme.bg;
+  const typeBorder = theme.border;
   const whenLabel = (submittedAt ?? new Date()).toLocaleString("ru-RU", {
     timeZone: "Europe/Moscow",
   });
@@ -312,7 +412,66 @@ export async function sendFeedbackAdminEmail(params: {
     </table>
     <a href="${APP_URL}/root/feedback" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть панель обращений</a>`;
 
-  await sendEmail(to, subject, layout(`Обратная связь — ${typeLabel}`, body));
+  return sendEmail(to, subject, layout(`Обратная связь — ${typeLabel}`, body));
+}
+
+/**
+ * Ответ поддержки автору обращения.
+ *
+ * Раньше ответ жил только во внутреннем колокольчике — человек, который
+ * написал с телефона и больше на сайт не заходил, его не видел. Письмо
+ * цитирует исходное обращение, чтобы получатель понял, о чём речь.
+ */
+export async function sendFeedbackReplyEmail(params: {
+  to: string;
+  replyMessage: string;
+  originalMessage: string;
+  respondedByName?: string | null;
+}): Promise<boolean> {
+  const { to, replyMessage, originalMessage, respondedByName } = params;
+  const subject = "Ответ на ваше обращение — WeSetup";
+
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Мы ответили на ваше обращение${
+      respondedByName ? ` — ${escapeHtml(respondedByName)}` : ""
+    }:</p>
+    <div style="background:#eef1ff;border:1px solid #c7ccea;border-radius:8px;padding:20px;margin:0 0 20px">
+      <p style="margin:0;white-space:pre-wrap;color:#18181b;font-size:14px;line-height:1.55">${escapeHtml(replyMessage)}</p>
+    </div>
+    <div style="border-left:3px solid #e4e4e7;padding:0 0 0 14px;margin:0 0 24px">
+      <p style="margin:0 0 6px;font-size:12px;color:#a1a1aa">Ваше обращение</p>
+      <p style="margin:0;white-space:pre-wrap;color:#71717a;font-size:13px;line-height:1.5">${escapeHtml(originalMessage)}</p>
+    </div>
+    <a href="${APP_URL}/dashboard" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть WeSetup</a>
+    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Ответить можно прямо на это письмо или написать боту @wesetupbot в Telegram.</p>`;
+
+  return sendEmail(to, subject, layout("Ответ поддержки", body));
+}
+
+/**
+ * Тест-письмо для кнопки «Проверить связь» в /root/feedback. Владелец
+ * должен видеть своими глазами, куда реально приходят служебные письма,
+ * а не выяснять это по логам.
+ */
+export async function sendPlatformAdminTestEmail(params: {
+  to: string;
+  triggeredBy: string;
+}): Promise<boolean> {
+  const { to, triggeredBy } = params;
+  const subject = "Проверка связи — WeSetup";
+  const when = new Date().toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Это тестовое письмо из панели обращений WeSetup. Если вы его читаете — почтовый канал служебных уведомлений работает и письма не уходят в спам.</p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 24px">
+      <tr><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#71717a;font-size:13px;width:140px">Адрес</td><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#18181b">${escapeHtml(to)}</td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#71717a;font-size:13px">Запустил</td><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#18181b">${escapeHtml(triggeredBy)}</td></tr>
+      <tr><td style="padding:8px 0;color:#71717a;font-size:13px">Время</td><td style="padding:8px 0;color:#18181b">${escapeHtml(when)}</td></tr>
+    </table>
+    <p style="margin:0;color:#71717a;font-size:13px">Проверьте «Показать оригинал» в почтовом клиенте: должны быть spf=pass и dkim=pass для wesetup.ru.</p>`;
+
+  return sendEmail(to, subject, layout("Проверка связи", body));
 }
 
 export async function sendDeviationAlertEmail(params: {
@@ -338,7 +497,7 @@ export async function sendDeviationAlertEmail(params: {
     </table>
     <a href="${APP_URL}/journals/${encodeURIComponent(journalCode)}" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть журнал</a>`;
 
-  await sendEmail(to, subject, layout("Отклонение зафиксировано", body));
+  return sendEmail(to, subject, layout("Отклонение зафиксировано", body));
 }
 
 export async function sendComplianceReminderEmail(params: {
@@ -360,7 +519,7 @@ export async function sendComplianceReminderEmail(params: {
     </div>
     <a href="${APP_URL}/journals" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Заполнить журналы</a>`;
 
-  await sendEmail(to, subject, layout("Напоминание о журналах", body));
+  return sendEmail(to, subject, layout("Напоминание о журналах", body));
 }
 
 export async function sendTemperatureAlertEmail(params: {
@@ -393,5 +552,5 @@ export async function sendTemperatureAlertEmail(params: {
     </table>
     <a href="${APP_URL}/journals/temp_control" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть журнал</a>`;
 
-  await sendEmail(to, subject, layout("Температурный алерт", body));
+  return sendEmail(to, subject, layout("Температурный алерт", body));
 }

@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { sendFeedbackAdminEmail } from "@/lib/email";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { getPlatformAdminEmail, notifyPlatformAdmin } from "@/lib/platform-admin";
 import { escapeHtml } from "@/lib/html-escape";
 
 const feedbackSchema = z.object({
@@ -26,6 +26,7 @@ const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 function composeTelegramMessage(params: {
   type: "bug" | "suggestion";
   message: string;
+  reportId: string;
   userName?: string | null;
   userEmail?: string | null;
   organizationName?: string | null;
@@ -48,6 +49,9 @@ function composeTelegramMessage(params: {
     lines.push(`📞 ${escapeHtml(params.phone)}`);
   }
   lines.push("");
+  // Тот же якорь, что и у обращений из бота: на это сообщение можно
+  // ответить свайп-реплаем, и ответ уйдёт человеку.
+  lines.push(`#fb_${params.reportId}`);
   lines.push(
     `<a href="${APP_URL}/root/feedback">Открыть панель обращений</a>`
   );
@@ -57,12 +61,12 @@ function composeTelegramMessage(params: {
 /**
  * POST /api/feedback
  *
- * Stores an in-app feedback report and fires notifications to the admin:
- *  - email to FEEDBACK_ADMIN_EMAIL
- *  - Telegram message to FEEDBACK_ADMIN_TG_CHAT_ID
- *
- * Both notifications are fire-and-forget so the request still succeeds even
- * if SMTP or Telegram transiently fails — the DB row is the source of truth.
+ * Сохраняет обращение и уведомляет админа платформы — в Telegram
+ * (`notifyPlatformAdmin`) и на почту. Отправки уходят в `after()`:
+ * пользователь получает ответ сразу, а не ждёт SMTP и Telegram, но
+ * результат каждой доставки записывается в сам отчёт
+ * (`adminTgNotifiedAt` / `adminEmailedAt`) — раньше провал канала
+ * оставался только в console.error, и владелец о нём не узнавал.
  */
 export async function POST(request: Request) {
   const session = await requireAuth();
@@ -101,43 +105,59 @@ export async function POST(request: Request) {
       organizationId: orgId || null,
       organizationName,
       type: parsed.type,
+      source: "site",
       message: parsed.message,
       phone,
     },
   });
 
-  const adminEmail = process.env.FEEDBACK_ADMIN_EMAIL?.trim();
-  const adminTgChatId = process.env.FEEDBACK_ADMIN_TG_CHAT_ID?.trim();
+  after(async () => {
+    const adminEmail = getPlatformAdminEmail();
+    const [telegramOk, emailOk] = await Promise.all([
+      notifyPlatformAdmin(
+        composeTelegramMessage({
+          type: parsed.type,
+          message: parsed.message,
+          reportId: report.id,
+          userName: session.user.name ?? null,
+          userEmail: session.user.email ?? null,
+          organizationName,
+          phone,
+        }),
+        { kind: "feedback" }
+      ).catch((error) => {
+        console.error("Feedback telegram failed:", error);
+        return false;
+      }),
+      adminEmail
+        ? sendFeedbackAdminEmail({
+            to: adminEmail,
+            type: parsed.type,
+            message: parsed.message,
+            userName: session.user.name ?? null,
+            userEmail: session.user.email ?? null,
+            organizationName,
+            phone,
+            submittedAt: report.createdAt,
+          }).catch((error) => {
+            console.error("Feedback email failed:", error);
+            return false;
+          })
+        : Promise.resolve(false),
+    ]);
 
-  // Fire-and-forget — never block the user on transport failures.
-  if (adminEmail) {
-    sendFeedbackAdminEmail({
-      to: adminEmail,
-      type: parsed.type,
-      message: parsed.message,
-      userName: session.user.name ?? null,
-      userEmail: session.user.email ?? null,
-      organizationName,
-      phone,
-      submittedAt: report.createdAt,
-    }).catch((error) => {
-      console.error("Feedback email failed:", error);
-    });
-  }
-
-  if (adminTgChatId) {
-    const text = composeTelegramMessage({
-      type: parsed.type,
-      message: parsed.message,
-      userName: session.user.name ?? null,
-      userEmail: session.user.email ?? null,
-      organizationName,
-      phone,
-    });
-    sendTelegramMessage(adminTgChatId, text).catch((error) => {
-      console.error("Feedback telegram failed:", error);
-    });
-  }
+    try {
+      await db.feedbackReport.update({
+        where: { id: report.id },
+        data: {
+          adminTgNotifiedAt: telegramOk ? new Date() : null,
+          adminEmailedAt: emailOk ? new Date() : null,
+        },
+      });
+    } catch (error) {
+      console.error("Feedback delivery status update failed:", error);
+    }
+  });
 
   return NextResponse.json({ ok: true });
 }

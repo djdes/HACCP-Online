@@ -1,8 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireApiAuth } from "@/lib/auth-helpers";
-import { sendTelegramMessage, escapeTelegramHtml as esc } from "@/lib/telegram";
+import { escapeTelegramHtml as esc } from "@/lib/telegram";
+import {
+  getPlatformAdminEmail,
+  notifyPlatformAdmin,
+} from "@/lib/platform-admin";
+import { sendFeedbackAdminEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,16 +17,18 @@ export const dynamic = "force-dynamic";
  *
  * Body: { message: string }
  *
- * Принимает сообщение от management-юзера, шлёт в support-Telegram-
- * канал команды WeSetup. Канал-id в env SUPPORT_TELEGRAM_CHAT_ID.
+ * Принимает сообщение от management-юзера из виджета поддержки в
+ * кабинете и кладёт его в тот же ящик, что форма обратной связи и бот:
+ * строка `FeedbackReport` + уведомление админу платформы.
  *
- * Сообщение содержит контекст: org name, кто пишет (name + email +
- * phone), URL откуда отправлено, текст. Команда WeSetup отвечает
- * напрямую через Telegram.
+ * Раньше отсюда писали в отдельный `SUPPORT_TELEGRAM_CHAT_ID`. На проде
+ * он не задан — и каждое сообщение молча падало в AuditLog, где его
+ * никто не читал. Четвёртый канал с собственным chat id никому не был
+ * нужен: адрес админа платформы один (см. lib/platform-admin.ts).
  *
- * Если SUPPORT_TELEGRAM_CHAT_ID не настроен — endpoint логирует в БД
- * как fallback (новая модель не нужна, используем AuditLog с
- * action="support.message").
+ * Сообщение содержит контекст: организация, кто пишет (имя, почта,
+ * телефон), с какой страницы отправлено. Ответить можно реплаем на
+ * сообщение в Telegram по тегу #fb_<id> или из панели /root/feedback.
  */
 const bodySchema = z.object({
   message: z.string().min(5).max(2000),
@@ -73,52 +80,60 @@ export async function POST(request: Request) {
     (parsed.url ? `<b>Откуда:</b> ${esc(parsed.url)}\n` : "") +
     `\n${esc(parsed.message)}`;
 
-  const supportChatId = process.env.SUPPORT_TELEGRAM_CHAT_ID;
+  const report = await db.feedbackReport.create({
+    data: {
+      userId: session.user.id,
+      userEmail: user?.email ?? null,
+      userName: user?.name ?? null,
+      // orgId/orgName выше — «?» для текста сообщения; в БД такой
+      // внешний ключ не запишешь, поэтому берём настоящие значения.
+      organizationId: user?.organization?.id ?? null,
+      organizationName: user?.organization?.name ?? null,
+      type: "support",
+      source: "site",
+      message: parsed.message,
+      phone: user?.phone ?? null,
+    },
+    select: { id: true, createdAt: true },
+  });
 
-  if (supportChatId) {
-    try {
-      await sendTelegramMessage(supportChatId, text, {
-        userId: session.user.id,
-      });
-    } catch (err) {
-      console.error("[support] telegram send failed", err);
-      // Fallback в audit-log если TG недоступен.
-      await db.auditLog.create({
-        data: {
-          organizationId: orgId,
-          userId: session.user.id,
+  // Ответ реплаем в Telegram ищет этот тег — тот же формат, что у формы
+  // обратной связи и у сообщений боту.
+  const adminText = `${text}
+
+#fb_${report.id}`;
+
+  after(async () => {
+    const [tgOk, emailOk] = await Promise.all([
+      notifyPlatformAdmin(adminText, { kind: "support-widget" }),
+      (async () => {
+        const adminEmail = getPlatformAdminEmail();
+        if (!adminEmail) return false;
+        return sendFeedbackAdminEmail({
+          to: adminEmail,
+          type: "support",
+          message: parsed.message,
           userName: user?.name ?? null,
-          action: "support.message-failed",
-          entity: "Support",
-          details: {
-            text: parsed.message,
-            url: parsed.url ?? null,
-            error: err instanceof Error ? err.message : String(err),
-          },
+          userEmail: user?.email ?? null,
+          organizationName: orgName,
+          phone: user?.phone ?? null,
+          submittedAt: report.createdAt,
+        });
+      })(),
+    ]);
+
+    await db.feedbackReport
+      .update({
+        where: { id: report.id },
+        data: {
+          adminTgNotifiedAt: tgOk ? new Date() : null,
+          adminEmailedAt: emailOk ? new Date() : null,
         },
+      })
+      .catch((err) => {
+        console.error("[support] статусы доставки не записаны", err);
       });
-      return NextResponse.json(
-        { error: "Не удалось отправить — попробуйте позже" },
-        { status: 502 }
-      );
-    }
-  } else {
-    // Fallback — без TG-канала кладём в audit-log, чтобы команда могла
-    // прочитать через ROOT-страницу.
-    await db.auditLog.create({
-      data: {
-        organizationId: orgId,
-        userId: session.user.id,
-        userName: user?.name ?? null,
-        action: "support.message",
-        entity: "Support",
-        details: {
-          text: parsed.message,
-          url: parsed.url ?? null,
-        },
-      },
-    });
-  }
+  });
 
   return NextResponse.json({ ok: true });
 }

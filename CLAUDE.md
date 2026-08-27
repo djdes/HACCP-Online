@@ -720,9 +720,19 @@ TELEGRAM_BOT_TOKEN="..."
 TELEGRAM_LINK_TOKEN_SECRET="..."
 TELEGRAM_WEBHOOK_SECRET="..."
 
-# Email
-RESEND_API_KEY="..."
+# Email (nodemailer → локальный SMTP-relay; см. src/lib/email.ts)
+SMTP_HOST="127.0.0.1"
+SMTP_PORT="25"
+SMTP_FROM="WeSetup <noreply@wesetup.ru>"
+SMTP_HELO_NAME="wesetup.ru"   # имя в EHLO, по умолчанию домен из SMTP_FROM
+EMAIL_TRANSPORT="smtp"        # задел под внешнего провайдера
 EMAIL_VERIFICATION_TTL_MIN="10"
+
+# Уведомления админа платформы (обращения, регистрации, оплаты)
+PLATFORM_ADMIN_TELEGRAM_CHAT_ID="..."   # можно несколько через запятую
+PLATFORM_ADMIN_EMAIL="..."
+# legacy-fallback, читаются если новые не заданы:
+# FEEDBACK_ADMIN_TG_CHAT_ID, FEEDBACK_ADMIN_EMAIL
 
 # TasksFlow
 TASKSFLOW_API_URL="..."
