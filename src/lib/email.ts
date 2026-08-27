@@ -171,7 +171,7 @@ export async function sendAccountPasswordEmail(params: {
       <p style="margin:0;color:#18181b"><strong>Пароль:</strong> <span style="font-family:monospace;font-size:16px;letter-spacing:1px">${escapeHtml(password)}</span></p>
     </div>
     <a href="${APP_URL}/dashboard" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть кабинет</a>
-    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Пароль можно сменить в настройках профиля. В кабинете осталось подтвердить почту и заполнить данные организации — они попадают в шапку журналов и PDF для проверок.</p>`;
+    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Пароль можно сменить в настройках профиля. В кабинете осталось заполнить данные организации — они попадают в шапку журналов и PDF для проверок.</p>`;
 
   await sendEmail(to, subject, layout("Аккаунт создан", body));
 }

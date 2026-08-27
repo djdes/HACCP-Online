@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { PageGuide } from "@/components/ui/page-guide";
+import { EmailVerifyCard } from "@/components/settings/email-verify-card";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
@@ -386,7 +387,7 @@ export default async function SettingsPage() {
   }
   const orgId = getActiveOrgId(session);
 
-  const [areaCount, equipmentCount, userCount, productCount] =
+  const [areaCount, equipmentCount, userCount, productCount, me] =
     await Promise.all([
       db.area.count({ where: { organizationId: orgId } }),
       db.equipment.count({
@@ -394,10 +395,20 @@ export default async function SettingsPage() {
       }),
       db.user.count({ where: { organizationId: orgId, isActive: true } }),
       db.product.count({ where: { organizationId: orgId, isActive: true } }),
+      db.user.findUnique({
+        where: { id: session.user.id },
+        select: { email: true, emailVerifiedAt: true },
+      }),
     ]);
 
   return (
     <div className="space-y-5">
+      {/* Подтверждение почты. Показывается, пока не подтверждена: это
+          единственное место, где оно теперь живёт — из анкеты
+          регистрации его убрали, там оно блокировало «Готово». */}
+      {me && !me.emailVerifiedAt ? (
+        <EmailVerifyCard email={me.email} />
+      ) : null}
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
         <div className="pointer-events-none absolute inset-0">

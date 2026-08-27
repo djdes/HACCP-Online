@@ -25,9 +25,13 @@ import {
  */
 export async function QuickStartCard({
   organizationId,
+  userId,
   mode = "compact",
 }: {
   organizationId: string;
+  /// Нужен ради отметки о подтверждении почты — она у человека, а не
+  /// у организации.
+  userId?: string;
   mode?: "compact" | "full";
 }) {
   const [
@@ -45,6 +49,7 @@ export async function QuickStartCard({
     usersWithTelegramCount,
     checklistItemsCount,
     autoJournalsCount,
+    me,
   ] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
@@ -138,14 +143,32 @@ export async function QuickStartCard({
         : [];
       return codes.length;
     }),
+    userId
+      ? db.user.findUnique({
+          where: { id: userId },
+          select: { emailVerifiedAt: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   // Sane defaults для пустых значений.
   const orgName = org?.name?.trim() || "";
+  const emailVerifiedAt = me?.emailVerifiedAt ?? null;
   const orgInn = org?.inn?.trim() || "";
   const orgAddress = org?.address?.trim() || "";
 
   const items: QuickStartItem[] = [
+    {
+      id: "email-verify",
+      icon: "Briefcase",
+      label: "Подтвердить почту",
+      description:
+        "Шесть цифр из письма. Ничего не блокирует — нужно, чтобы мы могли до вас дописаться.",
+      status: emailVerifiedAt ? "done" : "empty",
+      href: "/settings#email-verify",
+      cta: "Подтвердить",
+      category: "company",
+    },
     {
       id: "company",
       icon: "Briefcase",

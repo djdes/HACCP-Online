@@ -394,7 +394,10 @@ export default async function DashboardPage() {
           организаций. Auto-hide когда всё настроено. Свёртывается
           вручную (localStorage). Только для management ролей. */}
       {hasFullWorkspaceAccess(session.user) ? (
-        <QuickStartCard organizationId={getActiveOrgId(session)} />
+        <QuickStartCard
+          organizationId={getActiveOrgId(session)}
+          userId={session.user.id}
+        />
       ) : null}
 
       {/* Action-first: what the user needs to do TODAY.
