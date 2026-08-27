@@ -16,6 +16,7 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
+import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
 import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +64,7 @@ export default async function DashboardLayout({
     // indigo и logoUrl для замены WESETUP-лейбла в шапке.
     db.organization.findUnique({
       where: { id: activeOrgId },
-      select: { brandColor: true, logoUrl: true },
+      select: { brandColor: true, logoUrl: true, name: true },
     }),
   ]);
 
@@ -71,14 +72,14 @@ export default async function DashboardLayout({
   const initialTheme: "light" | "dark" =
     profile?.themePreference === "dark" ? "dark" : "light";
 
-  // Анкета считается незаполненной, если аккаунт завели мгновенной
-  // регистрацией (имя = почта) или так и не указали телефон. Схему под
-  // это не меняли: старые аккаунты из визарда телефон указывали
-  // обязательно и под эвристику не попадают.
+  // Анкета считается незаполненной, если нет телефона или организация
+  // всё ещё называется заглушкой из мгновенной регистрации. На имя
+  // больше не смотрим: оно стало необязательным, и сервер подставляет
+  // туда название организации — старая проверка `name === email`
+  // никогда бы не сработала.
   //
   // ROOT и платформенная организация исключены: это служебный аккаунт
-  // владельца, у него нет и не должно быть анкеты заведения — эвристика
-  // цепляла его за отсутствующий телефон и показывала лишний баннер.
+  // владельца, у него нет и не должно быть анкеты заведения.
   const platformOrgId = (process.env.PLATFORM_ORG_ID ?? "platform").trim();
   const needsProfileCompletion =
     hasFullWorkspaceAccess(session.user) &&
@@ -86,7 +87,7 @@ export default async function DashboardLayout({
     session.user.isRoot !== true &&
     activeOrgId !== platformOrgId &&
     Boolean(profile) &&
-    (!profile?.phone || profile?.name === profile?.email);
+    (!profile?.phone || brandedOrg?.name === DEFAULT_ORG_NAME);
 
   // Validate hex color (#RRGGBB) — иначе CSS injection-vector.
   const brandColor =

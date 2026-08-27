@@ -26,7 +26,8 @@ const PASSWORD_ALPHABET =
   "23456789abcdefghjkmnpqrstuvwxyzACDEFHJKLMNPRTUVWXY";
 const PASSWORD_LENGTH = 12;
 const TRIAL_DAYS = 14;
-const DEFAULT_ORG_NAME = "Моя организация";
+// Название-заглушка живёт в org-profile: по нему кабинет понимает,
+// что анкета ещё не заполнена (см. (dashboard)/layout.tsx).
 
 function generatePassword(): string {
   let out = "";
