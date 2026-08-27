@@ -7,6 +7,7 @@ import { sendAccountPasswordEmail } from "@/lib/email";
 import { sendTelegramMessage } from "@/lib/telegram";
 import { registrationCodeRateLimiter } from "@/lib/rate-limit";
 import { domainAcceptsMail } from "@/lib/mail-domain";
+import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
