@@ -474,30 +474,21 @@ export default async function LandingPage() {
         </div>
 
         <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6 pt-8 text-center sm:pt-16">
-          {/* Два бейджа в ряд: слева — легитимность, справа — снятие
-              риска. Обещание возврата стоит там же, где человек первый
-              раз смотрит на цену решения, а не через пять экранов. */}
-          <div className="hero-badge flex flex-wrap items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
-              <ShieldCheck className="size-3.5" />
-              В реестре отечественного ПО
-              <span className="text-[#9b9fb3]">·</span>
-              <span className="text-[#6f7282]">заявка №27419</span>
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#5566f6]/25 bg-[#f5f6ff] px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7]">
-              <RotateCcw className="size-3.5" />
-              30 дней — вернём деньги, если не подойдёт
-            </span>
+          {/* Registry badge */}
+          <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
+            <ShieldCheck className="size-3.5" />
+            В реестре отечественного ПО
+            <span className="text-[#9b9fb3]">·</span>
+            <span className="text-[#6f7282]">заявка №27419</span>
           </div>
 
           {/* Headline — fluid scale: 32 px on phones → 72 px on desktop,
               linear in between via clamp() so the headline reads well on
               every viewport width without breakpoint jumps. */}
           <h1 className="hero-title mx-auto mt-8 max-w-[920px] text-[clamp(2rem,6.5vw+0.25rem,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024]">
-            Журналы СанПиН и ХАССП —
-            <br />
+            Журналы{" "}
             <span className="relative inline-block">
-              <span className="relative z-10">без бумаги и штрафов</span>
+              <span className="relative z-10">СанПиН и ХАССП</span>
               <span
                 aria-hidden="true"
                 className="absolute inset-x-0 bottom-[0.08em] -z-0 h-[0.28em] bg-[#5566f6]/15"
@@ -546,12 +537,17 @@ export default async function LandingPage() {
                 <HeroEmailStart />
                 {/* Гарантия — прямо в первом экране: снимать риск нужно
                     там же, где просим действие, а не через два экрана. */}
-                {/* Возврат вынесен в бейдж над заголовком — здесь он
-                    был бы вторым упоминанием на одном экране. */}
+                {/* Гарантия — прямо в первом экране: снимать риск нужно
+                    там же, где просим действие, а не через два экрана. */}
                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[12px] text-[#9b9fb3]">
                   <span>Без карты</span>
                   <span aria-hidden>·</span>
                   <span>Всё включено на бесплатном тарифе</span>
+                  <span aria-hidden>·</span>
+                  <span className="inline-flex items-center gap-1 font-medium text-[#116b2a]">
+                    <ShieldCheck className="size-3.5" />
+                    30 дней — вернём деньги
+                  </span>
                 </div>
               </>
             )}
@@ -573,8 +569,12 @@ export default async function LandingPage() {
           человека меняется; карточки «было / стало» отвечают именно на
           это. Секция вынесена из героя: карусель на первом экране
           отодвигала бы кнопку регистрации. */}
-      <section className="mx-auto max-w-[1200px] px-4 pb-20 sm:px-6">
-        <div className="mb-10 max-w-[640px]">
+      {/* Секция во всю ширину экрана: карусель должна доходить до краёв,
+          чтобы боковые карточки уходили за границу кадра — так видно,
+          что ряд продолжается. Заголовок при этом остаётся в общей
+          колонке 1200px, иначе он оторвётся от остального лендинга. */}
+      <section className="pb-20">
+        <div className="mx-auto mb-10 max-w-[1200px] px-4 sm:px-6">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <Store className="size-4" />
             Подходит для

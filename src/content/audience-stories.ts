@@ -32,13 +32,23 @@ export type AudienceStory = {
   photo: string | null;
   /// Короткий результат — то, что видно на карточке крупно.
   result: string;
+  /// Насколько журнал ведётся сам. «auto» — человек не участвует
+  /// (датчики и бот пишут за него), «semi» — участвует, но вместо
+  /// заполнения от руки подтверждает подставленное.
+  automation: "auto" | "semi";
   before: string;
   after: string;
+};
+
+export const AUTOMATION_LABEL: Record<AudienceStory["automation"], string> = {
+  auto: "Без людей",
+  semi: "Полуавтомат",
 };
 
 export const AUDIENCE_STORIES: AudienceStory[] = [
   {
     id: "restaurant",
+    automation: "auto",
     title: "Ресторан",
     icon: UtensilsCrossed,
     photo: null,
@@ -50,6 +60,7 @@ export const AUDIENCE_STORIES: AudienceStory[] = [
   },
   {
     id: "cafe",
+    automation: "semi",
     title: "Кафе",
     icon: Store,
     photo: null,
@@ -61,6 +72,7 @@ export const AUDIENCE_STORIES: AudienceStory[] = [
   },
   {
     id: "canteen",
+    automation: "semi",
     title: "Столовая",
     icon: Soup,
     photo: null,
@@ -72,6 +84,7 @@ export const AUDIENCE_STORIES: AudienceStory[] = [
   },
   {
     id: "bakery",
+    automation: "semi",
     title: "Пекарня",
     icon: Croissant,
     photo: null,
@@ -83,6 +96,7 @@ export const AUDIENCE_STORIES: AudienceStory[] = [
   },
   {
     id: "dark-kitchen",
+    automation: "auto",
     title: "Дарк-китчен",
     icon: ChefHat,
     photo: null,
@@ -94,6 +108,7 @@ export const AUDIENCE_STORIES: AudienceStory[] = [
   },
   {
     id: "confectionery",
+    automation: "semi",
     title: "Кондитерская",
     icon: Croissant,
     photo: null,
@@ -105,6 +120,7 @@ export const AUDIENCE_STORIES: AudienceStory[] = [
   },
   {
     id: "production",
+    automation: "auto",
     title: "Производственный цех",
     icon: Factory,
     photo: null,
@@ -116,6 +132,7 @@ export const AUDIENCE_STORIES: AudienceStory[] = [
   },
   {
     id: "chain",
+    automation: "auto",
     title: "Сеть заведений",
     icon: Network,
     photo: null,

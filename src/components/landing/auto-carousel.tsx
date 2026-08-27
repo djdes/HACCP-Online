@@ -22,7 +22,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export function AutoCarousel({
   items,
   ariaLabel,
-  slideClassName = "flex-[0_0_86%] sm:flex-[0_0_52%] lg:flex-[0_0_34%]",
+  slideClassName = "flex-[0_0_82%] sm:flex-[0_0_44%] lg:flex-[0_0_30%] xl:flex-[0_0_24%]",
   autoplayMs = 5000,
 }: {
   items: React.ReactNode[];
@@ -32,7 +32,7 @@ export function AutoCarousel({
   autoplayMs?: number;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true, align: "start", containScroll: false },
+    { loop: true, align: "center", containScroll: false },
     [
       Autoplay({
         delay: autoplayMs,
@@ -83,15 +83,17 @@ export function AutoCarousel({
 
   return (
     <div className="relative" role="region" aria-roledescription="карусель" aria-label={ariaLabel}>
-      <div className="overflow-hidden" ref={emblaRef}>
+      {/* py-6 — запас под scale-105: без него увеличенный центральный
+          слайд обрезался бы краем overflow-hidden. */}
+      <div className="overflow-hidden py-6" ref={emblaRef}>
         <div className="flex gap-4 sm:gap-5">
           {items.map((item, i) => (
             <div
               key={i}
               className={`${slideClassName} min-w-0 transition-[transform,opacity] duration-300 ease-out ${
                 i === selected
-                  ? "scale-100 opacity-100"
-                  : "scale-95 opacity-60"
+                  ? "scale-105 opacity-100"
+                  : "scale-90 opacity-45"
               }`}
               aria-roledescription="слайд"
               aria-label={`${i + 1} из ${items.length}`}
