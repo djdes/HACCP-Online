@@ -19,6 +19,8 @@ export type StaffEmployee = {
   isRoot: boolean;
   isSelf: boolean;
   telegramLinked: boolean;
+  /// Недельное правило выходных: 0=Пн … 6=Вс.
+  weeklyDaysOff: number[];
 };
 
 export type StaffTelegramInvitePayload = {
@@ -31,6 +33,9 @@ export type StaffWorkOff = {
   userId: string;
   /// ISO YYYY-MM-DD
   date: string;
+  /// Исключение из недельного правила: "off" — выходной вопреки
+  /// правилу, "work" — рабочий день вопреки правилу.
+  kind: "off" | "work";
 };
 
 export type StaffPeriodRow = {
@@ -62,6 +67,9 @@ export type StaffPageProps = {
   hasTasksflowIntegration: boolean;
   positions: StaffPosition[];
   employees: StaffEmployee[];
+  /// Подсказки названий должностей для сферы организации, уже без
+  /// тех, что заведены. Считаются на сервере из onboarding-пресета.
+  positionSuggestions: Record<PositionCategory, string[]>;
   workOffDays: StaffWorkOff[];
   vacations: StaffPeriodRow[];
   sickLeaves: StaffPeriodRow[];

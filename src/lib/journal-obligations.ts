@@ -12,6 +12,7 @@ import {
   type TemplateTodaySummary,
 } from "@/lib/today-compliance";
 import { isManagementRole } from "@/lib/user-roles";
+import { isStaffDayOff, normalizeDayOffKind } from "@/lib/staff-days-off";
 import {
   getEligibleEmployees,
   getFillMode,
@@ -104,6 +105,11 @@ type UserActor = JournalAclActor;
 
 export type ObligationDeps = {
   getUserActor: (userId: string) => Promise<UserActor>;
+  /// Выходной ли у сотрудника этот день (недельное правило + явные
+  /// отметки, см. src/lib/staff-days-off.ts). В выходной ежедневные
+  /// обязательства не раздаём — иначе повар в законный выходной
+  /// получает «просроченные» журналы.
+  isUserOffOn: (userId: string, date: Date) => Promise<boolean>;
   getAllowedJournalCodes: (actor: UserActor) => Promise<string[] | null>;
   getDisabledJournalCodes: (organizationId: string) => Promise<Set<string>>;
   listTemplates: () => Promise<ObligationTemplate[]>;
@@ -189,6 +195,24 @@ function usesDocumentTarget(template: ObligationTemplate): boolean {
 
 function createDefaultDeps(): ObligationDeps {
   return {
+    async isUserOffOn(userId, date) {
+      const [user, override] = await Promise.all([
+        db.user.findUnique({
+          where: { id: userId },
+          select: { weeklyDaysOff: true },
+        }),
+        db.staffWorkOffDay.findUnique({
+          where: { userId_date: { userId, date } },
+          select: { kind: true },
+        }),
+      ]);
+      if (!user) return false;
+      return isStaffDayOff(
+        user,
+        date,
+        override ? normalizeDayOffKind(override.kind) : null
+      );
+    },
     async getUserActor(userId) {
       const user = await db.user.findUnique({
         where: { id: userId },
@@ -406,6 +430,17 @@ export async function syncDailyJournalObligationsForUser(
   const deps = resolveDeps(overrides);
   const now = args.now ?? new Date();
   const dateKey = utcDayStart(now);
+  // Выходной сотрудника — не его рабочий день: чистим уже созданные
+  // на сегодня обязательства и выходим, ничего не назначая.
+  if (await deps.isUserOffOn(args.userId, dateKey)) {
+    const staleRows = await deps.listExistingDailyObligations({
+      userId: args.userId,
+      dateKey,
+      source: DAILY_OBLIGATION_SOURCE,
+    });
+    await deps.deleteStaleDailyObligations(staleRows.map((row) => row.id));
+    return [];
+  }
   const actor = await deps.getUserActor(args.userId);
   const [allowedCodes, disabledCodes, templates, existingRows] = await Promise.all([
     deps.getAllowedJournalCodes(actor),
@@ -583,6 +618,9 @@ export async function syncDailyJournalObligationsForOrganization(
       dateKey,
     });
     if (!assignee) continue;
+    // Тот же принцип, что и в per-employee: в свой выходной человек
+    // не получает единственную задачу по журналу.
+    if (await deps.isUserOffOn(assignee.id, dateKey)) continue;
 
     const isDocumentTarget = usesDocumentTarget(template);
     const dedupeKey = buildDedupeKey(dateKey, template.code);
@@ -665,6 +703,9 @@ export async function syncDailyJournalObligationsForOrganization(
       dateKey,
     });
     if (!assignee) continue;
+    // Тот же принцип, что и в per-employee: в свой выходной человек
+    // не получает единственную задачу по журналу.
+    if (await deps.isUserOffOn(assignee.id, dateKey)) continue;
 
     const isDocumentTarget = usesDocumentTarget(template);
     const dedupeKey = buildDedupeKey(dateKey, template.code);

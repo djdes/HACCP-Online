@@ -21,6 +21,7 @@ test("syncDailyJournalObligationsForUser creates obligations only for allowed da
     },
     {
       getUserActor: async () => ({ id: "user_1", role: "cook", isRoot: false }),
+      isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => [
         "incoming_control",
         "hygiene",
@@ -86,6 +87,7 @@ test("syncDailyJournalObligationsForUser sends incoming_control to the entry for
     },
     {
       getUserActor: async () => ({ id: "user_1", role: "cook", isRoot: false }),
+      isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["incoming_control"],
       getDisabledJournalCodes: async () => new Set<string>(),
       listTemplates: async () => [
@@ -125,6 +127,7 @@ test("syncDailyJournalObligationsForUser clears stale sync rows that are no long
     },
     {
       getUserActor: async () => ({ id: "user_1", role: "cook", isRoot: false }),
+      isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["hygiene"],
       getDisabledJournalCodes: async () => new Set<string>(),
       listTemplates: async () => [
@@ -178,6 +181,7 @@ test("syncDailyJournalObligationsForUser preserves the original completedAt when
     },
     {
       getUserActor: async () => ({ id: "user_1", role: "cook", isRoot: false }),
+      isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["incoming_control"],
       getDisabledJournalCodes: async () => new Set<string>(),
       listTemplates: async () => [
@@ -307,6 +311,7 @@ test("syncDailyJournalObligationsForOrganization syncs each active staff user", 
         { id: "user_2", organizationId: "org_1" },
       ],
       getUserActor: async (userId) => ({ id: userId, role: "cook", isRoot: false }),
+      isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["hygiene"],
       getDisabledJournalCodes: async () => new Set<string>(),
       listTemplates: async () => [

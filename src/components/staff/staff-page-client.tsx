@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
   ArrowUpDown,
   BookOpen,
+  Check,
   ChevronDown,
   ExternalLink,
   Pencil,
@@ -38,6 +39,15 @@ import {
   StaffTelegramInviteDialog,
   StaffUnlinkTelegramDialog,
 } from "@/components/staff/staff-telegram-dialogs";
+import { WeekdayChips } from "@/components/staff/weekday-chips";
+import {
+  dayOffOverrideKey,
+  isStaffDayOff,
+  weekdayIndex,
+  weeklyDaysOffLabel,
+  type StaffDayOffKind,
+  type WorkOffBulkItem,
+} from "@/lib/staff-days-off";
 import type {
   PositionCategory,
   StaffEmployee,
@@ -47,6 +57,17 @@ import type {
 } from "@/components/staff/staff-types";
 
 type TabKey = "work-off" | "vacations" | "sick-leaves" | "dismissals";
+
+/** Ключ sessionStorage для «какая должность раскрыта в рубрике». */
+const OPEN_POSITIONS_STORAGE_KEY = "staff.openPositions";
+
+function pluralDays(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "день";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "дня";
+  return "дней";
+}
 
 function generateWorkOffDays(start: Date, count = 20): string[] {
   const out: string[] = [];
@@ -93,19 +114,73 @@ export function StaffPageClient(props: StaffPageProps) {
   const [categoryOpen, setCategoryOpen] = useState<
     Record<PositionCategory, boolean>
   >({ management: true, staff: true });
-  const [openPositions, setOpenPositions] = useState<Set<string>>(
-    () => new Set(props.positions.map((p) => p.id))
+  // В каждой рубрике раскрыта РОВНО ОДНА должность: со всеми открытыми
+  // список сотрудников уезжал на два экрана вниз и «Добавить» терялся.
+  // По умолчанию — первая должность рубрики.
+  const [openPosition, setOpenPosition] = useState<
+    Record<PositionCategory, string | null>
+  >(() => ({
+    management:
+      props.positions.find((p) => p.categoryKey === "management")?.id ?? null,
+    staff: props.positions.find((p) => p.categoryKey === "staff")?.id ?? null,
+  }));
+  // Ручной выбор переживает router.refresh() — иначе после добавления
+  // сотрудника аккордеон схлопывался обратно на первую должность.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(OPEN_POSITIONS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, string | null>;
+      setOpenPosition((prev) => ({
+        management: parsed.management ?? prev.management,
+        staff: parsed.staff ?? prev.staff,
+      }));
+    } catch {
+      /* приватный режим / повреждённое значение — просто игнорируем */
+    }
+  }, []);
+
+  // Подсветка строки только что добавленного сотрудника.
+  const [highlightPositionId, setHighlightPositionId] = useState<string | null>(
+    null
   );
+  useEffect(() => {
+    if (!highlightPositionId) return;
+    const timer = setTimeout(() => setHighlightPositionId(null), 1500);
+    return () => clearTimeout(timer);
+  }, [highlightPositionId]);
 
   const toggleCategory = (k: PositionCategory) =>
     setCategoryOpen((prev) => ({ ...prev, [k]: !prev[k] }));
-  const togglePosition = (id: string) =>
-    setOpenPositions((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const togglePosition = (category: PositionCategory, id: string) =>
+    setOpenPosition((prev) => {
+      const next = { ...prev, [category]: prev[category] === id ? null : id };
+      try {
+        sessionStorage.setItem(
+          OPEN_POSITIONS_STORAGE_KEY,
+          JSON.stringify(next)
+        );
+      } catch {
+        /* sessionStorage недоступен — состояние живёт только в памяти */
+      }
       return next;
     });
+  /** Раскрыть конкретную должность (после добавления сотрудника). */
+  const revealPosition = (category: PositionCategory, id: string) => {
+    setOpenPosition((prev) => {
+      const next = { ...prev, [category]: id };
+      try {
+        sessionStorage.setItem(
+          OPEN_POSITIONS_STORAGE_KEY,
+          JSON.stringify(next)
+        );
+      } catch {
+        /* см. выше */
+      }
+      return next;
+    });
+    setHighlightPositionId(id);
+  };
 
   // Selection for bulk actions.
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -184,11 +259,14 @@ export function StaffPageClient(props: StaffPageProps) {
     return copy;
   }, [props.employees, alphabetic]);
 
-  const workOffSet = useMemo(
-    () =>
-      new Set(props.workOffDays.map((w) => `${w.userId}::${w.date}`)),
-    [props.workOffDays]
-  );
+  // Явные исключения из недельного правила: `userId|date` → off/work.
+  const workOffOverrides = useMemo(() => {
+    const map = new Map<string, StaffDayOffKind>();
+    for (const w of props.workOffDays) {
+      map.set(dayOffOverrideKey(w.userId, w.date), w.kind);
+    }
+    return map;
+  }, [props.workOffDays]);
   const workOffDates = useMemo(() => generateWorkOffDays(new Date(), 20), []);
 
   // Sorting for period/dismissal tables.
@@ -231,15 +309,34 @@ export function StaffPageClient(props: StaffPageProps) {
     return res.json().catch(() => ({}));
   }
 
-  async function handleWorkOffToggle(userId: string, date: string, enabled: boolean) {
+  /** Одна «покраска» графика — один запрос и один refresh. */
+  async function handleWorkOffPaint(items: WorkOffBulkItem[]) {
     try {
-      await callJson("/api/staff/schedules/work-off", {
+      await callJson("/api/staff/schedules/work-off/bulk", {
         method: "POST",
-        body: JSON.stringify({ userId, date, enabled }),
+        body: JSON.stringify({ items }),
+      });
+      toast.success(`Отмечено: ${items.length} ${pluralDays(items.length)}`);
+      startTransition(() => router.refresh());
+    } catch (error) {
+      toast.error((error as Error).message);
+      startTransition(() => router.refresh());
+    }
+  }
+
+  async function handleWeeklyDaysOffChange(
+    userId: string,
+    weeklyDaysOff: number[]
+  ) {
+    try {
+      await callJson(`/api/staff/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ weeklyDaysOff }),
       });
       startTransition(() => router.refresh());
     } catch (error) {
       toast.error((error as Error).message);
+      startTransition(() => router.refresh());
     }
   }
 
@@ -353,7 +450,7 @@ export function StaffPageClient(props: StaffPageProps) {
 
   async function saveEmployeeEdit(
     id: string,
-    patch: { name?: string; phone?: string | null }
+    patch: { name?: string; phone?: string | null; weeklyDaysOff?: number[] }
   ) {
     setDlg((current) =>
       current?.kind === "edit-employee" && current.employee.id === id
@@ -637,8 +734,9 @@ export function StaffPageClient(props: StaffPageProps) {
                 open={categoryOpen[cat]}
                 onToggle={() => toggleCategory(cat)}
                 positions={positionsByCategory[cat]}
-                openPositions={openPositions}
-                togglePosition={togglePosition}
+                openPositionId={openPosition[cat]}
+                highlightPositionId={highlightPositionId}
+                togglePosition={(id) => togglePosition(cat, id)}
                 employeesByPosition={employeesByPosition}
                 selected={selected}
                 toggleSelected={toggleSelected}
@@ -715,9 +813,10 @@ export function StaffPageClient(props: StaffPageProps) {
 
         <div className="space-y-2 text-[13px] leading-[1.55] text-[#6f7282]">
           <p>
-            Данный график заполняется ТОЛЬКО для того, чтобы автоматически
-            заполнять Гигиенический журнал. Ни на какие другие журналы данная
-            настройка не влияет.
+            Выходные учитываются при автозаполнении журналов и раздаче задач:
+            в свой выходной сотрудник не получает ежедневные обязательства и
+            задачи в TasksFlow, а в Гигиеническом журнале день закрывается
+            автоматически.
           </p>
           {tab === "work-off" && (
             <p>
@@ -750,11 +849,12 @@ export function StaffPageClient(props: StaffPageProps) {
             employees={employeesDisplay}
             positions={props.positions}
             dates={workOffDates}
-            workOffSet={workOffSet}
+            overrides={workOffOverrides}
             alphabetic={alphabetic}
             onToggleAlpha={() => setAlphabetic((v) => !v)}
             onIikoClick={() => setDlg({ kind: "iiko" })}
-            onToggleDay={handleWorkOffToggle}
+            onPaint={handleWorkOffPaint}
+            onChangeWeekly={handleWeeklyDaysOffChange}
           />
         ) : tab === "dismissals" ? (
           <PeriodsTable
@@ -795,13 +895,22 @@ export function StaffPageClient(props: StaffPageProps) {
           categoryKey={dlg.categoryKey}
           initialPositionId={dlg.positionId}
           positions={props.positions}
+          positionSuggestions={props.positionSuggestions[dlg.categoryKey]}
           hasTasksflowIntegration={props.hasTasksflowIntegration}
           open
           onClose={() => setDlg(null)}
           // Должность создана — список обновляем, но диалог остаётся
           // открытым: он сам уводит менеджера на шаг «сотрудник».
           onPositionCreated={() => startTransition(() => router.refresh())}
-          onCreated={() => startTransition(() => router.refresh())}
+          onCreated={(result) => {
+            // Раскрываем должность, в которую только что добавили
+            // человека, и подсвечиваем её — иначе новая фамилия
+            // теряется в свёрнутом аккордеоне.
+            if (result?.positionId) {
+              revealPosition(dlg.categoryKey, result.positionId);
+            }
+            startTransition(() => router.refresh());
+          }}
         />
       ) : null}
       {dlg?.kind === "edit-position" ? (
@@ -905,7 +1014,10 @@ function CategoryColumn(props: {
   open: boolean;
   onToggle: () => void;
   positions: StaffPosition[];
-  openPositions: Set<string>;
+  /** В рубрике раскрыта ровно одна должность (или ни одной). */
+  openPositionId: string | null;
+  /** Должность, в которую только что добавили сотрудника. */
+  highlightPositionId: string | null;
   togglePosition: (id: string) => void;
   employeesByPosition: Map<string | null, StaffEmployee[]>;
   selected: Set<string>;
@@ -973,11 +1085,17 @@ function CategoryColumn(props: {
           ) : (
             props.positions.map((p) => {
               const employees = props.employeesByPosition.get(p.id) ?? [];
-              const open = props.openPositions.has(p.id);
+              const open = props.openPositionId === p.id;
+              const highlighted = props.highlightPositionId === p.id;
               return (
                 <div
                   key={p.id}
-                  className="group/pos overflow-hidden rounded-2xl border border-[#e2e5ef] bg-white shadow-[0_1px_2px_0_rgba(11,16,36,0.04),0_4px_10px_-6px_rgba(11,16,36,0.12)] transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.22)]"
+                  className={cn(
+                    "group/pos overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_0_rgba(11,16,36,0.04),0_4px_10px_-6px_rgba(11,16,36,0.12)] transition-[box-shadow,transform,border-color] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.22)]",
+                    highlighted
+                      ? "border-[#5566f6] ring-4 ring-[#5566f6]/15"
+                      : "border-[#e2e5ef]"
+                  )}
                 >
                   <div className="flex items-center gap-2 px-4 py-2.5">
                     <button
@@ -991,6 +1109,19 @@ function CategoryColumn(props: {
                       <span className="inline-flex h-4 items-center rounded-full bg-[#f5f6ff] px-1.5 text-[10px] font-medium text-[#9b9fb3]">
                         {employees.length}
                       </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => props.onAddEmployee(p)}
+                      title={`Добавить в «${p.name}»`}
+                      aria-label={`Добавить в «${p.name}»`}
+                      // На hover/фокусе — быстрый «+» прямо в шапке
+                      // должности: не надо раскрывать аккордеон, чтобы
+                      // добавить человека. На тач-устройствах hover нет,
+                      // поэтому там кнопка видна всегда.
+                      className="inline-flex size-7 items-center justify-center rounded-lg text-[#5566f6] transition-opacity hover:bg-[#eef1ff] focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/pos:opacity-100"
+                    >
+                      <Plus className="size-3.5" />
                     </button>
                     <button
                       type="button"
@@ -1145,19 +1276,147 @@ function CategoryColumn(props: {
   );
 }
 
+/** Черновик покраски графика поверх серверного снимка. */
+type PaintDraft = {
+  source: Map<string, StaffDayOffKind>;
+  cells: Map<string, boolean>;
+  weekly: Map<string, number[]>;
+};
+
+// Общие пустые коллекции для «протухшего» черновика — новые объекты
+// на каждый рендер ломали бы мемоизацию и сравнение по идентичности.
+const EMPTY_CELLS: Map<string, boolean> = new Map();
+const EMPTY_WEEKLY: Map<string, number[]> = new Map();
+
+/**
+ * Сетка «сотрудник × день». Две вещи, ради которых её переписали:
+ *
+ * 1. Колонка «Выходные» — недельное правило (Пн…Вс). Раньше управляющей
+ *    приходилось прокликивать Сб/Вс каждому человеку на месяц вперёд.
+ * 2. «Зажал и красишь» — pointer-события вместо чекбоксов: один POST на
+ *    всю покраску вместо запроса и router.refresh() на каждую ячейку.
+ */
 function WorkOffGrid(props: {
   employees: StaffEmployee[];
   positions: StaffPosition[];
   dates: string[];
-  workOffSet: Set<string>;
+  /** Явные исключения из правила: `userId|YYYY-MM-DD` → "off" | "work". */
+  overrides: Map<string, StaffDayOffKind>;
   alphabetic: boolean;
   onToggleAlpha: () => void;
   onIikoClick: () => void;
-  onToggleDay: (userId: string, date: string, enabled: boolean) => void;
+  onPaint: (items: WorkOffBulkItem[]) => Promise<void>;
+  onChangeWeekly: (userId: string, weeklyDaysOff: number[]) => Promise<void>;
 }) {
   const posNameById = new Map<string, string>(
     props.positions.map((p) => [p.id, p.name])
   );
+
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  // Значение текущей покраски (true = «отмечаем выходным»). Держим в
+  // ref, а не в state: pointermove не должен ждать перерисовку.
+  const paintValueRef = useRef<boolean | null>(null);
+  const anchorRef = useRef<{ userId: string; date: string } | null>(null);
+  const [painting, setPainting] = useState(false);
+  // Оптимистичный слой поверх серверных данных: пока не приехал
+  // router.refresh(), рисуем то, что менеджер только что накликал.
+  // `source` — снимок серверных данных, на котором черновик построен:
+  // приехали новые — черновик протух и обнуляется прямо в рендере
+  // (без useEffect + setState, чтобы не гонять лишний цикл рендера).
+  const [draftState, setDraftState] = useState<PaintDraft>(() => ({
+    source: props.overrides,
+    cells: new Map<string, boolean>(),
+    weekly: new Map<string, number[]>(),
+  }));
+  const draft: PaintDraft =
+    draftState.source === props.overrides
+      ? draftState
+      : { source: props.overrides, cells: EMPTY_CELLS, weekly: EMPTY_WEEKLY };
+
+  function updateDraft(mutate: (base: PaintDraft) => PaintDraft) {
+    setDraftState((prev) =>
+      mutate(
+        prev.source === props.overrides
+          ? prev
+          : { source: props.overrides, cells: new Map(), weekly: new Map() }
+      )
+    );
+  }
+
+  function weeklyOf(employee: StaffEmployee): number[] {
+    return draft.weekly.get(employee.id) ?? employee.weeklyDaysOff ?? [];
+  }
+
+  function isChecked(employee: StaffEmployee, iso: string): boolean {
+    const key = dayOffOverrideKey(employee.id, iso);
+    const local = draft.cells.get(key);
+    if (local !== undefined) return local;
+    return isStaffDayOff(
+      { weeklyDaysOff: weeklyOf(employee) },
+      iso,
+      props.overrides.get(key) ?? null
+    );
+  }
+
+  /** Отметка стоит по правилу, а не руками — рисуем полупрозрачной. */
+  function isByRule(employee: StaffEmployee, iso: string): boolean {
+    const key = dayOffOverrideKey(employee.id, iso);
+    if (draft.cells.has(key) || props.overrides.has(key)) return false;
+    return weeklyOf(employee).includes(weekdayIndex(iso));
+  }
+
+  function applyPaint(userId: string, iso: string, value: boolean) {
+    const key = dayOffOverrideKey(userId, iso);
+    updateDraft((base) => {
+      if (base.cells.get(key) === value) return base;
+      const cells = new Map(base.cells);
+      cells.set(key, value);
+      return { ...base, cells };
+    });
+  }
+
+  /** Shift-клик: прямоугольник от прошлой ячейки до текущей. */
+  function applyRect(
+    from: { userId: string; date: string },
+    to: { userId: string; date: string },
+    value: boolean
+  ) {
+    const rowIds = props.employees.map((e) => e.id);
+    const r1 = rowIds.indexOf(from.userId);
+    const r2 = rowIds.indexOf(to.userId);
+    const c1 = props.dates.indexOf(from.date);
+    const c2 = props.dates.indexOf(to.date);
+    if (r1 < 0 || r2 < 0 || c1 < 0 || c2 < 0) return;
+    for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+      for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+        applyPaint(rowIds[r], props.dates[c], value);
+      }
+    }
+  }
+
+  function cellFromPoint(x: number, y: number) {
+    const el = document.elementFromPoint(x, y);
+    const cell =
+      el instanceof HTMLElement
+        ? el.closest<HTMLElement>("[data-workoff-cell]")
+        : null;
+    if (!cell?.dataset.userId || !cell.dataset.date) return null;
+    return { userId: cell.dataset.userId, date: cell.dataset.date };
+  }
+
+  async function flushPaint() {
+    if (paintValueRef.current === null) return;
+    paintValueRef.current = null;
+    setPainting(false);
+    const items: WorkOffBulkItem[] = [];
+    draft.cells.forEach((enabled, key) => {
+      const [userId, date] = key.split("|");
+      items.push({ userId, date, enabled });
+    });
+    if (items.length === 0) return;
+    await props.onPaint(items);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
@@ -1197,19 +1456,36 @@ function WorkOffGrid(props: {
         Заполнить выходные дни из Айко
       </Button>
 
-      <div className="overflow-x-auto -mx-4 px-4 xl:mx-0 xl:px-0 xl:overflow-visible rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div
+        ref={gridRef}
+        onPointerMove={(event) => {
+          if (paintValueRef.current === null) return;
+          const cell = cellFromPoint(event.clientX, event.clientY);
+          if (!cell) return;
+          applyPaint(cell.userId, cell.date, paintValueRef.current);
+          anchorRef.current = cell;
+        }}
+        onPointerUp={() => void flushPaint()}
+        onPointerCancel={() => void flushPaint()}
+        onLostPointerCapture={() => void flushPaint()}
+        className={cn(
+          "overflow-x-auto -mx-4 px-4 xl:mx-0 xl:px-0 xl:overflow-visible rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]",
+          painting && "cursor-crosshair select-none [touch-action:none]"
+        )}
+      >
         {props.employees.length === 0 ? (
           <p className="px-6 py-10 text-center text-[13px] text-[#9b9fb3]">
             Нет сотрудников. Добавьте хотя бы одного, чтобы управлять графиком.
           </p>
         ) : (
-          <table className="w-full min-w-[900px] border-collapse text-[12px]">
+          <table className="w-full min-w-[1100px] border-collapse text-[12px]">
             <thead>
               <tr className="bg-[#f5f6ff] text-[#6f7282]">
                 <th className="sticky left-0 z-10 bg-[#f5f6ff] px-3 py-2 text-left font-medium">
                   Ф.И.О. работника
                 </th>
                 <th className="px-3 py-2 text-left font-medium">Должность</th>
+                <th className="px-3 py-2 text-left font-medium">Выходные</th>
                 {props.dates.map((iso) => {
                   const { top, bottom, isWeekend } = formatDayCell(iso);
                   return (
@@ -1245,25 +1521,93 @@ function WorkOffGrid(props: {
                       {e.name}
                     </td>
                     <td className="px-3 py-2 text-[#6f7282]">{positionName}</td>
+                    <td className="px-2 py-2">
+                      <WeekdayChips
+                        size="sm"
+                        value={weeklyOf(e)}
+                        ariaLabel={`Выходные дни: ${e.name}`}
+                        onChange={(next) => {
+                          updateDraft((base) => ({
+                            ...base,
+                            weekly: new Map(base.weekly).set(e.id, next),
+                          }));
+                          void props.onChangeWeekly(e.id, next);
+                        }}
+                      />
+                    </td>
                     {props.dates.map((iso) => {
-                      const checked = props.workOffSet.has(`${e.id}::${iso}`);
+                      const checked = isChecked(e, iso);
+                      const byRule = isByRule(e, iso);
                       const { isWeekend } = formatDayCell(iso);
                       return (
                         <td
                           key={iso}
                           className={cn(
-                            "border-l border-[#f0f1f8] px-1 py-1 text-center",
+                            "border-l border-[#f0f1f8] p-0 text-center",
                             isWeekend && "bg-[#fff5d9]/40"
                           )}
                         >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(evt) =>
-                              props.onToggleDay(e.id, iso, evt.target.checked)
+                          <button
+                            type="button"
+                            data-workoff-cell=""
+                            data-user-id={e.id}
+                            data-date={iso}
+                            aria-pressed={checked}
+                            aria-label={`${e.name}, ${iso}`}
+                            title={
+                              byRule
+                                ? `Выходной по правилу: ${weeklyDaysOffLabel(weeklyOf(e))}`
+                                : checked
+                                  ? "Выходной"
+                                  : "Рабочий день"
                             }
-                            className="size-3.5 cursor-pointer rounded border-[#d0d4e6] text-[#5566f6] focus:ring-[#5566f6]"
-                          />
+                            onPointerDown={(event) => {
+                              // preventDefault, иначе браузер начнёт
+                              // выделять текст таблицы вместо покраски.
+                              event.preventDefault();
+                              const value = !checked;
+                              if (event.shiftKey && anchorRef.current) {
+                                applyRect(
+                                  anchorRef.current,
+                                  { userId: e.id, date: iso },
+                                  value
+                                );
+                              } else {
+                                applyPaint(e.id, iso, value);
+                              }
+                              paintValueRef.current = value;
+                              anchorRef.current = { userId: e.id, date: iso };
+                              setPainting(true);
+                              gridRef.current?.setPointerCapture(event.pointerId);
+                            }}
+                            onKeyDown={(event) => {
+                              // Клавиатура: pointer-события до неё не
+                              // доходят, поэтому один день отправляем
+                              // тем же bulk-эндпоинтом с одним элементом.
+                              if (event.key !== "Enter" && event.key !== " ") {
+                                return;
+                              }
+                              event.preventDefault();
+                              const value = !checked;
+                              applyPaint(e.id, iso, value);
+                              void props.onPaint([
+                                { userId: e.id, date: iso, enabled: value },
+                              ]);
+                            }}
+                            className="flex h-8 w-full items-center justify-center focus:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                          >
+                            <span
+                              className={cn(
+                                "inline-flex size-4 items-center justify-center rounded border transition-colors",
+                                checked
+                                  ? "border-[#5566f6] bg-[#5566f6] text-white"
+                                  : "border-[#d0d4e6] bg-white text-transparent",
+                                byRule && "opacity-50"
+                              )}
+                            >
+                              <Check className="size-3" strokeWidth={3} />
+                            </span>
+                          </button>
                         </td>
                       );
                     })}
@@ -1275,9 +1619,16 @@ function WorkOffGrid(props: {
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-[12px] text-[#9b9fb3]">
-        <span className="inline-block size-3 rounded-sm bg-[#fff5d9]/80 ring-1 ring-[#ffe2a0]" />
-        Выходные — суббота и воскресенье подсвечены светло-жёлтым
+      <div className="space-y-1 text-[12px] text-[#9b9fb3]">
+        <div className="flex items-center gap-2">
+          <span className="inline-block size-3 rounded-sm bg-[#fff5d9]/80 ring-1 ring-[#ffe2a0]" />
+          Выходные — суббота и воскресенье подсвечены светло-жёлтым
+        </div>
+        <div>
+          Зажмите и проведите курсором, чтобы отметить сразу несколько дней.
+          Shift + клик — прямоугольник. Полупрозрачная галочка — выходной по
+          недельному правилу; клик по ней делает исключение на этот день.
+        </div>
       </div>
     </div>
   );

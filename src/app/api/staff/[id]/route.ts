@@ -1,7 +1,63 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
+import { normalizeWeeklyDaysOff } from "@/lib/staff-days-off";
+
+const patchSchema = z.object({
+  /// Недельное правило выходных: 0=Пн … 6=Вс.
+  weeklyDaysOff: z.array(z.number().int().min(0).max(6)),
+});
+
+/**
+ * PATCH /api/staff/[id]
+ *
+ * Пока умеет только недельное правило выходных — его правят чипами
+ * «Пн…Вс» прямо в графике, и тащить ради этого тяжёлый PUT
+ * /api/users/[id] (роль, телефон, автосвязка с TasksFlow) избыточно.
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await requireAuth();
+  if (!isManagementRole(session.user.role) && !session.user.isRoot) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const orgId = getActiveOrgId(session);
+
+  let parsed;
+  try {
+    parsed = patchSchema.parse(await request.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: error.issues[0]?.message ?? "Некорректные данные" },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Не удалось прочитать запрос" },
+      { status: 400 }
+    );
+  }
+
+  const user = await db.user.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true },
+  });
+  if (!user) {
+    return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
+  }
+
+  const weeklyDaysOff = normalizeWeeklyDaysOff(parsed.weeklyDaysOff);
+  await db.user.update({ where: { id: user.id }, data: { weeklyDaysOff } });
+
+  return NextResponse.json({ ok: true, weeklyDaysOff });
+}
 
 /**
  * DELETE /api/staff/[id]

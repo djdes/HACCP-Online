@@ -36,6 +36,11 @@ import { notifyManagement, type NotificationItem } from "@/lib/notifications";
 import { timingSafeEqualStrings } from "@/lib/timing-safe";
 import { matchPositionsForJournal } from "@/lib/journal-responsible-presets";
 import { isSuperUser } from "@/lib/super-user";
+import {
+  buildDayOffOverrides,
+  dayOffOverrideKey,
+  isStaffDayOff,
+} from "@/lib/staff-days-off";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -370,6 +375,7 @@ export async function POST(request: Request) {
       isRoot: true,
       jobPositionId: true,
       jobPosition: { select: { id: true, name: true } },
+      weeklyDaysOff: true,
     },
   });
   const earlyTfLinks = await db.tasksFlowUserLink.findMany({
@@ -627,12 +633,36 @@ export async function POST(request: Request) {
     });
     return areasForOrg;
   }
-  const candidateUserIds =
+  const candidateUserIdsBeforeDaysOff =
     respectShifts && scheduledUserIds.size > 0
       ? new Set(
           [...scheduledUserIds].filter((userId) => scopedUserIds.has(userId))
         )
       : scopedUserIds;
+  // П-13: задача на сегодня не должна прилетать человеку в его выходной.
+  // Выходной = недельное правило `weeklyDaysOff` + явные отметки
+  // StaffWorkOffDay (см. src/lib/staff-days-off.ts).
+  const todayUtc = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  const dayOffOverrideRows = await db.staffWorkOffDay.findMany({
+    where: { userId: { in: [...candidateUserIdsBeforeDaysOff] }, date: todayUtc },
+    select: { userId: true, date: true, kind: true },
+  });
+  const dayOffOverrides = buildDayOffOverrides(dayOffOverrideRows);
+  const weeklyByUserId = new Map(
+    activeUsersForScope.map((u) => [u.id, u.weeklyDaysOff])
+  );
+  const candidateUserIds = new Set(
+    [...candidateUserIdsBeforeDaysOff].filter(
+      (userId) =>
+        !isStaffDayOff(
+          { weeklyDaysOff: weeklyByUserId.get(userId) ?? [] },
+          todayUtc,
+          dayOffOverrides.get(dayOffOverrideKey(userId, todayUtc)) ?? null
+        )
+    )
+  );
   const linkedUserIds = new Set(tfUserIdByWesetup.keys());
 
   function markJournalSkipped(report: JournalReport, reason: string) {

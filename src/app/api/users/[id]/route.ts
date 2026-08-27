@@ -15,6 +15,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { normalizePhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
 import { performOffboarding } from "@/lib/offboarding";
+import { normalizeWeeklyDaysOff } from "@/lib/staff-days-off";
 
 const updateUserSchema = z.object({
   name: z.string().trim().min(2).optional(),
@@ -28,6 +29,9 @@ const updateUserSchema = z.object({
   phone: z.string().trim().nullable().optional(),
   positionTitle: z.string().trim().max(120).nullable().optional(),
   isActive: z.boolean().optional(),
+  /// Недельное правило выходных (0=Пн … 6=Вс) — правится и в карточке
+  /// сотрудника, и чипами в графике (PATCH /api/staff/[id]).
+  weeklyDaysOff: z.array(z.number().int().min(0).max(6)).optional(),
 });
 
 export async function PUT(
@@ -65,7 +69,7 @@ export async function PUT(
     }
 
     const body = updateUserSchema.parse(await request.json());
-    const { name, role, phone, positionTitle, isActive } = body;
+    const { name, role, phone, positionTitle, isActive, weeklyDaysOff } = body;
 
     if (id === session.user.id && role && normalizeUserRole(role) !== "manager") {
       return NextResponse.json(
@@ -117,6 +121,9 @@ export async function PUT(
           positionTitle: positionTitle?.trim() || null,
         }),
         ...(isActive !== undefined && { isActive }),
+        ...(weeklyDaysOff !== undefined && {
+          weeklyDaysOff: normalizeWeeklyDaysOff(weeklyDaysOff),
+        }),
       },
       select: {
         id: true,

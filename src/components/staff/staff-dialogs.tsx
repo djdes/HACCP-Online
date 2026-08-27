@@ -20,6 +20,14 @@ import type {
   StaffPosition,
 } from "@/components/staff/staff-types";
 import { TasksFlowPromoHint } from "@/components/tasksflow/tasksflow-promo-hint";
+import { WeekdayChips } from "@/components/staff/weekday-chips";
+import {
+  DEFAULT_WEEKLY_DAYS_OFF,
+  normalizeWeeklyDaysOff,
+} from "@/lib/staff-days-off";
+
+/** Сколько чипов-подсказок должностей показываем до «ещё N». */
+const POSITION_HINTS_VISIBLE = 8;
 
 type Close = { onClose: () => void; open: boolean };
 
@@ -235,12 +243,17 @@ export function StaffAddFlowDialog(props: {
   categoryKey: PositionCategory;
   positions: StaffPosition[];
   initialPositionId?: string | null;
+  /** Типовые названия должностей для сферы организации (шаг 1). */
+  positionSuggestions?: string[];
   /** Интеграция TasksFlow уже подключена — промо не показываем. */
   hasTasksflowIntegration?: boolean;
   /** Должность создана: обновить список, но диалог оставить открытым. */
   onPositionCreated?: () => void;
-  /** Сотрудник создан: обновить список. */
-  onCreated: () => void;
+  /**
+   * Сотрудник создан: обновить список. `positionId` нужен странице,
+   * чтобы раскрыть и подсветить нужную должность в аккордеоне.
+   */
+  onCreated: (result?: { positionId: string }) => void;
 } & Close) {
   const [step, setStep] = useState<1 | 2>(props.initialStep);
 
@@ -270,6 +283,25 @@ export function StaffAddFlowDialog(props: {
   const [pending, setPending] = useState(false);
   const [subStep, setSubStep] = useState<AddStep>({ kind: "form" });
   const [copied, setCopied] = useState(false);
+  // Выходные нового сотрудника: по умолчанию Сб+Вс, чтобы график не
+  // пришлось прокликивать руками сразу после найма.
+  const [weeklyDaysOff, setWeeklyDaysOff] = useState<number[]>([
+    ...DEFAULT_WEEKLY_DAYS_OFF,
+  ]);
+  // Подсказки должностей: сервер уже вычел заведённые, здесь дополнительно
+  // убираем созданные в этой же сессии диалога.
+  const [showAllHints, setShowAllHints] = useState(false);
+  const createdNames = useMemo(
+    () => new Set(createdPositions.map((p) => p.name.trim().toLowerCase())),
+    [createdPositions]
+  );
+  const positionHints = useMemo(
+    () =>
+      (props.positionSuggestions ?? []).filter(
+        (name) => !createdNames.has(name.trim().toLowerCase())
+      ),
+    [props.positionSuggestions, createdNames]
+  );
 
   function closeAll() {
     props.onClose();
@@ -326,6 +358,7 @@ export function StaffAddFlowDialog(props: {
         body: JSON.stringify({
           jobPositionId: positionId,
           fullName: fullName.trim(),
+          weeklyDaysOff: normalizeWeeklyDaysOff(weeklyDaysOff),
           // Телефон необязателен — пустую строку не отправляем вовсе.
           ...(phone.trim() ? { phone: phone.trim() } : {}),
         }),
@@ -340,7 +373,7 @@ export function StaffAddFlowDialog(props: {
       toast.success("Сотрудник добавлен");
       // Список обновляем сразу, но диалог держим открытым: менеджер
       // может тут же выдать ссылку-приглашение в Telegram.
-      props.onCreated();
+      props.onCreated({ positionId });
       setSubStep({
         kind: "created",
         userId: data.user.id,
@@ -501,6 +534,44 @@ export function StaffAddFlowDialog(props: {
                   />
                 ),
               })}
+              {positionHints.length > 0 ? (
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9fb3]">
+                    Частые должности
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(showAllHints
+                      ? positionHints
+                      : positionHints.slice(0, POSITION_HINTS_VISIBLE)
+                    ).map((hint) => (
+                      <button
+                        key={hint}
+                        type="button"
+                        // Подставляем название в поле — его можно
+                        // поправить перед сохранением.
+                        onClick={() => setPosName(hint)}
+                        className={`rounded-full px-3 py-1 text-[12px] transition-colors ${
+                          posName.trim() === hint
+                            ? "bg-[#5566f6] text-white"
+                            : "bg-[#f5f6ff] text-[#3848c7] hover:bg-[#eef1ff]"
+                        }`}
+                      >
+                        {hint}
+                      </button>
+                    ))}
+                    {!showAllHints &&
+                    positionHints.length > POSITION_HINTS_VISIBLE ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllHints(true)}
+                        className="rounded-full px-3 py-1 text-[12px] text-[#6f7282] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
+                      >
+                        ещё {positionHints.length - POSITION_HINTS_VISIBLE}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
               {positions.length > 0 ? (
                 <button
                   type="button"
@@ -577,6 +648,21 @@ export function StaffAddFlowDialog(props: {
                 hasIntegration={props.hasTasksflowIntegration}
               />
             </div>
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9fb3]">
+                Выходные
+              </div>
+              <WeekdayChips
+                value={weeklyDaysOff}
+                onChange={setWeeklyDaysOff}
+                ariaLabel="Выходные дни нового сотрудника"
+              />
+              <p className="text-[11px] leading-snug text-[#6f7282]">
+                В эти дни журналы заполнятся отметкой «В», а задачи в
+                TasksFlow не придут. Отдельный день всегда можно поправить
+                в графике.
+              </p>
+            </div>
           </div>,
           primaryBtn("Добавить", submitEmployee, pending),
           {
@@ -607,19 +693,28 @@ export function StaffAddFlowDialog(props: {
 export function StaffEditEmployeeDialog(props: {
   employee: StaffEmployee;
   pending: boolean;
-  onSave: (patch: { name?: string; phone?: string | null }) => void;
+  onSave: (patch: {
+    name?: string;
+    phone?: string | null;
+    weeklyDaysOff?: number[];
+  }) => void;
 } & Close) {
   const { employee, open, onClose, pending, onSave } = props;
   const [name, setName] = useState(employee.name);
   const [phone, setPhone] = useState(employee.phone ?? "");
+  const [weeklyDaysOff, setWeeklyDaysOff] = useState<number[]>(
+    () => normalizeWeeklyDaysOff(employee.weeklyDaysOff)
+  );
+  const savedWeeklyDaysOff = normalizeWeeklyDaysOff(employee.weeklyDaysOff);
 
   // Reset local state when dialog opens on a different employee.
   useEffect(() => {
     if (open) {
       setName(employee.name);
       setPhone(employee.phone ?? "");
+      setWeeklyDaysOff(normalizeWeeklyDaysOff(employee.weeklyDaysOff));
     }
-  }, [open, employee.id, employee.name, employee.phone]);
+  }, [open, employee.id, employee.name, employee.phone, employee.weeklyDaysOff]);
 
   function submit() {
     const trimmedName = name.trim();
@@ -627,7 +722,15 @@ export function StaffEditEmployeeDialog(props: {
       toast.error("Введите ФИО (минимум 2 символа)");
       return;
     }
-    const patch: { name?: string; phone?: string | null } = {};
+    const patch: {
+      name?: string;
+      phone?: string | null;
+      weeklyDaysOff?: number[];
+    } = {};
+    const nextWeekly = normalizeWeeklyDaysOff(weeklyDaysOff);
+    if (nextWeekly.join(",") !== savedWeeklyDaysOff.join(",")) {
+      patch.weeklyDaysOff = nextWeekly;
+    }
     if (trimmedName !== employee.name) patch.name = trimmedName;
     const trimmedPhone = phone.trim();
     const currentPhone = employee.phone ?? "";
@@ -666,6 +769,20 @@ export function StaffEditEmployeeDialog(props: {
                 Меняется номер — запустится автосвязка с TasksFlow по
                 совпадению телефона. Чтобы очистить телефон, оставьте
                 поле пустым.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9fb3]">
+                Выходные
+              </div>
+              <WeekdayChips
+                value={weeklyDaysOff}
+                onChange={setWeeklyDaysOff}
+                ariaLabel={`Выходные дни: ${employee.name}`}
+              />
+              <p className="text-[11px] leading-snug text-[#6f7282]">
+                Правило на каждую неделю. Отдельный день можно переопределить
+                в графике выходных.
               </p>
             </div>
           </div>,

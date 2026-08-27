@@ -8,6 +8,7 @@ import { notifyManagement } from "@/lib/notifications";
 import { normalizePhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
 import { ensurePlanForHeadcount } from "@/lib/plan-limits.server";
+import { normalizeWeeklyDaysOff } from "@/lib/staff-days-off";
 
 /**
  * Minimal "add an employee" endpoint matching the reference-staff screen:
@@ -36,6 +37,9 @@ const createSchema = z.object({
   // штата (решение владельца 2026-08-27). Автосвязка с TasksFlow по
   // номеру просто отложится до момента, когда номер добавят в карточке.
   phone: z.string().trim().optional(),
+  /// Недельное правило выходных (0=Пн … 6=Вс). Форма добавления
+  /// предлагает Сб+Вс, чтобы график не пришлось прокликивать руками.
+  weeklyDaysOff: z.array(z.number().int().min(0).max(6)).optional(),
 });
 
 function forbidden() {
@@ -127,6 +131,7 @@ export async function POST(request: Request) {
         // selectors on isActive, so we must start in the active set. Login
         // stays impossible while passwordHash is empty.
         isActive: true,
+        weeklyDaysOff: normalizeWeeklyDaysOff(parsed.weeklyDaysOff ?? []),
         // Если есть position-based ACL — переключаем юзера в migrated-режим.
         // Иначе остаёмся в legacy back-compat (full access).
         journalAccessMigrated: useStrictAcl,

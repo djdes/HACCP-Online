@@ -24,6 +24,11 @@ import {
   toDateKey,
   type HygieneEntryData,
 } from "@/lib/hygiene-document";
+import {
+  buildDayOffOverrides,
+  dayOffOverrideKey,
+  isStaffDayOff,
+} from "@/lib/staff-days-off";
 
 export const HYGIENE_TEMPLATE_CODE = "hygiene";
 export const HEALTH_CHECK_TEMPLATE_CODE = "health_check";
@@ -38,7 +43,7 @@ export type StaffScheduleStatus = "day_off" | "vacation" | "sick_leave";
 
 type ScheduleDb = Pick<
   PrismaClient,
-  "staffWorkOffDay" | "staffVacation" | "staffSickLeave"
+  "staffWorkOffDay" | "staffVacation" | "staffSickLeave" | "user"
 >;
 
 type EntryDb = Pick<PrismaClient, "journalDocumentEntry">;
@@ -72,13 +77,19 @@ export async function loadStaffScheduleMap(
   const rangeEnd = utcDate(dateKeys[dateKeys.length - 1]);
   const dateKeySet = new Set(dateKeys);
 
-  const [offDays, vacations, sickLeaves] = await Promise.all([
+  const [offDays, staffUsers, vacations, sickLeaves] = await Promise.all([
     db.staffWorkOffDay.findMany({
       where: {
         userId: { in: employeeIds },
         date: { gte: rangeStart, lte: rangeEnd },
       },
-      select: { userId: true, date: true },
+      select: { userId: true, date: true, kind: true },
+    }),
+    // Недельное правило выходных: без него в журнал попадали только те
+    // дни, которые управляющая успела прокликать руками.
+    db.user.findMany({
+      where: { id: { in: employeeIds } },
+      select: { id: true, weeklyDaysOff: true },
     }),
     db.staffVacation.findMany({
       where: {
@@ -99,10 +110,17 @@ export async function loadStaffScheduleMap(
   ]);
 
   // Порядок важен: последующий тип перекрывает предыдущий.
-  offDays.forEach((row) => {
-    const dateKey = toDateKey(row.date);
-    if (!dateKeySet.has(dateKey)) return;
-    map.set(staffScheduleKey(row.userId, dateKey), "day_off");
+  // Выходной = недельное правило сотрудника, скорректированное явными
+  // отметками из StaffWorkOffDay (см. src/lib/staff-days-off.ts).
+  const overrides = buildDayOffOverrides(
+    offDays.filter((row) => dateKeySet.has(toDateKey(row.date)))
+  );
+  staffUsers.forEach((user) => {
+    dateKeys.forEach((dateKey) => {
+      const override = overrides.get(dayOffOverrideKey(user.id, dateKey));
+      if (!isStaffDayOff(user, dateKey, override ?? null)) return;
+      map.set(staffScheduleKey(user.id, dateKey), "day_off");
+    });
   });
 
   function applyPeriods(

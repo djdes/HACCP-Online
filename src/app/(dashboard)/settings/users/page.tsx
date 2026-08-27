@@ -3,6 +3,9 @@ import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
 import { StaffPageClient } from "@/components/staff/staff-page-client";
+import { sphereToPreset } from "@/lib/org-profile";
+import { getOnboardingPreset } from "@/lib/onboarding-presets";
+import type { PositionCategory } from "@/components/staff/staff-types";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +34,9 @@ export default async function StaffPage() {
     await Promise.all([
       db.organization.findUnique({
         where: { id: orgId },
-        select: { id: true, name: true },
+        // `type` — сфера организации (см. src/lib/org-profile.ts):
+        // из неё берём подсказки типовых должностей.
+        select: { id: true, name: true, type: true },
       }),
       db.jobPosition.findMany({
         where: { organizationId: orgId },
@@ -52,11 +57,12 @@ export default async function StaffPage() {
           isActive: true,
           isRoot: true,
           archivedAt: true,
+          weeklyDaysOff: true,
         },
       }),
       db.staffWorkOffDay.findMany({
         where: { user: { organizationId: orgId } },
-        select: { userId: true, date: true },
+        select: { userId: true, date: true, kind: true },
       }),
       db.staffVacation.findMany({
         where: { user: { organizationId: orgId } },
@@ -87,8 +93,28 @@ export default async function StaffPage() {
       }),
     ]);
 
+  // Подсказки должностей: берём типовые названия из onboarding-пресета
+  // для сферы организации и вычитаем те, что уже заведены — предлагать
+  // «Повар», когда «Повар» уже есть, бессмысленно.
+  const existingPositionNames = new Set(
+    positions.map((p) => p.name.trim().toLowerCase())
+  );
+  const presetPositions = getOnboardingPreset(
+    sphereToPreset(organization?.type)
+  ).positions;
+  const positionSuggestions: Record<PositionCategory, string[]> = {
+    management: [],
+    staff: [],
+  };
+  for (const preset of presetPositions) {
+    if (existingPositionNames.has(preset.name.trim().toLowerCase())) continue;
+    const bucket = positionSuggestions[preset.category as PositionCategory];
+    if (bucket && !bucket.includes(preset.name)) bucket.push(preset.name);
+  }
+
   return (
     <StaffPageClient
+      positionSuggestions={positionSuggestions}
       hasTasksflowIntegration={Boolean(tasksflowIntegration)}
       organization={{
         id: organization?.id ?? orgId,
@@ -113,10 +139,12 @@ export default async function StaffPage() {
         isRoot: u.isRoot,
         isSelf: u.id === session.user.id,
         telegramLinked: Boolean(u.telegramChatId),
+        weeklyDaysOff: u.weeklyDaysOff,
       }))}
       workOffDays={workOffDays.map((w) => ({
         userId: w.userId,
         date: w.date.toISOString().slice(0, 10),
+        kind: w.kind === "work" ? ("work" as const) : ("off" as const),
       }))}
       vacations={vacations.map((v) => ({
         id: v.id,
