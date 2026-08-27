@@ -4,7 +4,8 @@ import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { issueSession } from "@/lib/issue-session";
 import { sendAccountPasswordEmail } from "@/lib/email";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { escapeTelegramHtml } from "@/lib/telegram";
+import { notifyPlatformAdmin } from "@/lib/platform-admin";
 import { registrationCodeRateLimiter } from "@/lib/rate-limit";
 import { domainAcceptsMail } from "@/lib/mail-domain";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
@@ -172,10 +173,13 @@ export async function POST(request: Request) {
 }
 
 async function notifyOwner(email: string): Promise<void> {
-  const chatId = (process.env.PLATFORM_ADMIN_TELEGRAM_CHAT_ID ?? "").trim();
-  if (!chatId) return;
-  await sendTelegramMessage(
-    chatId,
-    ["🆕 Новая регистрация с лендинга", `Почта: ${email}`].join("\n"),
+  // Единая точка админ-уведомлений: регистрации и обращения больше не
+  // разъезжаются по двум разным chat id из разных env-переменных.
+  await notifyPlatformAdmin(
+    [
+      "🆕 Новая регистрация с лендинга",
+      `Почта: ${escapeTelegramHtml(email)}`,
+    ].join("\n"),
+    { kind: "registration" },
   );
 }

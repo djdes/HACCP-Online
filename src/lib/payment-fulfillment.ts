@@ -7,7 +7,7 @@ import {
   inviteExpiresAt,
 } from "@/lib/invite-tokens";
 import { sendPaymentReceiptEmail } from "@/lib/email";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { notifyPlatformAdmin } from "@/lib/platform-admin";
 import { describeHardwareConfig } from "@/lib/hardware-pricing";
 import { formatRub } from "@/lib/tariffs";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
@@ -186,9 +186,6 @@ export async function notifyAboutPayment(args: {
     subscriptionEnd: result.subscriptionEnd,
   }).catch((err) => console.error("sendPaymentReceiptEmail failed", err));
 
-  const chatId = (process.env.PLATFORM_ADMIN_TELEGRAM_CHAT_ID ?? "").trim();
-  if (!chatId) return;
-
   const hardware = describeHardwareConfig(
     (order.bundleConfig as Record<string, number>) ?? {},
   );
@@ -207,7 +204,8 @@ export async function notifyAboutPayment(args: {
     lines.push("", "Оборудование к отгрузке:", ...hardware.map((h) => `• ${h}`));
   }
 
-  await sendTelegramMessage(chatId, lines.join("\n")).catch((err) =>
+  // Оплаты идут в ту же единую точку, что регистрации и обращения.
+  await notifyPlatformAdmin(lines.join("\n"), { kind: "payment" }).catch((err) =>
     console.error("payment telegram notify failed", err),
   );
 }

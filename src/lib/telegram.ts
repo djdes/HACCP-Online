@@ -237,7 +237,7 @@ async function executeTelegramSend(
   logId: string,
   sendFn: () => Promise<unknown>,
   errorLabel: string
-): Promise<void> {
+): Promise<boolean> {
   const { db } = await import("./db");
   let attempt = 0;
   let lastError: unknown = null;
@@ -260,7 +260,7 @@ async function executeTelegramSend(
         errorCode: null,
         errorMessage: null,
       });
-      return;
+      return true;
     } catch (error) {
       lastError = error;
       const retryAfter = extractRetryAfterSeconds(error);
@@ -294,6 +294,7 @@ async function executeTelegramSend(
     errorMessage: errorText?.slice(0, 300) ?? null,
   });
   console.error(`${errorLabel}:`, lastError);
+  return false;
 }
 
 type TelegramSendOptions = {
@@ -349,15 +350,20 @@ async function shouldSkipTelegramSendOnRerun(
  * Persistent 429s end as `rate_limited`. Caller context (userId) is
  * optional — cron jobs that fan out to many users pass it so the log is
  * per-user.
+ *
+ * Возвращает true, если сообщение реально ушло. Служебные уведомления
+ * (`notifyPlatformAdmin`, обратная связь) по этому флагу проставляют
+ * статус доставки; старые fire-and-forget вызовы просто игнорируют
+ * результат — сигнатура для них совместима.
  */
 export async function sendTelegramMessage(
   chatId: string,
   text: string,
   opts?: TelegramSendOptions
-): Promise<void> {
+): Promise<boolean> {
   const { db } = await import("./db");
   if (await shouldSkipTelegramSendOnRerun(opts)) {
-    return;
+    return false;
   }
 
   const delivery = normalizeTelegramDeliveryMetadata(opts?.delivery);
@@ -379,10 +385,10 @@ export async function sendTelegramMessage(
       where: { id: log.id },
       data: { status: "failed", error: "bot not configured" },
     });
-    return;
+    return false;
   }
 
-  await executeTelegramSend(
+  return executeTelegramSend(
     log.id,
     () =>
       bot.api.sendMessage(chatId, text, {

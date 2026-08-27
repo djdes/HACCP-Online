@@ -6,6 +6,8 @@ import {
   compareVerificationCode,
 } from "@/lib/registration";
 import { sendWelcomeEmail } from "@/lib/email";
+import { notifyPlatformAdmin } from "@/lib/platform-admin";
+import { escapeTelegramHtml } from "@/lib/telegram";
 import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
@@ -186,6 +188,18 @@ export async function POST(request: Request) {
     name: result.user.name,
     organizationName: result.organization.name,
   }).catch((err) => console.error("sendWelcomeEmail failed", err));
+
+  // Регистрации через /register раньше не уведомляли никого: новые
+  // организации появлялись молча, и владелец узнавал о них случайно.
+  notifyPlatformAdmin(
+    [
+      "🆕 Регистрация организации",
+      `Название: ${escapeTelegramHtml(result.organization.name)}`,
+      `Почта: ${escapeTelegramHtml(result.user.email)}`,
+      `Имя: ${escapeTelegramHtml(result.user.name)}`,
+    ].join("\n"),
+    { kind: "registration" }
+  ).catch((err) => console.error("register notify admin failed", err));
 
   return NextResponse.json(
     {
