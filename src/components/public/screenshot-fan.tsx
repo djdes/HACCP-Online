@@ -9,6 +9,7 @@ import {
   Send,
   Sun,
   Users,
+  Wifi,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
 import { AutoCarousel } from "@/components/landing/auto-carousel";
@@ -255,10 +256,10 @@ function DesktopMockup() {
           </div>
           <ul className="mt-2.5 space-y-1.5">
             {[
-              { name: "Гигиенический журнал", time: "09:00", done: true },
-              { name: "Температура холодильников", time: "10:00", done: true },
-              { name: "Бракераж готовой продукции", time: "12:00", done: false },
-              { name: "Уборка зала", time: "18:00", done: false },
+              { name: "Гигиенический журнал", time: "09:00", done: true, auto: false },
+              { name: "Температура холодильников", time: "10:00", done: true, auto: true },
+              { name: "Бракераж готовой продукции", time: "12:00", done: false, auto: false },
+              { name: "Уборка зала", time: "18:00", done: false, auto: false },
             ].map((r) => (
               <li
                 key={r.name}
@@ -272,6 +273,12 @@ function DesktopMockup() {
                 <span className="text-[10px] font-medium text-[#0b1024]">
                   {r.name}
                 </span>
+                {r.auto ? (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-[#eef1ff] px-1.5 py-[1px] text-[8px] font-medium text-[#3848c7]">
+                    <Wifi className="size-2" />
+                    авто
+                  </span>
+                ) : null}
                 <span className="ml-auto text-[9px] text-[#9b9fb3]">
                   {r.time}
                 </span>

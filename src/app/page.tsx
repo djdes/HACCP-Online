@@ -26,10 +26,12 @@ import {
   UserCheck,
   Users,
   Wand2,
+  Wifi,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { EquipmentPricing } from "@/components/landing/equipment-pricing";
 import { AudienceCarousel } from "@/components/landing/audience-carousel";
+import { AutomationScene } from "@/components/landing/automation-scene";
 import { SampleGallery } from "@/components/landing/sample-gallery";
 import { DOCX_SAMPLE_CODES } from "@/lib/document-docx";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
@@ -584,6 +586,27 @@ export default async function LandingPage() {
             <ScreenshotFan />
           </div>
         </div>
+      </section>
+
+      {/* ЗАПОЛНЯЕТСЯ САМО — hero показывает поверхности продукта, но не
+          показывает главного: часть записей появляется без человека.
+          Сцена читается без текста: датчик → строка журнала → сканер. */}
+      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+        <div className="mb-10 max-w-[720px]">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Wifi className="size-4" />
+            Автоматизация
+          </div>
+          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Температура пишется сама
+          </h2>
+          <p className="mt-3 text-[15px] text-[#6f7282]">
+            Датчик на холодильнике и сканер на приёмке заполняют журналы
+            без людей — повару остаётся только то, что нельзя измерить
+            прибором.
+          </p>
+        </div>
+        <AutomationScene />
       </section>
 
       {/* ПОДХОДИТ ДЛЯ — было рядом чипов в герое. Слова «Рестораны,
