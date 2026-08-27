@@ -1,18 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Camera,
-  GripVertical,
   Loader2,
   Plus,
   Save,
   Trash2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
 
 type Step = {
   id: string;
@@ -99,23 +97,20 @@ export function PipelineEditor({
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8">          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
+      {/* Тёмный hero снят: редактор шагов — рабочий экран, баннер только
+          отодвигал форму вниз. Код журнала оставляем в заголовке. */}
+      <PageHeader
+        title={
+          <>
             Pipeline · <span className="font-mono text-[18px]">{code}</span>
-          </h1>
-          <p className="mt-2 max-w-[600px] text-[14px] text-white/70">
-            Шаги, которые увидит сотрудник при открытии задачи. Чем понятнее
-            каждый шаг — тем меньше вопросов от новой уборщицы / повара.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+        description="Шаги, которые увидит сотрудник при открытии задачи. Чем понятнее каждый шаг — тем меньше вопросов от новой уборщицы / повара."
+      />
 
       <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
         <label className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
-          Подсказка наверху pipeline'а (опц.)
+          Подсказка наверху pipeline&apos;а (опц.)
         </label>
         <input
           value={intro}

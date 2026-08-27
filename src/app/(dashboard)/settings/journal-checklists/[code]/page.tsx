@@ -1,11 +1,11 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ListChecks } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { ChecklistEditor } from "./checklist-editor";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -89,38 +89,14 @@ export default async function JournalChecklistEditorPage({
 
   return (
     <div className="space-y-5">
-      <div>
-
-      </div>
-
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-6 md:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ListChecks className="size-6" />
-            </span>
-            <div>
-              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/70">
-                Чек-лист сотрудника
-              </div>
-              <h1 className="mt-1 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
-                {meta.name}
-              </h1>
-              <p className="mt-2 max-w-[640px] text-[14px] text-white/70">
-                Список действий, которые сотрудник должен выполнить перед
-                сохранением записи журнала. Каждый пункт можно сделать
-                обязательным — тогда форма не отправится пока не
-                отмечены все галочки. Все отметки сохраняются в
-                audit-log.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: редактор пунктов должен начинаться сразу.
+          Надстрочная подпись оставлена — она не дублирует название
+          журнала, а объясняет, чей это чек-лист. */}
+      <PageHeader
+        eyebrow="Чек-лист сотрудника"
+        title={meta.name}
+        description="Список действий, которые сотрудник должен выполнить перед сохранением записи журнала. Каждый пункт можно сделать обязательным — тогда форма не отправится пока не отмечены все галочки. Все отметки сохраняются в audit-log."
+      />
 
       {code === "cleaning" ? (
         <div className="rounded-3xl border border-[#ffe9b0] bg-[#fff8eb] p-5 text-[13px] text-[#7a5500]">

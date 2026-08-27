@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, GitBranch, Package, Clock, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Package, Clock, User as UserIcon } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -52,38 +53,28 @@ export default async function TraceabilityPage({
         К журналам
       </Link>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[340px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-28 -right-28 size-[380px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 flex items-start gap-3 p-5 sm:gap-4 sm:p-8 md:p-10">
-          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
-            <GitBranch className="size-6" />
-          </div>
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
-              ХАССП · Прослеживаемость партии
-            </div>
-            <h1 className="mt-3 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] sm:text-[clamp(1.75rem,2vw+1rem,2rem)]">
-              Партия{" "}
-              <span className="font-mono text-white/90">{batchKey}</span>
-            </h1>
-            <p className="mt-2 max-w-[560px] text-[13px] leading-[1.5] text-white/70 sm:text-[14px]">
-              {entries.length === 0
-                ? "Записи с этим ключом не найдены. Проверь правильность ключа или зайди через запись приёмки."
-                : `Найдено ${entries.length} ${
-                    entries.length === 1
-                      ? "запись"
-                      : entries.length < 5
-                        ? "записи"
-                        : "записей"
-                  } по этой партии. Хронологический порядок — от приёмки до отпуска.`}
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: история партии — это цепочка записей, её и
+          нужно видеть первой. */}
+      <PageHeader
+        eyebrow="ХАССП · Прослеживаемость партии"
+        title={
+          <>
+            Партия{" "}
+            <span className="font-mono text-[#3848c7]">{batchKey}</span>
+          </>
+        }
+        description={
+          entries.length === 0
+            ? "Записи с этим ключом не найдены. Проверь правильность ключа или зайди через запись приёмки."
+            : `Найдено ${entries.length} ${
+                entries.length === 1
+                  ? "запись"
+                  : entries.length < 5
+                    ? "записи"
+                    : "записей"
+              } по этой партии. Хронологический порядок — от приёмки до отпуска.`
+        }
+      />
 
       {entries.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-8 text-center text-[14px] text-[#6f7282]">

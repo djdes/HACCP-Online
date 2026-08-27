@@ -33,6 +33,7 @@ import {
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { PageGuide } from "@/components/ui/page-guide";
 import { EmailVerifyCard } from "@/components/settings/email-verify-card";
+import { isEmailVerified } from "@/lib/email-verification";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
@@ -371,7 +372,7 @@ export default async function SettingsPage() {
       {/* Подтверждение почты. Показывается, пока не подтверждена: это
           единственное место, где оно теперь живёт — из анкеты
           регистрации его убрали, там оно блокировало «Готово». */}
-      {me && !me.emailVerifiedAt ? (
+      {me && !isEmailVerified(me) ? (
         <EmailVerifyCard email={me.email} />
       ) : null}
       {/* Hero */}

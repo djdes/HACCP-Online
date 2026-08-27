@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
-  CheckCircle2,
   ClipboardCopy,
   ClipboardList,
   Copy,
@@ -15,6 +14,7 @@ import {
   Unlink,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface NotificationSettingsProps {
   botUsername: string;
@@ -148,36 +148,24 @@ export function NotificationSettings({
     <div className="space-y-8">
       <HeaderBlock />
 
-      {/* Hero: Telegram connection status */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.08]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-            maskImage:
-              "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
-          }}
-        />
-        <div className="relative z-10 grid gap-6 p-5 sm:gap-8 sm:p-8 md:grid-cols-[1.4fr_1fr] md:p-10">
+      {/* Карточка подключения Telegram: раньше была тёмным hero, но это не
+          заголовок страницы, а обычный блок настройки — держим его светлым,
+          как остальные секции. */}
+      <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
+        <div className="grid gap-6 md:grid-cols-[1.4fr_1fr] md:gap-8">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[12px] uppercase tracking-[0.18em] text-white/70 backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-[#fafbff] px-3 py-1 text-[12px] uppercase tracking-[0.18em] text-[#6f7282]">
               <span
                 className={`size-1.5 rounded-full ${
-                  isLinked ? "bg-[#7cf5c0]" : "bg-[#ffb08a]"
+                  isLinked ? "bg-[#136b2a]" : "bg-[#a13a32]"
                 }`}
               />
               {isLinked ? "Канал активен" : "Не подключено"}
             </div>
-            <h2 className="mt-4 text-[32px] font-semibold leading-[1.1] tracking-[-0.02em]">
+            <h2 className="mt-4 text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[#0b1024]">
               Telegram-бот уведомлений
             </h2>
-            <p className="mt-3 max-w-[440px] text-[14px] leading-[1.6] text-white/70">
+            <p className="mt-3 max-w-[440px] text-[14px] leading-[1.6] text-[#6f7282]">
               Получайте оповещения о температурных отклонениях,
               незаполненных журналах и новых назначениях — прямо в Telegram.
             </p>
@@ -187,7 +175,7 @@ export function NotificationSettings({
                   type="button"
                   onClick={handleUnlink}
                   disabled={isUnlinking}
-                  className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 text-[15px] font-medium text-white backdrop-blur transition-colors hover:bg-white/20 disabled:opacity-60"
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
                 >
                   <Unlink className="size-4" />
                   {isUnlinking ? "Отвязка…" : "Отвязать Telegram"}
@@ -198,22 +186,16 @@ export function NotificationSettings({
                     href={botLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative inline-flex h-11 items-center gap-2 overflow-hidden rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
+                    className="group inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
                   >
-                    <span className="relative z-10 inline-flex items-center gap-2">
-                      <Send className="size-4" />
-                      Открыть @{botUsername}
-                      <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-                    />
+                    <Send className="size-4" />
+                    Открыть @{botUsername}
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                   </a>
                   <button
                     type="button"
                     onClick={copyStartCommand}
-                    className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 text-[15px] font-medium text-white/90 backdrop-blur transition-colors hover:bg-white/10"
+                    className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
                     title="Скопировать команду /start <токен>"
                   >
                     <ClipboardCopy className="size-4" />
@@ -221,7 +203,7 @@ export function NotificationSettings({
                   </button>
                 </>
               ) : (
-                <div className="rounded-2xl bg-white/10 px-4 py-3 text-[13px] text-white/70">
+                <div className="rounded-2xl border border-[#f0f1f8] bg-[#fafbff] px-4 py-3 text-[13px] text-[#6f7282]">
                   Telegram-бот пока не настроен администратором.
                 </div>
               )}
@@ -362,16 +344,13 @@ export function NotificationSettings({
   );
 }
 
+/** Общая шапка страницы — одна и для skeleton'а, и для готового экрана. */
 function HeaderBlock() {
   return (
-    <div>
-      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-        Уведомления
-      </h1>
-      <p className="mt-1 text-[14px] text-[#6f7282]">
-        Telegram-канал уведомлений и предпочтения по типам событий.
-      </p>
-    </div>
+    <PageHeader
+      title="Уведомления"
+      description="Telegram-канал уведомлений и предпочтения по типам событий."
+    />
   );
 }
 
@@ -434,20 +413,20 @@ function ChatPreview({
   botUsername: string;
 }) {
   return (
-    <div className="relative h-full w-full rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-        <div className="flex size-8 items-center justify-center rounded-full bg-[#5566f6] text-[12px] font-semibold uppercase">
+    <div className="relative h-full w-full rounded-2xl border border-[#f0f1f8] bg-[#fafbff] p-4">
+      <div className="flex items-center gap-2 border-b border-[#f0f1f8] pb-3">
+        <div className="flex size-8 items-center justify-center rounded-full bg-[#5566f6] text-[12px] font-semibold uppercase text-white">
           {botUsername.slice(0, 2) || "tg"}
         </div>
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-medium text-white">
+          <div className="truncate text-[13px] font-medium text-[#0b1024]">
             @{botUsername}
           </div>
-          <div className="text-[11px] text-white/50">
+          <div className="text-[11px] text-[#9b9fb3]">
             {linked ? "в сети" : "ожидает привязки"}
           </div>
         </div>
-        <ExternalLink className="ml-auto size-4 text-white/40" />
+        <ExternalLink className="ml-auto size-4 text-[#9b9fb3]" />
       </div>
       <div className="mt-3 space-y-2">
         {linked ? (
@@ -503,12 +482,18 @@ function Bubble({
           isMe
             ? "bg-[#5566f6] text-white"
             : muted
-              ? "bg-white/10 text-white/60"
-              : "bg-white/15 text-white/90"
+              ? "border border-[#eceef7] bg-white text-[#9b9fb3]"
+              : "border border-[#eceef7] bg-white text-[#3c4053]"
         }`}
       >
         <div className="whitespace-pre-line">{body}</div>
-        <div className="mt-0.5 text-right text-[10px] text-white/40">{time}</div>
+        <div
+          className={`mt-0.5 text-right text-[10px] ${
+            isMe ? "text-white/60" : "text-[#9b9fb3]"
+          }`}
+        >
+          {time}
+        </div>
       </div>
     </div>
   );

@@ -101,12 +101,12 @@ export function OnboardingFinishCta({
   const alreadyHas = activeDocumentsCount > 0;
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-[#5566f6]/30 bg-gradient-to-br from-[#5566f6] to-[#7a5cff] p-5 text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] sm:p-7">
-      <div className="pointer-events-none absolute -right-16 -top-16 size-[280px] rounded-full bg-white/10 blur-[80px]" />
-      <div className="pointer-events-none absolute -left-12 -bottom-12 size-[220px] rounded-full bg-[#0b1024]/30 blur-[60px]" />
-      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    // Обычная светлая карточка дизайн-системы: градиентный «баннер»
+    // выбивался из страницы настроек и перетягивал внимание с шагов выше.
+    <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
             {alreadyHas ? (
               <CheckCircle2 className="size-6" />
             ) : (
@@ -114,15 +114,15 @@ export function OnboardingFinishCta({
             )}
           </span>
           <div>
-            <div className="text-[11px] uppercase tracking-[0.16em] text-white/70">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-[#9b9fb3]">
               Финал быстрой настройки
             </div>
-            <h2 className="mt-1 text-[18px] font-semibold leading-tight">
+            <h2 className="mt-1 text-[18px] font-semibold leading-tight text-[#0b1024]">
               {alreadyHas
                 ? `Документы уже созданы (${activeDocumentsCount} активн.)`
                 : "Готовы создать все документы журналов"}
             </h2>
-            <p className="mt-1 max-w-[480px] text-[13px] text-white/80">
+            <p className="mt-1 max-w-[480px] text-[13px] leading-relaxed text-[#6f7282]">
               {alreadyHas
                 ? "Можно пересоздать с нуля — старые закроются, заведутся свежие со строками и текущими ответственными."
                 : "Один клик — заведёт документы по всем включённым журналам, расставит ответственных и подтянет дефолтные строки."}
@@ -133,7 +133,7 @@ export function OnboardingFinishCta({
           type="button"
           onClick={createAll}
           disabled={busy}
-          className="inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl bg-white px-5 text-[14px] font-semibold text-[#5566f6] shadow-[0_10px_24px_-12px_rgba(0,0,0,0.45)] transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
         >
           {busy ? (
             <Loader2 className="size-4 animate-spin" />

@@ -2,15 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  Activity,
-  ArrowRight,
-  CheckCircle2,
-  ClipboardList,
-  Loader2,
-  RefreshCcw,
-} from "lucide-react";
+import { ArrowRight, Loader2, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
 
 type Status = "untouched" | "in_progress" | "completed";
 
@@ -96,66 +90,31 @@ export function JournalsProgressClient() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-6 md:p-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <ClipboardList className="size-6" />
-              </span>
-              <div>
-                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
-                  {counts.untouched + counts.in_progress > 0
-                    ? `${counts.untouched + counts.in_progress} ${counts.untouched + counts.in_progress === 1 ? "журнал ждёт" : "журналов ждут"}`
-                    : "Все журналы готовы"}
-                </h1>
-                <p className="mt-2 max-w-[640px] text-[14px] text-white/70">
-                  Прогресс заполнения за сегодня. Кликни на журнал чтобы
-                  открыть его и проверить. Обновляется автоматически.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => load(true)}
-              disabled={refreshing || loading}
-              className="hidden h-10 items-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 text-[13px] text-white hover:bg-white/10 disabled:opacity-60 sm:inline-flex"
-            >
-              {refreshing ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <RefreshCcw className="size-4" />
-              )}
-              Обновить
-            </button>
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <SummaryCard
-              tone="success"
-              label="Готовы"
-              value={counts.completed}
-              icon={<CheckCircle2 className="size-4" />}
-            />
-            <SummaryCard
-              tone="warn"
-              label="В процессе"
-              value={counts.in_progress}
-              icon={<Activity className="size-4" />}
-            />
-            <SummaryCard
-              tone="muted"
-              label="Не начаты"
-              value={counts.untouched}
-              icon={<ClipboardList className="size-4" />}
-            />
-          </div>
-        </div>
-      </section>
+      {/* Три SummaryCard'а («Готовы» / «В процессе» / «Не начаты») убраны:
+          ровно те же числа стоят в заголовках колонок ниже. */}
+      <PageHeader
+        title={
+          counts.untouched + counts.in_progress > 0
+            ? `${counts.untouched + counts.in_progress} ${counts.untouched + counts.in_progress === 1 ? "журнал ждёт" : "журналов ждут"}`
+            : "Все журналы готовы"
+        }
+        description="Прогресс заполнения за сегодня. Кликни на журнал чтобы открыть его и проверить. Обновляется автоматически."
+        actions={
+          <button
+            type="button"
+            onClick={() => load(true)}
+            disabled={refreshing || loading}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+          >
+            {refreshing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="size-4" />
+            )}
+            Обновить
+          </button>
+        }
+      />
 
       {loading ? (
         <div className="flex items-center justify-center rounded-3xl border border-[#ececf4] bg-white p-16 text-[#6f7282]">
@@ -185,38 +144,6 @@ export function JournalsProgressClient() {
           />
         </div>
       )}
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  tone: "success" | "warn" | "muted";
-}) {
-  const fg =
-    tone === "success"
-      ? "text-[#7cf5c0]"
-      : tone === "warn"
-        ? "text-[#ffd28a]"
-        : "text-white/70";
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5">
-      <div
-        className={`flex items-center gap-1.5 text-[11px] uppercase tracking-wider ${fg}`}
-      >
-        {icon}
-        {label}
-      </div>
-      <div className="mt-1.5 text-[28px] font-semibold leading-none tabular-nums">
-        {value}
-      </div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Camera,
@@ -41,6 +40,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import type { PipelineNode, PipelineTree } from "@/lib/journal-pipeline-tree";
 
@@ -426,65 +426,46 @@ export function TreeEditorClient({
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <ListTree className="size-6" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/50">
-                  Pipeline (beta)
-                </div>
-                <h1 className="mt-1 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                  {journalName}
-                </h1>
-                <p className="mt-2 max-w-[640px] text-[14px] text-white/70">
-                  Дерево шагов, по которым будет вести сотрудника TasksFlow.
-                  Pinned-узлы (📌) привязаны к колонкам журнала и заполняют
-                  их автоматически. Custom-узлы (✏) — ваши инструкции и
-                  подсказки.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {tree && tree.nodes.length > 0 ? (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setAddParentId(null);
-                    setAddOpen(true);
-                  }}
-                  className="h-10 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0]"
-                >
-                  <Plus className="size-4" />
-                  Добавить шаг
-                </Button>
-              ) : null}
-              {tree && tree.nodes.some((n) => n.kind === "pinned") ? null : (
-                <Button
-                  type="button"
-                  onClick={() => setSeedOpen(true)}
-                  disabled={fields.length === 0}
-                  className="h-10 rounded-2xl bg-white px-4 text-[14px] font-medium text-[#0b1024] hover:bg-white/90 disabled:bg-white/30"
-                  title={
-                    fields.length === 0
-                      ? "У журнала нет описанных колонок"
-                      : undefined
-                  }
-                >
-                  <Sparkles className="size-4 text-[#5566f6]" />
-                  Создать из колонок журнала
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: баннер съедал первый экран и дублировал название
+          из PageNav. Оба действия перенесены в actions заголовка. */}
+      <PageHeader
+        eyebrow="Pipeline (beta)"
+        title={journalName}
+        description="Дерево шагов, по которым будет вести сотрудника TasksFlow. Pinned-узлы (📌) привязаны к колонкам журнала и заполняют их автоматически. Custom-узлы (✏) — ваши инструкции и подсказки."
+        actions={
+          <>
+            {tree && tree.nodes.length > 0 ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  setAddParentId(null);
+                  setAddOpen(true);
+                }}
+                className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+              >
+                <Plus className="size-4" />
+                Добавить шаг
+              </Button>
+            ) : null}
+            {tree && tree.nodes.some((n) => n.kind === "pinned") ? null : (
+              <Button
+                type="button"
+                onClick={() => setSeedOpen(true)}
+                disabled={fields.length === 0}
+                className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                title={
+                  fields.length === 0
+                    ? "У журнала нет описанных колонок"
+                    : undefined
+                }
+              >
+                <Sparkles className="size-4 text-[#5566f6]" />
+                Создать из колонок журнала
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {tree && tree.nodes.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
@@ -776,7 +757,7 @@ function WizardPreview({ nodes }: { nodes: PipelineNode[] }) {
       <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-            Превью wizard'а
+            Превью wizard&apos;а
           </div>
           <div className="rounded-full bg-white px-2.5 py-0.5 text-[11px] text-[#9b9fb3]">
             как увидит сотрудник

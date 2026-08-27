@@ -7,6 +7,7 @@ import {
   Scale,
   Users,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
@@ -115,48 +116,29 @@ export default async function WorkloadBalancePage() {
 
   return (
     <div className="space-y-5">
-      <div>
-
-      </div>
-
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-6 md:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <Scale className="size-6" />
-            </span>
-            <div>
-              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
-                Распределение задач
-              </h1>
-              <p className="mt-2 max-w-[680px] text-[14px] text-white/70">
-                Кто сколько журналов ведёт в месяц по факту назначений.
-                Если у поваров одинаковая зарплата, нагрузка должна быть
-                близкой — иначе появятся обиды и текучка. Меняйте
-                ответственных в{" "}
-                <Link
-                  href="/settings/journal-responsibles"
-                  className="underline decoration-white/40 underline-offset-2 hover:decoration-white"
-                >
-                  Ответственные
-                </Link>{" "}
-                и сложность в{" "}
-                <Link
-                  href="/settings/journal-difficulty"
-                  className="underline decoration-white/40 underline-offset-2 hover:decoration-white"
-                >
-                  Сложность журналов
-                </Link>{" "}
-                — таблица обновится.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: страница аналитическая, человеку нужны сразу
+          цифры и таблицы. Две ссылки-«куда идти править» стали кнопками
+          справа — так очевиднее, что это действия, а не текст. */}
+      <PageHeader
+        title="Распределение задач"
+        description="Кто сколько журналов ведёт в месяц по факту назначений. Если у поваров одинаковая зарплата, нагрузка должна быть близкой — иначе появятся обиды и текучка. Меняйте ответственных и сложность журналов — таблица обновится."
+        actions={
+          <>
+            <Link
+              href="/settings/journal-responsibles"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Ответственные
+            </Link>
+            <Link
+              href="/settings/journal-difficulty"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Сложность журналов
+            </Link>
+          </>
+        }
+      />
 
       <PageGuide
         storageKey="workload-balance"

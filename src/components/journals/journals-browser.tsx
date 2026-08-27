@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
+import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
 import {
   AlertCircle,
   ArrowRight,
@@ -26,7 +27,6 @@ import {
   FileText,
   Flame,
   Gauge,
-  Gift,
   GraduationCap,
   HandHeart,
   HardHat,
@@ -70,6 +70,9 @@ type JournalsBrowserProps = {
   templates: JournalTemplateListItem[];
   canBulkCreate?: boolean;
 };
+
+// Коды, для которых в public/journal-samples лежит PNG бланка.
+const SAMPLE_CODES = new Set<string>(SAMPLE_JOURNAL_CODES);
 
 const JOURNAL_ICONS: Record<string, LucideIcon> = {
   hygiene: HandHeart,
@@ -136,40 +139,6 @@ export function JournalsBrowser({
 
   const totalCount = templates.length;
   const enabledTemplates = templates.filter((t) => !t.disabled);
-  const disabledTemplates = templates.filter((t) => t.disabled);
-  const enabledCount = enabledTemplates.length;
-  const disabledCount = disabledTemplates.length;
-  // Compliance ring считает только ежедневные/конфиг-ежедневные
-  // mandatory-журналы. Aperiodic (годовые, событийные — медкнижки,
-  // аудиты, аварии) не имеют понятия «готовность на сегодня» и не
-  // попадают в знаменатель ring'а — иначе создание документа событийного
-  // журнала мгновенно сдвигает ring, хотя ничего фактически не
-  // заполнено.
-  const mandatoryEnabledTemplates = enabledTemplates.filter(
-    (t) =>
-      (t.isMandatorySanpin || t.isMandatoryHaccp) &&
-      ALL_DAILY_JOURNAL_CODES.has(t.code)
-  );
-  // null = считать не из чего (в организации нет включённых обязательных
-  // ежедневных журналов). Показывать в этом случае «100%» нельзя — это
-  // ложная зелёная готовность на пустой организации.
-  const compliancePercent =
-    mandatoryEnabledTemplates.length > 0
-      ? Math.round(
-          (mandatoryEnabledTemplates.filter((t) => t.filledToday).length /
-            mandatoryEnabledTemplates.length) *
-            100
-        )
-      : null;
-  // А stat-pill'ы «Заполнено сегодня» и «Надо заполнить» ориентируются
-  // на ВЕСЬ включённый набор журналов из настроек (Набор журналов).
-  // Иначе менеджер с 35 включёнными журналами видит «Надо заполнить 9»
-  // и недоумевает — это считались только mandatory-daily, а не весь
-  // его роstер.
-  const filledTodayCount = enabledTemplates.filter(
-    (t) => t.filledToday
-  ).length;
-  const pendingTodayCount = enabledTemplates.length - filledTodayCount;
 
   // Сортируем включённые журналы так, чтобы «надо заполнить сегодня»
   // были сверху — сотрудник без опыта работы с PC не должен сканировать
@@ -255,89 +224,12 @@ export function JournalsBrowser({
   }
 
   return (
-    <div className="space-y-8">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-          <div className="absolute left-1/3 top-1/2 size-[280px] rounded-full bg-[#3d4efc] opacity-25 blur-[100px]" />
-        </div>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.08]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-            maskImage: "radial-gradient(ellipse at 30% 40%, black 40%, transparent 70%)",
-          }}
-        />
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <NotebookPen className="size-6" />
-              </div>
-              <div>
-                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                  Журналы
-                </h1>
-                <p className="mt-1 max-w-[540px] text-[15px] text-white/70">
-                  Электронные журналы СанПиН и ХАССП. Выберите журнал, чтобы
-                  посмотреть записи, создать новые или распечатать отчёт.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-start gap-2 sm:items-end">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#7cf5c0]/40 bg-[#7cf5c0]/10 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-[#7cf5c0] backdrop-blur">
-                <Gift className="size-3.5" />
-                Все журналы бесплатно
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full",
-                    compliancePercent === null
-                      ? "bg-white/40"
-                      : compliancePercent >= 90
-                        ? "bg-[#7cf5c0]"
-                        : compliancePercent >= 60
-                          ? "bg-[#ffd466]"
-                          : "bg-[#ffb0a6]"
-                  )}
-                />
-                Готовность сегодня:{" "}
-                {compliancePercent === null ? "—" : `${compliancePercent}%`}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            <StatPill label="Всего" value={totalCount} />
-            <StatPill
-              label="Включено"
-              value={enabledCount}
-              hint={disabledCount > 0 ? `отключено ${disabledCount}` : undefined}
-            />
-            <StatPill
-              label="Заполнено сегодня"
-              value={filledTodayCount}
-              hint={enabledCount === 0 ? undefined : `из ${enabledCount}`}
-            />
-            <StatPill
-              label="Надо заполнить"
-              value={pendingTodayCount}
-              hint={pendingTodayCount === 0 ? "всё готово" : "журналов"}
-              alert={pendingTodayCount > 0}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Search */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full max-w-xl">
+    <div className="space-y-6">
+      {/* Поиск и панель массового создания — одной строкой на широких
+          экранах: два отдельных ряда съедали пол-экрана до первой
+          карточки журнала. */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative w-full lg:max-w-[420px]">
           <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#9b9fb3]" />
           <input
             value={query}
@@ -357,15 +249,14 @@ export function JournalsBrowser({
             </button>
           ) : null}
         </div>
-        <div className="text-[13px] text-[#6f7282]">
+        <div className="text-[13px] text-[#6f7282] lg:whitespace-nowrap">
           {normalizedQuery
             ? `Найдено ${filteredTemplates.length} из ${totalCount}`
             : `Всего журналов: ${totalCount}`}
         </div>
-      </div>
 
-      {canBulkCreate && canBulkSelectAll ? (
-        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white/95 px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] backdrop-blur sm:px-5">
+        {canBulkCreate && canBulkSelectAll ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:px-5 lg:ml-auto">
           <div className="flex items-center gap-2 text-[13px] text-[#3c4053]">
             <Sparkles className="size-4 text-[#5566f6]" />
             <span>
@@ -413,14 +304,15 @@ export function JournalsBrowser({
             </button>
           </div>
         </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {!hasResults ? (
         <EmptyState onReset={() => setQuery("")} />
       ) : (
         <div className="space-y-8">
           {filteredEnabled.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
               {filteredEnabled.map((template) => (
                 <TemplateCard
                   key={template.id}
@@ -451,7 +343,7 @@ export function JournalsBrowser({
                   </Link>
                 </span>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
                 {filteredDisabled.map((template) => (
                   <TemplateCard key={template.id} template={template} />
                 ))}
@@ -460,42 +352,6 @@ export function JournalsBrowser({
           ) : null}
         </div>
       )}
-    </div>
-  );
-}
-
-function StatPill({
-  label,
-  value,
-  hint,
-  alert,
-}: {
-  label: string;
-  value: number;
-  hint?: string;
-  alert?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm ring-1 ring-white/10",
-        alert && "bg-white/15 ring-white/30"
-      )}
-    >
-      <div className="text-[26px] font-semibold leading-none tabular-nums">
-        {value}
-      </div>
-      <div className="mt-1.5 text-[12px] text-white/60">{label}</div>
-      {hint ? (
-        <div
-          className={cn(
-            "mt-0.5 text-[11px]",
-            alert ? "text-[#ffd466]" : "text-white/40"
-          )}
-        >
-          {hint}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -518,26 +374,49 @@ function TemplateCard({
     !template.disabled && isMandatory && isDaily && !template.filledToday;
   const readyToday =
     !template.disabled && isMandatory && isDaily && template.filledToday;
+  const hasSample = SAMPLE_CODES.has(template.code);
+
+  // Превью настоящего бланка. По названию вроде «Чек-лист (памятка)
+  // проведения санитарного дня» невозможно вспомнить, что там за форма, —
+  // картинка узнаётся мгновенно. Те же файлы, что на дашборде.
+  const preview = hasSample ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/journal-samples/${template.code}.png`}
+      alt=""
+      loading="lazy"
+      className={cn(
+        "aspect-[1228/862] w-full border-b bg-white object-cover object-top transition-transform duration-200",
+        template.disabled
+          ? "border-[#dcdfed] opacity-60 grayscale"
+          : "border-[#ececf4] group-hover:scale-[1.01]",
+      )}
+    />
+  ) : (
+    <span
+      className={cn(
+        "flex aspect-[1228/862] w-full items-center justify-center border-b bg-[#f5f6ff]",
+        template.disabled
+          ? "border-[#dcdfed] text-[#9b9fb3] grayscale"
+          : "border-[#ececf4] text-[#5566f6]",
+      )}
+    >
+      <Icon className="size-8" />
+    </span>
+  );
 
   if (template.disabled) {
     return (
       <div
-        className="flex h-full cursor-not-allowed items-start gap-4 rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-5 py-5 opacity-70"
+        className="flex h-full flex-col overflow-hidden rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] opacity-70"
         aria-label={`${template.name} — отключён в настройках`}
       >
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eef0f6] text-[#9b9fb3]">
-          <Icon className="size-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold leading-snug text-[#6f7282]">
+        {preview}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 px-3.5 py-3">
+          <div className="line-clamp-2 text-[14px] font-semibold leading-snug text-[#6f7282]">
             {template.name}
           </div>
-          {template.description ? (
-            <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#9b9fb3]">
-              {template.description}
-            </div>
-          ) : null}
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <div className="mt-auto flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-[#eef0f6] px-2 py-0.5 text-[11px] font-medium text-[#6f7282]">
               <EyeOff className="size-3" />
               Отключён
@@ -548,9 +427,6 @@ function TemplateCard({
             >
               Включить
             </Link>
-            <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
-              {template.code}
-            </span>
           </div>
         </div>
       </div>
@@ -578,67 +454,57 @@ function TemplateCard({
       ) : null}
       <Link
         href={`/journals/${template.code}`}
-        className="group block focus:outline-none"
+        className="group block h-full focus:outline-none"
       >
-      <div
-        className={cn(
-          "flex h-full items-start gap-4 rounded-2xl border bg-white px-5 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] group-focus-visible:border-[#5566f6] group-focus-visible:ring-4 group-focus-visible:ring-[#5566f6]/15",
-          bulkSelected
-            ? "border-[#5566f6] ring-2 ring-[#5566f6]/25"
-            : needsAttentionToday
-              ? "border-[#ffd2cd] hover:border-[#ff8d7d]"
-              : readyToday
-                ? "border-[#c8f0d5] hover:border-[#7cf5c0]"
-                : "border-[#ececf4] hover:border-[#d6d9ee]"
-        )}
-      >
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#f5f6ff] text-[#5566f6] transition-transform group-hover:scale-105">
-          <Icon className="size-5" />
-        </div>
+        <div
+          className={cn(
+            "flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)] group-focus-visible:border-[#5566f6] group-focus-visible:ring-4 group-focus-visible:ring-[#5566f6]/15",
+            bulkSelected
+              ? "border-[#5566f6] ring-2 ring-[#5566f6]/25"
+              : needsAttentionToday
+                ? "border-[#ffd2cd] hover:border-[#ff8d7d]"
+                : readyToday
+                  ? "border-[#c8f0d5] hover:border-[#7cf5c0]"
+                  : "border-[#ececf4] hover:border-[#d6d9ee]",
+          )}
+        >
+          {preview}
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
-              {template.name}
+          <div className="flex min-w-0 flex-1 flex-col gap-2 px-3.5 py-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="line-clamp-2 min-w-0 flex-1 text-[14px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024]">
+                {template.name}
+              </div>
+              <ArrowRight className="size-4 shrink-0 translate-y-0.5 text-[#c7ccea] transition-transform group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
             </div>
-            <ArrowRight className="size-4 shrink-0 translate-y-0.5 text-[#c7ccea] transition-all group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />
-          </div>
-          {template.description ? (
-            <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#6f7282]">
-              {template.description}
-            </div>
-          ) : null}
 
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {needsAttentionToday ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
-                <AlertCircle className="size-3" />
-                Заполнить сегодня
-              </span>
-            ) : readyToday ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[11px] font-medium text-[#136b2a]">
-                <CheckCircle2 className="size-3" />
-                Сегодня готово
-              </span>
-            ) : null}
-            {template.isMandatorySanpin ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
-                <ShieldCheck className="size-3" />
-                СанПиН
-              </span>
-            ) : null}
-            {template.isMandatoryHaccp ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
-                <ShieldAlert className="size-3" />
-                ХАССП
-              </span>
-            ) : null}
-            <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
-              {template.code}
-            </span>
+            <div className="mt-auto flex flex-wrap items-center gap-1.5">
+              {needsAttentionToday ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
+                  <AlertCircle className="size-3" />
+                  Заполнить сегодня
+                </span>
+              ) : readyToday ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[11px] font-medium text-[#136b2a]">
+                  <CheckCircle2 className="size-3" />
+                  Сегодня готово
+                </span>
+              ) : null}
+              {template.isMandatorySanpin ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
+                  <ShieldCheck className="size-3" />
+                  СанПиН
+                </span>
+              ) : null}
+              {template.isMandatoryHaccp ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
+                  <ShieldAlert className="size-3" />
+                  ХАССП
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
       </Link>
     </div>
   );

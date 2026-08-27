@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import {
@@ -12,6 +11,7 @@ import {
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { RolePresetsClient } from "@/components/settings/role-presets-client";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -55,34 +55,22 @@ export default async function RolePresetsPage() {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex items-start gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ShieldCheck className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                Пресеты ролей
-              </h1>
-              <p className="mt-2 max-w-[640px] text-[15px] text-white/70">
-                Что видит каждая роль на сайте и в Telegram-боте. Назначить
-                пресет конкретному сотруднику можно в{" "}
-                <Link
-                  href="/settings/users"
-                  className="text-white underline underline-offset-2"
-                >
-                  «Сотрудники»
-                </Link>
-                .
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: сразу под заголовком идёт важное предупреждение
+          про head_chef и сама таблица пресетов — их и нужно видеть первыми.
+          Переход в «Сотрудники» вынесен в действие справа, чтобы не
+          прятать его внутри абзаца. */}
+      <PageHeader
+        title="Пресеты ролей"
+        description="Что видит каждая роль на сайте и в Telegram-боте. Назначить пресет конкретному сотруднику можно в «Сотрудниках»."
+        actions={
+          <Link
+            href="/settings/users"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            Сотрудники
+          </Link>
+        }
+      />
 
       <div className="rounded-3xl border border-[#ffe9b0] bg-[#fff8eb] p-4 text-[13px] text-[#a13a32]">
         <strong>Заведующая (head_chef)</strong> по умолчанию НЕ имеет

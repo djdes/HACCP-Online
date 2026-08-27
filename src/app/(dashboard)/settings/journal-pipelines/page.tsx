@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, ListChecks } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { hasCapability } from "@/lib/permission-presets";
 import { getDefaultPipeline } from "@/lib/journal-pipelines";
 import { PIPELINE_EXEMPT_JOURNALS } from "@/lib/journal-default-pipelines";
+import { PageHeader } from "@/components/ui/page-header";
 import { SeedAllPipelinesButton } from "./seed-all-button";
 
 /**
@@ -149,29 +150,12 @@ export default async function JournalPipelinesPage() {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex items-start gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ListChecks className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                Настройки журналов
-              </h1>
-              <p className="mt-2 max-w-[640px] text-[15px] text-white/70">
-                Pipeline-инструкции для сотрудников. Кликни на блок чтобы
-                настроить шаги: какие средства взять, куда пойти, что
-                проверить. Чем подробнее — тем понятнее новой уборщице
-                / повару / продавцу.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: на рабочей странице важнее сразу увидеть список
+          журналов, а название раздела уже есть в PageNav. */}
+      <PageHeader
+        title="Настройки журналов"
+        description="Pipeline-инструкции для сотрудников. Кликни на блок чтобы настроить шаги: какие средства взять, куда пойти, что проверить. Чем подробнее — тем понятнее новой уборщице / повару / продавцу."
+      />
 
       <div className="flex flex-col gap-3 rounded-3xl border border-[#dcdfed] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">

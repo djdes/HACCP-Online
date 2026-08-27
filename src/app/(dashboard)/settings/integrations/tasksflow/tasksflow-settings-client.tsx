@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -21,6 +20,7 @@ import { confirmAsync } from "@/components/ui/confirm-async";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 
 type Integration = {
   id: string;
@@ -356,59 +356,53 @@ export function TasksFlowSettingsClient({
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <Plug className="size-6" />
-              </div>
-              <div>
-                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                  TasksFlow
-                </h1>
-                <p className="mt-2 max-w-[560px] text-[15px] text-white/70">
-                  Автоматическая отправка задач уборщикам через{" "}
-                  <a
-                    href="https://tasksflow.ru"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline decoration-white/30 underline-offset-2 hover:decoration-white"
-                  >
-                    tasksflow.ru
-                    <ExternalLink className="ml-1 inline size-3" />
-                  </a>
-                  . Синхронизация сотрудников автоматически создаёт отсутствующих
-                  людей в TasksFlow, а строки журнала уборки превращаются в
-                  recurring-задачи для уборщицы. Когда задача отмечена
-                  выполненной — клетка журнала проставляется автоматически.
-                </p>
-              </div>
-            </div>
-            <HealthBadge integration={integration} health={health} loading={healthLoading} />
-          </div>
-          {integration && health && health.status !== "green" ? (
-            <div
-              className={`relative z-10 mt-4 rounded-2xl border px-4 py-2.5 text-[12.5px] leading-relaxed backdrop-blur ${
-                health.status === "yellow"
-                  ? "border-[#f3b75a]/30 bg-[#f3b75a]/15 text-[#f7d8a4]"
-                  : "border-[#ff6f5e]/30 bg-[#ff6f5e]/15 text-[#ffc6bf]"
-              }`}
+      <PageHeader
+        title="TasksFlow"
+        description={
+          <>
+            Автоматическая отправка задач уборщикам через{" "}
+            <a
+              href="https://tasksflow.ru"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[#5566f6] underline decoration-[#5566f6]/30 underline-offset-2 transition-colors hover:decoration-[#5566f6]"
             >
-              {health.message || "TasksFlow недоступен"}
-              {health.remote?.buildSha ? (
-                <span className="ml-2 font-mono text-[11px] opacity-70">
-                  build {health.remote.buildSha}
-                </span>
-              ) : null}
-            </div>
+              tasksflow.ru
+              <ExternalLink className="ml-1 inline size-3" />
+            </a>
+            . Синхронизация сотрудников автоматически создаёт отсутствующих
+            людей в TasksFlow, а строки журнала уборки превращаются в
+            recurring-задачи для уборщицы. Когда задача отмечена
+            выполненной — клетка журнала проставляется автоматически.
+          </>
+        }
+        actions={
+          <HealthBadge
+            integration={integration}
+            health={health}
+            loading={healthLoading}
+          />
+        }
+      />
+
+      {/* Диагностика вынесена из шапки в отдельную полосу: это тревожное
+          состояние, его нельзя прятать в мелкой пилюле. */}
+      {integration && health && health.status !== "green" ? (
+        <div
+          className={`rounded-2xl border px-4 py-2.5 text-[12.5px] leading-relaxed ${
+            health.status === "yellow"
+              ? "border-[#f3d9a8] bg-[#fffaf0] text-[#8a5a12]"
+              : "border-[#f6cfc8] bg-[#fff4f2] text-[#a13a32]"
+          }`}
+        >
+          {health.message || "TasksFlow недоступен"}
+          {health.remote?.buildSha ? (
+            <span className="ml-2 font-mono text-[11px] opacity-70">
+              build {health.remote.buildSha}
+            </span>
           ) : null}
         </div>
-      </section>
+      ) : null}
 
       {/* Connect / status card */}
       <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
@@ -628,10 +622,14 @@ function HealthBadge({
   health: HealthState | null;
   loading: boolean;
 }) {
+  // Бейдж переехал в светлый PageHeader, поэтому вся палитра —
+  // светлые токены дизайн-системы вместо полупрозрачно-белых.
+  const neutral =
+    "inline-flex items-center gap-2 self-start rounded-full border border-[#dcdfed] bg-white px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-[#6f7282]";
   // Без интеграции — старый «Не подключено» в нейтральном цвете.
   if (!integration) {
     return (
-      <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+      <div className={neutral}>
         <CheckCircle2 className="size-3.5" />
         Не подключено
       </div>
@@ -641,36 +639,34 @@ function HealthBadge({
   // вместо «Подключено», чтобы юзер видел что мы реально проверяем.
   if (loading && !health) {
     return (
-      <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+      <div className={neutral}>
         <Loader2 className="size-3.5 animate-spin" />
         Проверяем
       </div>
     );
   }
-  // Палитра по статусу. Тон выдержан в стиле hero (тёмный фон,
-  // полупрозрачная заливка) — чтобы индикатор не выбивался из шапки.
   const palette = {
     green: {
       icon: <CheckCircle2 className="size-3.5" />,
       label: "Здоров",
-      classes: "border-[#79e8a3]/30 bg-[#79e8a3]/15 text-[#bef0d0]",
+      classes: "border-[#bfe8cd] bg-[#ecfdf5] text-[#116b2a]",
     },
     yellow: {
       icon: <AlertTriangle className="size-3.5" />,
       label: "Замедлен",
-      classes: "border-[#f3b75a]/30 bg-[#f3b75a]/15 text-[#f7d8a4]",
+      classes: "border-[#f3d9a8] bg-[#fffaf0] text-[#8a5a12]",
     },
     red: {
       icon: <XCircle className="size-3.5" />,
       label: "Недоступен",
-      classes: "border-[#ff6f5e]/30 bg-[#ff6f5e]/15 text-[#ffc6bf]",
+      classes: "border-[#f6cfc8] bg-[#fff4f2] text-[#a13a32]",
     },
   } as const;
   const status = health?.status ?? "red";
   const { icon, label, classes } = palette[status];
   return (
     <div
-      className={`inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] backdrop-blur ${classes}`}
+      className={`inline-flex items-center gap-2 self-start rounded-full border px-3 py-1.5 text-[12px] uppercase tracking-[0.18em] ${classes}`}
       title={health?.message || ""}
     >
       {icon}

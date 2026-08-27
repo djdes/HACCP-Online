@@ -30,6 +30,14 @@ export function EmailVerifyCard({ email }: { email: string }) {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || "Не удалось отправить код");
+      // Сервер знает, что почта уже подтверждена (например, отметку
+      // проставил backfill, а страница отрисована из кэша). Не просим
+      // код, которого не будет, — просто убираем карточку.
+      if (data?.alreadyVerified) {
+        setDone(true);
+        toast.success("Почта уже подтверждена");
+        return;
+      }
       setSent(true);
       toast.success(`Код отправлен на ${email}`);
     } catch (e) {

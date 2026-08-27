@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Gauge, Scale } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { JournalDifficultyClient } from "@/components/settings/journal-difficulty-client";
 import { PageGuide } from "@/components/ui/page-guide";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -34,47 +34,30 @@ export default async function JournalDifficultyPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-
-      </div>
-
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-6 md:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <Gauge className="size-6" />
-            </span>
-            <div>
-              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
-                Сложность журналов
-              </h1>
-              <p className="mt-2 max-w-[680px] text-[14px] text-white/70">
-                Нужно только если в команде <strong>нет шеф-повара</strong>{" "}
-                и журналы распределяются между поварами с одинаковой
-                зарплатой. Сложность × частота × строк/запись = вес,
-                по которому страница{" "}
-                <Link
-                  href="/settings/workload-balance"
-                  className="underline decoration-white/40 underline-offset-2 hover:decoration-white"
-                >
-                  Распределение задач
-                </Link>{" "}
-                покажет перекос между сотрудниками. Если шеф-повар
-                есть — этим блоком можно не пользоваться.
-              </p>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-white/10 px-3 py-1.5 text-[12px] text-white/80">
-                <Scale className="size-4" />
-                Дефолты подставлены из практики общепита (1 — отметка,
-                5 — аналитический документ).
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: под заголовком уже стоит PageGuide, который
+          подробно разбирает шкалу 1–5 — бейдж «дефолты из практики
+          общепита» был его дублем и удалён. Ссылка на «Распределение
+          задач» стала кнопкой-действием справа. */}
+      <PageHeader
+        title="Сложность журналов"
+        description={
+          <>
+            Нужно только если в команде <strong>нет шеф-повара</strong> и
+            журналы распределяются между поварами с одинаковой зарплатой.
+            Сложность × частота × строк/запись = вес, по которому страница
+            «Распределение задач» покажет перекос между сотрудниками. Если
+            шеф-повар есть — этим блоком можно не пользоваться.
+          </>
+        }
+        actions={
+          <Link
+            href="/settings/workload-balance"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            Распределение задач
+          </Link>
+        }
+      />
 
       <PageGuide
         storageKey="journal-difficulty"

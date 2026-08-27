@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { EntryApprovalActions } from "@/components/journals/entry-approval";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
+import { PageHeader } from "@/components/ui/page-header";
 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "\u2014";
@@ -135,27 +136,13 @@ export default async function EntryDetailPage({
         К журналу
       </Link>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[340px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-28 -right-28 size-[380px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-8 md:p-10">
-          <div className="max-w-[640px]">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur">
-              \u0417\u0430\u043f\u0438\u0441\u044c
-            </div>
-            <h1 className="mt-3 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] sm:text-[clamp(1.75rem,2vw+1rem,2rem)]">
-              {entry.template.name}
-            </h1>
-            <p className="mt-1.5 text-[14px] text-white/70">
-              {"\u043e\u0442 "}{entry.createdAt.toLocaleString("ru-RU")}
-            </p>
-          </div>
-          <StatusBadge status={entry.status} />
-        </div>
-      </section>
+      {/* Тёмный hero снят: карточка записи — это данные, а не баннер. */}
+      <PageHeader
+        eyebrow="Запись"
+        title={entry.template.name}
+        description={`от ${entry.createdAt.toLocaleString("ru-RU")}`}
+        actions={<StatusBadge status={entry.status} />}
+      />
 
       {/* Metadata */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

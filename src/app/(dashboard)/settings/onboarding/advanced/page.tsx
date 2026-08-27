@@ -13,9 +13,7 @@ import {
   ListChecks,
   Network,
   Package,
-  PartyPopper,
   Plug,
-  Rocket,
   ScrollText,
   Send,
   ShieldCheck,
@@ -37,6 +35,7 @@ import {
   type SetupItem,
 } from "@/components/settings/onboarding-phases";
 import { PIPELINE_EXEMPT_JOURNALS } from "@/lib/journal-default-pipelines";
+import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -683,69 +682,47 @@ export default async function OnboardingAdvancedPage() {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-          <div className="absolute left-1/3 top-1/2 size-[280px] rounded-full bg-[#3d4efc] opacity-25 blur-[100px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                {allDone ? (
-                  <PartyPopper className="size-6" />
-                ) : (
-                  <Rocket className="size-6" />
-                )}
-              </div>
-              <div>
-                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                  {allDone
-                    ? "Всё готово — компания работает на полную"
-                    : "Продвинутая настройка — 6 этапов"}
-                </h1>
-                <p className="mt-2 max-w-[640px] text-[15px] text-white/70">
-                  {allDone
-                    ? "Все этапы пройдены. Сотрудники получают задачи в Telegram, документы автоматически заводятся и заполняются по СанПиН."
-                    : "Прошёл этап → разблокировался следующий. От «зарегистрировал компанию» до «сотрудники получают задачи в TasksFlow» — за 30–40 минут."}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="text-[12px] uppercase tracking-[0.16em] text-white/60">
-                Готовность
-              </div>
-              <div className="text-[36px] font-semibold leading-none">
-                {overallProgress}
-                <span className="text-white/50">%</span>
-              </div>
-              <div className="text-[12px] text-white/60">
-                {completedPhases}/{phases.length} этапов
-              </div>
-            </div>
-          </div>
+      {/* Тёмный hero снят: главное на странице — сами этапы, а не баннер.
+          Крупный счётчик «Готовность %» свёрнут в одну пилюлю справа,
+          полоска прогресса осталась — она единственная показывает, какой
+          именно этап сейчас активен, и оставлена на светлом фоне. */}
+      <PageHeader
+        title={
+          allDone
+            ? "Всё готово — компания работает на полную"
+            : "Продвинутая настройка — 6 этапов"
+        }
+        description={
+          allDone
+            ? "Все этапы пройдены. Сотрудники получают задачи в Telegram, документы автоматически заводятся и заполняются по СанПиН."
+            : "Прошёл этап → разблокировался следующий. От «зарегистрировал компанию» до «сотрудники получают задачи в TasksFlow» — за 30–40 минут."
+        }
+        actions={
+          <PageHeaderStat tone={allDone ? "ok" : "neutral"}>
+            Готовность {overallProgress}% · {completedPhases}/{phases.length}{" "}
+            этапов
+          </PageHeaderStat>
+        }
+      />
 
-          {/* Mini-progress strip */}
-          <div className="mt-6 flex items-center gap-1">
-            {phases.map((p, idx) => {
-              const s = statuses[idx];
-              return (
-                <div
-                  key={p.id}
-                  className={`h-1.5 flex-1 rounded-full transition-colors ${
-                    s === "complete"
-                      ? "bg-[#7cf5c0]"
-                      : idx === firstActiveIdx
-                        ? "bg-[#5566f6]"
-                        : "bg-white/15"
-                  }`}
-                  title={`Этап ${p.number}: ${p.title}`}
-                />
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <div className="flex items-center gap-1">
+        {phases.map((p, idx) => {
+          const s = statuses[idx];
+          return (
+            <div
+              key={p.id}
+              className={`h-1.5 flex-1 rounded-full transition-colors ${
+                s === "complete"
+                  ? "bg-emerald-400"
+                  : idx === firstActiveIdx
+                    ? "bg-[#5566f6]"
+                    : "bg-[#ececf4]"
+              }`}
+              title={`Этап ${p.number}: ${p.title}`}
+            />
+          );
+        })}
+      </div>
 
       <ol className="space-y-4">
         {phases.map((phase, idx) => {

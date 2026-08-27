@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { SlidersHorizontal } from "lucide-react";
 import { JournalsBrowser } from "@/components/journals/journals-browser";
-import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
-import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { PageGuide } from "@/components/ui/page-guide";
+import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
@@ -90,13 +91,41 @@ export default async function JournalsPage() {
     hasActiveDocumentToday: activeTemplateIds.has(template.id),
   }));
 
+  // Готовность считаем здесь же, из уже собранных items: в шапке нужна
+  // одна тихая пилюля «Заполнено сегодня N/M», а не четыре StatPill'а —
+  // «всего 35 / отключено 31» живут в /settings/journals.
+  const enabledItems = items.filter((item) => !item.disabled);
+  const filledTodayCount = enabledItems.filter((item) => item.filledToday).length;
+
   return (
     <div className="space-y-5">
-      <JournalBreadcrumbs
-        items={[
-          { label: organization?.name || ORG_NAME_FALLBACK, href: "/journals" },
-          { label: "Журналы" },
-        ]}
+      {/* Крошки даёт глобальный PageNav из (dashboard)/layout.tsx —
+          локальные тут дублировали бы ту же строку. */}
+      <PageHeader
+        title="Журналы"
+        description="Электронные журналы СанПиН и ХАССП — откройте, чтобы заполнить или распечатать."
+        actions={
+          <>
+            {isManager ? (
+              <Link
+                href="/settings/journals"
+                className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                <SlidersHorizontal className="size-4 text-[#5566f6]" />
+                Настроить набор
+              </Link>
+            ) : null}
+            {enabledItems.length > 0 ? (
+              <PageHeaderStat
+                tone={
+                  filledTodayCount === enabledItems.length ? "ok" : "neutral"
+                }
+              >
+                Заполнено сегодня {filledTodayCount}/{enabledItems.length}
+              </PageHeaderStat>
+            ) : null}
+          </>
+        }
       />
       <PageGuide
         storageKey="journals-list"

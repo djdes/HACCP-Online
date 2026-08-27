@@ -8,15 +8,13 @@ import {
   Bell,
   CheckCircle2,
   ClipboardCheck,
-  ClipboardList,
   Clock,
   Filter,
   Loader2,
-  ShieldCheck,
-  Sparkles,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
 
 type Task = {
   journalCode: string;
@@ -251,79 +249,63 @@ export function ControlBoardClient() {
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <ShieldCheck className="size-6" />
-              </div>
-              <div>
-                <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                  Контрольная доска
-                </h1>
-                <p className="mt-2 max-w-[620px] text-[15px] text-white/70">
-                  Все задачи смены в одном экране. Видно кто работает,
-                  кто прохлаждается, что не сделано и что ждёт проверки.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <div className="text-[12px] uppercase tracking-[0.16em] text-white/60">
-                Прогресс дня
-              </div>
-              <div className="text-[36px] font-semibold leading-none">
-                {compliance}<span className="text-white/50">%</span>
-              </div>
-              <div className="text-[12px] text-white/60">
-                {s.approved + s.pendingReview} из {s.total}
-              </div>
-            </div>
-          </div>
+      {/* В шапке оставляем только прогресс дня и просрочку — это то, ради
+          чего заведующая открывает доску. Остальная разбивка по статусам
+          живёт в светлой карточке ниже. */}
+      <PageHeader
+        title="Контрольная доска"
+        description="Все задачи смены в одном экране. Видно кто работает, кто прохлаждается, что не сделано и что ждёт проверки."
+        actions={
+          <>
+            <PageHeaderStat tone={compliance === 100 ? "ok" : "neutral"}>
+              Прогресс дня: {compliance}% ({s.approved + s.pendingReview} из{" "}
+              {s.total})
+            </PageHeaderStat>
+            {s.overdue > 0 ? (
+              <PageHeaderStat tone="warn">
+                Просрочено: {s.overdue}
+              </PageHeaderStat>
+            ) : null}
+          </>
+        }
+      />
 
-          <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Stat label="Не взято" value={s.notTaken} accent={s.notTaken > 0 ? "warn" : "ok"} />
-            <Stat label="В работе" value={s.inProgress} accent="info" />
-            <Stat label="Ждут проверки" value={s.pendingReview} accent={s.pendingReview > 0 ? "warn" : "ok"} />
-            <Stat label="Просрочено" value={s.overdue} accent={s.overdue > 0 ? "danger" : "ok"} />
-          </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label="Не взято" value={s.notTaken} accent={s.notTaken > 0 ? "warn" : "ok"} />
+        <Stat label="В работе" value={s.inProgress} accent="info" />
+        <Stat label="Ждут проверки" value={s.pendingReview} accent={s.pendingReview > 0 ? "warn" : "ok"} />
+        <Stat label="Просрочено" value={s.overdue} accent={s.overdue > 0 ? "danger" : "ok"} />
+      </div>
 
-          {(s.notStartedCount > 0 || s.noTelegramCount > 0) ? (
-            <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 backdrop-blur">
-              <AlertTriangle className="size-4 shrink-0 text-amber-300" />
-              <div className="text-[13px] text-white">
-                {s.notStartedCount > 0
-                  ? `${s.notStartedCount} сотрудник${plural(s.notStartedCount)} прохлаждается (не взяли задачи)`
-                  : ""}
-                {s.notStartedCount > 0 && s.noTelegramCount > 0 ? " · " : ""}
-                {s.noTelegramCount > 0
-                  ? `${s.noTelegramCount} без Telegram`
-                  : ""}
-              </div>
-              {s.notStartedCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={remindAll}
-                  disabled={busyButton === "remind-all"}
-                  className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl bg-white px-3 text-[13px] font-medium text-[#0b1024] hover:bg-white/90"
-                >
-                  {busyButton === "remind-all" ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Bell className="size-3.5" />
-                  )}
-                  Напомнить всем
-                </button>
-              ) : null}
-            </div>
+      {(s.notStartedCount > 0 || s.noTelegramCount > 0) ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#f3d9a8] bg-[#fffaf0] px-4 py-3">
+          <AlertTriangle className="size-4 shrink-0 text-[#b8791f]" />
+          <div className="text-[13px] text-[#0b1024]">
+            {s.notStartedCount > 0
+              ? `${s.notStartedCount} сотрудник${plural(s.notStartedCount)} прохлаждается (не взяли задачи)`
+              : ""}
+            {s.notStartedCount > 0 && s.noTelegramCount > 0 ? " · " : ""}
+            {s.noTelegramCount > 0
+              ? `${s.noTelegramCount} без Telegram`
+              : ""}
+          </div>
+          {s.notStartedCount > 0 ? (
+            <button
+              type="button"
+              onClick={remindAll}
+              disabled={busyButton === "remind-all"}
+              className="ml-auto inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            >
+              {busyButton === "remind-all" ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Bell className="size-3.5" />
+              )}
+              Напомнить всем
+            </button>
           ) : null}
         </div>
-      </section>
+      ) : null}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#ececf4] bg-white px-3 py-2">
@@ -407,15 +389,17 @@ function Stat({
   value: number;
   accent: "ok" | "info" | "warn" | "danger";
 }) {
+  // Плитки переехали из тёмного hero на белый фон страницы — поэтому
+  // палитра светлая, из дизайн-системы, а не полупрозрачно-белая.
   const colors = {
-    ok: "bg-white/5 text-white",
-    info: "bg-white/5 text-white",
-    warn: "bg-[#ffd466]/15 text-amber-100",
-    danger: "bg-[#ff8d7d]/20 text-rose-100",
+    ok: "border-[#ececf4] bg-white text-[#0b1024]",
+    info: "border-[#dfe3ff] bg-[#f5f6ff] text-[#3848c7]",
+    warn: "border-[#f3d9a8] bg-[#fffaf0] text-[#8a5a12]",
+    danger: "border-[#f6cfc8] bg-[#fff4f2] text-[#a13a32]",
   };
   return (
-    <div className={`rounded-2xl px-4 py-3 ${colors[accent]}`}>
-      <div className="text-[11px] uppercase tracking-[0.16em] text-white/60">{label}</div>
+    <div className={`rounded-2xl border px-4 py-3 ${colors[accent]}`}>
+      <div className="text-[11px] uppercase tracking-[0.16em] opacity-70">{label}</div>
       <div className="mt-0.5 text-[24px] font-semibold leading-none tabular-nums">{value}</div>
     </div>
   );

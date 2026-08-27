@@ -9,7 +9,6 @@ import {
   Save,
   Search,
   Sparkles,
-  Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";

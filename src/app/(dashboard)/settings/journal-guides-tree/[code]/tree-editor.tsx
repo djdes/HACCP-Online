@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -34,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import type { GuideNode, GuideTree } from "@/lib/journal-guide-tree";
 
@@ -91,7 +91,7 @@ export function GuideTreeEditorClient({
 
   const flatNodes = useMemo(
     () => (tree?.nodes ? flattenTree(tree.nodes) : []),
-    [tree?.nodes]
+    [tree]
   );
 
   async function refresh() {
@@ -180,41 +180,24 @@ export function GuideTreeEditorClient({
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-                <BookOpen className="size-6" />
-              </div>
-              <div>
-                <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/50">
-                  Гайд для сотрудника (beta)
-                </div>
-                <h1 className="mt-1 text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                  {journalName}
-                </h1>
-                <p className="mt-2 max-w-[640px] text-[14px] text-white/70">
-                  Инструкция «как заполнять журнал», которую видит сотрудник
-                  в FillingGuide-модалке. Не привязана к колонкам — это
-                  справка/контекст. Можно вкладывать подсекции.
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="h-10 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0]"
-            >
-              <Plus className="size-4" />
-              Добавить шаг
-            </Button>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: он занимал первый экран и повторял название,
+          которое уже есть в PageNav. Оставляем строку-заголовок и главное
+          действие рядом с ним. */}
+      <PageHeader
+        eyebrow="Гайд для сотрудника (beta)"
+        title={journalName}
+        description="Инструкция «как заполнять журнал», которую видит сотрудник в FillingGuide-модалке. Не привязана к колонкам — это справка/контекст. Можно вкладывать подсекции."
+        actions={
+          <Button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+          >
+            <Plus className="size-4" />
+            Добавить шаг
+          </Button>
+        }
+      />
 
       {tree === null || tree.nodes.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">

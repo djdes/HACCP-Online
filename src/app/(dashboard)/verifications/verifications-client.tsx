@@ -10,11 +10,11 @@ import {
   ClipboardCheck,
   Clock,
   Loader2,
-  ShieldCheck,
   Sparkles,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
 
 type GuideField = { name: string; description: string; norm?: string };
 type Guide = {
@@ -169,45 +169,20 @@ export function VerificationsClient() {
   }
   if (!data) return null;
 
-  const s = data.summary;
-
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <div className="flex items-start gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ShieldCheck className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                Проверка задач
-              </h1>
-              <p className="mt-2 max-w-[640px] text-[15px] text-white/70">
-                Кликните на блок чтобы развернуть детали, гайд и кнопки
-                одобрения. Сверху — сделанное, снизу — ещё не взятые задачи.
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 grid grid-cols-3 gap-2">
-            <Stat label="Ждут проверки" value={s.pending} accent={s.pending > 0 ? "warn" : "ok"} />
-            <Stat label="В работе" value={s.inProgress} accent="info" />
-            <Stat label="Не взято" value={s.notTaken} accent={s.notTaken > 0 ? "danger" : "ok"} />
-          </div>
-        </div>
-      </section>
+      {/* Счётчики pending / inProgress / notTaken в шапку не тащим —
+          каждая секция ниже уже показывает свой count. */}
+      <PageHeader
+        title="Проверка задач"
+        description="Кликните на блок чтобы развернуть детали, гайд и кнопки одобрения. Сверху — сделанное, снизу — ещё не взятые задачи."
+      />
 
       {/* SECTION: Pending review (top — самое важное) */}
       <Section
         title="Ждут проверки"
         count={data.pendingReview.length}
         empty="Нет задач на проверку"
-        accent="warn"
       >
         {data.pendingReview.map((item) => (
           <PendingCard
@@ -236,7 +211,6 @@ export function VerificationsClient() {
         title="В работе"
         count={data.inProgress.length}
         empty="Никто сейчас не работает"
-        accent="info"
       >
         {data.inProgress.map((item) => (
           <InProgressCard
@@ -253,7 +227,6 @@ export function VerificationsClient() {
         title="Ещё не взято"
         count={data.notTaken.length}
         empty="Все задачи разобрали — отлично!"
-        accent="danger"
       >
         {data.notTaken.map((item) => (
           <NotTakenCard key={item.scopeKey} item={item} />
@@ -263,44 +236,17 @@ export function VerificationsClient() {
   );
 }
 
-function Stat({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number;
-  accent: "ok" | "info" | "warn" | "danger";
-}) {
-  const colors = {
-    ok: "bg-white/5 text-white",
-    info: "bg-white/5 text-white",
-    warn: "bg-[#ffd466]/15 text-amber-100",
-    danger: "bg-[#ff8d7d]/20 text-rose-100",
-  };
-  return (
-    <div className={`rounded-2xl px-4 py-3 ${colors[accent]}`}>
-      <div className="text-[11px] uppercase tracking-[0.16em] text-white/60">
-        {label}
-      </div>
-      <div className="mt-0.5 text-[24px] font-semibold leading-none tabular-nums">
-        {value}
-      </div>
-    </div>
-  );
-}
-
+// `accent` у секции не осталось: заголовок секции нейтральный, цвет несут
+// сами карточки внутри — поэтому проп убран, а не оставлен «на будущее».
 function Section({
   title,
   count,
   empty,
-  accent,
   children,
 }: {
   title: string;
   count: number;
   empty: string;
-  accent: "warn" | "info" | "danger";
   children: React.ReactNode;
 }) {
   return (

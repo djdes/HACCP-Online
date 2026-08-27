@@ -135,8 +135,8 @@ function GuideSheet({
   // Portal в document.body — чтобы sheet оказался ВНЕ .app-shell. Иначе
   // dark-mode CSS-правила в app-theme.css переопределяют bg-white →
   // var(--app-surface) внутри sheet'а и весь модал съезжает в dark-mode
-  // независимо от того что мы хотим. У гайда фиксированная light-палитра
-  // (тёмный hero + светлый body) — это часть design-system.
+  // независимо от того что мы хотим. У гайда фиксированная light-палитра —
+  // это часть design-system.
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
@@ -157,22 +157,20 @@ function GuideSheet({
       {/* Sheet — slides from right on desktop, full-screen on mobile.
           relative + z-10 — вытягивает над backdrop'ом. */}
       <div className="relative z-10 ml-auto flex h-full w-full max-w-[640px] flex-col bg-white shadow-[0_0_60px_-10px_rgba(11,16,36,0.4)] sm:rounded-l-3xl">
-        {/* Hero header */}
-        <div className="relative overflow-hidden bg-[#0b1024] text-white">
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-24 -top-24 size-[280px] rounded-full bg-[#5566f6] opacity-50 blur-[100px]" />
-            <div className="absolute -right-20 -bottom-20 size-[260px] rounded-full bg-[#7a5cff] opacity-40 blur-[100px]" />
-          </div>
-          <div className="relative z-10 flex items-start justify-between gap-3 p-5 sm:p-7">
+        {/* Шапка sheet'а. Тёмный hero снят: это не заголовок страницы, а
+            шапка карточки — на белом фоне видно, что дальше идёт текст
+            инструкции, а не отдельный экран. */}
+        <div className="shrink-0 border-b border-[#ececf4] bg-white">
+          <div className="flex items-start justify-between gap-3 p-5 sm:p-7">
             <div className="flex items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
                 <BookOpen className="size-5" />
               </span>
               <div>
-                <div className="text-[11px] uppercase tracking-[0.16em] text-white/60">
+                <div className="text-[11px] uppercase tracking-[0.16em] text-[#6f7282]">
                   Инструкция по заполнению
                 </div>
-                <h2 className="mt-1 text-[20px] font-semibold leading-tight tracking-[-0.01em]">
+                <h2 className="mt-1 text-[20px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]">
                   Как заполнять этот журнал
                 </h2>
               </div>
@@ -180,7 +178,7 @@ function GuideSheet({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl p-2 text-white/80 hover:bg-white/10 hover:text-white"
+              className="rounded-xl p-2 text-[#6f7282] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
               aria-label="Закрыть"
             >
               <X className="size-5" />

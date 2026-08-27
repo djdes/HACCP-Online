@@ -2,15 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  CheckCircle2,
-  Loader2,
-  Lock,
-  Sparkles,
-  Users,
-  ShieldCheck,
-} from "lucide-react";
+import { CheckCircle2, Loader2, Lock, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/ui/page-header";
 
 type Mode = "race" | "shared" | "manual";
 
@@ -90,28 +84,12 @@ export function JournalFlowClient({ initialMode }: { initialMode: Mode }) {
 
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">          <div className="flex items-start gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <ShieldCheck className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                Режим распределения задач
-              </h1>
-              <p className="mt-2 max-w-[640px] text-[15px] text-white/70">
-                Как сотрудники получают задачи. Изменение применяется к
-                ВСЕМ журналам сразу. Можно поменять в любой момент —
-                незавершённые задачи продолжат работать как были взяты.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Тёмный hero снят: выбор режима — три карточки прямо под
+          заголовком, и именно их человек пришёл нажимать. */}
+      <PageHeader
+        title="Режим распределения задач"
+        description="Как сотрудники получают задачи. Изменение применяется к ВСЕМ журналам сразу. Можно поменять в любой момент — незавершённые задачи продолжат работать как были взяты."
+      />
 
       <div className="grid gap-3 lg:grid-cols-3">
         {MODES.map((m) => {

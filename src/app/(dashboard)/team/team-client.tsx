@@ -12,9 +12,9 @@ import {
   Loader2,
   MessageSquareOff,
   Plane,
-  Users,
   XCircle,
 } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 type WorkStatus =
   | "working"
@@ -202,49 +202,12 @@ export function TeamClient() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)]">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 md:p-10">
-          <div className="flex items-start gap-4">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
-              <Users className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em]">
-                Моя команда
-              </h1>
-              <p className="mt-2 max-w-[560px] text-[15px] text-white/70">
-                Кто работает, кто закончил, кто прохлаждается. Обновляется
-                каждые 30 секунд.
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-2 text-[12px]">
-            {(
-              [
-                ["working", "В работе"],
-                ["completed_only", "Закончили"],
-                ["not_started", "Прохлаждаются"],
-                ["no_telegram", "Без TG"],
-              ] as const
-            ).map(([k, lbl]) => {
-              const n = data.team.filter((m) => m.workStatus === k).length;
-              return (
-                <span
-                  key={k}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 backdrop-blur"
-                >
-                  {lbl}:{" "}
-                  <span className="text-white">{n}</span>
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* Счётчики по статусам не дублируем в шапке: ниже каждая группа
+          сотрудников и так подписана «Название (N)». */}
+      <PageHeader
+        title="Моя команда"
+        description="Кто работает, кто закончил, кто прохлаждается. Обновляется каждые 30 секунд."
+      />
 
       {groups.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center text-[14px] text-[#6f7282]">

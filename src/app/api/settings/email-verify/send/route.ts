@@ -7,6 +7,7 @@ import {
   verificationExpiresAt,
 } from "@/lib/registration";
 import { sendVerificationEmail } from "@/lib/email";
+import { isEmailVerified } from "@/lib/email-verification";
 import { registrationCodeRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -31,6 +32,18 @@ export async function POST() {
       { error: "У аккаунта не указана почта" },
       { status: 400 },
     );
+  }
+
+  // Уже подтверждена — письмо не шлём. Иначе человек, у которого
+  // карточка осталась висеть из-за устаревшего рендера, заказывает код
+  // и получает письмо «подтвердите почту» на подтверждённый адрес.
+  // Возвращаем `alreadyVerified`, чтобы карточка сразу исчезла.
+  const me = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerifiedAt: true },
+  });
+  if (isEmailVerified(me)) {
+    return NextResponse.json({ ok: true, alreadyVerified: true });
   }
 
   if (!registrationCodeRateLimiter.consume(`complete:${session.user.id}`)) {

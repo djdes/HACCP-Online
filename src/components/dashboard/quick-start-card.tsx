@@ -1,3 +1,4 @@
+import { isEmailVerified } from "@/lib/email-verification";
 import { db } from "@/lib/db";
 import {
   QuickStartCardCompact,
@@ -153,7 +154,7 @@ export async function QuickStartCard({
 
   // Sane defaults для пустых значений.
   const orgName = org?.name?.trim() || "";
-  const emailVerifiedAt = me?.emailVerifiedAt ?? null;
+  const emailVerified = isEmailVerified(me);
   const orgInn = org?.inn?.trim() || "";
   const orgAddress = org?.address?.trim() || "";
 
@@ -164,7 +165,7 @@ export async function QuickStartCard({
       label: "Подтвердить почту",
       description:
         "Шесть цифр из письма. Ничего не блокирует — нужно, чтобы мы могли до вас дописаться.",
-      status: emailVerifiedAt ? "done" : "empty",
+      status: emailVerified ? "done" : "empty",
       href: "/settings#email-verify",
       cta: "Подтвердить",
       category: "company",
