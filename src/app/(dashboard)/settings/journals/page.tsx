@@ -7,6 +7,8 @@ import { getFillMode } from "@/lib/journal-routing";
 import { JournalsSettingsClient } from "./journals-settings-client";
 import { PageGuide } from "@/components/ui/page-guide";
 import { normalizeSphere } from "@/lib/org-profile";
+import { paperJournalsFor } from "@/lib/sphere-journal-rules";
+import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +36,11 @@ export default async function JournalsSettingsPage() {
       }),
       db.organization.findUnique({
         where: { id: organizationId },
-        select: { disabledJournalCodes: true, type: true },
+        select: {
+          disabledJournalCodes: true,
+          disabledPaperJournalIds: true,
+          type: true,
+        },
       }),
       db.jobPosition.findMany({
         where: { organizationId },
@@ -58,6 +64,7 @@ export default async function JournalsSettingsPage() {
     ]);
 
   const disabled = parseDisabledCodes(organization?.disabledJournalCodes);
+  const disabledPaper = parseDisabledCodes(organization?.disabledPaperJournalIds);
   const sphere = normalizeSphere(organization?.type);
   const accessByTemplate = new Map<string, string[]>();
   for (const row of positionAccess) {
@@ -80,6 +87,14 @@ export default async function JournalsSettingsPage() {
     bonusAmountKopecks: t.bonusAmountKopecks,
   }));
 
+  // Бумажные бланки сферы с тем же признаком enabled, что у
+  // электронных: хранение негативное, поэтому новый бланк в каталоге
+  // сразу включён.
+  const paperItems = paperJournalsFor(sphere).map((journal) => ({
+    ...journal,
+    enabled: !disabledPaper.has(journal.id),
+  }));
+
   return (
     <div className="space-y-5">
       <PageGuide
@@ -99,6 +114,8 @@ export default async function JournalsSettingsPage() {
       />
       <JournalsSettingsClient
         items={items}
+        paperItems={paperItems}
+        sampleCodes={SAMPLE_JOURNAL_CODES}
         positions={positions}
         users={users}
         sphere={sphere}

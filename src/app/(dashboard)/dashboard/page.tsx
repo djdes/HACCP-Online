@@ -10,7 +10,6 @@ import {
   ClipboardList,
   Coins,
   FileDown,
-  FileText,
   GraduationCap,
   Inbox,
   ListChecks,
@@ -179,7 +178,11 @@ export default async function DashboardPage() {
     }),
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { disabledJournalCodes: true, type: true },
+      select: {
+        disabledJournalCodes: true,
+        disabledPaperJournalIds: true,
+        type: true,
+      },
     }),
   ]);
 
@@ -198,7 +201,12 @@ export default async function DashboardPage() {
   // счётчике «N из M», ни в проценте готовности — заполняются ручкой,
   // и «недозаполненными» в системе быть не могут по определению.
   const sphere = normalizeSphere(org?.type);
-  const paperItems = paperJournalsFor(sphere);
+  // Скрытые в /settings/journals бланки на дашборд не выводим: человек
+  // сказал, что этот журнал он не ведёт, — напоминать больше не о чем.
+  const disabledPaper = parseDisabledCodes(org?.disabledPaperJournalIds);
+  const paperItems = paperJournalsFor(sphere).filter(
+    (paper) => !disabledPaper.has(paper.id)
+  );
 
   // Soft-block: количество CAPA, которые открыты > 7 дней — это
   // знак что менеджер забыл их закрыть. Показываем nag-модалку на
@@ -433,14 +441,16 @@ export default async function DashboardPage() {
                     href={`/settings/journals/paper/${paper.id}`}
                     className="group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ffe9b0] bg-[#fffaf0] transition-all hover:-translate-y-0.5 hover:border-[#f5c451] hover:shadow-[0_14px_32px_-14px_rgba(180,83,9,0.45)]"
                   >
-                    <span className="flex aspect-[1228/862] w-full items-center justify-center border-b border-[#ffe9b0] bg-white">
-                      <span className="flex w-[70%] flex-col gap-1.5">
-                        <FileText className="mb-1 size-6 text-[#b45309]" />
-                        <span className="h-1.5 rounded-full bg-[#f0e2c6]" />
-                        <span className="h-1.5 rounded-full bg-[#f0e2c6]" />
-                        <span className="h-1.5 w-2/3 rounded-full bg-[#f0e2c6]" />
-                      </span>
-                    </span>
+                    {/* Превью настоящего бланка — тот же конвейер, что у
+                        электронных образцов (paper_<id>.png). Скелет-заглушка
+                        не давала понять, что за форма распечатается. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/journal-samples/paper_${paper.id}.png`}
+                      alt=""
+                      loading="lazy"
+                      className="aspect-[1228/862] w-full border-b border-[#ffe9b0] bg-white object-cover object-top"
+                    />
                     <span className="flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 py-3">
                       <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#fff1d6] px-2 py-0.5 text-[11px] font-medium text-[#b45309]">
                         <Printer className="size-3" />

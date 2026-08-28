@@ -6,10 +6,16 @@ import { X } from "lucide-react";
 export function PhotoLightbox({
   url,
   filename,
+  caption,
   onClose,
 }: {
   url: string;
   filename: string;
+  /**
+   * Подпись под картинкой. Нужна превью бланков: в полный экран
+   * открывается лист без шапки, и без названия непонятно, чей он.
+   */
+  caption?: string;
   onClose: () => void;
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -39,13 +45,22 @@ export function PhotoLightbox({
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
         </div>
       )}
-      <img
-        src={url}
-        alt={filename}
-        className="max-h-full max-w-full rounded-lg object-contain"
-        onLoad={() => setLoaded(true)}
+      <div
+        className="flex max-h-full max-w-full flex-col items-center gap-3"
         onClick={(e) => e.stopPropagation()}
-      />
+      >
+        <img
+          src={url}
+          alt={caption ?? filename}
+          className="max-h-full min-h-0 max-w-full rounded-lg object-contain"
+          onLoad={() => setLoaded(true)}
+        />
+        {caption ? (
+          <div className="max-w-[720px] shrink-0 text-center text-[13px] leading-snug text-white/80">
+            {caption}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

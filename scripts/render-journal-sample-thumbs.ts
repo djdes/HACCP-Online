@@ -15,6 +15,7 @@ import fs from "fs";
 import path from "path";
 import { chromium } from "playwright-core";
 import { SAMPLE_JOURNAL_CODES } from "../src/lib/journal-sample-fixtures";
+import { PAPER_JOURNALS } from "../src/lib/sphere-journal-rules";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const OUT = path.join(process.cwd(), "public", "journal-samples");
@@ -40,13 +41,14 @@ async function main() {
     args: ["--use-gl=swiftshader", "--no-sandbox"],
   });
 
-  for (const code of SAMPLE_JOURNAL_CODES) {
-    const res = await fetch(`${BASE}/api/journal-samples/${code}/pdf?inline=1`);
+  /** Один PDF → один PNG. Геометрия одна на все бланки: A4 landscape. */
+  async function shoot(url: string, name: string) {
+    const res = await fetch(url);
     if (!res.ok) {
-      console.log(`FAIL ${code}: HTTP ${res.status}`);
-      continue;
+      console.log(`FAIL ${name}: HTTP ${res.status}`);
+      return;
     }
-    const pdf = path.join(TMP, `${code}.pdf`);
+    const pdf = path.join(TMP, `${name}.pdf`);
     fs.writeFileSync(pdf, Buffer.from(await res.arrayBuffer()));
 
     const page = await browser.newPage({
@@ -60,11 +62,25 @@ async function main() {
     // При #toolbar=0&view=Fit страница занимает почти весь кадр —
     // срезаем только тонкую серую рамку просмотрщика.
     await page.screenshot({
-      path: path.join(OUT, `${code}.png`),
+      path: path.join(OUT, `${name}.png`),
       clip: { x: 6, y: 6, width: 1228, height: 862 },
     });
     await page.close();
-    console.log(`OK   ${code}`);
+    console.log(`OK   ${name}`);
+  }
+
+  for (const code of SAMPLE_JOURNAL_CODES) {
+    await shoot(`${BASE}/api/journal-samples/${code}/pdf?inline=1`, code);
+  }
+
+  // Бумажные бланки. Префикс paper_ — потому что id бланков живут в
+  // своём пространстве имён и в теории могут совпасть с кодом
+  // электронного журнала.
+  for (const journal of PAPER_JOURNALS) {
+    await shoot(
+      `${BASE}/api/journal-samples/paper/${journal.id}/pdf?inline=1`,
+      `paper_${journal.id}`,
+    );
   }
 
   await browser.close();

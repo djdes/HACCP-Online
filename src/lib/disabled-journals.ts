@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { PAPER_JOURNALS } from "@/lib/sphere-journal-rules";
 
 /**
  * Returns the set of journal template codes the organization has toggled
@@ -41,6 +42,41 @@ export async function setDisabledJournalCodes(
   await db.organization.update({
     where: { id: organizationId },
     data: { disabledJournalCodes: normalized },
+  });
+  return normalized;
+}
+
+/**
+ * Бумажные бланки, которые организация скрыла в /settings/journals.
+ *
+ * Отдельное поле, а не общий disabledJournalCodes: бумажный журнал —
+ * не JournalTemplate, а константа из PAPER_JOURNALS, и его id живёт в
+ * своём пространстве имён (коды могут совпасть с электронными).
+ */
+export async function getDisabledPaperJournalIds(
+  organizationId: string
+): Promise<Set<string>> {
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { disabledPaperJournalIds: true },
+  });
+  return parseDisabledCodes(org?.disabledPaperJournalIds);
+}
+
+/**
+ * Пишет полный список скрытых бланков. Чужие строки отбрасываем —
+ * в поле должны лежать только id из каталога, иначе оно со временем
+ * зарастает мусором от старых версий UI.
+ */
+export async function setDisabledPaperJournalIds(
+  organizationId: string,
+  ids: string[]
+): Promise<string[]> {
+  const known = new Set(PAPER_JOURNALS.map((journal) => journal.id));
+  const normalized = [...new Set(ids.filter((id) => known.has(id)))];
+  await db.organization.update({
+    where: { id: organizationId },
+    data: { disabledPaperJournalIds: normalized },
   });
   return normalized;
 }

@@ -94,6 +94,13 @@ model Organization {
   /// hide the journals that don't apply. Disabled journals are muted in
   /// the browser and excluded from dashboard compliance counts.
   disabledJournalCodes     Json                       @default("[]")
+  /// Ids бумажных бланков (PAPER_JOURNALS), которые организация скрыла.
+  /// Пусто = все бумажные журналы сферы показываются — хранение
+  /// негативное, как у disabledJournalCodes: новый бланк в каталоге
+  /// автоматически включён у всех, а не «забыт». Выключение — только
+  /// презентация: карточка уходит с дашборда, но бланк и страница
+  /// заполнения остаются доступны по прямой ссылке. /settings/journals.
+  disabledPaperJournalIds  Json                       @default("[]")
   /// Journal template codes enabled for auto document creation. Every
   /// day a cron checks for codes in this list and ensures there is an
   /// active JournalDocument covering today; creates a month-long doc if

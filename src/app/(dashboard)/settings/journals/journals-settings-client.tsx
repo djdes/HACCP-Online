@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   CheckCircle2,
   ChevronDown,
-  ChevronUp,
   ClipboardList,
   Download,
   ExternalLink,
@@ -19,18 +18,27 @@ import {
   UserRound,
   Users,
   Wifi,
+  ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { PhotoLightbox } from "@/components/shared/photo-lightbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import type { FillMode } from "@/lib/journal-routing";
 import { ORG_SPHERES, sphereLabel, type OrgSphere } from "@/lib/org-profile";
 import {
-  paperJournalsFor,
   requiredCodesFor,
   rulesFor,
   type ElectronicRule,
+  type PaperJournal,
 } from "@/lib/sphere-journal-rules";
 
 type Position = { id: string; name: string; categoryKey: string };
@@ -49,6 +57,9 @@ type Item = {
   allowedPositionIds: string[];
   bonusAmountKopecks: number;
 };
+
+/** Бумажный бланк с тем же тумблером вкл/выкл, что у электронных. */
+type PaperItem = PaperJournal & { enabled: boolean };
 
 const FILL_MODE_LABELS: Record<FillMode, { label: string; hint: string; icon: typeof Users }> = {
   "per-employee": {
@@ -70,22 +81,40 @@ const FILL_MODE_LABELS: Record<FillMode, { label: string; hint: string; icon: ty
 
 export function JournalsSettingsClient({
   items,
+  paperItems,
   positions,
   users,
   sphere,
+  sampleCodes,
 }: {
   items: Item[];
+  paperItems: PaperItem[];
   positions: Position[];
   users: StaffUser[];
   sphere: OrgSphere;
+  /** Коды журналов, у которых на диске есть PNG-превью бланка. */
+  sampleCodes: string[];
 }) {
   const router = useRouter();
   const [state, setState] = useState<Record<string, boolean>>(
     Object.fromEntries(items.map((item) => [item.code, item.enabled]))
   );
+  // Бумажные тумблеры живут отдельным словарём: у них своё поле в БД
+  // и свои id, пересечься с кодами электронных они не должны.
+  const [paperState, setPaperState] = useState<Record<string, boolean>>(
+    Object.fromEntries(paperItems.map((journal) => [journal.id, journal.enabled]))
+  );
   const [saving, setSaving] = useState(false);
   const [highlightCode, setHighlightCode] = useState<string | null>(null);
-  const [expandedCode, setExpandedCode] = useState<string | null>(null);
+  /** Код журнала, для которого открыта модалка распределения. */
+  const [distDialogCode, setDistDialogCode] = useState<string | null>(null);
+  /** Открытое превью бланка во весь экран. */
+  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(
+    null
+  );
+  /** Бумажный бланк, который пытаются выключить. */
+  const [paperOffId, setPaperOffId] = useState<string | null>(null);
+  const sampleSet = useMemo(() => new Set(sampleCodes), [sampleCodes]);
   const [distState, setDistState] = useState<
     Record<
       string,
@@ -139,16 +168,21 @@ export function JournalsSettingsClient({
     return () => window.clearTimeout(t);
   }, []);
 
+  // Счётчик единый: после объединения секций делить «включено» на
+  // электронные и бумажные было бы враньём — человек видит один список.
   const enabledCount = useMemo(
-    () => Object.values(state).filter(Boolean).length,
-    [state]
+    () =>
+      Object.values(state).filter(Boolean).length +
+      paperItems.filter((journal) => paperState[journal.id]).length,
+    [state, paperItems, paperState]
   );
-  const totalCount = items.length;
+  const totalCount = items.length + paperItems.length;
 
   const dirty = useMemo(
     () =>
-      items.some((item) => state[item.code] !== item.enabled),
-    [items, state]
+      items.some((item) => state[item.code] !== item.enabled) ||
+      paperItems.some((journal) => paperState[journal.id] !== journal.enabled),
+    [items, state, paperItems, paperState]
   );
 
   function forceToggle(code: string) {
@@ -167,8 +201,19 @@ export function JournalsSettingsClient({
     forceToggle(code);
   }
 
-  function toggleExpanded(code: string) {
-    setExpandedCode((prev) => (prev === code ? null : code));
+  function forcePaperToggle(id: string) {
+    setPaperState((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  function togglePaper(id: string) {
+    // Выключение бумажного — всегда через подтверждение: штрафы по
+    // охране труда и пожарной безопасности выше санитарных, и человек
+    // должен понимать, что скрывается карточка, а не обязанность.
+    if (paperState[id]) {
+      setPaperOffId(id);
+      return;
+    }
+    forcePaperToggle(id);
   }
 
   function setItemFillMode(code: string, mode: FillMode) {
@@ -249,10 +294,13 @@ export function JournalsSettingsClient({
       const disabledCodes = items
         .filter((item) => !state[item.code])
         .map((item) => item.code);
+      const disabledPaperIds = paperItems
+        .filter((journal) => !paperState[journal.id])
+        .map((journal) => journal.id);
       const response = await fetch("/api/settings/journals", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ disabledCodes }),
+        body: JSON.stringify({ disabledCodes, disabledPaperIds }),
       });
       if (!response.ok) {
         const data = await response.json().catch(() => null);
@@ -271,17 +319,53 @@ export function JournalsSettingsClient({
     }
   }
 
+  /**
+   * Превью бланка. Отдельная кнопка, а не часть toggle-области: по
+   * названию вроде «Чек-лист санитарного дня» невозможно вспомнить, что
+   * там за форма, а клик по картинке не должен переключать тумблер.
+   */
+  function renderPreview(src: string, name: string, accent: "green" | "amber") {
+    return (
+      <button
+        type="button"
+        onClick={() => setLightbox({ url: src, name })}
+        title="Увеличить бланк"
+        className="group/preview relative block w-full overflow-hidden border-b border-[#ececf4] bg-white"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          className="aspect-[1228/862] w-full object-cover object-top transition-transform duration-200 group-hover/preview:scale-[1.03]"
+        />
+        <span className="absolute inset-0 flex items-center justify-center bg-[#0b1024]/0 opacity-0 transition-all duration-200 group-hover/preview:bg-[#0b1024]/35 group-hover/preview:opacity-100 focus-visible:opacity-100">
+          <span className="inline-flex h-11 items-center gap-1.5 rounded-full bg-white/95 px-3.5 text-[12px] font-medium text-[#0b1024] shadow-[0_8px_24px_-12px_rgba(11,16,36,0.6)]">
+            <ZoomIn
+              className={
+                accent === "green"
+                  ? "size-4 text-[#136b2a]"
+                  : "size-4 text-[#b45309]"
+              }
+            />
+            Увеличить
+          </span>
+        </span>
+      </button>
+    );
+  }
+
   function renderCard(item: Item) {
     const enabled = state[item.code];
     const isHighlighted = highlightCode === item.code;
-    const isExpanded = expandedCode === item.code;
     const dist = distState[item.code];
     const ModeIcon = FILL_MODE_LABELS[dist.fillMode].icon;
+    const basis = basisNote(requiredMap.get(item.code));
     return (
       <div
         key={item.code}
         id={`journal-${item.code}`}
-        className={`flex h-full flex-col scroll-mt-24 rounded-2xl border bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
+        className={`flex h-full flex-col overflow-hidden scroll-mt-24 rounded-2xl border bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)] ${
           enabled
             ? "border-[#ececf4] hover:border-[#d6d9ee]"
             : "border-[#ececf4] opacity-60 hover:opacity-90"
@@ -291,117 +375,199 @@ export function JournalsSettingsClient({
             : ""
         }`}
       >
-        <button
-          type="button"
-          onClick={() => toggle(item.code)}
-          className="flex items-start gap-4 px-5 py-5 text-left"
-        >
-          <Switch
-            checked={enabled}
-            onCheckedChange={() => toggle(item.code)}
-            className="mt-0.5"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
-              {item.name}
-            </div>
-            {item.description ? (
-              <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#6f7282]">
-                {item.description}
-              </div>
-            ) : null}
-            {/* Основание — разными словами, а не одинаковым «обязателен»:
-                требование санитарных правил, обязанность вести записи по
-                ХАССП и «спрашивают при проверках» — три разные вещи, и
-                человек имеет право знать, чем рискует. */}
-            {basisNote(requiredMap.get(item.code)) ? (
-              <div className="mt-1.5 text-[12px] leading-snug text-[#6f7282]">
-                {basisNote(requiredMap.get(item.code))}
-              </div>
-            ) : null}
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              {item.isMandatorySanpin ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#d2453d]">
-                  <ShieldCheck className="size-3" />
-                  СанПиН
-                </span>
-              ) : null}
-              {item.isMandatoryHaccp ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6]">
-                  <ShieldAlert className="size-3" />
-                  ХАССП
-                </span>
-              ) : null}
-              <span className="ml-auto rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-[#9b9fb3]">
-                {item.code}
-              </span>
-            </div>
-          </div>
-        </button>
+        {/* Тонкая полоска-маркер вместо заливки всей карточки: зелёная —
+            «ведём в системе». Заливкой сетка из 35 карточек пестрит. */}
+        <span
+          aria-hidden
+          className={`h-1 w-full shrink-0 ${
+            enabled ? "bg-[#7cf5c0]" : "bg-[#ececf4]"
+          }`}
+        />
+        {sampleSet.has(item.code)
+          ? renderPreview(`/journal-samples/${item.code}.png`, item.name, "green")
+          : null}
 
-        {/* Distribution settings — раскрывается по кнопке */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleExpanded(item.code);
-          }}
-          className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-        >
-          <span className="inline-flex items-center gap-2">
-            <Settings2 className="size-3.5" />
-            <span className="font-semibold">Распределение:</span>
-            <ModeIcon className="size-3.5" />
-            {FILL_MODE_LABELS[dist.fillMode].label}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
+          <div className="flex items-start gap-2">
+            <Switch
+              checked={enabled}
+              onCheckedChange={() => toggle(item.code)}
+              className="mt-0.5 shrink-0"
+            />
+            <button
+              type="button"
+              onClick={() => toggle(item.code)}
+              className="min-w-0 flex-1 text-left"
+            >
+              <span className="line-clamp-3 text-[13px] font-semibold leading-snug text-[#0b1024]">
+                {item.name}
+              </span>
+            </button>
+          </div>
+
+          {/* Основание — разными словами, а не одинаковым «обязателен»:
+              требование санитарных правил, обязанность вести записи по
+              ХАССП и «спрашивают при проверках» — три разные вещи, и
+              человек имеет право знать, чем рискует. */}
+          {basis ? (
+            <div
+              className="line-clamp-3 text-[11px] leading-snug text-[#6f7282]"
+              title={basis}
+            >
+              {basis}
+            </div>
+          ) : null}
+
+          <div className="mt-auto flex flex-wrap items-center gap-1 pt-1">
+            {item.isMandatorySanpin ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff4f2] px-1.5 py-0.5 text-[10px] font-medium text-[#d2453d]">
+                <ShieldCheck className="size-3" />
+                СанПиН
+              </span>
+            ) : null}
+            {item.isMandatoryHaccp ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-1.5 py-0.5 text-[10px] font-medium text-[#5566f6]">
+                <ShieldAlert className="size-3" />
+                ХАССП
+              </span>
+            ) : null}
             {dist.bonusAmountKopecks > 0 ? (
-              <span className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[10px] font-medium text-[#116b2a]">
+              <span className="rounded-full bg-[#ecfdf5] px-1.5 py-0.5 text-[10px] font-medium text-[#116b2a]">
                 +{(dist.bonusAmountKopecks / 100).toFixed(0)} ₽
               </span>
             ) : null}
-          </span>
-          {isExpanded ? (
-            <ChevronUp className="size-3.5" />
-          ) : (
-            <ChevronDown className="size-3.5" />
-          )}
-        </button>
+          </div>
 
-        <Link
-          href={`/settings/journals/${item.code}/scope`}
-          onClick={(e) => e.stopPropagation()}
-          className="mx-5 mb-3 inline-flex items-center justify-between gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[12px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-        >
-          <span className="inline-flex items-center gap-2">
-            <ClipboardList className="size-3.5" />
-            <span className="font-semibold">Тип задачи и кнопки</span>
-            <span className="text-[#6f7282]">— настроить</span>
-          </span>
-          <span className="text-[10px] text-[#9b9fb3]">→</span>
-        </Link>
-
-        {isExpanded ? (
-          <DistributionEditor
-            item={item}
-            dist={dist}
-            positions={positions}
-            users={users}
-            onModeChange={(mode) => setItemFillMode(item.code, mode)}
-            onAssigneeChange={(id) =>
-              setItemAssignee(item.code, id)
-            }
-            onPositionToggle={(id) =>
-              togglePosition(item.code, id)
-            }
-            onBonusChange={(rub) =>
-              setItemBonus(item.code, Math.round(rub * 100))
-            }
-            onSave={() => saveDistribution(item.code)}
-            saving={distSavingCode === item.code}
-          />
-        ) : null}
+          {/* В карточке шириной 1/5 экрана широкие кнопки-строки не
+              помещаются: оставляем ряд из двух компактных с подписью в
+              одну строку, а редактор распределения открываем модалкой. */}
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setDistDialogCode(item.code)}
+              title={`Распределение: ${FILL_MODE_LABELS[dist.fillMode].label}`}
+              className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#ececf4] bg-[#fafbff] px-2 text-[11px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              <Settings2 className="size-3.5 shrink-0" />
+              <ModeIcon className="size-3.5 shrink-0 text-[#6f7282]" />
+              <span className="truncate">Кому</span>
+            </button>
+            <Link
+              href={`/settings/journals/${item.code}/scope`}
+              title="Тип задачи и кнопки"
+              className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#ececf4] bg-[#fafbff] px-2 text-[11px] font-medium text-[#3848c7] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              <ClipboardList className="size-3.5 shrink-0" />
+              <span className="truncate">Задачи</span>
+            </Link>
+          </div>
+        </div>
       </div>
-    )
+    );
+  }
+
+  /**
+   * Бумажный бланк в общей сетке. Тот же каркас, что у электронной
+   * карточки, но янтарный маркер («печать и подпись ручкой») и вместо
+   * настроек распределения — скачивание бланка.
+   */
+  function renderPaperCard(journal: PaperItem, first: boolean) {
+    const enabled = paperState[journal.id];
+    return (
+      <div
+        key={journal.id}
+        // Хлебная крошка со страницы заполнения ведёт на #paper —
+        // якорь вешаем на первую бумажную карточку в сетке.
+        id={first ? "paper" : undefined}
+        className={`flex h-full flex-col overflow-hidden scroll-mt-24 rounded-2xl border bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:shadow-[0_8px_24px_-12px_rgba(180,83,9,0.18)] ${
+          enabled
+            ? "border-[#ffe9b0] hover:border-[#f5c451]"
+            : "border-[#ececf4] opacity-60 hover:opacity-90"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={`h-1 w-full shrink-0 ${
+            enabled ? "bg-[#f5c451]" : "bg-[#ececf4]"
+          }`}
+        />
+        {renderPreview(
+          `/journal-samples/paper_${journal.id}.png`,
+          journal.name,
+          "amber"
+        )}
+
+        <div className="flex min-w-0 flex-1 flex-col gap-2 bg-[#fffaf0] p-3">
+          <div className="flex items-start gap-2">
+            <Switch
+              checked={enabled}
+              onCheckedChange={() => togglePaper(journal.id)}
+              className="mt-0.5 shrink-0"
+            />
+            <button
+              type="button"
+              onClick={() => togglePaper(journal.id)}
+              className="min-w-0 flex-1 text-left"
+            >
+              <span className="line-clamp-3 text-[13px] font-semibold leading-snug text-[#0b1024]">
+                {journal.name}
+              </span>
+            </button>
+          </div>
+
+          <div
+            className="line-clamp-3 text-[11px] leading-snug text-[#6f7282]"
+            title={`${journal.why} Штраф ${journal.fineHint}.`}
+          >
+            {journal.why}
+          </div>
+
+          <div className="mt-auto flex flex-wrap items-center gap-1 pt-1">
+            {/* «Только на бумаге» — не про все бланки: у пожарных
+                журналов электронная форма законна, и обещать обратное
+                нельзя. */}
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                journal.paperOnly
+                  ? "bg-[#fff4f2] text-[#a13a32]"
+                  : "bg-[#fff1d6] text-[#b45309]"
+              }`}
+            >
+              <Printer className="size-3" />
+              {journal.paperOnly ? "Только на бумаге" : "Бланк для печати"}
+            </span>
+            <a
+              href={journal.law.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[#5566f6] hover:underline"
+            >
+              {journal.law.label}
+              <ExternalLink className="size-2.5" />
+            </a>
+          </div>
+
+          <div className="flex gap-1.5">
+            <a
+              href={`/api/settings/journals/paper/${journal.id}/pdf`}
+              title="Скачать пустой бланк в PDF"
+              className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-[#f0e2c6] bg-white px-2 text-[11px] font-medium text-[#8a4a08] transition-colors hover:border-[#f5c451] hover:bg-[#fff8ec]"
+            >
+              <Download className="size-3.5 shrink-0" />
+              <span className="truncate">Бланк</span>
+            </a>
+            <Link
+              href={`/settings/journals/paper/${journal.id}`}
+              title="Заполнить и распечатать"
+              className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl bg-[#b45309] px-2 text-[11px] font-medium text-white transition-colors hover:bg-[#9a460a]"
+            >
+              <Printer className="size-3.5 shrink-0" />
+              <span className="truncate">Заполнить</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Группы: обязательные по сфере, рекомендованные, всё остальное.
@@ -427,8 +593,6 @@ export function JournalsSettingsClient({
     }
     return { required, recommended, rest };
   }, [items, requiredMap, recommendedSet]);
-
-  const paperJournals = useMemo(() => paperJournalsFor(sphere), [sphere]);
 
   /** Сколько журналов включим/выключим, если применить набор сферы. */
   function diffFor(nextSphere: OrgSphere) {
@@ -487,6 +651,30 @@ export function JournalsSettingsClient({
   }
 
   const sphereDiff = diffFor(sphereDraft);
+  const distDialogItem =
+    items.find((item) => item.code === distDialogCode) ?? null;
+  const paperOffTarget =
+    paperItems.find((journal) => journal.id === paperOffId) ?? null;
+  // Текст подтверждения разный: у охраны труда бумага — требование
+  // закона, у пожарных журналов электронная форма законна, и обещать
+  // «только на бумаге» там нельзя.
+  const paperOffBullets: Array<{
+    label: string;
+    tone?: "default" | "warn" | "info";
+  }> = [
+    { label: "Карточка исчезнет с дашборда", tone: "warn" },
+    ...(paperOffTarget
+      ? [
+          {
+            label: paperOffTarget.paperOnly
+              ? `Вести журнал всё равно обязаны на бумаге — штраф ${paperOffTarget.fineHint} (${paperOffTarget.law.label})`
+              : `Требование не отменяется — штраф ${paperOffTarget.fineHint} (${paperOffTarget.law.label})`,
+            tone: "warn" as const,
+          },
+        ]
+      : []),
+    { label: "Бланк останется доступен по прямой ссылке", tone: "default" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -581,13 +769,19 @@ export function JournalsSettingsClient({
       </div>
 
       <GroupHeading
-        title="Обязательные электронные"
-        hint="Роспотребнадзор"
-        count={groups.required.length}
+        title="Обязательные"
+        hint="электронные — зелёные, бумажные бланки — жёлтые, в конце"
+        count={groups.required.length + paperItems.length}
         tone="required"
       />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {groups.required.map((item) => renderCard(item))}
+        {/* Бумажные идут в конце той же сетки: набор у заведения один,
+            и делить его на «наши» и «не наши» журналы бессмысленно —
+            инспектор спросит и те, и другие. */}
+        {paperItems.map((journal, index) =>
+          renderPaperCard(journal, index === 0)
+        )}
       </div>
 
       {groups.recommended.length > 0 ? (
@@ -597,7 +791,7 @@ export function JournalsSettingsClient({
             count={groups.recommended.length}
             tone="recommended"
           />
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {groups.recommended.map((item) => renderCard(item))}
           </div>
         </>
@@ -614,7 +808,7 @@ export function JournalsSettingsClient({
           <ChevronDown className="size-4 text-[#9b9fb3] transition-transform group-open:rotate-180" />
         </summary>
         <div className="border-t border-[#eef0f6] p-5">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {groups.rest.map((item) => renderCard(item))}
           </div>
           <button
@@ -627,74 +821,6 @@ export function JournalsSettingsClient({
           </button>
         </div>
       </details>
-
-      <section id="paper" className="scroll-mt-24 space-y-3">
-        <GroupHeading
-          title="Обязательные бумажные"
-          hint="электронная форма не принимается"
-          count={paperJournals.length}
-          tone="paper"
-        />
-        <div className="grid gap-3 sm:grid-cols-2">
-          {paperJournals.map((journal) => (
-            <div
-              key={journal.id}
-              className="flex h-full flex-col rounded-2xl border border-[#ffd9d0] bg-[#fff8f6] p-5"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#fff4f2] text-[#a13a32]">
-                  <Printer className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
-                    {journal.name}
-                  </div>
-                  {/* «Только на бумаге» — не про все бланки: у пожарных
-                      журналов электронная форма законна, и обещать
-                      обратное нельзя. */}
-                  <span
-                    className={`mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                      journal.paperOnly
-                        ? "bg-[#fff4f2] text-[#a13a32]"
-                        : "bg-[#fff1d6] text-[#b45309]"
-                    }`}
-                  >
-                    {journal.paperOnly ? "Только на бумаге" : "Бланк для печати"}
-                  </span>
-                  <p className="mt-2 text-[13px] leading-relaxed text-[#6f7282]">
-                    {journal.why} Штраф {journal.fineHint}.
-                  </p>
-                  <a
-                    href={journal.law.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-medium text-[#5566f6] hover:underline"
-                  >
-                    {journal.law.label}
-                    <ExternalLink className="size-3" />
-                  </a>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <a
-                  href={`/api/settings/journals/paper/${journal.id}/pdf`}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-                >
-                  <Download className="size-3.5 text-[#5566f6]" />
-                  Скачать бланк
-                </a>
-                <Link
-                  href={`/settings/journals/paper/${journal.id}`}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#5566f6] px-3 text-[13px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
-                >
-                  <Printer className="size-3.5" />
-                  Заполнить и распечатать
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       <ConfirmDialog
         open={requiredOffCode !== null}
@@ -766,6 +892,80 @@ export function JournalsSettingsClient({
         ]}
         confirmLabel="Отключить"
       />
+
+      <ConfirmDialog
+        open={paperOffId !== null}
+        onClose={() => setPaperOffId(null)}
+        onConfirm={() => {
+          if (paperOffId) forcePaperToggle(paperOffId);
+          setPaperOffId(null);
+        }}
+        variant="warn"
+        title="Убрать бумажный журнал из набора?"
+        description={
+          paperOffTarget
+            ? `${paperOffTarget.name}. Мы только перестанем напоминать о нём — обязанность вести журнал остаётся.`
+            : ""
+        }
+        bullets={paperOffBullets}
+        confirmLabel="Всё равно убрать"
+      />
+
+      {/* Редактор распределения — модалкой: в карточке шириной 1/5
+          экрана раскрытый inline-блок ломал ряд по высоте и был
+          нечитаем. Содержимое то же самое. */}
+      <Dialog
+        open={distDialogCode !== null}
+        onOpenChange={(open) => {
+          if (!open) setDistDialogCode(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] gap-0 overflow-hidden rounded-3xl p-0 sm:max-w-[520px]">
+          {distDialogItem ? (
+            <>
+              <DialogHeader className="shrink-0 border-b border-[#ececf4] px-5 py-4">
+                <DialogTitle className="text-[16px] font-semibold text-[#0b1024]">
+                  Кому отправлять журнал
+                </DialogTitle>
+                <DialogDescription className="text-[13px] text-[#6f7282]">
+                  {distDialogItem.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[calc(90vh-84px)] overflow-y-auto">
+                <DistributionEditor
+                  item={distDialogItem}
+                  dist={distState[distDialogItem.code]}
+                  positions={positions}
+                  users={users}
+                  onModeChange={(mode) =>
+                    setItemFillMode(distDialogItem.code, mode)
+                  }
+                  onAssigneeChange={(id) =>
+                    setItemAssignee(distDialogItem.code, id)
+                  }
+                  onPositionToggle={(id) =>
+                    togglePosition(distDialogItem.code, id)
+                  }
+                  onBonusChange={(rub) =>
+                    setItemBonus(distDialogItem.code, Math.round(rub * 100))
+                  }
+                  onSave={() => saveDistribution(distDialogItem.code)}
+                  saving={distSavingCode === distDialogItem.code}
+                />
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {lightbox ? (
+        <PhotoLightbox
+          url={lightbox.url}
+          filename={lightbox.name}
+          caption={lightbox.name}
+          onClose={() => setLightbox(null)}
+        />
+      ) : null}
     </div>
   );
 }
