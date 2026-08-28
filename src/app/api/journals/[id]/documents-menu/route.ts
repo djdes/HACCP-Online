@@ -21,14 +21,17 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ code: string }> },
+  // Сегмент называется [id], а не [code], хотя внутри лежит код журнала:
+  // рядом уже есть /api/journals/[id]/*, а Next.js запрещает два разных
+  // имени слага на одном уровне пути — приложение падало целиком.
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
 
-  const { code } = await params;
+  const { id: code } = await params;
   const resolvedCode = resolveJournalCodeAlias(code);
 
   const allowed = await hasJournalAccess(
