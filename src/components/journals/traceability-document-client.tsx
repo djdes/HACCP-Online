@@ -38,6 +38,8 @@ import {
 } from "@/lib/traceability-document";
 
 import { toast } from "sonner";
+import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -576,6 +578,9 @@ export function TraceabilityDocumentClient(props: Props) {
   const [saving, setSaving] = useState(false);
 
   const isClosed = status === "closed";
+  // История отмены: только правки строк, сделанные этим человеком в
+  // этой вкладке. Настройки документа и списки в неё не идут.
+  const undoStack = useJournalUndo({ enabled: !isClosed });
   const employees = props.employees ?? props.users ?? [];
   const organizationName = props.organizationName || 'ООО "Тест"';
   const allSelected = config.rows.length > 0 && selectedRowIds.length === config.rows.length;
@@ -681,9 +686,20 @@ export function TraceabilityDocumentClient(props: Props) {
     await persistConfig({ ...config, rawMaterialList: uniqueStrings(nextConfig.rawMaterialList), productList: uniqueStrings(nextConfig.productList) });
   }
 
+  /**
+   * Запись строки. Отмена (Ctrl+Z) — это повторный PATCH прежнего
+   * набора строк тем же роутом, а не правка состояния на клиенте:
+   * серверные проверки обязаны сработать и на откате.
+   */
   async function saveRow(row: TraceabilityRow, additions: { rawMaterials: string[]; products: string[] }) {
+    const previousConfig = config;
     const nextRows = rowById.has(row.id) ? config.rows.map((item) => (item.id === row.id ? row : item)) : [...config.rows, row];
-    await persistConfig({ ...config, rows: nextRows, rawMaterialList: mergeUnique(config.rawMaterialList, additions.rawMaterials), productList: mergeUnique(config.productList, additions.products) });
+    const nextConfig = { ...config, rows: nextRows, rawMaterialList: mergeUnique(config.rawMaterialList, additions.rawMaterials), productList: mergeUnique(config.productList, additions.products) };
+    await persistConfig(nextConfig);
+    undoStack.push({
+      undo: () => persistConfig(previousConfig),
+      redo: () => persistConfig(nextConfig),
+    });
     setEditingRow(null);
   }
 
@@ -750,6 +766,19 @@ export function TraceabilityDocumentClient(props: Props) {
           {!isClosed && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" disabled={saving || isPending} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]"><Plus className="size-6" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start" className="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl"><DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setEditingRow(null); setRowOpen(true); }}><Plus className="mr-2 size-4" />Добавить</DropdownMenuItem><DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setImportOpen(true); }}><Upload className="mr-2 size-4" />Добавить из файла</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
           {!isClosed && <button type="button" onClick={() => setListsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Редактировать списки</button>}
           <div className="flex-1" />
+          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
+              отмены ставим в его панель действий слева от «Печати». */}
+          {!isClosed && (
+            <UndoRedoButtons
+              undo={{
+                canUndo: undoStack.canUndo,
+                canRedo: undoStack.canRedo,
+                onUndo: () => void undoStack.undo(),
+                onRedo: () => void undoStack.redo(),
+                undoCount: undoStack.undoCount,
+              }}
+            />
+          )}
           <button type="button" onClick={() => window.print()} title="Распечатать журнал" className="inline-flex items-center gap-2 rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]"><Printer className="size-5" />Печать</button>
           {!isClosed && <button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Настройки документа</button>}
           {!isClosed && <button type="button" onClick={() => setFinishOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Закончить журнал</button>}

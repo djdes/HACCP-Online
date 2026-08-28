@@ -53,6 +53,8 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { useJournalUndo } from "@/lib/journal-undo";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 type Props = {
@@ -113,6 +115,8 @@ export function StaffTrainingDocumentClient({
   );
 
   const isClosed = status === "closed";
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: status !== "closed" });
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
     const trainingLabel =
@@ -186,7 +190,15 @@ export function StaffTrainingDocumentClient({
 
   /* ---------- persistence ---------- */
 
-  async function saveConfig(nextConfig: StaffTrainingConfig) {
+  /**
+   * `silent` — вызов из истории отмены: ошибку пробрасываем наружу,
+   * чтобы протухший шаг вылетел из стека, а не показывался тостом
+   * поверх «не удалось отменить».
+   */
+  async function saveConfig(
+    nextConfig: StaffTrainingConfig,
+    options?: { silent?: boolean }
+  ) {
     setIsSaving(true);
     try {
       const response = await fetch(`/api/journal-documents/${documentId}`, {
@@ -194,18 +206,43 @@ export function StaffTrainingDocumentClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config: nextConfig }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) throw new Error("Не удалось сохранить журнал");
       startTransition(() => router.refresh());
-    } catch {
+    } catch (error) {
+      if (options?.silent) throw error;
       toast.error("Не удалось сохранить журнал");
     } finally {
       setIsSaving(false);
     }
   }
 
+  /**
+   * Правка ячейки/строки. Отмена (Ctrl+Z) — это повторная запись
+   * прежнего config'а тем же PATCH, а не правка состояния на клиенте:
+   * серверные проверки обязаны сработать и на откате.
+   */
   function updateConfigAndSave(next: StaffTrainingConfig) {
+    const previous = config;
     setConfig(next);
-    saveConfig(next);
+    // Шаг кладём ТОЛЬКО после успешного PATCH: при ошибке возвращаем
+    // прежний config, и отменять было бы нечего.
+    void saveConfig(next, { silent: true })
+      .then(() => {
+        undoStack.push({
+          undo: async () => {
+            setConfig(previous);
+            await saveConfig(previous, { silent: true });
+          },
+          redo: async () => {
+            setConfig(next);
+            await saveConfig(next, { silent: true });
+          },
+        });
+      })
+      .catch(() => {
+        setConfig(previous);
+        toast.error("Не удалось сохранить журнал");
+      });
   }
 
   /* ---------- row helpers ---------- */
@@ -330,7 +367,20 @@ export function StaffTrainingDocumentClient({
             {title}
           </h1>
         </div>
-        <div className="flex flex-wrap gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
+              отмены ставим в его шапку слева от «Печати». */}
+          {!isClosed && (
+            <UndoRedoButtons
+              undo={{
+                canUndo: undoStack.canUndo,
+                canRedo: undoStack.canRedo,
+                onUndo: () => void undoStack.undo(),
+                onRedo: () => void undoStack.redo(),
+                undoCount: undoStack.undoCount,
+              }}
+            />
+          )}
           <Button
             type="button"
             variant="outline"

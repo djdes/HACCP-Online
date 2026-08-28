@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useJournalUndo } from "@/lib/journal-undo";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_BODY_STACK_CLASS,
@@ -304,6 +305,8 @@ export function MedBookDocumentClient({
   const [examColumns, setExamColumns] = useState(config.examinations);
   const [vaccColumns, setVaccColumns] = useState(config.vaccinations);
   const [saving, setSaving] = useState(false);
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: !isClosed });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -407,12 +410,30 @@ export function MedBookDocumentClient({
     ],
   );
 
-  async function saveRows(nextRows: Row[]) {
+  /**
+   * Запись строк журнала. Отмена (Ctrl+Z) — это повторная запись прежнего
+   * набора строк тем же запросом, а не правка состояния на клиенте:
+   * иначе серверные запреты (закрытый документ, права) обходились бы.
+   *
+   * `silent` — вызов из истории: новый шаг не кладём (иначе Ctrl+Z
+   * зациклился бы) и пробрасываем ошибку, чтобы протухший шаг вылетел.
+   */
+  async function saveRows(nextRows: Row[], options?: { silent?: boolean }) {
+    const previousRows = rows;
     setRows(nextRows);
     try {
       await sync(nextRows);
       router.refresh();
+      if (!options?.silent) {
+        undoStack.push({
+          undo: () => saveRows(previousRows, { silent: true }),
+          redo: () => saveRows(nextRows, { silent: true }),
+        });
+      }
     } catch (error) {
+      // Сервер отказал — возвращаем то, что реально лежит в базе.
+      setRows(previousRows);
+      if (options?.silent) throw error;
       toast.error(
         error instanceof Error ? error.message : "Не удалось сохранить журнал",
       );
@@ -786,6 +807,13 @@ export function MedBookDocumentClient({
         backHref="/journals/med_books"
         documentId={documentId}
         heading={<h1 className={DOC_HEADING_CLASS}>{docTitle}</h1>}
+        undo={{
+          canUndo: undoStack.canUndo,
+          canRedo: undoStack.canRedo,
+          onUndo: () => void undoStack.undo(),
+          onRedo: () => void undoStack.redo(),
+          undoCount: undoStack.undoCount,
+        }}
         onSettings={() => {
           setSettingsTitle(docTitle);
           setSettingsIncludeVacc(includeVaccinations);

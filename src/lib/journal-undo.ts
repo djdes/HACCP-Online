@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 /**
@@ -39,7 +39,84 @@ export type JournalUndoApi = {
   busy: boolean;
 };
 
-const DEFAULT_DEPTH = 20;
+export const DEFAULT_UNDO_DEPTH = 20;
+
+/** Чем закончился проигрыш шага — хук по этому решает, показывать ли тост. */
+export type UndoRunResult =
+  | { status: "empty" }
+  | { status: "busy" }
+  | { status: "done" }
+  | { status: "failed"; error: unknown };
+
+export type UndoStackCore = {
+  push: (step: UndoStep) => void;
+  run: (direction: "undo" | "redo") => Promise<UndoRunResult>;
+  reset: () => void;
+  sizes: () => { undo: number; redo: number };
+  isBusy: () => boolean;
+};
+
+/**
+ * Чистое ядро истории — без React и без DOM.
+ *
+ * Вынесено из хука ровно ради тестируемости: поведение стека (глубина,
+ * вытеснение старого, обрыв ветки redo, выброс упавшего шага) можно
+ * проверить обычным `node --test`, не поднимая jsdom.
+ */
+export function createUndoStack(options?: { depth?: number }): UndoStackCore {
+  const depth = Math.max(1, options?.depth ?? DEFAULT_UNDO_DEPTH);
+  const undoSteps: UndoStep[] = [];
+  const redoSteps: UndoStep[] = [];
+  let busy = false;
+
+  return {
+    push(step: UndoStep) {
+      undoSteps.push(step);
+      // Глубина 20: лишнее вытесняется с хвоста (самое старое).
+      if (undoSteps.length > depth) undoSteps.shift();
+      // Новая правка обрывает ветку redo — как в любом редакторе.
+      redoSteps.length = 0;
+    },
+
+    /**
+     * Шаг снимается со стека ДО вызова: упал (403 «прошлые дни
+     * закрыты») — обратно не кладём, иначе Ctrl+Z будет бесконечно
+     * упираться в один и тот же протухший шаг.
+     */
+    async run(direction) {
+      if (busy) return { status: "busy" };
+      const from = direction === "undo" ? undoSteps : redoSteps;
+      const to = direction === "undo" ? redoSteps : undoSteps;
+      const step = from.pop();
+      if (!step) return { status: "empty" };
+
+      busy = true;
+      try {
+        await (direction === "undo" ? step.undo() : step.redo());
+        to.push(step);
+        if (to.length > depth) to.shift();
+        return { status: "done" };
+      } catch (error) {
+        return { status: "failed", error };
+      } finally {
+        busy = false;
+      }
+    },
+
+    reset() {
+      undoSteps.length = 0;
+      redoSteps.length = 0;
+    },
+
+    sizes() {
+      return { undo: undoSteps.length, redo: redoSteps.length };
+    },
+
+    isBusy() {
+      return busy;
+    },
+  };
+}
 
 /**
  * Хоткей игнорируем, когда человек печатает в поле (там своя нативная
@@ -68,69 +145,54 @@ export function useJournalUndo(opts?: {
   /** Журнал закрыт / нет прав — хоткеи и кнопки выключены. */
   enabled?: boolean;
 }): JournalUndoApi {
-  const depth = opts?.depth ?? DEFAULT_DEPTH;
+  const depth = opts?.depth ?? DEFAULT_UNDO_DEPTH;
   const enabled = opts?.enabled !== false;
 
-  const undoRef = useRef<UndoStep[]>([]);
-  const redoRef = useRef<UndoStep[]>([]);
-  const busyRef = useRef(false);
+  // Ядро живёт в ref: пересоздавать его на ререндере нельзя, иначе
+  // история обнулялась бы после каждой правки.
+  const coreRef = useRef<UndoStackCore | null>(null);
+  if (coreRef.current === null) coreRef.current = createUndoStack({ depth });
+  const core = coreRef.current;
+
   // Счётчики в state — только чтобы кнопки в шапке перерисовались.
   const [counts, setCounts] = useState({ undo: 0, redo: 0 });
   const [busy, setBusy] = useState(false);
 
-  const sync = useCallback(() => {
-    setCounts({ undo: undoRef.current.length, redo: redoRef.current.length });
-  }, []);
+  const sync = useCallback(() => setCounts(core.sizes()), [core]);
 
   const push = useCallback(
     (step: UndoStep) => {
-      undoRef.current.push(step);
-      // Глубина 20: лишнее вытесняется с хвоста (самое старое).
-      if (undoRef.current.length > depth) undoRef.current.shift();
-      // Новая правка обрывает ветку redo — как в любом редакторе.
-      redoRef.current = [];
+      core.push(step);
       sync();
     },
-    [depth, sync]
+    [core, sync]
   );
 
   const reset = useCallback(() => {
-    undoRef.current = [];
-    redoRef.current = [];
+    core.reset();
     sync();
-  }, [sync]);
+  }, [core, sync]);
 
-  /**
-   * Общий проигрыватель для undo и redo. Шаг снимается со стека ДО
-   * вызова: упал (403 «прошлые дни закрыты») — обратно не кладём,
-   * иначе Ctrl+Z будет бесконечно упираться в один и тот же шаг.
-   */
   const run = useCallback(
     async (direction: "undo" | "redo") => {
-      if (!enabled || busyRef.current) return;
-      const from = direction === "undo" ? undoRef.current : redoRef.current;
-      const to = direction === "undo" ? redoRef.current : undoRef.current;
-      const step = from.pop();
-      if (!step) return;
-      sync();
-
-      busyRef.current = true;
+      if (!enabled) return;
       setBusy(true);
-      try {
-        await (direction === "undo" ? step.undo() : step.redo());
-        to.push(step);
-        if (to.length > depth) to.shift();
-      } catch (error) {
+      // Синхронизируем до и после: шаг снимается со стека сразу, и
+      // кнопка должна погаснуть, не дожидаясь ответа сервера.
+      const promise = core.run(direction);
+      sync();
+      const result = await promise;
+      setBusy(false);
+      sync();
+      if (result.status === "failed") {
         toast.error(
-          error instanceof Error ? error.message : "Не удалось отменить"
+          result.error instanceof Error
+            ? result.error.message
+            : "Не удалось отменить"
         );
-      } finally {
-        busyRef.current = false;
-        setBusy(false);
-        sync();
       }
     },
-    [depth, enabled, sync]
+    [core, enabled, sync]
   );
 
   const undo = useCallback(() => run("undo"), [run]);
@@ -154,15 +216,18 @@ export function useJournalUndo(opts?: {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [enabled, redo, undo]);
 
-  return {
-    push,
-    undo,
-    redo,
-    reset,
-    canUndo: enabled && counts.undo > 0,
-    canRedo: enabled && counts.redo > 0,
-    undoCount: counts.undo,
-    redoCount: counts.redo,
-    busy,
-  };
+  return useMemo(
+    () => ({
+      push,
+      undo,
+      redo,
+      reset,
+      canUndo: enabled && counts.undo > 0,
+      canRedo: enabled && counts.redo > 0,
+      undoCount: counts.undo,
+      redoCount: counts.redo,
+      busy,
+    }),
+    [busy, counts.redo, counts.undo, enabled, push, redo, reset, undo]
+  );
 }

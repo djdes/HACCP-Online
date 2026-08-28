@@ -50,6 +50,8 @@ import {
 } from "@/lib/pest-control-document";
 
 import { toast } from "sonner";
+import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
 type EmployeeItem = {
   id: string;
@@ -172,8 +174,18 @@ function TrackedDocumentClientImpl({
     [employees]
   );
   const allSelected = entries.length > 0 && selectedRowIds.length === entries.length;
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
 
-  async function saveEntry(nextEntry: EntryItem) {
+  /**
+   * Запись строки. Отмена (Ctrl+Z) — это повторная запись прежнего
+   * значения тем же PUT, а не правка состояния на клиенте: серверные
+   * запреты (закрытый день, права) обязаны сработать и на откате.
+   *
+   * `silent` — вызов из истории: нового шага не кладём.
+   */
+  async function saveEntry(nextEntry: EntryItem, options?: { silent?: boolean }) {
+    const previousEntry = entries.find((item) => item.id === nextEntry.id);
     const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -196,6 +208,16 @@ function TrackedDocumentClientImpl({
         { ...nextEntry, id: result.entry.id },
       ]);
     });
+
+    // Шаг кладём ТОЛЬКО после успешного PUT: при ошибке значение и так
+    // не изменилось, и отмена стала бы «лишней».
+    if (!options?.silent && previousEntry) {
+      const restored = { ...previousEntry, id: result.entry.id };
+      undoStack.push({
+        undo: () => saveEntry(restored, { silent: true }),
+        redo: () => saveEntry({ ...nextEntry, id: result.entry.id }, { silent: true }),
+      });
+    }
   }
 
   async function createEntry(employeeId: string, date: string) {
@@ -347,6 +369,17 @@ function TrackedDocumentClientImpl({
           </div>
 
           <div className={JOURNAL_DOCUMENT_ACTIONS_CLASS}>
+            {status === "active" && (
+              <UndoRedoButtons
+                undo={{
+                  canUndo: undoStack.canUndo,
+                  canRedo: undoStack.canRedo,
+                  onUndo: () => void undoStack.undo(),
+                  onRedo: () => void undoStack.redo(),
+                  undoCount: undoStack.undoCount,
+                }}
+              />
+            )}
             {status === "active" && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

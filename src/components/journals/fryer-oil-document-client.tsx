@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useJournalUndo } from "@/lib/journal-undo";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_BODY_STACK_CLASS,
@@ -466,6 +467,8 @@ export function FryerOilDocumentClient(props: Props) {
   const [listsOpen, setListsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isActive = status === "active";
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
   const closeAction = useDocumentCloseAction({ documentId: props.documentId, title });
   const { mobileView, switchMobileView } = useMobileView("fryer_oil");
 
@@ -536,12 +539,31 @@ export function FryerOilDocumentClient(props: Props) {
     ) : null,
   }));
 
-  async function saveEntry(payload: { id?: string; data: FryerOilEntryData }) {
+  /**
+   * Запись строки. Отмена (Ctrl+Z) — это повторная запись прежних
+   * значений тем же PATCH; создание новой строки в историю не попадает
+   * (undo для него означал бы удаление — другое действие).
+   *
+   * `silent` — вызов из истории: нового шага не кладём.
+   */
+  async function saveEntry(
+    payload: { id?: string; data: FryerOilEntryData },
+    options?: { silent?: boolean }
+  ) {
+    const previousEntry = payload.id
+      ? entries.find((item) => item.id === payload.id)
+      : undefined;
     const response = await fetch(`/api/journal-documents/${props.documentId}/fryer-oil`, { method: payload.id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.entry) throw new Error(result?.error || "Не удалось сохранить запись");
     const next = { id: result.entry.id, date: result.entry.date, data: normalizeFryerOilEntryData(result.entry.data) };
     setEntries((v) => sortEntries([...v.filter((x) => x.id !== next.id), next]));
+    if (!options?.silent && previousEntry) {
+      undoStack.push({
+        undo: () => saveEntry({ id: next.id, data: previousEntry.data }, { silent: true }),
+        redo: () => saveEntry({ id: next.id, data: next.data }, { silent: true }),
+      });
+    }
   }
 
   async function deleteEntries(ids: string[]) {
@@ -609,6 +631,13 @@ export function FryerOilDocumentClient(props: Props) {
           className={DOC_TITLE_ROW_NO_STRIP_CLASS}
           backHref={`/journals/${props.routeCode}`}
           documentId={props.documentId}
+          undo={{
+            canUndo: undoStack.canUndo,
+            canRedo: undoStack.canRedo,
+            onUndo: () => void undoStack.undo(),
+            onRedo: () => void undoStack.redo(),
+            undoCount: undoStack.undoCount,
+          }}
           heading={<h1 className={DOC_HEADING_CLASS}>{title}</h1>}
           onSettings={() => setSettingsOpen(true)}
           menuItems={

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,6 +49,7 @@ import {
 import { toast } from "sonner";
 import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
 import { useJournalUndo } from "@/lib/journal-undo";
+import { useCellPaint } from "@/lib/journal-cell-paint";
 import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
@@ -103,28 +104,27 @@ type Props = {
  */
 
 /**
- * Покраска мышью — как в графике выходных на /settings/users.
+ * Покраска мышью — общий хелпер `useCellPaint` (тот же приём, что в
+ * графике выходных на /settings/users). Хук ловит штрих и отличает его
+ * от обычного тапа, а журнал решает, что писать в ячейку.
  *
- * Один «штрих» (зажал ЛКМ → провёл → отпустил) копит правки в ref, а на
- * pointerup уходит ОДНИМ запросом в bulk-эндпоинт и кладёт ОДИН шаг в
- * историю отмены. Ref, а не state: pointermove не должен ждать
- * перерисовку 31×N ячеек.
+ * Один «штрих» уходит ОДНИМ запросом в bulk-эндпоинт и кладёт ОДИН шаг
+ * в историю отмены.
  */
 type PaintCellRef = {
   employeeId: string;
   dateKey: string;
 };
 
-type PaintStroke = {
-  kind: "status" | "temperature";
-  /** Что красим: статус «Зд.» / отметку T° / снятие (null). */
+/**
+ * Что красим этим штрихом. Семантика «снятие и проставление», как у
+ * чекбоксов графика выходных: якорная ячейка пустая → красим «Зд.»
+ * (или «нет» на строке температуры), якорная заполнена → снимаем.
+ * Редкие статусы (Отп/Б-л) остаются на ПКМ.
+ */
+type PaintIntent = {
   status: HygieneStatus | null;
   temperature: boolean | null;
-  /** Курсор ушёл на другую ячейку — значит это штрих, а не тап. */
-  moved: boolean;
-  anchor: PaintCellRef;
-  cells: Map<string, PaintCellRef & { data: HygieneEntryData }>;
-  previous: Map<string, HygieneEntryData | undefined>;
 };
 
 const STATUS_CYCLE: Array<HygieneStatus | null> = [
@@ -300,16 +300,6 @@ export function HygieneDocumentClient({
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
     null
   );
-  // Покраска: контейнер листа ловит pointermove/up (pointer capture),
-  // поэтому нужен ref именно на него, а не на таблицу.
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-  const strokeRef = useRef<PaintStroke | null>(null);
-  // Якорь живёт МЕЖДУ штрихами: Shift+клик тянет прямоугольник от
-  // последней тронутой ячейки, как в графике выходных.
-  const lastAnchorRef = useRef<(PaintCellRef & { kind: PaintStroke["kind"] }) | null>(
-    null
-  );
-  const [painting, setPainting] = useState(false);
   // История отмены: только правки этого человека в этой вкладке.
   // Автозаполнение сюда не попадает — иначе Ctrl+Z откатывал бы чужое.
   const undoStack = useJournalUndo({ enabled: status === "active" });
@@ -362,6 +352,59 @@ export function HygieneDocumentClient({
   const selectedCount = selectedEmployeeIds.length;
   const allSelected = rosterUsers.length > 0 && selectedCount === rosterUsers.length;
   const isActive = status === "active";
+
+  // Покраска мышью: хук общий (`useCellPaint`), а вся семантика значений
+  // остаётся здесь — только гигиенический журнал знает про «Зд.» и T°.
+  const paint = useCellPaint<HygieneEntryData, PaintIntent>({
+    enabled: isActive,
+    // Порядок строк и колонок нужен для Shift-прямоугольника; пустые
+    // строки-заглушки бланка в него не входят.
+    rowIds: () =>
+      printableEmployees.filter((employee) => employee.name).map((employee) => employee.id),
+    colKeys: () => dateKeys,
+    cellKey: (employeeId, dateKey) => makeCellKey(employeeId, dateKey),
+    isLocked: (_employeeId, dateKey) => isDayLocked(dateKey),
+    onLocked: () => refusePastDay(),
+    beginStroke: (employeeId, dateKey, kind) => {
+      const current = normalizeHygieneEntryData(
+        entryMap[makeCellKey(employeeId, dateKey)]
+      );
+      if (kind === "status") {
+        return { status: current.status ? null : "healthy", temperature: null };
+      }
+      const filled =
+        current.temperatureAbove37 === true || current.temperatureAbove37 === false;
+      return { status: null, temperature: filled ? null : false };
+    },
+    buildCell: (stroke, employeeId, dateKey) =>
+      buildPaintData(stroke.kind, stroke.intent, employeeId, dateKey),
+    readCell: (employeeId, dateKey) => entryMap[makeCellKey(employeeId, dateKey)],
+    applyLocal: (cells) =>
+      applyCellsLocal(
+        cells.map((cell) => ({
+          employeeId: cell.rowId,
+          dateKey: cell.colKey,
+          data: cell.data,
+        }))
+      ),
+    // Клик без протягивания — прежний тап-цикл статусов.
+    onTap: (employeeId, dateKey, kind) => {
+      void (kind === "status"
+        ? handleStatusClick(employeeId, dateKey)
+        : handleTemperatureClick(employeeId, dateKey)
+      ).catch(() => {});
+    },
+    onCommit: (cells, previous) => {
+      void persistCells(
+        cells.map((cell) => ({
+          employeeId: cell.rowId,
+          dateKey: cell.colKey,
+          data: cell.data,
+        })),
+        { previous }
+      );
+    },
+  });
 
   function toggleEmployee(employeeId: string, checked: boolean) {
     setSelectedEmployeeIds((current) =>
@@ -606,184 +649,31 @@ export function HygieneDocumentClient({
     await persistEntry(employeeId, dateKey, nextData);
   }
 
-  /**
-   * Значение ячейки для текущего штриха. Семантика «снятие и
-   * проставление», как у чекбоксов графика выходных: якорная ячейка
-   * пустая → красим «Зд.» (или «нет» на строке температуры), якорная
-   * заполнена → снимаем. Редкие статусы (Отп/Б-л) остаются на ПКМ.
-   */
-  function buildPaintCell(
-    stroke: PaintStroke,
+  /** Значение конкретной ячейки для текущего штриха. */
+  function buildPaintData(
+    kind: string,
+    intent: PaintIntent,
     employeeId: string,
     dateKey: string
-  ): PaintCellRef & { data: HygieneEntryData } {
+  ): HygieneEntryData {
     const current = normalizeHygieneEntryData(
       entryMap[makeCellKey(employeeId, dateKey)]
     );
 
-    if (stroke.kind === "status") {
-      return {
-        employeeId,
-        dateKey,
-        data: buildEntryForStatus(stroke.status, current),
-      };
+    if (kind === "status") {
+      return buildEntryForStatus(intent.status, current);
     }
 
-    if (stroke.temperature === null) {
+    if (intent.temperature === null) {
       // На строке температуры снимаем ТОЛЬКО отметку T°, статус
       // сотрудника за этот день трогать нельзя.
-      return {
-        employeeId,
-        dateKey,
-        data: { ...current, temperatureAbove37: null },
-      };
+      return { ...current, temperatureAbove37: null };
     }
 
     return {
-      employeeId,
-      dateKey,
-      data: {
-        status: current.status ?? "healthy",
-        temperatureAbove37: stroke.temperature,
-      },
+      status: current.status ?? "healthy",
+      temperatureAbove37: intent.temperature,
     };
-  }
-
-  function paintCell(stroke: PaintStroke, employeeId: string, dateKey: string) {
-    const key = makeCellKey(employeeId, dateKey);
-    if (stroke.cells.has(key)) return;
-    // Запертые дни не красим вовсе — сервер их всё равно пропустит.
-    if (isDayLocked(dateKey)) return;
-    stroke.previous.set(key, entryMap[key]);
-    const cell = buildPaintCell(stroke, employeeId, dateKey);
-    stroke.cells.set(key, cell);
-    applyCellsLocal([cell]);
-  }
-
-  /** Shift+клик — прямоугольник от прошлого якоря до текущей ячейки. */
-  function paintRect(stroke: PaintStroke, from: PaintCellRef, to: PaintCellRef) {
-    const rowIds = printableEmployees
-      .filter((employee) => employee.name)
-      .map((employee) => employee.id);
-    const r1 = rowIds.indexOf(from.employeeId);
-    const r2 = rowIds.indexOf(to.employeeId);
-    const c1 = dateKeys.indexOf(from.dateKey);
-    const c2 = dateKeys.indexOf(to.dateKey);
-    if (r1 < 0 || r2 < 0 || c1 < 0 || c2 < 0) return;
-    for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r += 1) {
-      for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c += 1) {
-        paintCell(stroke, rowIds[r], dateKeys[c]);
-      }
-    }
-  }
-
-  function cellFromPoint(x: number, y: number) {
-    const element = document.elementFromPoint(x, y);
-    const cell =
-      element instanceof HTMLElement
-        ? element.closest<HTMLElement>("[data-hyg-cell]")
-        : null;
-    if (!cell?.dataset.emp || !cell.dataset.date || !cell.dataset.kind) return null;
-    return {
-      employeeId: cell.dataset.emp,
-      dateKey: cell.dataset.date,
-      kind: cell.dataset.kind as PaintStroke["kind"],
-    };
-  }
-
-  /**
-   * Начало взаимодействия с ячейкой. Пока курсор не ушёл на соседнюю
-   * ячейку — это обычный тап (прежний цикл статусов); как только ушёл,
-   * превращается в штрих покраски.
-   */
-  function handleCellPointerDown(
-    event: React.PointerEvent<HTMLTableCellElement>,
-    employeeId: string,
-    dateKey: string,
-    kind: PaintStroke["kind"],
-    interactive: boolean
-  ) {
-    if (!isActive || !interactive) return;
-    // ПКМ покраску не запускает — там своё меню выбора статуса.
-    if (event.button !== 0) return;
-    if (isDayLocked(dateKey)) {
-      refusePastDay();
-      return;
-    }
-    // Иначе браузер начнёт выделять текст таблицы вместо покраски.
-    event.preventDefault();
-
-    const current = normalizeHygieneEntryData(
-      entryMap[makeCellKey(employeeId, dateKey)]
-    );
-    const stroke: PaintStroke = {
-      kind,
-      status: kind === "status" ? (current.status ? null : "healthy") : null,
-      temperature:
-        kind === "temperature"
-          ? current.temperatureAbove37 === true ||
-            current.temperatureAbove37 === false
-            ? null
-            : false
-          : null,
-      moved: false,
-      anchor: { employeeId, dateKey },
-      cells: new Map(),
-      previous: new Map(),
-    };
-    strokeRef.current = stroke;
-
-    const previousAnchor = lastAnchorRef.current;
-    if (event.shiftKey && previousAnchor && previousAnchor.kind === kind) {
-      paintRect(stroke, previousAnchor, { employeeId, dateKey });
-      stroke.moved = true;
-      setPainting(true);
-    }
-
-    lastAnchorRef.current = { employeeId, dateKey, kind };
-    sheetRef.current?.setPointerCapture(event.pointerId);
-  }
-
-  function handleSheetPointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    const stroke = strokeRef.current;
-    if (!stroke) return;
-    const cell = cellFromPoint(event.clientX, event.clientY);
-    if (!cell || cell.kind !== stroke.kind) return;
-    const sameAsAnchor =
-      cell.employeeId === stroke.anchor.employeeId &&
-      cell.dateKey === stroke.anchor.dateKey;
-    if (sameAsAnchor && !stroke.moved) return;
-
-    if (!stroke.moved) {
-      stroke.moved = true;
-      setPainting(true);
-      paintCell(stroke, stroke.anchor.employeeId, stroke.anchor.dateKey);
-    }
-    paintCell(stroke, cell.employeeId, cell.dateKey);
-    lastAnchorRef.current = { ...cell, kind: stroke.kind };
-  }
-
-  /**
-   * Конец взаимодействия: тап — прежний цикл статусов, штрих — ОДИН
-   * POST в bulk и ОДИН шаг в истории отмены.
-   */
-  function finishStroke() {
-    const stroke = strokeRef.current;
-    if (!stroke) return;
-    strokeRef.current = null;
-    setPainting(false);
-
-    if (!stroke.moved) {
-      const { employeeId, dateKey } = stroke.anchor;
-      (stroke.kind === "status"
-        ? handleStatusClick(employeeId, dateKey)
-        : handleTemperatureClick(employeeId, dateKey)
-      ).catch(() => {});
-      return;
-    }
-
-    const cells = [...stroke.cells.values()];
-    void persistCells(cells, { previous: stroke.previous });
   }
 
   /**
@@ -1252,13 +1142,10 @@ export function HygieneDocumentClient({
             H1 → бумажная шапка выходил 65px вместо канонических 41.
             Верхний отступ задаёт полоса, тут остаётся только нижний. */}
         <div
-          ref={sheetRef}
-          onPointerMove={handleSheetPointerMove}
-          onPointerUp={finishStroke}
-          onPointerCancel={finishStroke}
-          onLostPointerCapture={finishStroke}
+          ref={paint.containerRef}
+          {...paint.containerProps}
           className={`hygiene-sheet min-w-[1100px] pb-6 sm:min-w-0 ${
-            painting ? "cursor-crosshair select-none [touch-action:none]" : ""
+            paint.painting ? "cursor-crosshair select-none [touch-action:none]" : ""
           }`}
         >
 
@@ -1395,21 +1282,12 @@ export function HygieneDocumentClient({
                                   ? "cursor-pointer hover:bg-[#f5f6ff]"
                                   : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
-                            data-hyg-cell={
-                              isActive && employee.name && !locked ? "" : undefined
-                            }
-                            data-emp={employee.id}
-                            data-date={dateKey}
-                            data-kind="status"
-                            onPointerDown={(event) =>
-                              handleCellPointerDown(
-                                event,
-                                employee.id,
-                                dateKey,
-                                "status",
-                                Boolean(employee.name)
-                              )
-                            }
+                            {...paint.cellProps(
+                              employee.id,
+                              dateKey,
+                              "status",
+                              Boolean(employee.name)
+                            )}
                             onContextMenu={(event) =>
                               openCellMenu(
                                 event,
@@ -1449,21 +1327,12 @@ export function HygieneDocumentClient({
                                   ? "cursor-pointer hover:bg-[#f5f6ff]"
                                   : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
-                            data-hyg-cell={
-                              isActive && employee.name && !locked ? "" : undefined
-                            }
-                            data-emp={employee.id}
-                            data-date={dateKey}
-                            data-kind="temperature"
-                            onPointerDown={(event) =>
-                              handleCellPointerDown(
-                                event,
-                                employee.id,
-                                dateKey,
-                                "temperature",
-                                Boolean(employee.name)
-                              )
-                            }
+                            {...paint.cellProps(
+                              employee.id,
+                              dateKey,
+                              "temperature",
+                              Boolean(employee.name)
+                            )}
                             onContextMenu={(event) =>
                               openCellMenu(
                                 event,

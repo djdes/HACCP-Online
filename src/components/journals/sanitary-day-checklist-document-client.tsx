@@ -41,6 +41,8 @@ import {
 } from "@/components/journals/mobile-view-toggle";
 
 import { toast } from "sonner";
+import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { useJournalUndo } from "@/lib/journal-undo";
 /* ─── Types ─── */
 
 type UserItem = { id: string; name: string; role: string };
@@ -706,6 +708,8 @@ export function SanitaryDayChecklistDocumentClient({
   const [saving, setSaving] = useState(false);
 
   const isActive = status === "active";
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
   const { mobileView, switchMobileView } = useMobileView("sanitary_day_control");
   const organizationLabel = organizationName || 'ООО "Тест"';
   const documentTitle = title || getSanitaryDayChecklistTitle(routeCode);
@@ -742,9 +746,20 @@ export function SanitaryDayChecklistDocumentClient({
     [documentId]
   );
 
-  // Save marks to server
+  /**
+   * Запись отметок времени. Отмена (Ctrl+Z) — это повторная запись
+   * прежней карты отметок тем же PUT, а не правка состояния на клиенте:
+   * серверные запреты обязаны сработать и на откате.
+   *
+   * `silent` — вызов из истории: нового шага не кладём и пробрасываем
+   * ошибку наружу, чтобы протухший шаг вылетел из стека.
+   */
   const saveMarks = useCallback(
-    async (newMarks: Record<string, string>) => {
+    async (
+      newMarks: Record<string, string>,
+      options?: { silent?: boolean; previous?: Record<string, string> }
+    ) => {
+      const previousMarks = options?.previous ?? marks;
       try {
         await requestJson(`/api/journal-documents/${documentId}/entries`, {
           method: "PUT",
@@ -755,13 +770,33 @@ export function SanitaryDayChecklistDocumentClient({
             data: { marks: newMarks },
           }),
         });
+        if (!options?.silent) {
+          undoStack.push({
+            undo: () => {
+              setMarks(previousMarks);
+              return saveMarks(previousMarks, {
+                silent: true,
+                previous: newMarks,
+              });
+            },
+            redo: () => {
+              setMarks(newMarks);
+              return saveMarks(newMarks, {
+                silent: true,
+                previous: previousMarks,
+              });
+            },
+          });
+        }
       } catch (error) {
+        setMarks(previousMarks);
+        if (options?.silent) throw error;
         toast.error(
           error instanceof Error ? error.message : "Ошибка сохранения"
         );
       }
     },
-    [documentId, entryDate]
+    [documentId, entryDate, marks, undoStack]
   );
 
   // Handlers
@@ -877,7 +912,21 @@ export function SanitaryDayChecklistDocumentClient({
             <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
               {title || getSanitaryDayChecklistTitle(routeCode)}
             </h1>
-            <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              {/* У этого журнала нет общей `DocumentActionsBar` — кнопки
+                  отмены ставим в его собственную шапку, слева от
+                  «Печати», чтобы порядок совпадал с остальными журналами. */}
+              {isActive && (
+                <UndoRedoButtons
+                  undo={{
+                    canUndo: undoStack.canUndo,
+                    canRedo: undoStack.canRedo,
+                    onUndo: () => void undoStack.undo(),
+                    onRedo: () => void undoStack.redo(),
+                    undoCount: undoStack.undoCount,
+                  }}
+                />
+              )}
               <Button
                 type="button"
                 variant="outline"

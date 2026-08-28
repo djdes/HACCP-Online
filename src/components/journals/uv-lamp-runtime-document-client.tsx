@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Plus } from "lucide-react";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
@@ -49,6 +49,7 @@ import {
 } from "@/lib/uv-lamp-runtime-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useJournalUndo } from "@/lib/journal-undo";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
@@ -1109,6 +1110,18 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     })
   );
 
+  // Снимок того, что реально лежит на сервере: инпуты пишут в `rows` на
+  // каждый символ, поэтому «прежнее значение» для отмены брать оттуда
+  // нельзя. Заполняем на первом рендере — тогда и самая первая правка
+  // строки отменяется, а не только вторая.
+  const savedRowsRef = useRef<Map<string, GridRow> | null>(null);
+  if (savedRowsRef.current === null) {
+    savedRowsRef.current = new Map(rows.map((row) => [row.date, row]));
+  }
+  const savedRows = savedRowsRef.current;
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: props.status === "active" });
+
   const userMap = useMemo(() => Object.fromEntries(props.users.map((user) => [user.id, user.name])), [props.users]);
 
   // U6: в таблице теперь только реальные записи, поэтому удалить можно
@@ -1132,10 +1145,22 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     return calculateMonthlyHours(entriesWithData, config.spec.lampLifetimeHours);
   }, [rows, config.spec.lampLifetimeHours]);
 
+  /**
+   * Запись строки. Отмена (Ctrl+Z) — это повторная запись прежних
+   * значений тем же PUT, а не правка состояния на клиенте: серверные
+   * запреты (закрытый день, права) обязаны сработать и на откате.
+   *
+   * Прежнее значение берём из `savedRowsRef` — в `rows` к моменту blur
+   * уже лежит НОВОЕ значение (инпут пишет в state на каждый символ).
+   *
+   * `silent` — вызов из истории: нового шага не кладём.
+   */
   const saveRow = useCallback(async (
     row: GridRow,
-    previous?: { id: string; employeeId: string }
+    previous?: { id: string; employeeId: string },
+    options?: { silent?: boolean }
   ) => {
+    const previousSaved = savedRows.get(row.date);
     const response = await fetch(`/api/journal-documents/${props.documentId}/entries`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -1171,7 +1196,27 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       data: row.data,
     };
     setRows((current) => current.map((item) => (item.date === saved.date ? saved : item)));
-  }, [props.documentId, fallbackEmployeeId]);
+    savedRows.set(saved.date, saved);
+
+    if (!options?.silent && previousSaved) {
+      const restored: GridRow = { ...saved, data: previousSaved.data, employeeId: previousSaved.employeeId };
+      const applied: GridRow = { ...saved };
+      undoStack.push({
+        undo: async () => {
+          await saveRow(restored, undefined, { silent: true });
+          setRows((current) =>
+            current.map((item) => (item.date === restored.date ? { ...item, data: restored.data } : item))
+          );
+        },
+        redo: async () => {
+          await saveRow(applied, undefined, { silent: true });
+          setRows((current) =>
+            current.map((item) => (item.date === applied.date ? { ...item, data: applied.data } : item))
+          );
+        },
+      });
+    }
+  }, [props.documentId, fallbackEmployeeId, savedRows, undoStack]);
 
   async function deleteSelectedRows() {
     const deletable = rows.filter((row) => selectedRowIds.includes(row.id) && !row.id.startsWith("virtual:"));
@@ -1349,6 +1394,13 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       <DocumentActionsBar
         backHref={`/journals/${props.routeCode}`}
         documentId={props.documentId}
+        undo={{
+          canUndo: undoStack.canUndo,
+          canRedo: undoStack.canRedo,
+          onUndo: () => void undoStack.undo(),
+          onRedo: () => void undoStack.redo(),
+          undoCount: undoStack.undoCount,
+        }}
         heading={
           <h1 className={DOC_HEADING_CLASS}>
             Журнал учета работы УФ бактерицидной установки

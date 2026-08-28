@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { useJournalUndo } from "@/lib/journal-undo";
 import { Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -506,6 +508,8 @@ export function PestControlDocumentClient(props: Props) {
     [props.users]
   );
   const readOnly = props.status === "closed";
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: !readOnly });
   const allSelected = entries.length > 0 && selectedIds.length === entries.length;
   const { mobileView, switchMobileView } = useMobileView("pest_control");
 
@@ -575,8 +579,21 @@ export function PestControlDocumentClient(props: Props) {
     router.refresh();
   }
 
-  async function updateEntry(data: PestControlEntryData, entryId?: string) {
+  /**
+   * Правка строки. Отмена (Ctrl+Z) — это повторная запись прежних
+   * значений тем же PATCH, а не правка состояния на клиенте: серверные
+   * запреты (закрытый журнал, права) обязаны сработать и на откате.
+   *
+   * `silent` — вызов из истории: нового шага не кладём и бросаем ошибку
+   * наружу, чтобы протухший шаг вылетел из стека.
+   */
+  async function updateEntry(
+    data: PestControlEntryData,
+    entryId?: string,
+    options?: { silent?: boolean }
+  ) {
     if (!entryId) return;
+    const previousData = entries.find((item) => item.id === entryId)?.data;
 
     const response = await fetch(
       `/api/journal-documents/${props.documentId}/pest-control-entries`,
@@ -589,8 +606,17 @@ export function PestControlDocumentClient(props: Props) {
 
     if (!response.ok) {
       const result = await response.json().catch(() => null);
-      toast.error(result?.error || "Не удалось сохранить строку");
+      const message = result?.error || "Не удалось сохранить строку";
+      if (options?.silent) throw new Error(message);
+      toast.error(message);
       return;
+    }
+
+    if (!options?.silent && previousData) {
+      undoStack.push({
+        undo: () => updateEntry(previousData, entryId, { silent: true }),
+        redo: () => updateEntry(data, entryId, { silent: true }),
+      });
     }
 
     router.refresh();
@@ -663,7 +689,20 @@ export function PestControlDocumentClient(props: Props) {
         <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
           {props.title || PEST_CONTROL_DOCUMENT_TITLE}
         </h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
+              отмены ставим в его шапку слева от «Печати». */}
+          {!readOnly && (
+            <UndoRedoButtons
+              undo={{
+                canUndo: undoStack.canUndo,
+                canRedo: undoStack.canRedo,
+                onUndo: () => void undoStack.undo(),
+                onRedo: () => void undoStack.redo(),
+                undoCount: undoStack.undoCount,
+              }}
+            />
+          )}
           <Button
             type="button"
             variant="outline"

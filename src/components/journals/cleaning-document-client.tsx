@@ -62,6 +62,7 @@ import {
   type CleaningRoomItem,
 } from "@/lib/cleaning-document";
 import { buildDateKeys, isWeekend, toDateKey } from "@/lib/hygiene-document";
+import { useJournalUndo } from "@/lib/journal-undo";
 import { getCalendarDayKind } from "@/lib/production-calendar-data";
 import {
   WEEKDAY_LABELS_RU,
@@ -301,6 +302,10 @@ export function CleaningDocumentClient(props: Props) {
   // выделяет диапазон (как в Excel).
   const [cellSelectMode, setCellSelectMode] = useState(false);
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+  // История отмены: только правки ячеек, сделанные этим человеком в
+  // этой вкладке. Настройки журнала и состав помещений в неё не идут —
+  // это не «ой, не туда нажал».
+  const undoStack = useJournalUndo({ enabled: props.status === "active" });
   // Drag-state хранится в refs (а не useState), чтобы read из mouseenter
   // handler'а был синхронным. setState async и handler читал бы stale
   // значение между ячейками, drag «терял» промежуточные.
@@ -974,7 +979,7 @@ export function CleaningDocumentClient(props: Props) {
     }
     // Пишем БЕЗ auto-маркера: подпись, которую менеджер поставил
     // кликом, считается ручной и автоснятием больше не трогается.
-    await patchDocument({
+    await patchCellsWithUndo({
       ...config,
       matrix: { ...config.matrix, [rowId]: nextRowMap },
     });
@@ -1368,6 +1373,22 @@ export function CleaningDocumentClient(props: Props) {
     }
   }
 
+  /**
+   * Правка ячеек с записью в историю отмены.
+   *
+   * Откат — это повторный PATCH прежнего config'а тем же роутом, а не
+   * правка состояния на клиенте: серверные проверки (закрытый документ,
+   * права) обязаны срабатывать и на откате.
+   */
+  async function patchCellsWithUndo(nextConfig: CleaningDocumentConfig) {
+    const previousConfig = config;
+    await patchDocument(nextConfig);
+    undoStack.push({
+      undo: () => patchDocument(previousConfig),
+      redo: () => patchDocument(nextConfig),
+    });
+  }
+
   async function updateSettings(patch: Partial<SettingsState>) {
     const nextState = { ...settingsState, ...patch };
     setSettingsState(nextState);
@@ -1472,7 +1493,7 @@ export function CleaningDocumentClient(props: Props) {
     });
     // Ручное Т/Г → автоподпись ответственных за этот день; полная
     // очистка дня → автоподпись снимается.
-    await patchDocument(applyAutoSignatures(nextConfig, [dateKey]));
+    await patchCellsWithUndo(applyAutoSignatures(nextConfig, [dateKey]));
   }
 
   /**
@@ -1511,7 +1532,7 @@ export function CleaningDocumentClient(props: Props) {
       }
     }
     try {
-      await patchDocument(applyAutoSignatures(nextConfig, offDays));
+      await patchCellsWithUndo(applyAutoSignatures(nextConfig, offDays));
       const action = value === "/" ? "помечены «Не проводилась»" : value === "" ? "очищены" : "обновлены";
       toast.success(
         `Выходных и праздников: ${offDays.length} дн. × ${roomIds.length} помещ. = ${cellsUpdated} ячеек ${action}`,
@@ -1560,7 +1581,7 @@ export function CleaningDocumentClient(props: Props) {
       });
     }
     try {
-      await patchDocument(
+      await patchCellsWithUndo(
         applyAutoSignatures(nextConfig, Array.from(touchedDateKeys)),
       );
       const labelMap: Record<CleaningMatrixValue, string> = {
@@ -1894,6 +1915,13 @@ export function CleaningDocumentClient(props: Props) {
           <DocumentActionsBar
             backHref="/journals/cleaning"
             documentId={props.documentId}
+            undo={{
+              canUndo: undoStack.canUndo,
+              canRedo: undoStack.canRedo,
+              onUndo: () => void undoStack.undo(),
+              onRedo: () => void undoStack.redo(),
+              undoCount: undoStack.undoCount,
+            }}
             heading={
               <div>
                 <h1 className={DOC_HEADING_CLASS}>

@@ -38,6 +38,8 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { useJournalUndo } from "@/lib/journal-undo";
 import { PositionNativeOptions } from "@/components/shared/position-select";
 type UserItem = {
   id: string;
@@ -117,6 +119,8 @@ export function EquipmentCleaningDocumentClient({
   const router = useRouter();
   const journalRouteCode = routeCode || templateCode;
   const [rows, setRows] = useState(initialRows);
+  // История отмены: только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
@@ -224,15 +228,30 @@ export function EquipmentCleaningDocumentClient({
     }));
   }
 
-  async function saveRow() {
+  /**
+   * Запись строки. Отмена (Ctrl+Z) — это повторная запись прежних
+   * значений тем же PATCH; создание новой строки в историю не попадает
+   * (undo для него означал бы удаление, а это другое действие).
+   *
+   * `silent` — вызов из истории: нового шага не кладём и пробрасываем
+   * ошибку, чтобы протухший шаг вылетел из стека.
+   */
+  async function saveRow(
+    override?: { id: string; data: EquipmentCleaningRowData },
+    options?: { silent?: boolean }
+  ) {
+    const target = override ?? draft;
+    const previousRow = target.id
+      ? rows.find((row) => row.id === target.id)
+      : undefined;
     setIsSaving(true);
     try {
       const response = await fetch(`/api/journal-documents/${documentId}/equipment-cleaning`, {
-        method: draft.id ? "PATCH" : "POST",
+        method: target.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: draft.id,
-          data: buildPayload(draft.data),
+          id: target.id,
+          data: buildPayload(target.data),
         }),
       });
       const payload = await response.json().catch(() => null);
@@ -245,12 +264,23 @@ export function EquipmentCleaningDocumentClient({
         const withoutCurrent = current.filter((row) => row.id !== nextRow.id);
         return [...withoutCurrent, nextRow];
       });
-      setRowModalOpen(false);
-      setDraft({
-        id: null,
-        data: emptyEquipmentCleaningRow(),
-      });
+      if (!options?.silent && previousRow) {
+        const restored = { id: previousRow.id, data: previousRow.data };
+        const applied = { id: nextRow.id, data: nextRow.data };
+        undoStack.push({
+          undo: () => saveRow(restored, { silent: true }),
+          redo: () => saveRow(applied, { silent: true }),
+        });
+      }
+      if (!override) {
+        setRowModalOpen(false);
+        setDraft({
+          id: null,
+          data: emptyEquipmentCleaningRow(),
+        });
+      }
     } catch (error) {
+      if (options?.silent) throw error;
       toast.error(error instanceof Error ? error.message : "Ошибка сохранения строки");
     } finally {
       setIsSaving(false);
@@ -359,7 +389,21 @@ export function EquipmentCleaningDocumentClient({
         <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
           {title}
         </h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
+              отмены ставим в его шапку слева от «Печати», чтобы порядок
+              совпадал с остальными журналами. */}
+          {status === "active" ? (
+            <UndoRedoButtons
+              undo={{
+                canUndo: undoStack.canUndo,
+                canRedo: undoStack.canRedo,
+                onUndo: () => void undoStack.undo(),
+                onRedo: () => void undoStack.redo(),
+                undoCount: undoStack.undoCount,
+              }}
+            />
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -785,7 +829,7 @@ export function EquipmentCleaningDocumentClient({
             <Button
               type="button"
               className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
-              onClick={saveRow}
+              onClick={() => void saveRow()}
               disabled={isSaving}
             >
               {isSaving ? "Сохранение..." : draft.id ? "Сохранить" : "Добавить"}
