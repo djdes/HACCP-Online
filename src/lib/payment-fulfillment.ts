@@ -11,6 +11,7 @@ import { notifyPlatformAdmin } from "@/lib/platform-admin";
 import { describeHardwareConfig } from "@/lib/hardware-pricing";
 import { formatRub } from "@/lib/tariffs";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
+import { attachAccountForNewOrganization } from "@/lib/create-organization";
 
 /**
  * Что происходит после подтверждённой оплаты.
@@ -125,6 +126,15 @@ export async function fulfillPaidOrder(order: {
         organizationId: organization.id,
         journalAccessMigrated: true,
       },
+    });
+    // Аккаунт — владелец тарифа и общего лимита мест (см.
+    // lib/create-organization.ts). Оплаченная организация тем более
+    // должна уметь расти во вторую точку.
+    await attachAccountForNewOrganization(tx, {
+      ownerUserId: user.id,
+      organizationId: organization.id,
+      subscriptionPlan: "paid",
+      subscriptionEnd,
     });
     await tx.paymentOrder.update({
       where: { id: order.id },

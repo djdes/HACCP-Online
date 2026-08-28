@@ -184,11 +184,17 @@ export function Header({
   // места (человек должен заранее видеть, что 6-й сотрудник переведёт
   // на платный), на платном — просто численность.
   const onFreePlan = subscriptionPlan === "trial" || subscriptionPlan === "free";
+  // Мест считаем по всем организациям аккаунта — иначе владелец сети
+  // видел бы «2/5» в каждой точке и не понимал, откуда взялся платный.
+  const multiOrg = organizations.length > 1;
+  const headcountSuffix = multiOrg
+    ? " сотрудников по всем организациям"
+    : " сотрудников";
   const planLine = [
     planLabel(subscriptionPlan),
     onFreePlan
-      ? `${activeUsers}/${freeUserLimit} сотрудников`
-      : `${activeUsers} сотрудников`,
+      ? `${activeUsers}/${freeUserLimit}${headcountSuffix}`
+      : `${activeUsers}${headcountSuffix}`,
     !onFreePlan && billingTestMode ? "тестовый режим" : null,
   ]
     .filter(Boolean)
@@ -198,6 +204,12 @@ export function Header({
   const canUpgradePlan = fullAccess && onFreePlan;
 
   const visibleSecondaryNavItems = fullAccess ? secondaryNavItems : [];
+  // Пилюля в шапке показывает название активной точки — значит именно
+  // на неё логично навести, чтобы уйти в соседнюю. Дублирует меню
+  // профиля намеренно: там это «настройка аккаунта», здесь — навигация.
+  const showOrgSwitchInNav = showsOrg && multiOrg;
+  const navPanelVisible =
+    visibleSecondaryNavItems.length > 0 || showOrgSwitchInNav;
   const navItems = [
     { label: homeLabel, href: homeHref, icon: HomeIcon, tooltip: homeTooltip },
     ...visibleSecondaryNavItems.map((i) => ({ ...i, tooltip: i.label })),
@@ -274,7 +286,7 @@ export function Header({
             >
               <HomeIcon className="size-5 shrink-0" />
               <span className="truncate">{homeLabel}</span>
-              {visibleSecondaryNavItems.length > 0 ? (
+              {navPanelVisible ? (
                 <ChevronDown
                   className="size-4 shrink-0 opacity-60 transition-transform duration-150 group-hover/nav:rotate-180 group-focus-within/nav:rotate-180"
                   aria-hidden
@@ -282,11 +294,25 @@ export function Header({
               ) : null}
             </Link>
 
-            {visibleSecondaryNavItems.length > 0 ? (
+            {navPanelVisible ? (
               <div
                 role="menu"
                 className="pointer-events-none invisible absolute left-0 top-full z-20 w-[260px] translate-y-[-4px] rounded-xl border bg-white p-1.5 opacity-0 shadow-[0_10px_32px_-12px_rgba(11,16,36,0.18)] transition-[opacity,transform] duration-150 group-hover/nav:pointer-events-auto group-hover/nav:visible group-hover/nav:translate-y-0 group-hover/nav:opacity-100 group-focus-within/nav:pointer-events-auto group-focus-within/nav:visible group-focus-within/nav:translate-y-0 group-focus-within/nav:opacity-100"
               >
+                {showOrgSwitchInNav ? (
+                  <>
+                    <OrganizationSwitcher
+                      organizations={organizations}
+                      activeId={activeOrganizationId}
+                      canCreate={false}
+                      currentSphere={organizationSphere}
+                      label="Сменить организацию"
+                    />
+                    {visibleSecondaryNavItems.length > 0 ? (
+                      <div className="my-1.5 h-px bg-[#ececf4]" />
+                    ) : null}
+                  </>
+                ) : null}
                 {visibleSecondaryNavItems.map((item) => {
                   const isActive =
                     pathname === item.href ||

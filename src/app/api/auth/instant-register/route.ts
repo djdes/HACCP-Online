@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { db } from "@/lib/db";
 import { issueSession } from "@/lib/issue-session";
 import { sendAccountPasswordEmail } from "@/lib/email";
+import { attachAccountForNewOrganization } from "@/lib/create-organization";
 import { escapeTelegramHtml } from "@/lib/telegram";
 import { notifyPlatformAdmin } from "@/lib/platform-admin";
 import { registrationCodeRateLimiter } from "@/lib/rate-limit";
@@ -139,6 +140,15 @@ export async function POST(request: Request) {
           lastLoginIp: ipForLog,
           lastLoginAt: new Date(),
         },
+      });
+      // Аккаунт — владелец тарифа и общего лимита мест. Заводим сразу:
+      // без него организация не умеет ни переключаться, ни расти во
+      // вторую точку (см. lib/create-organization.ts).
+      await attachAccountForNewOrganization(tx, {
+        ownerUserId: user.id,
+        organizationId: organization.id,
+        subscriptionPlan: organization.subscriptionPlan,
+        subscriptionEnd: organization.subscriptionEnd,
       });
       return { organization, user };
     });

@@ -235,13 +235,42 @@ export const authOptions: NextAuthOptions = {
         // переименование org или смена preset'а админом «прилипает» к
         // юзеру до релогина. Один запрос (org + user fields) решает.
         try {
+          const { db } = await import("@/lib/db");
+          // Членство перепроверяем на КАЖДОМ запросе, а не только при
+          // логине: доступ к соседней точке могли отозвать минуту назад,
+          // а cookie с claim'ом живёт неделями. Не сошлось — молча
+          // возвращаем человека в домашнюю организацию.
+          if (
+            session.user.activeOrganizationId &&
+            session.user.activeOrganizationId !== session.user.organizationId
+          ) {
+            const membership = await db.organizationMember.findUnique({
+              where: {
+                userId_organizationId: {
+                  userId: session.user.id,
+                  organizationId: session.user.activeOrganizationId,
+                },
+              },
+              select: { role: true },
+            });
+            if (!membership) {
+              session.user.activeOrganizationId = null;
+            } else {
+              // Права в чужой организации берём из членства, а не из
+              // домашней роли: и владелец сети, и приглашённый
+              // руководитель работают там как руководство. В сессии
+              // роль руководителя называется "owner"
+              // (см. getPermissionRole в lib/user-roles.ts).
+              session.user.role = "owner";
+            }
+          }
           const activeOrgId =
             session.user.isRoot &&
             typeof session.user.actingAsOrganizationId === "string" &&
             session.user.actingAsOrganizationId.length > 0
               ? session.user.actingAsOrganizationId
-              : session.user.organizationId;
-          const { db } = await import("@/lib/db");
+              : session.user.activeOrganizationId ||
+                session.user.organizationId;
           if (activeOrgId) {
             const fresh = await db.organization.findUnique({
               where: { id: activeOrgId },

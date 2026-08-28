@@ -11,6 +11,7 @@ import { escapeTelegramHtml } from "@/lib/telegram";
 import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
+import { attachAccountForNewOrganization } from "@/lib/create-organization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -179,6 +180,16 @@ export async function POST(request: Request) {
     });
 
     await tx.emailVerification.delete({ where: { email } });
+
+    // Аккаунт — владелец тарифа и общего лимита мест. Заводим сразу:
+    // без него организация не умеет ни переключаться, ни расти во
+    // вторую точку (см. lib/create-organization.ts).
+    await attachAccountForNewOrganization(tx, {
+      ownerUserId: user.id,
+      organizationId: organization.id,
+      subscriptionPlan: organization.subscriptionPlan,
+      subscriptionEnd: organization.subscriptionEnd,
+    });
 
     return { organization, user };
   });

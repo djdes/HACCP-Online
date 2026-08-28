@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { normalizeSphere, type OrgSphere } from "@/lib/org-profile";
 import { defaultDisabledCodesFor } from "@/lib/sphere-journal-rules";
@@ -151,4 +152,60 @@ export async function resolveAccountId(userId: string): Promise<string | null> {
     },
   });
   return user?.ownedAccount?.id ?? user?.organization?.accountId ?? null;
+}
+
+/**
+ * Заводит аккаунт для только что зарегистрированной компании.
+ *
+ * Без этого организация остаётся с `accountId = null`: тариф считается
+ * по одной точке, а «+ Добавить организацию» вообще не показывается —
+ * человек, зарегистрировавшийся сегодня, оказался бы в худших условиях,
+ * чем тот, кого перенёс миграционный скрипт.
+ *
+ * Идемпотентна: повторный вызов на уже связанной организации ничего не
+ * меняет. Принимает `tx`, потому что вызывается внутри транзакции
+ * регистрации — организация и владелец должны появиться вместе с
+ * аккаунтом или не появиться вовсе.
+ */
+export async function attachAccountForNewOrganization(
+  tx: Prisma.TransactionClient,
+  input: {
+    ownerUserId: string;
+    organizationId: string;
+    subscriptionPlan?: string;
+    subscriptionEnd?: Date | null;
+  },
+): Promise<{ accountId: string }> {
+  const account = await tx.account.upsert({
+    where: { ownerUserId: input.ownerUserId },
+    create: {
+      ownerUserId: input.ownerUserId,
+      subscriptionPlan: input.subscriptionPlan ?? "trial",
+      subscriptionEnd: input.subscriptionEnd ?? null,
+    },
+    update: {},
+    select: { id: true },
+  });
+
+  await tx.organization.update({
+    where: { id: input.organizationId },
+    data: { accountId: account.id },
+  });
+
+  await tx.organizationMember.upsert({
+    where: {
+      userId_organizationId: {
+        userId: input.ownerUserId,
+        organizationId: input.organizationId,
+      },
+    },
+    create: {
+      userId: input.ownerUserId,
+      organizationId: input.organizationId,
+      role: "owner",
+    },
+    update: { role: "owner" },
+  });
+
+  return { accountId: account.id };
 }

@@ -14,7 +14,12 @@ datasource db {
 model Account {
   id                 String         @id @default(cuid())
   ownerUserId        String         @unique
-  owner              User           @relation("AccountOwner", fields: [ownerUserId], references: [id])
+  /// Каскад обязателен: без него удаление организации падало по
+  /// внешнему ключу. Организация удаляется каскадом на пользователей,
+  /// а на владельце висел аккаунт — и ROOT не мог удалить компанию.
+  /// Организации такого аккаунта просто теряют привязку (accountId
+  /// становится null) — их всё равно удаляют вместе с ним.
+  owner              User           @relation("AccountOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   subscriptionPlan   String         @default("trial")
   subscriptionEnd    DateTime?
   planAutoUpgradedAt DateTime?

@@ -4,6 +4,7 @@ import { AuthSessionProvider } from "@/components/layout/session-provider";
 import { Header } from "@/components/layout/header";
 import { ImpersonationBanner } from "@/components/dashboard/impersonation-banner";
 import { CompleteProfileNudge } from "@/components/dashboard/complete-profile-nudge";
+import { WelcomeOrgBanner } from "@/components/organizations/welcome-org-banner";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -76,6 +77,8 @@ export default async function DashboardLayout({
         // клиентского fetch'а за этим ради одной строки не заводим.
         subscriptionPlan: true,
         type: true,
+        accountId: true,
+        account: { select: { subscriptionPlan: true } },
         _count: { select: { users: { where: { isActive: true } } } },
       },
     }),
@@ -85,6 +88,22 @@ export default async function DashboardLayout({
         select: { id: true },
       }),
     ]);
+
+  // Тариф и лимит мест живут на аккаунте: у сети из трёх кафе один
+  // договор и общие пять бесплатных мест. Пока организация не привязана
+  // к аккаунту (миграция не прогонялась) — считаем по одной точке.
+  const accountUsers = brandedOrg?.accountId
+    ? await db.user.count({
+        where: {
+          isActive: true,
+          organization: { accountId: brandedOrg.accountId },
+        },
+      })
+    : (brandedOrg?._count.users ?? 0);
+  const accountPlan =
+    brandedOrg?.account?.subscriptionPlan ??
+    brandedOrg?.subscriptionPlan ??
+    "trial";
 
   const impersonatedName = impersonatedOrg?.name ?? null;
   const initialTheme: "light" | "dark" =
@@ -149,8 +168,8 @@ export default async function DashboardLayout({
             positionTitle={profile?.positionTitle ?? ""}
             isRoot={session.user.isRoot === true}
             telegramBotUsername={process.env.TELEGRAM_BOT_USERNAME ?? ""}
-            subscriptionPlan={brandedOrg?.subscriptionPlan ?? "trial"}
-            activeUsers={brandedOrg?._count.users ?? 0}
+            subscriptionPlan={accountPlan}
+            activeUsers={accountUsers}
             freeUserLimit={FREE_MAX_USERS}
             billingTestMode={BILLING_TEST_MODE}
             organizations={organizations}
@@ -158,6 +177,15 @@ export default async function DashboardLayout({
             canCreateOrganization={Boolean(ownedAccount)}
             organizationSphere={brandedOrg?.type ?? "restaurant"}
           />
+          {/* Быстрый старт только что созданной точки. Живёт в layout'е,
+              а не на странице дашборда: баннер сам решает показываться
+              по `?welcome-org=1`, и дашборд о нём знать не обязан. */}
+          <Suspense fallback={null}>
+            <WelcomeOrgBanner
+              organizationId={activeOrgId}
+              organizationName={brandedOrg?.name ?? "Организация"}
+            />
+          </Suspense>
           {/* Контент во всю ширину экрана (R1: владельцу было «узко»
               на 1296px). Ограничение max-w-[1800px] оставлено только ради
               сверхшироких мониторов, где строка таблицы иначе теряет глаз.

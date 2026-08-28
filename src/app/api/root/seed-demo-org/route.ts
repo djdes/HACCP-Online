@@ -13,6 +13,7 @@ import {
 } from "@/lib/onboarding-presets";
 import { recordAuditLog } from "@/lib/audit-log";
 import { sphereToPreset } from "@/lib/org-profile";
+import { attachAccountForNewOrganization } from "@/lib/create-organization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -163,6 +164,15 @@ export async function POST(request: Request) {
       isActive: true,
     },
     select: { id: true, name: true },
+  });
+
+  // Демо-организация тоже получает аккаунт: иначе ROOT'овская песочница
+  // ведёт себя не так, как боевая регистрация, и баги multi-org на ней
+  // не воспроизводятся.
+  await attachAccountForNewOrganization(db, {
+    ownerUserId: owner.id,
+    organizationId: org.id,
+    subscriptionPlan: "trial",
   });
 
   // 3. Apply preset positions + journal access (idempotent within new org).

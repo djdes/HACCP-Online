@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { isManagementRole } from "@/lib/user-roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,15 +48,33 @@ export async function POST(request: Request) {
     }),
     db.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, organizationId: true },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        organizationId: true,
+        organization: { select: { accountId: true } },
+      },
     }),
   ]);
 
   if (!organization || organization.accountId !== account.id) {
     return NextResponse.json({ error: "Организация не найдена" }, { status: 404 });
   }
-  if (!user) {
+  // Чужого человека в свою организацию не пускаем даже владельцу
+  // аккаунта: userId приходит из тела запроса, и без этой проверки
+  // подставленный id открывал бы доступ постороннему.
+  if (!user || user.organization?.accountId !== account.id) {
     return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
+  }
+  // Переключаться между точками имеет смысл только руководству:
+  // линейный сотрудник работает в одной, и лишний доступ ему — риск
+  // без пользы (см. план: «линейные сотрудники — в одной организации»).
+  if (enabled && !isManagementRole(user.role)) {
+    return NextResponse.json(
+      { error: "Доступ к нескольким организациям — только для руководителей" },
+      { status: 400 },
+    );
   }
   if (user.organizationId === organizationId) {
     return NextResponse.json(
