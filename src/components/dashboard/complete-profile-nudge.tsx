@@ -233,33 +233,41 @@ function CompleteProfileModal({
               />
             </Field>
 
-            <Field
-              label="Телефон"
-              required
-              error={
-                touched.phone && !phoneOk ? "Формат: +7 999 123-45-67" : null
-              }
-            >
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
-                aria-required
-                inputMode="tel"
-                placeholder="+7 999 123-45-67"
-                maxLength={40}
-                className={inputCls(touched.phone && !phoneOk)}
-              />
-            </Field>
+            {/* Телефон занимает ровно свою ширину — в российском номере
+                11 цифр, растягивать поле на всю строку незачем. Справа
+                от него встаёт узкое промо TasksFlow: место, где человек
+                вводит номер, — единственное, где реклама автосвязки
+                уместна, потому что связывает аккаунты именно номер.
 
-            {/* Промо вынесено из <Field>: внутри <label> ссылка и кнопка
-                «скопировать» перехватывались бы фокусом инпута.
-                Организация только что зарегистрирована — интеграции
-                TasksFlow у неё заведомо нет, промо показываем всегда. */}
-            <TasksFlowPromoHint
-              campaign="register_nudge"
-              autolinkNote="Если у вас уже есть TasksFlow с этим номером — свяжем аккаунты автоматически."
-            />
+                Промо вынесено из <Field>: внутри <label> ссылка и кнопка
+                «скопировать» перехватывались бы фокусом инпута. */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+              <Field
+                label="Телефон"
+                required
+                className="sm:w-[188px] sm:shrink-0"
+                error={
+                  touched.phone && !phoneOk ? "Формат: +7 999 123-45-67" : null
+                }
+              >
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                  aria-required
+                  inputMode="tel"
+                  placeholder="+7 999 123-45-67"
+                  maxLength={40}
+                  className={inputCls(touched.phone && !phoneOk)}
+                />
+              </Field>
+
+              <TasksFlowPromoHint
+                campaign="register_nudge"
+                compact
+                className="min-w-0 flex-1"
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-3 pt-1">
@@ -393,12 +401,16 @@ function CompleteProfileModal({
 const selectCls =
   "h-11 w-full appearance-none rounded-2xl border border-[#dcdfed] bg-white pl-4 pr-10 text-[16px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15";
 
-function inputCls(invalid: boolean) {
-  return `h-11 w-full rounded-2xl border bg-white px-4 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:outline-none focus:ring-4 ${
-    invalid
-      ? "border-[#ff8d7d] focus:border-[#d2453d] focus:ring-[#d2453d]/15"
-      : "border-[#dcdfed] focus:border-[#5566f6] focus:ring-[#5566f6]/15"
-  }`;
+/**
+ * Контрол без рамки: рамку и фокус-кольцо рисует `Field` вокруг подписи
+ * и значения. 16px — чтобы Safari на iPhone не увеличивал страницу при
+ * фокусе.
+ */
+const CONTROL_CLASS =
+  "h-6 w-full border-0 bg-transparent p-0 text-[16px] leading-6 text-[#0b1024] placeholder:text-[#c1c5d6] focus:outline-none focus:ring-0";
+
+function inputCls(_invalid: boolean) {
+  return CONTROL_CLASS;
 }
 
 /** Обёртка нативного select со стрелкой — как в форме настроек. */
@@ -406,33 +418,54 @@ function SelectShell({ children }: { children: React.ReactNode }) {
   return (
     <span className="relative block">
       {children}
-      <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[#9b9fb3]" />
+      <ChevronDown className="pointer-events-none absolute right-0 top-1/2 size-4 -translate-y-1/2 text-[#9b9fb3]" />
     </span>
   );
 }
 
+/**
+ * Поле с подписью внутри рамки.
+ *
+ * Подпись стоит там же, где обычно живёт плейсхолдер, но не исчезает
+ * при вводе: заполнив анкету наполовину, человек всё ещё видит, что
+ * это за поле. Заодно форма стала на строку короче каждого поля — на
+ * ноутбуке она помещалась впритык.
+ *
+ * Рамка и фокус-кольцо принадлежат этому контейнеру (`focus-within`), а
+ * не самому контролу — иначе внутри было бы две рамки.
+ */
 function Field({
   label,
   required,
   hint,
   error,
+  className = "",
   children,
 }: {
   label: string;
   required?: boolean;
   hint?: string;
   error?: string | null;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-[#3c4053]">
-        {label}
-        {required ? (
-          <span className="size-1.5 rounded-full bg-[#d2453d]" aria-hidden />
-        ) : null}
+    <label className={`block ${className}`}>
+      <span
+        className={`flex flex-col gap-0.5 rounded-2xl border bg-white px-4 py-2 transition-[border-color,box-shadow] focus-within:ring-4 ${
+          error
+            ? "border-[#ff8d7d] focus-within:border-[#d2453d] focus-within:ring-[#d2453d]/15"
+            : "border-[#dcdfed] focus-within:border-[#5566f6] focus-within:ring-[#5566f6]/15"
+        }`}
+      >
+        <span className="flex items-center gap-1.5 text-[11px] font-medium leading-none text-[#6f7282]">
+          {label}
+          {required ? (
+            <span className="size-1.5 rounded-full bg-[#d2453d]" aria-hidden />
+          ) : null}
+        </span>
+        {children}
       </span>
-      {children}
       {error ? (
         <span className="mt-1 block text-[12px] text-[#d2453d]">{error}</span>
       ) : hint ? (

@@ -78,7 +78,13 @@ export function normalizeOwnership(value: unknown): OrgOwnership {
 }
 
 /** Максимум точек в анкете: больше похоже на опечатку, чем на сеть. */
-export const MAX_LOCATIONS = 50;
+/**
+ * Потолок количества точек. Пятидесяти не хватало: сеть или
+ * производство спокойно называет 180 объектов, и упереться в предел
+ * прямо в анкете — плохое первое впечатление. Ограничение остаётся
+ * только как защита от опечатки в поле ввода.
+ */
+export const MAX_LOCATIONS = 500;
 
 export function normalizeLocationsCount(value: unknown): number {
   const n = typeof value === "number" ? value : Number(value);

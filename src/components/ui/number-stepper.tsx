@@ -1,17 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 
 /**
- * Счётчик с кнопками −/+.
+ * Счётчик с кнопками −/+ и полем для ручного ввода.
  *
- * Для маленьких целых величин (точки, порции, часы) он лучше поля
- * ввода: нельзя напечатать «две» или «-3», а нужное значение
- * выставляется одним касанием — на телефоне это заметно быстрее, чем
- * вызывать клавиатуру.
+ * Кнопки удобны, когда значение маленькое (одна-две точки — одно
+ * касание вместо вызова клавиатуры). Но сеть или производство называет
+ * и 180 объектов, поэтому число обязано вводиться руками: докликивать
+ * туда плюсом невозможно.
  *
- * Поле оставлено доступным с клавиатуры: ↑/↓ меняют значение, ручной
- * ввод разрешён и приводится к границам при потере фокуса.
+ * Черновик хранится строкой: пока человек печатает «18» на пути к
+ * «180», приводить значение к границам нельзя — иначе поле дерётся с
+ * набором. Приводим на потере фокуса и на Enter.
+ *
+ * Без своей рамки: компонент рассчитан на то, что живёт внутри поля с
+ * подписью (`Field`), у которого рамка и фокус-кольцо свои.
  */
 export function NumberStepper({
   value,
@@ -26,31 +31,55 @@ export function NumberStepper({
   max?: number;
   ariaLabel?: string;
 }) {
+  const [draft, setDraft] = useState(String(value));
+  const [seenValue, setSeenValue] = useState(value);
+
+  // Значение могли изменить кнопками или снаружи — подхватываем прямо
+  // в рендере (штатный приём React для «состояния, зависящего от
+  // пропа»; эффект здесь дал бы лишний проход). Черновик не трогаем,
+  // пока он совпадает по смыслу: иначе «007» превратится в «7» прямо
+  // под курсором.
+  if (seenValue !== value) {
+    setSeenValue(value);
+    if (Number(draft) !== value) setDraft(String(value));
+  }
+
   function clamp(n: number) {
     if (!Number.isFinite(n)) return min;
     return Math.min(max, Math.max(min, Math.round(n)));
   }
 
+  function commit() {
+    const next = clamp(Number(draft.replace(/\D/g, "")));
+    setDraft(String(next));
+    onChange(next);
+  }
+
+  const buttonCls =
+    "flex size-8 shrink-0 items-center justify-center rounded-xl text-[#3c4053] transition-colors hover:bg-[#f5f6ff] hover:text-[#3848c7] disabled:cursor-not-allowed disabled:opacity-40";
+
   return (
-    <div className="inline-flex h-11 items-center gap-1 rounded-2xl border border-[#dcdfed] bg-white p-1">
+    <span className="flex items-center gap-1">
       <button
         type="button"
         onClick={() => onChange(clamp(value - 1))}
         disabled={value <= min}
         aria-label="Меньше"
-        className="flex size-9 items-center justify-center rounded-xl text-[#3c4053] transition-colors hover:bg-[#f5f6ff] hover:text-[#3848c7] disabled:cursor-not-allowed disabled:opacity-40"
+        className={buttonCls}
       >
         <Minus className="size-4" />
       </button>
       <input
-        value={value}
+        value={draft}
         aria-label={ariaLabel}
         inputMode="numeric"
-        onChange={(e) => {
-          const digits = e.target.value.replace(/\D/g, "");
-          onChange(digits === "" ? min : clamp(Number(digits)));
-        }}
+        onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        onBlur={commit}
         onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
           if (e.key === "ArrowUp") {
             e.preventDefault();
             onChange(clamp(value + 1));
@@ -60,17 +89,17 @@ export function NumberStepper({
             onChange(clamp(value - 1));
           }
         }}
-        className="w-10 bg-transparent text-center text-[15px] font-semibold tabular-nums text-[#0b1024] focus:outline-none"
+        className="min-w-0 flex-1 bg-transparent text-center text-[16px] font-semibold tabular-nums text-[#0b1024] focus:outline-none"
       />
       <button
         type="button"
         onClick={() => onChange(clamp(value + 1))}
         disabled={value >= max}
         aria-label="Больше"
-        className="flex size-9 items-center justify-center rounded-xl text-[#3c4053] transition-colors hover:bg-[#f5f6ff] hover:text-[#3848c7] disabled:cursor-not-allowed disabled:opacity-40"
+        className={buttonCls}
       >
         <Plus className="size-4" />
       </button>
-    </div>
+    </span>
   );
 }

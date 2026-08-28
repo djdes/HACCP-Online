@@ -20,15 +20,24 @@ export function TasksFlowPromoHint({
   campaign,
   hasIntegration = false,
   autolinkNote = "Если у сотрудника уже есть TasksFlow с этим номером — свяжем аккаунты автоматически.",
+  compact = false,
+  className = "",
 }: {
   /** Точка входа для utm_campaign: `staff_add`, `register_nudge`, ... */
   campaign: string;
   hasIntegration?: boolean;
   autolinkNote?: string;
+  /**
+   * Узкий вариант — когда блок стоит не под полем во всю ширину, а
+   * сбоку от него. Тот же смысл в трёх строках: заголовок, промокод и
+   * ссылка; объяснение про автосвязку уезжает в подсказку под номером.
+   */
+  compact?: boolean;
+  className?: string;
 }) {
   if (hasIntegration) {
     return (
-      <p className="mt-1 text-[11px] leading-snug text-[#6f7282]">
+      <p className={`text-[11px] leading-snug text-[#6f7282] ${className}`}>
         {autolinkNote}
       </p>
     );
@@ -41,6 +50,45 @@ export function TasksFlowPromoHint({
     } catch {
       toast.error("Не удалось скопировать — выделите код вручную");
     }
+  }
+
+
+  if (compact) {
+    return (
+      <div
+        className={`flex min-w-0 items-start gap-2 rounded-2xl bg-[#f5f6ff] px-3 py-2 text-[11px] leading-[1.45] text-[#3c4053] ${className}`}
+      >
+        <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
+          <Zap className="size-3" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-[#0b1024]">Подключите TasksFlow.ru</p>
+          <p className="mt-0.5 text-[#6f7282]">
+            Задачи сотрудникам, связанные с журналами.
+          </p>
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <button
+              type="button"
+              onClick={copyPromo}
+              title="Скопировать промокод"
+              className="rounded-full bg-white px-1.5 py-0.5 font-semibold tracking-[0.04em] text-[#3848c7] ring-1 ring-[#dcdfed] transition-colors hover:bg-[#eef1ff] hover:ring-[#5566f6]/40"
+            >
+              {TASKSFLOW_PROMO_CODE}
+            </button>
+            <span className="text-[#6f7282]">{TASKSFLOW_PROMO_BENEFIT}</span>
+            <a
+              href={tasksflowPromoUrl(campaign)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
+            >
+              Перейти
+              <ExternalLink className="size-3" />
+            </a>
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
