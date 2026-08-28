@@ -10,17 +10,50 @@ import type { OrgSphere } from "@/lib/org-profile";
  * правды: обязательный минимум по сфере включаем, рекомендованное
  * предлагаем, остальное прячем — включить можно в любой момент.
  *
- * Отдельная категория — журналы, которые по закону ведутся ТОЛЬКО на
- * бумаге с живой подписью инструктируемого (охрана труда, пожарная
- * безопасность). Электронная форма для них не принимается, поэтому в
- * набор журналов они не попадают: мы даём бланк для печати.
+ * Отдельная категория — бумажные бланки. Раньше здесь утверждалось, что
+ * все они «не принимаются электронно»; сверка показала, что это верно
+ * только для инструктажей по охране труда (ТК РФ ст. 22.1 ч. 3 прямо
+ * выводит их из электронного кадрового документооборота, письмо Минтруда
+ * от 12.01.2023 № 14-6/ООГ-97). Противопожарный инструктаж и журнал
+ * эксплуатации СПЗ вести электронно МОЖНО — с электронной подписью
+ * (приказ МЧС № 806, разъяснения МЧС от 15.11.2022 № 1210; ППР № 1479
+ * п. 17(1) вообще не задаёт формы). Бланк мы даём как удобный дефолт для
+ * тех, у кого подписи у персонала нет, а не как единственный законный
+ * путь.
  *
- * ВНИМАНИЕ: содержимое таблицы — юридическое. Перед релизом сверяется
- * владельцем (СанПиН 2.3/2.4.3590-20, ТР ТС 021/2011, приказ Минтруда
- * 776н, ППР № 1479).
+ * Второй важный факт: СанПиН 2.3/2.4.3590-20 почти нигде не требует
+ * «журнала утверждённой формы» — он требует ФИКСИРОВАТЬ результаты
+ * контроля, а образцы называет рекомендуемыми, и для ключевых записей
+ * прямо разрешает электронный носитель (пп. 2.22, 3.8, 4.3). Это довод
+ * в пользу продукта, а не мелкая деталь.
+ *
+ * Основание у каждого журнала разное, и мешать их в одно «обязателен»
+ * нельзя: требование санитарных правил, обязанность вести записи по
+ * ХАССП (ТР ТС 021/2011 ст. 10) и «спрашивают при проверках» — три
+ * разные вещи для человека, который решает, вести журнал или нет.
+ *
+ * ВНИМАНИЕ: содержимое таблицы — юридическое. Сверено 2026-08-28 по
+ * СанПиН 2.3/2.4.3590-20 (действует до 01.01.2027), ТР ТС 021/2011
+ * ст. 10, ТК РФ ст. 22.1 ч. 3 и Правилам обучения по ОТ № 2464,
+ * приказу МЧС № 806, ППР № 1479 (до 31.12.2026), приказу Минтруда
+ * № 903н. Разбор со ссылками — в
+ * `C:/Users/Yaroslav/.claude/plans/wesetup-journals-legal-review.md`.
+ * Сроки действия СанПиН и ППР истекают — перепроверить в декабре 2026.
  */
 
 export type LawRef = { label: string; url: string };
+
+/**
+ * На чём держится требование вести журнал:
+ * - `sanpin` — прямо требуют санитарные правила;
+ * - `haccp` — обязанность вести записи процедур ХАССП (ТР ТС 021/2011);
+ * - `practice` — закон не обязывает, но спрашивают при проверках
+ *   (методические рекомендации Роспотребнадзора).
+ *
+ * Показываем человеку разными словами: «обязателен» без разбора врёт в
+ * обе стороны — либо пугает лишним, либо усыпляет там, где штраф реален.
+ */
+export type RuleBasis = "sanpin" | "haccp" | "practice";
 
 export type ElectronicRule = {
   /** Код JournalTemplate. */
@@ -31,11 +64,23 @@ export type ElectronicRule = {
    * просто не быть оборудования.
    */
   condition?: string;
+  basis?: RuleBasis;
+  /** Норма, на которую ссылаемся в подсказке у журнала. */
+  law?: LawRef;
+  /** Уточнение под названием: срок хранения, периодичность. */
+  note?: string;
 };
 
 export type PaperJournal = {
   id: string;
   name: string;
+  /**
+   * Правда ли, что закон не даёт вести журнал электронно. Верно только
+   * для инструктажей по охране труда; у остальных бланк — удобство, а
+   * не обязанность, и подписывать их «Только на бумаге» значит вводить
+   * человека в заблуждение.
+   */
+  paperOnly?: boolean;
   /** Одна строка «за что штраф» — человеку нужно понимать цену вопроса. */
   why: string;
   law: LawRef;
@@ -55,24 +100,65 @@ export type SphereRules = {
 
 const KOAP_66: LawRef = {
   label: "ст. 6.6 КоАП РФ",
-  url: "https://www.consultant.ru/document/cons_doc_LAW_34661/f6a3b4f04d0e2b1b0e2e3ec8bbbd0a9bd6ba5c0c/",
+  url: "https://www.consultant.ru/document/cons_doc_LAW_34661/dceffcf2617aa8cbad91f46398ce0beab3d0ea76/",
 };
 
 /**
- * Бумажные журналы. Электронная форма не принимается: инспектор смотрит
- * подпись инструктируемого от руки, поэтому наша задача — дать готовый
- * бланк с шапкой организации.
+ * Детские организации: проверяющие применяют ещё и ст. 6.7.
+ *
+ * Ссылка — на кодекс целиком, без якоря: подставлять правдоподобный
+ * хэш вслепую нельзя, битая ссылка на статью хуже отсутствия ссылки.
+ */
+const KOAP_67: LawRef = {
+  label: "ст. 6.6 и 6.7 КоАП РФ",
+  url: "https://www.consultant.ru/document/cons_doc_LAW_34661/",
+};
+
+/** Пищевое производство отвечает не по 6.6, а по «техрегламентной» 14.43. */
+const KOAP_1443: LawRef = {
+  label: "ст. 14.43 КоАП РФ",
+  url: "https://www.consultant.ru/document/cons_doc_LAW_34661/",
+};
+
+/** Санитарные правила общепита — на них ссылаются подсказки журналов. */
+const SANPIN_3590: LawRef = {
+  label: "СанПиН 2.3/2.4.3590-20",
+  url: "https://base.garant.ru/74891586/",
+};
+
+/** ТР ТС 021/2011, ст. 10 — процедуры ХАССП и записи по ним. */
+const TR_TS_021: LawRef = {
+  label: "ТР ТС 021/2011, ст. 10",
+  url: "https://www.consultant.ru/document/cons_doc_LAW_124331/",
+};
+
+/** Методические рекомендации: основание «спрашивают при проверках». */
+const MR_CHILD: LawRef = {
+  label: "МР 2.4.0179-20",
+  url: "https://files.stroyinf.ru/Data2/1/4293720/4293720726.htm",
+};
+
+/**
+ * Бланки для печати.
+ *
+ * Только у двух журналов бумага — требование закона: инструктажи по
+ * охране труда выведены из электронного документооборота (ТК РФ
+ * ст. 22.1 ч. 3). Пожарный инструктаж и журнал эксплуатации СПЗ можно
+ * вести электронно с подписью — бланк мы даём тем, у кого ЭП у
+ * персонала нет. У каждого журнала об этом сказано в `why`, чтобы
+ * человек не считал бумагу единственным вариантом.
  */
 export const PAPER_JOURNALS: PaperJournal[] = [
   {
     id: "ot_intro",
     name: "Журнал вводного инструктажа по охране труда",
-    why: "Инспектор ГИТ проверяет его первым: без подписи работника инструктаж считается непроведённым.",
+    paperOnly: true,
+    why: "Только бумага с личной подписью: электронный кадровый документооборот к инструктажам по охране труда не применяется (ТК РФ ст. 22.1, письмо Минтруда № 14-6/ООГ-97). Инспектор ГИТ проверяет этот журнал первым.",
     law: {
       label: "ст. 5.27.1 КоАП РФ",
-      url: "https://www.consultant.ru/document/cons_doc_LAW_34661/8f4b0b4c0e4b6f0cba0e7a7e0f22b7a7e33a3fef/",
+      url: "https://www.consultant.ru/document/cons_doc_LAW_34661/88755cc3b9fd053aebba33b58078eb459aa5a1d8/",
     },
-    fineHint: "до 130 000 ₽",
+    fineHint: "до 130 000 ₽ (для ИП и должностных лиц — до 25 000 ₽)",
     columns: [
       "Дата",
       "ФИО инструктируемого",
@@ -86,12 +172,13 @@ export const PAPER_JOURNALS: PaperJournal[] = [
   {
     id: "ot_workplace",
     name: "Журнал инструктажа на рабочем месте",
-    why: "Первичный, повторный и внеплановый инструктажи — тоже только с живой подписью.",
+    paperOnly: true,
+    why: "Первичный, повторный и внеплановый инструктажи — тоже только на бумаге с живой подписью (ТК РФ ст. 22.1 ч. 3).",
     law: {
       label: "ст. 5.27.1 КоАП РФ",
-      url: "https://www.consultant.ru/document/cons_doc_LAW_34661/8f4b0b4c0e4b6f0cba0e7a7e0f22b7a7e33a3fef/",
+      url: "https://www.consultant.ru/document/cons_doc_LAW_34661/88755cc3b9fd053aebba33b58078eb459aa5a1d8/",
     },
-    fineHint: "до 130 000 ₽",
+    fineHint: "до 130 000 ₽ (для ИП и должностных лиц — до 25 000 ₽)",
     columns: [
       "Дата",
       "ФИО инструктируемого",
@@ -105,10 +192,10 @@ export const PAPER_JOURNALS: PaperJournal[] = [
   {
     id: "fire_safety",
     name: "Журнал инструктажа по пожарной безопасности",
-    why: "Ведётся отдельно от охраны труда, проверяется при любой пожарной проверке.",
+    why: "Ведётся отдельно от охраны труда и проверяется при любой пожарной проверке. Можно вести и электронно — с электронной подписью (приказ МЧС № 806, разъяснения МЧС от 15.11.2022 № 1210); бланк нужен, если подписи у сотрудников нет.",
     law: {
       label: "ст. 20.4 КоАП РФ",
-      url: "https://www.consultant.ru/document/cons_doc_LAW_34661/6a4e94a4a7f8b3b0b0d4e2e4b1a1f7e2b4a4d0e9/",
+      url: "https://www.consultant.ru/document/cons_doc_LAW_34661/9a42a7dcbc6d4d4b091d2e491b723161b4912163/",
     },
     fineHint: "до 400 000 ₽",
     columns: [
@@ -123,11 +210,11 @@ export const PAPER_JOURNALS: PaperJournal[] = [
   },
   {
     id: "fire_extinguishers",
-    name: "Журнал учёта огнетушителей",
-    why: "На каждый огнетушитель — своя строка с датой осмотра и перезарядки.",
+    name: "Журнал эксплуатации систем противопожарной защиты (учёт огнетушителей)",
+    why: "На каждый огнетушитель — своя строка с датой осмотра и перезарядки. Форма произвольная (ППР № 1479 п. 17(1)), электронная тоже подходит — бланк даём для привычного бумажного ведения.",
     law: {
       label: "ППР № 1479, п. 60",
-      url: "https://www.consultant.ru/document/cons_doc_LAW_361082/",
+      url: "https://www.consultant.ru/document/cons_doc_LAW_363263/",
     },
     fineHint: "до 400 000 ₽",
     columns: [
@@ -144,10 +231,10 @@ export const PAPER_JOURNALS: PaperJournal[] = [
   {
     id: "electrical_safety",
     name: "Журнал присвоения I группы по электробезопасности",
-    why: "Нужен неэлектротехническому персоналу, который работает с электрооборудованием.",
+    why: "Нужен неэлектротехническому персоналу, который работает с электрооборудованием: мойщикам, поварам, уборщикам. Присвоение группы I — не реже раза в год, форму журнала организация определяет сама, но подписи проверяющего и работника обязательны.",
     law: {
       label: "Приказ Минтруда № 903н, п. 2.3",
-      url: "https://www.consultant.ru/document/cons_doc_LAW_371625/",
+      url: "https://www.consultant.ru/document/cons_doc_LAW_372952/",
     },
     fineHint: "до 130 000 ₽",
     columns: [
@@ -162,23 +249,55 @@ export const PAPER_JOURNALS: PaperJournal[] = [
   },
 ];
 
-const PAPER_BASE = ["ot_intro", "ot_workplace", "fire_safety"];
+// Группа I по электробезопасности нужна не только производству:
+// неэлектротехнический персонал есть в любом заведении — мойщики,
+// повара, уборщики работают с электрооборудованием, и присвоение группы
+// оформляется журналом (приказ Минтруда № 903н, п. 2.3).
+const PAPER_BASE = [
+  "ot_intro",
+  "ot_workplace",
+  "fire_safety",
+  "electrical_safety",
+];
 const PAPER_FULL = [...PAPER_BASE, "fire_extinguishers"];
 
-function intro(sphereLabel: string): string {
-  return `Для сферы «${sphereLabel}» Роспотребнадзор требует минимальный базовый набор журналов. Их мы включили сразу — остальное вы решаете сами. За отсутствие обязательного журнала штрафуют по ст. 6.6 КоАП РФ: до 50 000 ₽ или приостановка деятельности до 90 суток.`;
+/**
+ * Вступление к набору журналов.
+ *
+ * Сознательно начинается с того, что закон РАЗРЕШАЕТ электронную форму:
+ * это первое, что спрашивает человек, которому годами говорили «журнал
+ * должен быть бумажный». Статья и суммы штрафа — разные по сферам,
+ * поэтому передаются параметром, а не зашиты в текст.
+ */
+function intro(sphereLabel: string, penalty: string): string {
+  return `Для сферы «${sphereLabel}» санитарные правила требуют вести эти записи — мы включили их сразу, остальное вы решаете сами. Вести можно в электронном виде: СанПиН 2.3/2.4.3590-20 прямо это разрешает (пп. 2.22, 3.8, 4.3). Отсутствие записей при проверке — нарушение: ${penalty}`;
 }
+
+/** Общепит: ст. 6.6 КоАП. */
+const PENALTY_FOOD =
+  "для организаций штраф до 50 000 ₽ или приостановка деятельности до 90 суток, для ИП — до 10 000 ₽.";
+
+/** Детские организации: к 6.6 добавляется 6.7 с более высокими суммами. */
+const PENALTY_CHILD =
+  "для организаций штраф до 50 000 ₽ или приостановка до 90 суток; для детских организаций проверяющие применяют также ст. 6.7 КоАП РФ — до 70 000 ₽, при повторном нарушении до 150 000 ₽.";
+
+/** Производство отвечает по техрегламенту, суммы там на порядок выше. */
+const PENALTY_PRODUCTION =
+  "для пищевого производства отсутствие процедур ХАССП и записей по ним — нарушение ТР ТС 021/2011: штраф по ст. 14.43 КоАП РФ до 300 000 ₽, при повторном нарушении или вреде здоровью — до 600 000 ₽ и приостановка деятельности.";
+
+/** Условие у журнала температуры и влажности складов — п. 3.8 СанПиН. */
+const CLIMATE_CONDITION = "нужен при наличии складских помещений (кладовых)";
 
 export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
   restaurant: {
     sphere: "restaurant",
-    intro: intro("Ресторан"),
+    intro: intro("Ресторан", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene" },
-      { code: "cold_equipment_control" },
-      { code: "climate_control" },
-      { code: "fryer_oil", condition: "нужен при наличии фритюра" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "fryer_oil", condition: "нужен при наличии фритюра", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 4.3 — хранить записи не менее 3 месяцев" },
     ],
     electronicRecommended: [
       "cleaning",
@@ -192,12 +311,12 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
   },
   cafe: {
     sphere: "cafe",
-    intro: intro("Кафе / Бар / Столовая"),
+    intro: intro("Кафе / Бар / Столовая", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene" },
-      { code: "cold_equipment_control" },
-      { code: "climate_control" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
     ],
     electronicRecommended: [
       "cleaning",
@@ -209,17 +328,21 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
   },
   fastfood: {
     sphere: "fastfood",
-    intro: intro("Фастфуд"),
+    intro: intro("Фастфуд", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene" },
-      { code: "cold_equipment_control" },
-      { code: "climate_control" },
-      { code: "fryer_oil", condition: "нужен при наличии фритюра" },
-      { code: "finished_product" },
-      { code: "perishable_rejection" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "fryer_oil", condition: "нужен при наличии фритюра", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 4.3 — хранить записи не менее 3 месяцев" },
     ],
+    // Бракеражи ушли из обязательных: СанПиН требует их только от
+    // медицинских и социальных учреждений и общепита, который их
+    // обслуживает (пп. 7.1.3, 7.1.13, 7.1.14). Для обычного заведения
+    // это рекомендация — называть её обязанностью нечестно.
     electronicRecommended: [
+      "finished_product",
+      "perishable_rejection",
       "cleaning",
       "health_check",
       "incoming_control",
@@ -230,18 +353,24 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
   },
   education: {
     sphere: "education",
-    intro: intro("Школа / Детсад / Институт"),
-    introLaw: KOAP_66,
+    intro: intro("Школа / Детсад / Институт", PENALTY_CHILD),
+    introLaw: KOAP_67,
     electronicRequired: [
-      { code: "hygiene" },
-      { code: "health_check" },
-      { code: "cold_equipment_control" },
-      { code: "climate_control" },
-      { code: "finished_product" },
-      { code: "perishable_rejection" },
-      { code: "incoming_control" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      // Бракеражи в детских организациях СанПиН не требует (в главе VIII
+      // их нет вовсе), но их рекомендуют МР 2.4.0179-20 и спрашивают
+      // почти на каждой проверке — оставляем включёнными, честно называя
+      // основание.
+      { code: "finished_product", basis: "practice", law: MR_CHILD },
+      { code: "perishable_rejection", basis: "practice", law: MR_CHILD },
     ],
+    // health_check убран: это дубль гигиенического журнала, его форма
+    // осталась от отменённого СанПиН 2409-08.
     electronicRecommended: [
+      "health_check",
+      "incoming_control",
       "cleaning",
       "general_cleaning",
       "med_books",
@@ -251,13 +380,13 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
   },
   bakery: {
     sphere: "bakery",
-    intro: intro("Пекарня"),
+    intro: intro("Пекарня", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene" },
-      { code: "cold_equipment_control" },
-      { code: "climate_control" },
-      { code: "incoming_raw_materials_control" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "incoming_raw_materials_control", basis: "haccp", law: TR_TS_021 },
     ],
     electronicRecommended: [
       "cleaning",
@@ -269,33 +398,42 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
   },
   production: {
     sphere: "production",
-    intro: intro("Производство"),
-    introLaw: KOAP_66,
+    intro: intro("Производство", PENALTY_PRODUCTION),
+    introLaw: KOAP_1443,
     electronicRequired: [
-      { code: "hygiene" },
-      { code: "cold_equipment_control" },
-      { code: "climate_control" },
-      { code: "incoming_raw_materials_control" },
-      { code: "traceability_test" },
-      { code: "metal_impurity" },
-      { code: "finished_product" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "incoming_raw_materials_control", basis: "haccp", law: TR_TS_021 },
+      // Металлопримеси — только если контроль есть в плане ХАССП:
+      // требовать журнал от производства без металлодетектора нелепо.
+      {
+        code: "metal_impurity",
+        condition: "нужен, если в плане ХАССП есть контроль металлопримесей",
+        basis: "haccp",
+        law: TR_TS_021,
+      },
+      { code: "finished_product", basis: "haccp", law: TR_TS_021 },
     ],
+    // Тест прослеживаемости — хорошая практика и частый вопрос аудита,
+    // но отдельной обязанности вести такой журнал в ТР ТС нет.
     electronicRecommended: [
+      "traceability_test",
       "cleaning",
       "equipment_cleaning",
       "pest_control",
       "audit_plan",
     ],
-    paperRequired: [...PAPER_FULL, "electrical_safety"],
+    paperRequired: PAPER_FULL,
   },
   other: {
     sphere: "other",
-    intro: intro("Другое"),
+    intro: intro("Другое", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene" },
-      { code: "cold_equipment_control" },
-      { code: "climate_control" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
     ],
     electronicRecommended: ["cleaning", "health_check"],
     paperRequired: PAPER_BASE,

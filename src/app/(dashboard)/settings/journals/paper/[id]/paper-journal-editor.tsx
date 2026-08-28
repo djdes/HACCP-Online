@@ -78,15 +78,20 @@ export function PaperJournalEditor({
   return (
     <div className="space-y-5">
       <section className="rounded-3xl border border-[#ffd9d0] bg-[#fff8f6] p-5 sm:p-6">
-        <span className="inline-flex items-center rounded-full bg-[#fff4f2] px-2.5 py-1 text-[12px] font-medium text-[#a13a32]">
-          Только на бумаге
+        <span
+          className={`inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-medium ${
+            journal.paperOnly
+              ? "bg-[#fff4f2] text-[#a13a32]"
+              : "bg-[#fff1d6] text-[#b45309]"
+          }`}
+        >
+          {journal.paperOnly ? "Только на бумаге" : "Бланк для печати"}
         </span>
         <h1 className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-[#0b1024]">
           {journal.name}
         </h1>
         <p className="mt-2 max-w-[720px] text-[14px] leading-relaxed text-[#6f7282]">
-          {journal.why} Электронная форма инспектором не принимается: нужна
-          личная подпись. Штраф {journal.fineHint}.{" "}
+          {journal.why} Штраф {journal.fineHint}.{" "}
           <a
             href={journal.law.url}
             target="_blank"

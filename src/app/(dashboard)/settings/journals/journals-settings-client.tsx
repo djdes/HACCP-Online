@@ -30,6 +30,7 @@ import {
   paperJournalsFor,
   requiredCodesFor,
   rulesFor,
+  type ElectronicRule,
 } from "@/lib/sphere-journal-rules";
 
 type Position = { id: string; name: string; categoryKey: string };
@@ -308,6 +309,15 @@ export function JournalsSettingsClient({
             {item.description ? (
               <div className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-[#6f7282]">
                 {item.description}
+              </div>
+            ) : null}
+            {/* Основание — разными словами, а не одинаковым «обязателен»:
+                требование санитарных правил, обязанность вести записи по
+                ХАССП и «спрашивают при проверках» — три разные вещи, и
+                человек имеет право знать, чем рискует. */}
+            {basisNote(requiredMap.get(item.code)) ? (
+              <div className="mt-1.5 text-[12px] leading-snug text-[#6f7282]">
+                {basisNote(requiredMap.get(item.code))}
               </div>
             ) : null}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -639,8 +649,17 @@ export function JournalsSettingsClient({
                   <div className="text-[15px] font-semibold leading-snug text-[#0b1024]">
                     {journal.name}
                   </div>
-                  <span className="mt-1.5 inline-flex items-center rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]">
-                    Только на бумаге
+                  {/* «Только на бумаге» — не про все бланки: у пожарных
+                      журналов электронная форма законна, и обещать
+                      обратное нельзя. */}
+                  <span
+                    className={`mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      journal.paperOnly
+                        ? "bg-[#fff4f2] text-[#a13a32]"
+                        : "bg-[#fff1d6] text-[#b45309]"
+                    }`}
+                  >
+                    {journal.paperOnly ? "Только на бумаге" : "Бланк для печати"}
                   </span>
                   <p className="mt-2 text-[13px] leading-relaxed text-[#6f7282]">
                     {journal.why} Штраф {journal.fineHint}.
@@ -749,6 +768,23 @@ export function JournalsSettingsClient({
       />
     </div>
   );
+}
+
+/** Человеческая подпись основания под названием журнала. */
+function basisNote(rule: ElectronicRule | undefined): string | null {
+  if (!rule) return null;
+  const parts: string[] = [];
+  if (rule.basis === "sanpin") parts.push(rule.note ?? "Требует СанПиН");
+  else if (rule.basis === "haccp") parts.push("Обязательная запись ХАССП");
+  else if (rule.basis === "practice") {
+    parts.push(
+      `Закон не обязывает, но спрашивают при проверках${
+        rule.law ? ` (${rule.law.label})` : ""
+      }`,
+    );
+  }
+  if (rule.condition) parts.push(rule.condition);
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 function GroupHeading({
