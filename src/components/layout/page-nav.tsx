@@ -82,7 +82,7 @@ export function PageNav({ organizationName }: { organizationName: string }) {
 
   const crumbs: Crumb[] = [
     { label: organizationName, href: "/dashboard" },
-    ...(override ? override.items : autoCrumbs),
+    ...(override?.items ?? autoCrumbs),
   ];
 
   // Родитель — предпоследняя крошка со ссылкой; если её нет, уходим на

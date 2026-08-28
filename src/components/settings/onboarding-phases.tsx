@@ -134,7 +134,9 @@ export function PhaseCard({
           className={`group flex-1 rounded-3xl border p-5 ${tone.card}`}
         >
           <summary
-            className={`flex items-start gap-4 list-none [&::-webkit-details-marker]:hidden ${
+            // items-center: у этапа обычно одна строка заголовка, и при
+            // выравнивании по верху она стояла выше середины иконки.
+            className={`flex items-center gap-4 list-none [&::-webkit-details-marker]:hidden ${
               hasContent ? "cursor-pointer" : "cursor-default"
             }`}
           >

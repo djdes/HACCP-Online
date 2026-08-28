@@ -107,23 +107,19 @@ function SensorCard({ reduced }: { reduced: boolean }) {
     >
       <div
         aria-hidden="true"
-        className="relative w-[136px] rounded-[22px] border border-[#dcdfed] bg-gradient-to-b from-[#fafbff] to-[#eef1ff] p-2 shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)]"
+        className="relative w-[150px] rounded-[22px] border border-[#dcdfed] bg-gradient-to-b from-[#fafbff] to-[#eef1ff] p-2 shadow-[0_16px_40px_-24px_rgba(85,102,246,0.35)]"
       >
         {/* морозильная камера */}
-        <div className="relative h-[54px] rounded-[14px] border border-[#dcdfed] bg-white">
-          <span className="absolute right-2 top-3 h-6 w-[3px] rounded-full bg-[#dcdfed]" />
+        <div className="relative h-[46px] rounded-[14px] border border-[#dcdfed] bg-white">
+          <span className="absolute right-2 top-3 h-5 w-[3px] rounded-full bg-[#dcdfed]" />
         </div>
 
-        {/* холодильная камера + бейдж-датчик */}
-        <div className="relative mt-1.5 h-[104px] rounded-[14px] border border-[#dcdfed] bg-white">
+        {/* холодильная камера — на её дверце и висит датчик */}
+        <div className="relative mt-1.5 h-[120px] rounded-[14px] border border-[#dcdfed] bg-white">
           <span className="absolute right-2 top-3 h-9 w-[3px] rounded-full bg-[#dcdfed]" />
 
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="relative inline-flex items-center gap-1.5 rounded-full border border-[#dcdfed] bg-white px-2.5 py-1 shadow-[0_10px_24px_-16px_rgba(11,16,36,0.45)]">
-              <Thermometer className="size-3.5 text-[#5566f6]" />
-              <TempReadout reduced={reduced} />
-              <WifiArcs reduced={reduced} />
-            </div>
+            <TuyaSensor reduced={reduced} />
           </div>
         </div>
       </div>
@@ -131,17 +127,106 @@ function SensorCard({ reduced }: { reduced: boolean }) {
   );
 }
 
-function TempReadout({ reduced }: { reduced: boolean }) {
-  if (reduced) {
+/** Фотография реального датчика. Появится, как только файл положат. */
+const SENSOR_PHOTO = "/landing/tuya-sensor.png";
+
+/**
+ * Датчик температуры с Wi-Fi — тот самый, что мы ставим клиентам:
+ * круглое чёрное табло в металлическом ободе, красные сегментные цифры
+ * и выносной щуп на проводе.
+ *
+ * Показываем фотографию устройства, если она есть в `public/landing/`.
+ * Пока файла нет (или он не загрузился) — рисуем то же устройство
+ * вектором: пустое место на лендинге хуже, чем аккуратная отрисовка, а
+ * подменять снимок другой моделью нельзя — мы ставим клиентам именно
+ * этот датчик.
+ */
+function TuyaSensor({ reduced }: { reduced: boolean }) {
+  const [photoBroken, setPhotoBroken] = useState(false);
+
+  if (!photoBroken) {
     return (
-      <span className="text-[12px] font-semibold tabular-nums text-[#0b1024]">
-        +2.8°
+      <span className="relative block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={SENSOR_PHOTO}
+          alt=""
+          onError={() => setPhotoBroken(true)}
+          className="block h-[112px] w-[112px] object-contain drop-shadow-[0_14px_26px_rgba(11,16,36,0.35)]"
+        />
+        <span className="pointer-events-none absolute left-1/2 top-[62%] flex -translate-x-1/2 items-center gap-1 rounded-full bg-[#111318]/85 px-2 py-0.5 backdrop-blur-[2px]">
+          <Thermometer className="size-2.5 text-[#ff4b3e]" />
+          <TempReadout reduced={reduced} variant="led" />
+        </span>
+        <WifiArcs reduced={reduced} />
       </span>
     );
   }
 
   return (
-    <span className="relative grid text-[12px] font-semibold tabular-nums text-[#0b1024]">
+    <span className="relative block">
+      {/* Провод щупа: уходит из-под корпуса вправо и вниз, как на
+          реальном устройстве. Рисуем под корпусом, чтобы вход провода
+          прятался за ободом. */}
+      <svg
+        viewBox="0 0 120 96"
+        className="pointer-events-none absolute -bottom-6 -right-14 h-[96px] w-[120px]"
+        fill="none"
+      >
+        <path
+          d="M8 22 C 44 18, 66 34, 70 52 C 74 70, 58 82, 44 76 C 32 71, 36 56, 50 56 L 96 56"
+          stroke="#1b1e28"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+        />
+        {/* металлический наконечник щупа */}
+        <rect x="94" y="51.5" width="20" height="9" rx="4.5" fill="#c9cdd8" />
+        <rect x="94" y="51.5" width="20" height="4" rx="2" fill="#e8eaf0" />
+      </svg>
+
+      {/* корпус: металлический обод + стеклянное табло */}
+      <span className="relative flex size-[88px] items-center justify-center rounded-full bg-gradient-to-b from-[#f4f6fa] via-[#d5d9e3] to-[#a9aebc] p-[3px] shadow-[0_14px_30px_-14px_rgba(11,16,36,0.65)]">
+        <span className="relative flex size-full flex-col items-center justify-center overflow-hidden rounded-full bg-[#111318]">
+          {/* блик на стекле */}
+          <span className="pointer-events-none absolute -left-4 -top-6 size-[70px] rounded-full bg-white/10 blur-[10px]" />
+
+          <span className="relative text-[5px] font-medium leading-[1.35] tracking-[0.04em] text-white/55">
+            Temperature
+            <br />
+            <span className="block text-center">detector</span>
+          </span>
+
+          <span className="relative mt-1 flex items-center gap-1">
+            <Thermometer className="size-2.5 text-[#ff4b3e]" />
+            <TempReadout reduced={reduced} variant="led" />
+          </span>
+        </span>
+      </span>
+
+      <WifiArcs reduced={reduced} />
+    </span>
+  );
+}
+
+function TempReadout({
+  reduced,
+  variant = "plain",
+}: {
+  reduced: boolean;
+  /** `led` — красные цифры на чёрном табло датчика. */
+  variant?: "plain" | "led";
+}) {
+  const cls =
+    variant === "led"
+      ? "text-[13px] font-semibold tabular-nums leading-none tracking-[0.02em] text-[#ff4b3e] [text-shadow:0_0_6px_rgba(255,75,62,0.55)]"
+      : "text-[12px] font-semibold tabular-nums text-[#0b1024]";
+
+  if (reduced) {
+    return <span className={cls}>+2.8°</span>;
+  }
+
+  return (
+    <span className={`relative grid ${cls}`}>
       {TEMP_VALUES.map((v, i) => (
         <span
           key={v}
@@ -157,7 +242,7 @@ function TempReadout({ reduced }: { reduced: boolean }) {
 
 function WifiArcs({ reduced }: { reduced: boolean }) {
   return (
-    <span className="pointer-events-none absolute -right-1 -top-4 flex size-6 items-end justify-center">
+    <span className="pointer-events-none absolute -right-2 -top-3 flex size-6 items-end justify-center">
       {[0, 1, 2].map((i) => (
         <span
           key={i}

@@ -138,7 +138,7 @@ export default async function OnboardingPage() {
   };
 
   const journalsSetItem: SetupItem = {
-    title: "Набор журналов",
+    title: "Выбор журналов",
     href: "/settings/journals",
     icon: ClipboardList,
     state:
@@ -151,7 +151,7 @@ export default async function OnboardingPage() {
   };
 
   const responsiblesItem: SetupItem = {
-    title: "Ответственные за журналы",
+    title: "Назначение ответственных",
     href: "/settings/journal-responsibles",
     icon: Network,
     state:
