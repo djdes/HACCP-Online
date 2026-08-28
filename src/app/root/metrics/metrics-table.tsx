@@ -6,11 +6,13 @@ import {
   ArrowDown,
   ArrowUp,
   ChevronsUpDown,
+  Eye,
   ExternalLink,
   Minus,
   Search,
 } from "lucide-react";
 import type { OrgMetrics } from "@/lib/org-metrics";
+import { ActivityDrawer } from "./activity-drawer";
 
 /**
  * Таблица организаций в метриках платформы.
@@ -84,6 +86,11 @@ export function MetricsTable({
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("actualMrrRub");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // Какую организацию раскрыли в панели активности. Держим id и название:
+  // название нужно в шапке панели сразу, до ответа сервера.
+  const [openOrg, setOpenOrg] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -218,7 +225,7 @@ export function MetricsTable({
               return (
                 <tr
                   key={m.organizationId}
-                  className="border-t border-[#eef0f6] transition-colors hover:bg-[#fafbff]"
+                  className="group/row border-t border-[#eef0f6] transition-colors hover:bg-[#fafbff]"
                 >
                   <td className="px-5 py-3">
                     <Link
@@ -260,10 +267,27 @@ export function MetricsTable({
                     {m.activeUsers}
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums">
-                    {m.entries7d}
-                    <span className="ml-1 text-[12px] text-[#9b9fb3]">
-                      / {m.entries30d} за 30
-                    </span>
+                    {/* Цифра отвечает «сколько», но не «что»: одна и та же
+                        стоит у организации с восемью журналами и у той, где
+                        одна уборщица отмечается в одном. Клик раскрывает
+                        разбивку и ленту. */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenOrg({
+                          id: m.organizationId,
+                          name: m.organizationName,
+                        })
+                      }
+                      title="Посмотреть, что заполняют"
+                      className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 tabular-nums transition-colors hover:bg-[#eef1ff] hover:text-[#3848c7] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5566f6]/40"
+                    >
+                      {m.entries7d}
+                      <span className="text-[12px] text-[#9b9fb3]">
+                        / {m.entries30d} за 30
+                      </span>
+                      <Eye className="size-3.5 opacity-0 transition-opacity group-hover/row:opacity-60" />
+                    </button>
                   </td>
                   <td className="px-5 py-3 text-right">
                     <TrendBadge value={m.weeklyTrendPct} />
@@ -294,6 +318,14 @@ export function MetricsTable({
           </tbody>
         </table>
       </div>
+
+      {openOrg ? (
+        <ActivityDrawer
+          organizationId={openOrg.id}
+          organizationName={openOrg.name}
+          onClose={() => setOpenOrg(null)}
+        />
+      ) : null}
     </section>
   );
 }
