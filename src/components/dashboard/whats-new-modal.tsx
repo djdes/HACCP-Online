@@ -62,6 +62,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Журналы: ListChecks,
   "Журналы — раньше": ListChecks,
   "Команда и тариф": Users,
+  "Команда и организации": Users,
   Поддержка: MessageCircleMore,
   Оформление: FileText,
   "Окна и формы": SquarePen,
