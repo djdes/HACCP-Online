@@ -422,12 +422,19 @@ export async function prefillResponsiblesForNewDocument(input: {
       select: { id: true, jobPosition: { select: { name: true } } },
       orderBy: { name: "asc" },
     });
-    const matched = slot.positionKeywords?.length
+    const byKeywords = slot.positionKeywords?.length
       ? candidates.filter((u) => {
           const n = (u.jobPosition?.name ?? "").toLowerCase();
           return slot.positionKeywords!.some((kw) => n.includes(kw));
         })
       : candidates;
+    // C3 аудита журналов: если по ключевым словам должности не нашёлся
+    // НИКТО (типовой случай — у сотрудников ещё не проставлен
+    // jobPosition), берём весь ростер. Иначе слот оставался пустым и
+    // журнал уборки показывал «Ответственный за уборку: С1 - —»,
+    // а печатный бланк уходил инспектору без ФИО. Тот же fallback уже
+    // применяется при посеве строк (journal-document-entries-seed.ts).
+    const matched = byKeywords.length > 0 ? byKeywords : candidates;
     let pick = matched.find((u) => !usedIds.has(u.id));
     // Для verifier-слота разрешаем повторное использование: контролёр и
     // верификатор часто один и тот же человек (заведующая = контролёр

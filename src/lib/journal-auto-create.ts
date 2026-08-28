@@ -30,6 +30,9 @@ import {
   normalizeCleaningDocumentConfig,
   stripPeriodSpecificCleaningFields,
   type CleaningDocumentConfig,
+  type RoomScheduleFromDb,
+  applyRoomsToCleaningConfig,
+  toRoomScheduleMap,
 } from "@/lib/cleaning-document";
 import { buildDateKeys, toDateKey } from "@/lib/hygiene-document";
 
@@ -61,6 +64,48 @@ async function fetchPreviousDocConfigForReuse(
 }
 
 /**
+ * C1/C2 аудита журналов: помещения уборки живут в таблице `Room`
+ * (/settings/buildings), а НЕ в `config.rooms`. Раньше новый документ
+ * сеялся четырьмя blueprint'ами («гостевая зона», «помещение мойки»,
+ * «горячий цех/кухня», «Бар»), а клиент рисует ОБЪЕДИНЕНИЕ
+ * `config.rooms ∪ Room` — отсюда дубли строк («Горячий цех/кухня» рядом
+ * с реальным «Горячий цех»), пустой справочник scope и план, который
+ * проставлялся blueprint'ам вместо настоящих помещений.
+ *
+ * Теперь: есть Room → `config.rooms = []`, `selectedRoomIds` = все Room
+ * (или прошлый выбор, если он ещё валиден), режим `rooms`. Нет Room →
+ * старое поведение с blueprint'ами (клиенту нечего показать иначе).
+ */
+type CleaningRoomFromDb = {
+  id: string;
+  currentDays: number;
+  generalDays: number;
+  currentScheduleType: string;
+  generalScheduleType: string;
+  currentMonthDays: unknown;
+  generalMonthDays: unknown;
+};
+
+async function fetchCleaningRooms(
+  db: PrismaClient,
+  organizationId: string,
+): Promise<CleaningRoomFromDb[]> {
+  return db.room.findMany({
+    where: { building: { organizationId } },
+    select: {
+      id: true,
+      currentDays: true,
+      generalDays: true,
+      currentScheduleType: true,
+      generalScheduleType: true,
+      currentMonthDays: true,
+      generalMonthDays: true,
+    },
+    orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+  });
+}
+
+/**
  * Cleaning-specific post-process: применяет weekday-маски помещений
  * (CleaningRoomItem.currentDays/generalDays) к matrix нового документа,
  * чтобы матрица была размечена «по плану» с самого создания.
@@ -78,13 +123,15 @@ function preplanCleaningConfig(
   dateFrom: Date,
   dateTo: Date,
   now?: Date,
+  /** C2: расписание Т/Г берём из Room, а не из config.rooms. */
+  dbRooms?: Map<string, RoomScheduleFromDb>,
 ): unknown {
   if (templateCode !== CLEANING_DOCUMENT_TEMPLATE_CODE) return config;
   if (!config || typeof config !== "object") return config;
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   // Нормализуем чтобы гарантировать структуру (rooms[], matrix etc.).
   const normalized = normalizeCleaningDocumentConfig(config) as CleaningDocumentConfig;
-  const planned = applyRoomScheduleToMatrix(normalized, dateKeys, "fill-empty");
+  const planned = applyRoomScheduleToMatrix(normalized, dateKeys, "fill-empty", dbRooms);
   return fillPastDaysNotPerformed(planned, dateKeys, {
     todayKey: toDateKey(now ?? new Date()),
   });
@@ -346,12 +393,22 @@ export async function ensureActiveDocument(
     journalCode: args.templateCode,
     baseConfig: prevConfig ?? {},
   });
+  // C1: cleaning собирается от Room организации, а не от blueprint'ов.
+  const cleaningRooms =
+    args.templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+      ? await fetchCleaningRooms(db, args.organizationId)
+      : [];
+  const roomAwareConfig = applyRoomsToCleaningConfig(
+    prefill.config,
+    cleaningRooms.map((room) => room.id),
+  );
   const planCfg = preplanCleaningConfig(
     args.templateCode,
-    prefill.config,
+    roomAwareConfig,
     period.dateFrom,
     period.dateTo,
     now,
+    cleaningRooms.length > 0 ? toRoomScheduleMap(cleaningRooms) : undefined,
   );
   const inherited = args.inheritResponsiblesFromLastDocument
     ? await inheritResponsiblesFromLastDocument(db, {

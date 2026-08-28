@@ -19,6 +19,8 @@ import {
 } from "@/lib/climate-document";
 import {
   applyRoomScheduleToMatrix,
+  applyRoomsToCleaningConfig,
+  toRoomScheduleMap,
   applyWeekendHolidayMark,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   copyMatrixByWeekday,
@@ -339,6 +341,29 @@ export async function POST(request: Request) {
         })
       : [];
 
+  // C1/C2 аудита: помещения уборки — это таблица Room
+  // (/settings/buildings), а не blueprint'ы в config.rooms. Матрицу и
+  // план строим по ним; расписание Т/Г тоже приходит отсюда.
+  const cleaningRooms =
+    resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
+      ? await db.room.findMany({
+          where: { building: { organizationId: getActiveOrgId(session) } },
+          select: {
+            id: true,
+            currentDays: true,
+            generalDays: true,
+            currentScheduleType: true,
+            generalScheduleType: true,
+            currentMonthDays: true,
+            generalMonthDays: true,
+          },
+          orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
+        })
+      : [];
+  const cleaningRoomIds = cleaningRooms.map((room) => room.id);
+  const cleaningRoomSchedule =
+    cleaningRooms.length > 0 ? toRoomScheduleMap(cleaningRooms) : undefined;
+
   const cleaningDefaults =
     resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? getDefaultCleaningResponsibleIds(cleaningUsers)
@@ -633,10 +658,13 @@ export async function POST(request: Request) {
         //      Это сохраняет фактический ритм уборки прошлого месяца.
         //   3. Если prev'а не было — fill-empty по weekday-маскам комнат.
         (() => {
-          const normalized = normalizeCleaningDocumentConfig(initialConfig, {
-            users: cleaningUsers,
-            areas: cleaningAreas,
-          });
+          const normalized = normalizeCleaningDocumentConfig(
+            applyRoomsToCleaningConfig(initialConfig, cleaningRoomIds),
+            {
+              users: cleaningUsers,
+              areas: cleaningAreas,
+            },
+          );
           const newDateKeys = buildDateKeys(dateFrom, dateTo);
           if (cleaningPrevDocConfig) {
             const prevMatrix =
@@ -656,7 +684,12 @@ export async function POST(request: Request) {
               marks: remapped,
             };
           }
-          return applyRoomScheduleToMatrix(normalized, newDateKeys, "fill-empty");
+          return applyRoomScheduleToMatrix(
+            normalized,
+            newDateKeys,
+            "fill-empty",
+            cleaningRoomSchedule,
+          );
         })()
       : resolvedTemplateCode === CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE
       ? normalizeCleaningVentilationConfig(rawConfig ?? initialConfig, allUsers)

@@ -114,6 +114,7 @@ import {
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 
+import { useTodayKey } from "@/lib/use-today-key";
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
 type Props = {
@@ -288,6 +289,9 @@ function CleaningDayColorLegend() {
 
 export function CleaningDocumentClient(props: Props) {
   const router = useRouter();
+  // «Сегодня» — после mount (useTodayKey): new Date() в рендере
+  // расходился между сервером (UTC) и браузером и врал подсветкой.
+  const todayKey = useTodayKey();
   const normalized = useMemo(() => normalizeCleaningDocumentConfig(props.config, { users: props.users }), [props.config, props.users]);
   const [config, setConfig] = useState(normalized);
   const [saving, setSaving] = useState(false);
@@ -807,6 +811,18 @@ export function CleaningDocumentClient(props: Props) {
       return { id: roomId, kind: "room" as const, room };
     });
   }, [config.rooms, config.selectedRoomIds, dbRoomById]);
+
+  /**
+   * C4 аудита: справочник «Наименование помещения / Текущая уборка /
+   * Генеральная уборка» под бланком строится из ТЕХ ЖЕ строк, что и
+   * матрица. Раньше он рендерил `config.rooms` — то есть blueprint'ы с
+   * пустыми scope, а шаги, введённые менеджером в /settings/buildings,
+   * в бланк не попадали вовсе.
+   */
+  const referenceRooms = useMemo(
+    () => rows.filter((row) => row.kind === "room").map((row) => row.room),
+    [rows],
+  );
 
   /**
    * Все id, которые вообще можно выделить в сетке: помещения + уборщики +
@@ -1847,7 +1863,26 @@ export function CleaningDocumentClient(props: Props) {
             onConfigure={() => setRaceConfigOpen(true)}
           />
           </div>
-        ) : null}
+        ) : (
+          // C1 аудита: помещения уборки берутся из /settings/buildings.
+          // Если их ещё нет — документ показывает стартовый набор-заглушку,
+          // и менеджеру надо явно сказать, где завести настоящие.
+          <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-8 text-center print:hidden">
+            <div className="text-[15px] font-medium text-[#0b1024]">
+              Помещения ещё не заведены
+            </div>
+            <p className="mx-auto mt-1.5 max-w-[420px] text-[13px] text-[#6f7282]">
+              Пока в журнале стартовый набор строк. Заведите реальные помещения —
+              и матрица, шаги уборки и задачи уборщикам соберутся из них сами.
+            </p>
+            <Link
+              href="/settings/buildings"
+              className="mt-4 inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Завести помещения
+            </Link>
+          </div>
+        )}
     </>
   );
 
@@ -1969,7 +2004,7 @@ export function CleaningDocumentClient(props: Props) {
             {rows.map((row) => {
               const expanded = expandedRowId === row.id;
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
-              const subtitle = row.kind === "room" ? row.room.detergent : `${row.responsible.code} · ${row.responsible.userName || "—"}`;
+              const subtitle = row.kind === "room" ? row.room.detergent : `${row.responsible.code} · ${row.responsible.userName || "не назначен"}`;
               const filledCount = dayKeys.reduce((acc, dk) => acc + (cellValue(row, dk) ? 1 : 0), 0);
               const isSelected = selection.includes(row.id);
               return (
@@ -2079,7 +2114,7 @@ export function CleaningDocumentClient(props: Props) {
                       <span className="font-semibold text-[#3848c7]">
                         {resp.code}
                       </span>{" "}
-                      — {resp.userName || "—"}
+                      — {resp.userName || "не назначен"}
                     </div>
                   ))}
                 </div>
@@ -2108,7 +2143,7 @@ export function CleaningDocumentClient(props: Props) {
                       <span className="font-semibold text-[#7a5cff]">
                         {resp.code}
                       </span>{" "}
-                      — {resp.userName || "—"}
+                      — {resp.userName || "не назначен"}
                     </div>
                   ))}
                 </div>
@@ -2152,10 +2187,10 @@ export function CleaningDocumentClient(props: Props) {
           {cleaningAddToolbar}
           {cleaningRaceStrip}
           <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === todayKey ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
-              const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "—"}`;
+              const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "не назначен"}`;
               return <tr key={row.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent">
                 <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" disabled={props.status !== "active"} /></td>
                 <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
@@ -2315,7 +2350,7 @@ export function CleaningDocumentClient(props: Props) {
                 <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
                   {cleaningResponsibleList.map((resp) => (
                     <div key={resp.id}>
-                      {resp.code} - {resp.userName || "—"}
+                      {resp.code} - {resp.userName || "не назначен"}
                     </div>
                   ))}
                 </td>
@@ -2416,7 +2451,7 @@ export function CleaningDocumentClient(props: Props) {
                 <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
                   {controlResponsibleList.map((resp) => (
                     <div key={resp.id}>
-                      {resp.code} - {resp.userName || "—"}
+                      {resp.code} - {resp.userName || "не назначен"}
                     </div>
                   ))}
                 </td>
@@ -2488,7 +2523,7 @@ export function CleaningDocumentClient(props: Props) {
           </div>
 
           <div className={`${DOC_EXTRA_BLOCK_CLASS} ${GRID_VIEWPORT_CLASS}`}><div className="min-w-[640px] sm:min-w-0">
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Текущая уборка</th><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Генеральная уборка</th></tr></thead><tbody>{config.rooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1 ${GRID_CELL_CLASS} leading-tight`}>{room.name}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Текущая уборка</th><th className={`px-2 py-1.5 text-center font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Генеральная уборка</th></tr></thead><tbody>{referenceRooms.map((room) => <tr key={room.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent"><td className={`px-2 py-1 ${GRID_CELL_CLASS} leading-tight`}>{room.name}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.currentScope.join(", ")}</td><td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight`}>{room.generalScope.join(", ")}</td></tr>)}</tbody></table>
           </div></div>
         </div>
         </div>
@@ -2924,8 +2959,15 @@ function CleaningRaceModeStrip(props: {
   onSwitchRace: (race: boolean) => Promise<void>;
   onConfigure: () => void;
 }) {
+  // Пустой список помещений ИЛИ уборщиков = нулевая раздача задач в TF.
+  const incompleteRaceSetup =
+    props.enabled && (props.roomCount === 0 || props.cleanerCount === 0);
   return (
-    <section className="rounded-2xl border border-[#ececf4] bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+    <section
+      className={`rounded-2xl border bg-white px-4 py-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] ${
+        incompleteRaceSetup ? "border-[#a13a32]/30 bg-[#fff4f2]" : "border-[#ececf4]"
+      }`}
+    >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <label className="flex cursor-pointer items-center gap-2 text-[14px] font-medium text-[#0b1024]">
           <input
@@ -2940,10 +2982,38 @@ function CleaningRaceModeStrip(props: {
           Раздавать задачи по помещениям
         </label>
         {props.enabled ? (
-          <span className="text-[13px] text-[#6f7282]">
-            Помещений: <span className="font-semibold tabular-nums text-[#0b1024]">{props.roomCount}</span>
+          // C5 аудита: раньше строка молча показывала «Помещений: 0 ·
+          // Уборщиков: 0» — и это не «значит все»: адаптер при пустом
+          // списке НЕ создаёт ни одной задачи (buildRoomsModeRows
+          // возвращает []). Показываем это как предупреждение с прямым
+          // указанием, что делать.
+          <span
+            className={`text-[13px] ${
+              incompleteRaceSetup ? "text-[#a13a32]" : "text-[#6f7282]"
+            }`}
+          >
+            Помещений:{" "}
+            <span
+              className={`font-semibold tabular-nums ${
+                props.roomCount === 0 ? "text-[#a13a32]" : "text-[#0b1024]"
+              }`}
+            >
+              {props.roomCount}
+            </span>
             {" · "}
-            Уборщиков: <span className="font-semibold tabular-nums text-[#0b1024]">{props.cleanerCount}</span>
+            Уборщиков:{" "}
+            <span
+              className={`font-semibold tabular-nums ${
+                props.cleanerCount === 0 ? "text-[#a13a32]" : "text-[#0b1024]"
+              }`}
+            >
+              {props.cleanerCount}
+            </span>
+            {incompleteRaceSetup ? (
+              <span className="ml-1.5">
+                — задачи не раздаются, нажмите «Настроить»
+              </span>
+            ) : null}
           </span>
         ) : (
           <span className="text-[13px] text-[#9b9fb3]">Выключено — обычный режим «1 пара уборщик-контролёр в день»</span>

@@ -658,9 +658,21 @@ function normalizeMatrix(value: unknown): CleaningMatrixMap {
   return result;
 }
 
-function normalizeRooms(value: unknown, areas?: AreaLike[]) {
+function normalizeRooms(
+  value: unknown,
+  areas?: AreaLike[],
+  /**
+   * C1: Room-first документ ОСОЗНАННО держит `rooms: []` — строки берутся
+   * из таблицы `Room`. Без этого флага пустой массив трактовался как
+   * «данных нет» и подменялся blueprint'ами, из-за чего в матрице
+   * появлялись дубли «гостевая зона / помещение мойки / …» поверх
+   * настоящих помещений.
+   */
+  allowEmpty = false,
+) {
   const defaults = buildDefaultRooms(areas);
-  if (!Array.isArray(value) || value.length === 0) return defaults;
+  if (!Array.isArray(value)) return defaults;
+  if (value.length === 0) return allowEmpty ? [] : defaults;
 
   const rooms = value
     .filter(
@@ -736,7 +748,15 @@ function buildBaseConfig(users?: UserLike[], areas?: AreaLike[]): CleaningDocume
 
 function syncCompatibilityFields(config: CleaningDocumentConfig): CleaningDocumentConfig {
   const title = normalizeText(config.title || config.documentTitle, CLEANING_PAGE_TITLE) || CLEANING_PAGE_TITLE;
-  const rooms = config.rooms.length > 0 ? config.rooms : buildDefaultRooms();
+  // C1: в Room-first конфиге (режим "rooms" + выбранные помещения)
+  // пустой `rooms` — норма: строки собираются из таблицы Room. Подмена
+  // на blueprint'ы возвращала бы дубли строк в матрице и справочнике.
+  const isRoomFirst =
+    config.cleaningMode === "rooms" &&
+    Array.isArray(config.selectedRoomIds) &&
+    config.selectedRoomIds.length > 0;
+  const rooms =
+    config.rooms.length > 0 ? config.rooms : isRoomFirst ? [] : buildDefaultRooms();
   const cleaningResponsibles =
     config.cleaningResponsibles.length > 0
       ? reindexResponsibles(config.cleaningResponsibles)
@@ -1039,7 +1059,17 @@ export function normalizeCleaningDocumentConfig(
     record.matrix !== undefined ||
     record.marks !== undefined;
 
-  const rooms = normalizeRooms(record.rooms ?? record.referenceTable, context.areas);
+  // Room-first конфиг: режим "rooms" + непустой selectedRoomIds. В нём
+  // `rooms: []` — валидное состояние (см. applyRoomsToCleaningConfig).
+  const isRoomFirstConfig =
+    record.cleaningMode === "rooms" &&
+    Array.isArray(record.selectedRoomIds) &&
+    record.selectedRoomIds.length > 0;
+  const rooms = normalizeRooms(
+    record.rooms ?? record.referenceTable,
+    context.areas,
+    isRoomFirstConfig,
+  );
   const cleaningResponsibles = normalizeResponsibleArray(
     "cleaning",
     record.cleaningResponsibles,
@@ -1685,6 +1715,102 @@ export type RoomScheduleFromDb = {
   currentMonthDays?: string[];
   generalMonthDays?: string[];
 };
+
+/**
+ * Расписание уборки, как оно лежит в таблице `Room` (сырые поля Prisma).
+ * Отдельный тип, чтобы `cleaning-document.ts` не знал про Prisma.
+ */
+export type CleaningRoomScheduleSource = {
+  id: string;
+  currentDays?: number | null;
+  generalDays?: number | null;
+  currentScheduleType?: string | null;
+  generalScheduleType?: string | null;
+  currentMonthDays?: unknown;
+  generalMonthDays?: unknown;
+};
+
+/** Map<roomId, расписание> для `applyRoomScheduleToMatrix`. */
+export function toRoomScheduleMap(
+  rooms: CleaningRoomScheduleSource[],
+): Map<string, RoomScheduleFromDb> {
+  const asStringArray = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
+  return new Map(
+    rooms.map((room) => [
+      room.id,
+      {
+        id: room.id,
+        currentDays: typeof room.currentDays === "number" ? room.currentDays : undefined,
+        generalDays: typeof room.generalDays === "number" ? room.generalDays : undefined,
+        currentScheduleType: room.currentScheduleType === "monthly" ? "monthly" : "weekly",
+        generalScheduleType: room.generalScheduleType === "monthly" ? "monthly" : "weekly",
+        currentMonthDays: asStringArray(room.currentMonthDays),
+        generalMonthDays: asStringArray(room.generalMonthDays),
+      } satisfies RoomScheduleFromDb,
+    ]),
+  );
+}
+
+/**
+ * C1 аудита журналов: переводит cleaning-конфиг на Room-first.
+ *
+ * ПОЧЕМУ: помещения уборки живут в таблице `Room` (/settings/buildings) —
+ * так решила спека cleaning-unification. Но создание документа осталось в
+ * мире `config.rooms` и сеяло четыре blueprint'а («гостевая зона»,
+ * «помещение мойки», «горячий цех/кухня», «Бар»), а клиент рисует
+ * ОБЪЕДИНЕНИЕ `config.rooms ∪ Room` — отсюда дубли строк, план,
+ * проставленный blueprint'ам вместо настоящих помещений, и пустой
+ * справочник scope внизу бланка.
+ *
+ * Есть Room → `rooms = []`, режим `rooms`, `selectedRoomIds` = все Room
+ * (или прошлый выбор, если он ещё валиден). Нет Room → возвращаем конфиг
+ * как есть: blueprint'ы остаются единственным, что можно показать.
+ */
+export function applyRoomsToCleaningConfig(
+  config: unknown,
+  roomIds: string[],
+): unknown {
+  if (roomIds.length === 0) return config;
+  const base =
+    config && typeof config === "object" && !Array.isArray(config)
+      ? (config as Record<string, unknown>)
+      : {};
+  const previousSelected = Array.isArray(base.selectedRoomIds)
+    ? (base.selectedRoomIds as unknown[]).filter(
+        (id): id is string => typeof id === "string" && roomIds.includes(id),
+      )
+    : [];
+  // Уборщики: если ещё не выбраны — берём ответственных за уборку из
+  // конфига. Пустой список НЕ значит «все»: адаптер TasksFlow при пустом
+  // `selectedCleanerUserIds` не создаёт ни одной задачи, а PATCH конфига
+  // отбивается валидатором. Поэтому нужен осмысленный дефолт.
+  const previousCleaners = Array.isArray(base.selectedCleanerUserIds)
+    ? (base.selectedCleanerUserIds as unknown[]).filter(
+        (id): id is string => typeof id === "string" && id.length > 0,
+      )
+    : [];
+  const responsibleCleanerIds = Array.isArray(base.cleaningResponsibles)
+    ? (base.cleaningResponsibles as unknown[])
+        .map((item) =>
+          item && typeof item === "object" && !Array.isArray(item)
+            ? (item as Record<string, unknown>).userId
+            : null,
+        )
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    : [];
+  return {
+    ...base,
+    rooms: [],
+    referenceTable: [],
+    cleaningMode: "rooms",
+    selectedRoomIds: previousSelected.length > 0 ? previousSelected : roomIds,
+    selectedCleanerUserIds:
+      previousCleaners.length > 0 ? previousCleaners : responsibleCleanerIds,
+  };
+}
 
 export function applyRoomScheduleToMatrix(
   config: CleaningDocumentConfig,
