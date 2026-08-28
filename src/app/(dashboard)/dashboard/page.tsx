@@ -18,7 +18,7 @@ import {
   Package,
   Printer,
   Send,
-  Settings,
+  SlidersHorizontal,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -322,13 +322,18 @@ export default async function DashboardPage() {
               titleAside={
                 <Link
                   href="/settings/journals"
-                  aria-label="Выбрать журналы"
                   title="Выбрать, какие журналы вести"
-                  // size-9: 28px было меньше минимального тап-таргета,
-                  // пальцем на телефоне попасть в шестерёнку тяжело.
-                  className="inline-flex size-9 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
+                  // Иконка намеренно НЕ та шестерёнка, что в шапке:
+                  // рядом две одинаковые вели бы в разные места — общие
+                  // настройки и набор журналов. Здесь ползунки плюс
+                  // подпись, чтобы не гадать, что настраивается.
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#f5f6ff] px-3 text-[13px] font-medium text-[#5566f6] transition-colors hover:bg-[#eef1ff] hover:text-[#3848c7]"
                 >
-                  <Settings className="size-4" />
+                  <SlidersHorizontal className="size-4" />
+                  {/* На узком экране остаётся одно слово: строка
+                      заголовка и так делится с бейджем и стрелкой. */}
+                  <span className="sm:hidden">Журналы</span>
+                  <span className="hidden sm:inline">Настроить журналы</span>
                 </Link>
               }
               badge={
