@@ -9,6 +9,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  ChevronUp,
   ExternalLink,
   Pencil,
   Plus,
@@ -106,6 +107,15 @@ function formatDate(iso: string) {
 
 type SortField = "name" | "position" | "date";
 type SortOrder = "asc" | "desc";
+
+/**
+ * Сортировка таблицы графика выходных. `null` — исходный порядок, тот,
+ * в котором сотрудники пришли с сервера. ПОЧЕМУ трёхтактно: тумблер
+ * «по алфавиту» умел только вкл/выкл и ничего не говорил про должность;
+ * клик по заголовку даёт по возрастанию → по убыванию → сброс.
+ */
+type StaffSortField = "name" | "position";
+type StaffSort = { field: StaffSortField; order: SortOrder } | null;
 
 export function StaffPageClient(props: StaffPageProps) {
   const router = useRouter();
@@ -228,7 +238,15 @@ export function StaffPageClient(props: StaffPageProps) {
 
   // Tab state.
   const [tab, setTab] = useState<TabKey>("work-off");
-  const [alphabetic, setAlphabetic] = useState(true);
+  const [staffSort, setStaffSort] = useState<StaffSort>(null);
+  /** Клик по заголовку: ↑ → ↓ → исходный порядок. */
+  const cycleStaffSort = (field: StaffSortField) => {
+    setStaffSort((current) => {
+      if (!current || current.field !== field) return { field, order: "asc" };
+      if (current.order === "asc") return { field, order: "desc" };
+      return null;
+    });
+  };
 
   // Helper data shapes.
   const positionsByCategory = useMemo(() => {
@@ -256,9 +274,23 @@ export function StaffPageClient(props: StaffPageProps) {
 
   const employeesDisplay = useMemo(() => {
     const copy = [...props.employees];
-    if (alphabetic) copy.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    if (!staffSort) return copy;
+    // Должность в таблице — это имя из справочника, а не сырое
+    // `positionTitle`: сортировать надо ровно по тому, что видно.
+    const posNameById = new Map(props.positions.map((p) => [p.id, p.name]));
+    const positionOf = (e: StaffEmployee) =>
+      (e.jobPositionId
+        ? posNameById.get(e.jobPositionId) ?? e.positionTitle ?? ""
+        : e.positionTitle) || "";
+    const sign = staffSort.order === "asc" ? 1 : -1;
+    copy.sort((a, b) =>
+      staffSort.field === "name"
+        ? sign * a.name.localeCompare(b.name, "ru")
+        : sign * positionOf(a).localeCompare(positionOf(b), "ru") ||
+          a.name.localeCompare(b.name, "ru")
+    );
     return copy;
-  }, [props.employees, alphabetic]);
+  }, [props.employees, props.positions, staffSort]);
 
   // Явные исключения из недельного правила: `userId|date` → off/work.
   const workOffOverrides = useMemo(() => {
@@ -827,8 +859,8 @@ export function StaffPageClient(props: StaffPageProps) {
             positions={props.positions}
             dates={workOffDates}
             overrides={workOffOverrides}
-            alphabetic={alphabetic}
-            onToggleAlpha={() => setAlphabetic((v) => !v)}
+            sort={staffSort}
+            onSort={cycleStaffSort}
             onIikoClick={() => setDlg({ kind: "iiko" })}
             onPaint={handleWorkOffPaint}
             onChangeWeekly={handleWeeklyDaysOffChange}
@@ -1008,11 +1040,11 @@ function CategoryColumn(props: {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={props.onToggle}
-          className="inline-flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]"
+          className="inline-flex min-w-0 items-center gap-2 text-[15px] font-semibold text-[#0b1024]"
         >
           <span
             className={`flex size-7 items-center justify-center rounded-lg ${headerAccentClass}`}
@@ -1033,20 +1065,25 @@ function CategoryColumn(props: {
             )}
           />
         </button>
+        {/* Не голый «+» на краю: иконку рядом со стрелкой сворачивания
+            не замечали, а завести должность — первое, что нужно сделать
+            на пустой странице. Кнопка с подписью и заливкой стоит сразу
+            за заголовком рубрики, а не у противоположного края. */}
         <button
           type="button"
           onClick={props.onAddPosition}
-          aria-label="Добавить должность"
-          className="inline-flex size-8 items-center justify-center rounded-xl text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-2xl bg-[#eef1ff] px-3 text-[13px] font-semibold text-[#3848c7] transition-colors hover:bg-[#5566f6] hover:text-white"
         >
           <Plus className="size-4" />
+          Должность
         </button>
       </div>
       {props.open ? (
         <div className="space-y-2">
           {props.positions.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-[#dcdfed] bg-white px-4 py-8 text-center text-[13px] text-[#9b9fb3]">
-              Пока нет должностей. Нажмите <b>+</b>, чтобы добавить.
+              Пока нет должностей. Нажмите <b>«Должность»</b>, чтобы добавить
+              первую.
             </p>
           ) : (
             props.positions.map((p) => {
@@ -1254,6 +1291,49 @@ type PaintDraft = {
 const EMPTY_CELLS: Map<string, boolean> = new Map();
 const EMPTY_WEEKLY: Map<string, number[]> = new Map();
 
+/** `aria-sort` для `<th>` графика выходных. */
+function ariaSortOf(
+  sort: StaffSort,
+  field: StaffSortField
+): "ascending" | "descending" | "none" {
+  if (!sort || sort.field !== field) return "none";
+  return sort.order === "asc" ? "ascending" : "descending";
+}
+
+/**
+ * Заголовок-кнопка сортируемой колонки. Стрелка появляется только у
+ * активной колонки — иначе шапка превращается в частокол иконок.
+ */
+function StaffSortHead(props: {
+  label: string;
+  field: StaffSortField;
+  sort: StaffSort;
+  onClick: (field: StaffSortField) => void;
+}) {
+  const active = props.sort?.field === props.field;
+  const ascending = active && props.sort?.order === "asc";
+  const Arrow = ascending ? ChevronUp : ChevronDown;
+  return (
+    <button
+      type="button"
+      onClick={() => props.onClick(props.field)}
+      title={
+        active && !ascending
+          ? "Сбросить сортировку"
+          : `Сортировать по «${props.label}»`
+      }
+      className={cn(
+        "-mx-1 inline-flex items-center gap-1 rounded-lg px-1 py-0.5 text-left font-medium transition-colors",
+        "hover:bg-white hover:text-[#0b1024] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15",
+        active ? "text-[#3848c7]" : "text-[#6f7282]"
+      )}
+    >
+      {props.label}
+      {active ? <Arrow className="size-3.5 text-[#5566f6]" /> : null}
+    </button>
+  );
+}
+
 /**
  * Сетка «сотрудник × день». Две вещи, ради которых её переписали:
  *
@@ -1268,8 +1348,8 @@ function WorkOffGrid(props: {
   dates: string[];
   /** Явные исключения из правила: `userId|YYYY-MM-DD` → "off" | "work". */
   overrides: Map<string, StaffDayOffKind>;
-  alphabetic: boolean;
-  onToggleAlpha: () => void;
+  sort: StaffSort;
+  onSort: (field: StaffSortField) => void;
   onIikoClick: () => void;
   onPaint: (items: WorkOffBulkItem[]) => Promise<void>;
   onChangeWeekly: (userId: string, weeklyDaysOff: number[]) => Promise<void>;
@@ -1385,34 +1465,6 @@ function WorkOffGrid(props: {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="inline-flex cursor-pointer items-center gap-2">
-          <span
-            className={cn(
-              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-              props.alphabetic ? "bg-[#5566f6]" : "bg-[#d0d4e6]"
-            )}
-          >
-            <input
-              type="checkbox"
-              checked={props.alphabetic}
-              onChange={props.onToggleAlpha}
-              className="peer absolute inset-0 cursor-pointer appearance-none"
-            />
-            <span
-              aria-hidden
-              className={cn(
-                "absolute top-0.5 size-4 rounded-full bg-white shadow-sm transition-all",
-                props.alphabetic ? "left-[18px]" : "left-0.5"
-              )}
-            />
-          </span>
-          <span className="text-[14px] font-medium text-[#0b1024]">
-            Фамилии сотрудников по алфавиту
-          </span>
-        </label>
-      </div>
-
       <Button
         type="button"
         onClick={props.onIikoClick}
@@ -1447,10 +1499,28 @@ function WorkOffGrid(props: {
           <table className="w-full min-w-[1100px] border-collapse text-[12px]">
             <thead>
               <tr className="bg-[#f5f6ff] text-[#6f7282]">
-                <th className="sticky left-0 z-10 bg-[#f5f6ff] px-3 py-2 text-left font-medium">
-                  Ф.И.О. работника
+                <th
+                  className="sticky left-0 z-10 bg-[#f5f6ff] px-3 py-2 text-left font-medium"
+                  aria-sort={ariaSortOf(props.sort, "name")}
+                >
+                  <StaffSortHead
+                    label="Ф.И.О. работника"
+                    field="name"
+                    sort={props.sort}
+                    onClick={props.onSort}
+                  />
                 </th>
-                <th className="px-3 py-2 text-left font-medium">Должность</th>
+                <th
+                  className="px-3 py-2 text-left font-medium"
+                  aria-sort={ariaSortOf(props.sort, "position")}
+                >
+                  <StaffSortHead
+                    label="Должность"
+                    field="position"
+                    sort={props.sort}
+                    onClick={props.onSort}
+                  />
+                </th>
                 <th className="px-3 py-2 text-left font-medium">Выходные</th>
                 {props.dates.map((iso) => {
                   const { top, bottom, isWeekend } = formatDayCell(iso);

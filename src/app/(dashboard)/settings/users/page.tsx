@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import { positionSuggestionsFor } from "@/lib/sphere-positions";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
 import { StaffPageClient } from "@/components/staff/staff-page-client";
-import { sphereToPreset } from "@/lib/org-profile";
-import { getOnboardingPreset } from "@/lib/onboarding-presets";
+import { AddOrganizationButton } from "@/components/settings/add-organization-button";
+import { normalizeSphere } from "@/lib/org-profile";
 import type { PositionCategory } from "@/components/staff/staff-types";
 
 export const dynamic = "force-dynamic";
@@ -93,26 +94,30 @@ export default async function StaffPage() {
       }),
     ]);
 
-  // Подсказки должностей: берём типовые названия из onboarding-пресета
-  // для сферы организации и вычитаем те, что уже заведены — предлагать
-  // «Повар», когда «Повар» уже есть, бессмысленно.
-  const existingPositionNames = new Set(
-    positions.map((p) => p.name.trim().toLowerCase())
-  );
-  const presetPositions = getOnboardingPreset(
-    sphereToPreset(organization?.type)
-  ).positions;
+  // Подсказки должностей — свои для каждой сферы (ресторану «Су-шеф» и
+  // «Бариста», производству «Оператор линии»), минус те, что уже
+  // заведены: предлагать «Повар», когда «Повар» уже есть, бессмысленно.
+  const sphere = normalizeSphere(organization?.type);
+  const existingPositionNames = positions.map((p) => p.name);
   const positionSuggestions: Record<PositionCategory, string[]> = {
-    management: [],
-    staff: [],
+    management: positionSuggestionsFor(
+      sphere,
+      "management",
+      existingPositionNames
+    ),
+    staff: positionSuggestionsFor(sphere, "staff", existingPositionNames),
   };
-  for (const preset of presetPositions) {
-    if (existingPositionNames.has(preset.name.trim().toLowerCase())) continue;
-    const bucket = positionSuggestions[preset.category as PositionCategory];
-    if (bucket && !bucket.includes(preset.name)) bucket.push(preset.name);
-  }
+
+  // Заводить новые точки может только владелец аккаунта: организации
+  // делят тариф и лимит мест. Приглашённому руководителю кнопку даже не
+  // показываем — отказ по клику выглядел бы как поломка.
+  const ownedAccount = await db.account.findUnique({
+    where: { ownerUserId: session.user.id },
+    select: { id: true, _count: { select: { organizations: true } } },
+  });
 
   return (
+    <>
     <StaffPageClient
       positionSuggestions={positionSuggestions}
       hasTasksflowIntegration={Boolean(tasksflowIntegration)}
@@ -173,5 +178,15 @@ export default async function StaffPage() {
         date: d.date.toISOString().slice(0, 10),
       }))}
     />
+    {ownedAccount ? (
+      <div className="mt-6">
+        <AddOrganizationButton
+          currentSphere={sphere}
+          currentName={organization?.name ?? ""}
+          organizationsCount={ownedAccount._count.organizations}
+        />
+      </div>
+    ) : null}
+    </>
   );
 }

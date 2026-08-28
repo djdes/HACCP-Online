@@ -308,17 +308,36 @@ export function StaffAddFlowDialog(props: {
   }
 
   async function submitPosition() {
-    if (posName.trim().length < 2) {
+    const name = posName.trim();
+    if (name.length < 2) {
       toast.error("Введите название");
       return;
     }
+
+    // Такая должность уже есть — не ругаемся и не плодим дубль, а просто
+    // берём её и идём к сотруднику. Человек набрал «Повар» и нажал
+    // «Добавить»: он хочет добавить повара, а не узнать, что повар уже
+    // заведён и надо было выбрать его из списка.
+    const existing = [...props.positions, ...createdPositions].find(
+      (position) =>
+        position.categoryKey === props.categoryKey &&
+        position.name.trim().toLowerCase() === name.toLowerCase()
+    );
+    if (existing) {
+      setPositionId(existing.id);
+      setPosName("");
+      toast.success(`Должность «${existing.name}» уже есть — добавляем сотрудника`);
+      setStep(2);
+      return;
+    }
+
     setPosPending(true);
     try {
       const res = await fetch("/api/positions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: posName.trim(),
+          name,
           categoryKey: props.categoryKey,
         }),
       });
