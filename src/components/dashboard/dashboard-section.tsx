@@ -12,11 +12,18 @@ type Props = {
     tone?: "default" | "ok" | "warn" | "danger";
   };
   /**
-   * Мелкий элемент сразу после бейджа — ссылка-настройка секции.
+   * Мелкий элемент сразу после бейджа — тихая пилюля-справка.
    * Живёт внутри <summary>, поэтому обязан гасить клик, иначе секция
    * свернётся вместо перехода.
    */
   titleAction?: React.ReactNode;
+  /**
+   * Настройка секции — стоит слева от стрелки и остаётся в строке
+   * заголовка даже на телефоне, где основные действия уезжают вниз.
+   * Внутри группы заголовка кнопка переносилась на вторую строку и
+   * висела в пустоте под названием.
+   */
+  titleAside?: React.ReactNode;
   defaultOpen?: boolean;
   /**
    * Действия в шапке секции — встают справа от заголовка, перед
@@ -54,6 +61,7 @@ export function DashboardSection({
   icon: Icon,
   badge,
   titleAction,
+  titleAside,
   defaultOpen = false,
   actions,
   children,
@@ -136,6 +144,11 @@ export function DashboardSection({
         {actions ? (
           <div className="flex items-center justify-end gap-3 max-sm:order-3 max-sm:basis-full sm:min-w-[398px] sm:shrink-0">
             {actions}
+          </div>
+        ) : null}
+        {titleAside ? (
+          <div className="flex shrink-0 items-center max-sm:order-2">
+            {titleAside}
           </div>
         ) : null}
         <ChevronDown

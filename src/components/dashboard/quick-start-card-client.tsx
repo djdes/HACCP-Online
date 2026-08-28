@@ -144,10 +144,11 @@ export function QuickStartCardCompact({
             <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
               <Sparkles className="size-4" />
             </span>
-            {/* whitespace-nowrap: «Завершите начальную настройку» ломалось
-                на две строки и перекашивало всю полосу. Заголовок
-                укорочен до одной строки — смысл тот же. */}
-            <h2 className="truncate whitespace-nowrap text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[16px]">
+            {/* На широком экране заголовок держим в одну строку, иначе
+                он перекашивает полосу. На узком — разрешаем перенос:
+                обрезка превращала его в «Начальная настр…», а из огрызка
+                непонятно, что за настройка. */}
+            <h2 className="text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:truncate sm:whitespace-nowrap sm:text-[16px]">
               Начальная настройка
             </h2>
           </div>
@@ -160,8 +161,12 @@ export function QuickStartCardCompact({
               второй строкой во всю ширину, mt компенсирует висящий над
               ней абсолютный «NN%» — иначе процент налезал бы на строку
               заголовка. */}
-          <div className="relative flex min-w-0 flex-1 items-center max-sm:order-last max-sm:mt-2 max-sm:basis-full">
-            <span className="pointer-events-none absolute bottom-full left-0 mb-1.5 w-full text-center text-[11px] font-semibold tabular-nums text-[#6f7282]">
+          <div className="relative flex min-w-0 flex-1 items-center gap-2 max-sm:order-last max-sm:basis-full">
+            {/* Процент над полосой — только на широком экране, где полоса
+                стоит между заголовком и кнопкой и подписать её сверху
+                больше негде. На мобиле он встаёт справа от полосы: висящая
+                над ней цифра читалась как оторванная от всего. */}
+            <span className="pointer-events-none absolute bottom-full left-0 mb-1.5 hidden w-full text-center text-[11px] font-semibold tabular-nums text-[#6f7282] sm:block">
               {percent}%
             </span>
             <div className="h-2 w-full overflow-hidden rounded-full bg-[#ececf4]">
@@ -176,6 +181,9 @@ export function QuickStartCardCompact({
                 style={{ width: `${percent}%` }}
               />
             </div>
+            <span className="shrink-0 text-[12px] font-semibold tabular-nums text-[#6f7282] sm:hidden">
+              {percent}%
+            </span>
           </div>
 
           <div className="flex shrink-0 items-center justify-end sm:w-[260px]">

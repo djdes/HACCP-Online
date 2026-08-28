@@ -18,8 +18,8 @@ import {
   Package,
   Printer,
   Send,
+  Settings,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
   Stethoscope,
   ThermometerSun,
@@ -430,26 +430,26 @@ export default async function DashboardPage() {
               defaultOpen={true}
               actions={<CloseDayCard unfilledCount={unfilledCount} compact />}
               titleAction={
-                <>
-                  <Link
-                    href="/settings/journals"
-                    aria-label="Выбрать журналы"
-                    title="Выбрать, какие журналы вести"
-                    // 28px — меньше минимального тап-таргета, пальцем
-                    // на телефоне попасть в ползунки было тяжело.
-                    className="inline-flex size-9 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-colors hover:bg-[#eef1ff] max-sm:size-10"
+                paperItems.length > 0 ? (
+                  <span
+                    title="Ведутся на бумаге, на готовность не влияют"
+                    className="rounded-full bg-[#fff8f6] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]"
                   >
-                    <SlidersHorizontal className="size-4" />
-                  </Link>
-                  {paperItems.length > 0 ? (
-                    <span
-                      title="Ведутся на бумаге, на готовность не влияют"
-                      className="rounded-full bg-[#fff8f6] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]"
-                    >
-                      +{paperItems.length} бумажных
-                    </span>
-                  ) : null}
-                </>
+                    +{paperItems.length} бумажных
+                  </span>
+                ) : null
+              }
+              titleAside={
+                <Link
+                  href="/settings/journals"
+                  aria-label="Выбрать журналы"
+                  title="Выбрать, какие журналы вести"
+                  // size-9: 28px было меньше минимального тап-таргета,
+                  // пальцем на телефоне попасть в шестерёнку тяжело.
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-[#f5f6ff] text-[#5566f6] transition-colors hover:bg-[#eef1ff]"
+                >
+                  <Settings className="size-4" />
+                </Link>
               }
               badge={
                 unfilledCount > 0
@@ -515,15 +515,23 @@ export default async function DashboardPage() {
                       </span>
                       <span
                         className={cn(
-                          "line-clamp-2 min-w-0 flex-1 text-[15px] font-semibold leading-snug tracking-[-0.01em]",
+                          // На телефоне карточки по две в ряд, и 15px
+                          // резали название до «Гигиени…». Мельче — зато
+                          // журнал читается целиком.
+                          "line-clamp-3 min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug tracking-[-0.01em] sm:line-clamp-2 sm:text-[15px]",
                           item.filled ? "text-[#136b2a]" : "text-[#a1362f]"
                         )}
                       >
                         {item.name}
                       </span>
+                      {/* Стрелка — только на широком экране. На телефоне
+                          карточки идут по две в ряд, и эти 16px забирали
+                          последнее слово названия: «Гигиенич…» вместо
+                          «Гигиенический журнал». Вся карточка и так
+                          ссылка, стрелка тут украшение. */}
                       <ArrowRight
                         className={cn(
-                          "size-4 shrink-0 transition-transform group-hover:translate-x-0.5",
+                          "hidden size-4 shrink-0 transition-transform group-hover:translate-x-0.5 sm:block",
                           item.filled ? "text-[#7cf5c0]" : "text-[#ffb0a6]"
                         )}
                       />
@@ -551,9 +559,15 @@ export default async function DashboardPage() {
                     <span className="flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 py-3">
                       <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#fff1d6] px-2 py-0.5 text-[11px] font-medium text-[#b45309]">
                         <Printer className="size-3" />
-                        Бумажный · распечатать
+                        {/* На телефоне полная подпись «Бумажный ·
+                            распечатать» переносилась в две строки внутри
+                            пилюли и выглядела сломанной. */}
+                        <span className="sm:hidden">Бумажный</span>
+                        <span className="hidden sm:inline">
+                          Бумажный · распечатать
+                        </span>
                       </span>
-                      <span className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[#8a4a08]">
+                      <span className="line-clamp-3 break-words text-[13px] font-semibold leading-snug tracking-[-0.01em] text-[#8a4a08] sm:line-clamp-2 sm:text-[15px]">
                         {paper.name}
                       </span>
                     </span>

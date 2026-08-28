@@ -92,6 +92,15 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Владелец дважды просил убрать самопроизвольное увеличение на
+  // iPhone. Причину (поля меньше 16px) починили, но Safari умеет
+  // зумить и по двойному тапу, поэтому фиксируем масштаб.
+  //
+  // `userScalable: false` НЕ ставим: iOS всё равно оставляет ручной
+  // pinch-zoom при одном лишь maximumScale, и слабовидящий человек
+  // сможет увеличить текст пальцами. Полный запрет отрезал бы его от
+  // сайта совсем.
+  maximumScale: 1,
 };
 
 export default function RootLayout({
