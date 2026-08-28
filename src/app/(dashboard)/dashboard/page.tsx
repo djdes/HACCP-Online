@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Activity,
-  AlertCircle,
   AlertTriangle,
   ArrowRight,
   BookOpen,
@@ -16,7 +15,6 @@ import {
   Medal,
   Package,
   Printer,
-  Send,
   SlidersHorizontal,
   ShieldCheck,
   Sparkles,
@@ -36,11 +34,8 @@ import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
 import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
-import { AnomaliesCard } from "@/components/dashboard/anomalies-card";
 import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { MedBooksExpiryCard } from "@/components/dashboard/med-books-expiry-card";
-import { TimeWindowAlerts } from "@/components/dashboard/time-window-alerts";
-import { BulkAssignPreviewCard } from "@/components/dashboard/bulk-assign-preview-card";
 import {
   DashboardSection,
   DashboardSectionPersistScript,
@@ -54,7 +49,6 @@ import { QuickStartCard } from "@/components/dashboard/quick-start-card";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { getStrugglingWorkers, getWorkerLeaderboard } from "@/lib/worker-leaderboard";
-import { getWeeklyTails } from "@/lib/weekly-tails";
 import { normalizeSphere } from "@/lib/org-profile";
 import { paperJournalsFor } from "@/lib/sphere-journal-rules";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
@@ -122,7 +116,6 @@ export default async function DashboardPage() {
   const cutoff48h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
   const [
-    totalEntriesEver,
     pendingApproval,
     activeTemplates,
     recentEntries,
@@ -133,10 +126,6 @@ export default async function DashboardPage() {
     templates,
     org,
   ] = await Promise.all([
-    // Была ли у организации хоть одна запись за всё время. Отличает
-    // «новичок, ещё не начинал» от «работает, но отстаёт» — от этого
-    // зависит, красный на экране или нейтральный.
-    db.journalEntry.count({ where: { organizationId } }),
     db.journalEntry.count({
       where: { organizationId, status: "submitted" },
     }),
@@ -224,7 +213,7 @@ export default async function DashboardPage() {
     runOrgHealthCheck(organizationId),
   ]);
 
-  const [filledTodayIds, weeklyTails, leaderboard, strugglers] =
+  const [filledTodayIds, leaderboard, strugglers] =
     await Promise.all([
       getTemplatesFilledToday(
         organizationId,
@@ -233,7 +222,6 @@ export default async function DashboardPage() {
         disabledCodes,
         { treatAperiodicAsFilled: false }
       ),
-      getWeeklyTails(organizationId, now, 3),
       getWorkerLeaderboard(organizationId, 3, 30),
       getStrugglingWorkers(organizationId, 3, 30),
     ]);
@@ -253,41 +241,6 @@ export default async function DashboardPage() {
   }));
   const unfilledCount = complianceItems.filter((c) => !c.filled).length;
   const filledCount = complianceItems.length - unfilledCount;
-  const compliancePercent = complianceItems.length
-    ? Math.round((filledCount / complianceItems.length) * 100)
-    : 100;
-  // Организация, где ещё не было ни одной записи, — не нарушитель, а
-  // новичок. Красный с первой секунды обесценивает красный, который
-  // загорится по делу (см. docs/design/dashboard-guidelines.md).
-  const isFreshOrg = totalEntriesEver === 0;
-  const complianceTone = isFreshOrg
-    ? {
-        bgClass: "bg-[#eef1ff] text-[#3848c7]",
-        fgClass: "text-[#3848c7]",
-        ring: "#5566f6",
-        label: "ещё не начинали",
-      }
-    : compliancePercent >= 90
-      ? {
-          bgClass: "bg-[#ecfdf5] text-[#136b2a]",
-          fgClass: "text-[#136b2a]",
-          ring: "#7cf5c0",
-          label: "всё в порядке",
-        }
-      : compliancePercent >= 60
-        ? {
-            bgClass: "bg-[#fff8eb] text-[#b25f00]",
-            fgClass: "text-[#b25f00]",
-            ring: "#ffd466",
-            label: "почти готово",
-          }
-        : {
-            bgClass: "bg-[#fff4f2] text-[#d2453d]",
-            fgClass: "text-[#d2453d]",
-            ring: "#ffb0a6",
-            label: "требует внимания",
-          };
-
   return (
     <div className="space-y-5">
       {/* Persist для DashboardSection (collapsible-блоки): inline-script
@@ -471,16 +424,6 @@ export default async function DashboardPage() {
               </div>
             </DashboardSection>
           )}
-          <DashboardSection
-            storageKey="time-window-alerts"
-            title="Срочно нужно заполнить"
-            subtitle="Журналы с нарушением периодичности по СанПиН."
-            icon={AlertCircle}
-            defaultOpen={true}
-          >
-            <TimeWindowAlerts organizationId={organizationId} />
-          </DashboardSection>
-
           {/* Compliance audit shortcut */}
           <Link
             href="/dashboard/compliance-audit"
@@ -499,27 +442,6 @@ export default async function DashboardPage() {
             </div>
             <ArrowRight className="size-4 shrink-0 text-[#5566f6] transition-transform group-hover:translate-x-1" />
           </Link>
-
-          <DashboardSection
-            storageKey="bulk-assign-preview"
-            title="Превью отправки задач TasksFlow"
-            subtitle="Что и кому уйдёт при отправке — без реальной отправки. Управление задачами в одном месте."
-            icon={Send}
-            // Статусный блок, а не действие — по гайду свёрнут.
-            defaultOpen={false}
-          >
-            <BulkAssignPreviewCard />
-          </DashboardSection>
-
-          <DashboardSection
-            storageKey="anomalies"
-            title="Аномалии и отклонения"
-            subtitle="Что выбивается из нормы — температура, бракераж, ЧП за последние дни."
-            icon={AlertCircle}
-            defaultOpen={false}
-          >
-            <AnomaliesCard />
-          </DashboardSection>
 
           <DashboardSection
             storageKey="live-claims"
@@ -555,75 +477,10 @@ export default async function DashboardPage() {
       {/* Зона «Требует внимания» показывается только когда есть что
           показать: пустой блок «всё хорошо» — шум, отсутствие тревоги
           и так означает, что всё в порядке (см. DASHBOARD.md). */}
-      {(weeklyTails.length > 0 ||
-        openCapaCount > 0 ||
+      {(openCapaCount > 0 ||
         expiringBatches > 0 ||
         weekLossCount > 0 ||
         pendingApproval > 0) && <ZoneHeading>Требует внимания</ZoneHeading>}
-
-      {/* Weekly tails — «просрочено за последние 7 дней», shortcut to
-          the exact date inside the document viewer */}
-      {weeklyTails.length > 0 && (
-        <section className="rounded-3xl border border-[#ffd2cd] bg-[#fff4f2] p-6 shadow-[0_0_0_1px_rgba(255,195,185,0.35)]">
-          <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#ffe1dc] text-[#a13a32]">
-              <AlertTriangle className="size-5" />
-            </span>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-[18px] font-semibold text-[#0b1024]">
-                Хвосты за неделю
-              </h2>
-              <p className="mt-0.5 text-[13px] text-[#6f7282]">
-                За последние 7 дней остались незаполненные записи. Клик —
-                открывает журнал на самом старом пропуске.
-              </p>
-              <ul className="mt-4 space-y-2">
-                {weeklyTails.map((tail) => {
-                  const badgeLabel =
-                    tail.missingDays.length === 1
-                      ? "1 пропуск"
-                      : `${tail.missingDays.length} пропуска`;
-                  const oldestPretty = new Date(
-                    tail.oldestMissing + "T00:00:00Z"
-                  ).toLocaleDateString("ru-RU", {
-                    day: "2-digit",
-                    month: "2-digit",
-                  });
-                  return (
-                    <li key={tail.documentId}>
-                      <Link
-                        href={`/journals/${tail.templateCode}/documents/${tail.documentId}?focus=${tail.oldestMissing}`}
-                        className="group flex items-start gap-3 rounded-2xl border border-[#ffd2cd] bg-white px-4 py-3 text-[14px] transition-colors hover:border-[#ff8d7d] hover:shadow-[0_6px_20px_-12px_rgba(210,69,61,0.25)] sm:items-center"
-                      >
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-[#ffe1dc] text-[#d2453d]">
-                          <XCircle className="size-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-medium leading-snug text-[#0b1024] line-clamp-2 sm:truncate">
-                            {tail.templateName}
-                          </span>
-                          <span className="mt-0.5 block truncate text-[12px] text-[#6f7282]">
-                            {tail.documentTitle}
-                          </span>
-                        </span>
-                        <span className="hidden shrink-0 flex-col items-end text-right sm:flex">
-                          <span className="text-[12px] font-medium text-[#a13a32]">
-                            {badgeLabel}
-                          </span>
-                          <span className="text-[11px] text-[#9b9fb3]">
-                            с {oldestPretty}
-                          </span>
-                        </span>
-                        <ArrowRight className="size-4 shrink-0 text-[#ffb0a6] transition-transform group-hover:translate-x-0.5" />
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Health-check виджет — self-audit конфигурации (кратко в свёрнутом
           виде, разворачивается по клику). Не показываем когда score=100%
@@ -801,104 +658,6 @@ export default async function DashboardPage() {
           )}
         </section>
       )}
-
-      {/* Общий прогресс по журналам — справочная цифра, а не
-          действие. Стоит внизу, чтобы не отодвигать список того, что
-          надо заполнить прямо сейчас. */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-6">
-        {/* Subtle gradient accent sweep — лёгкий цвет «настроения» */}
-        <div
-          className={`pointer-events-none absolute -right-32 -top-32 size-[400px] rounded-full opacity-30 blur-3xl ${
-            complianceItems.length === 0 || isFreshOrg
-              ? "bg-[#5566f6]/20"
-              : unfilledCount === 0
-                ? "bg-emerald-300"
-                : compliancePercent >= 50
-                  ? "bg-amber-300"
-                  : "bg-rose-300"
-          }`}
-        />
-        <div className="relative flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-            <span
-              className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${complianceTone.bgClass}`}
-            >
-              {unfilledCount === 0 ? (
-                <CheckCircle2 className="size-6" />
-              ) : (
-                <ClipboardList className="size-6" />
-              )}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-[18px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[22px]">
-                {complianceItems.length === 0 ? (
-                  "Журналы ещё не настроены"
-                ) : unfilledCount === 0 ? (
-                  "Все журналы начаты сегодня"
-                ) : (
-                  <>
-                    {isFreshOrg ? "Можно начинать — всего" : "Нужно начать"}{" "}
-                    <span
-                      className={
-                        isFreshOrg
-                          ? "text-[#3848c7]"
-                          : compliancePercent >= 50
-                            ? "text-amber-700"
-                            : "text-rose-700"
-                      }
-                    >
-                      {unfilledCount}{" "}
-                      {unfilledCount === 1
-                        ? "журнал"
-                        : unfilledCount < 5
-                          ? "журнала"
-                          : "журналов"}
-                    </span>
-                  </>
-                )}
-              </h2>
-              <p className="mt-1 text-[13px] leading-snug text-[#6f7282] sm:text-[14px]">
-                {complianceItems.length === 0
-                  ? "Создайте первый документ в журналах — после этого журнал попадёт в готовность сегодня."
-                  : unfilledCount === 0
-                    ? "Отличная работа — в каждом журнале есть хотя бы одна запись за сегодня."
-                    : "Нажмите на карточку ниже, чтобы открыть журнал и внести первую запись."}
-              </p>
-              {/* Inline-stat: filled / total с прогресс-баром */}
-              {complianceItems.length > 0 ? (
-                <div className="mt-3">
-                  <div className="flex items-end justify-between gap-2 text-[12px] text-[#6f7282]">
-                    <span>
-                      <strong className="text-[#0b1024]">{filledCount}</strong>
-                      {" из "}
-                      <strong className="text-[#0b1024]">
-                        {complianceItems.length}
-                      </strong>
-                      {" заполнено"}
-                    </span>
-                    <span className={`font-semibold ${complianceTone.fgClass}`}>
-                      {compliancePercent}% · {complianceTone.label}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#ececf4]">
-                    <div
-                      className={`h-full transition-all ${
-                        unfilledCount === 0
-                          ? "bg-emerald-500"
-                          : compliancePercent >= 50
-                            ? "bg-amber-500"
-                            : "bg-rose-500"
-                      }`}
-                      style={{ width: `${compliancePercent}%` }}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <ComplianceRing percent={compliancePercent} />
-        </div>
-      </section>
 
       <ZoneHeading>Разделы и настройка</ZoneHeading>
 
@@ -1090,42 +849,6 @@ function ZoneHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ComplianceRing({ percent }: { percent: number }) {
-  const size = 64;
-  const stroke = 8;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (Math.max(0, Math.min(100, percent)) / 100) * circumference;
-  const color =
-    percent >= 90 ? "#7cf5c0" : percent >= 60 ? "#ffd466" : "#ffb0a6";
-  return (
-    <div className="relative size-16 shrink-0">
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#eef1ff"
-          strokeWidth={stroke}
-          fill="transparent"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference}`}
-          fill="transparent"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-[14px] font-semibold text-[#0b1024]">
-        {percent}%
-      </div>
-    </div>
-  );
-}
 
 function AlertPill({
   href,

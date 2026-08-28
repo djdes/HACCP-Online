@@ -1910,7 +1910,7 @@ export function CleaningDocumentClient(props: Props) {
   return (
     <>
       <div className="space-y-5">
-        <FocusTodayScroller />
+        <FocusTodayScroller always />
         <div className="print:hidden">
           <DocumentActionsBar
             backHref="/journals/cleaning"
@@ -2215,7 +2215,7 @@ export function CleaningDocumentClient(props: Props) {
           {cleaningAddToolbar}
           {cleaningRaceStrip}
           <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === todayKey ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === todayKey ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight ${dateKey === todayKey ? "bg-[#eef1ff] text-[#3848c7] print:bg-transparent print:text-inherit" : ""}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "не назначен"}`;

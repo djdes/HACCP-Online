@@ -992,7 +992,7 @@ export function ColdEquipmentDocumentClient({
 
   return (
     <div className="bg-white text-black">
-      <FocusTodayScroller />
+      <FocusTodayScroller always />
       {/* Q3: верхнего padding'а нет — «крошки → H1» задаёт контейнер раздела. */}
       <div className="pb-8">
         <DocumentActionsBar
@@ -1388,7 +1388,14 @@ export function ColdEquipmentDocumentClient({
                     // X7: заливки выходных здесь нет — эталон
                     // cold_equipment_control-2-doc.png печатает сетку
                     // однотонной, а чередование фона читалось как «зебра».
-                    className={`${GRID_HEAD_CELL_CLASS} w-[48px] px-1 py-1 text-center font-semibold leading-tight`}
+                    // Сегодняшний столбец — исключение: без него в сетке на
+                    // месяц не видно, куда вносить, и замеры уходят в соседний
+                    // день. На печати заливку снимаем, бланк остаётся строгим.
+                    className={`${GRID_HEAD_CELL_CLASS} w-[48px] px-1 py-1 text-center font-semibold leading-tight ${
+                      dateKey === todayKey
+                        ? "bg-[#eef1ff] text-[#3848c7] print:bg-transparent print:text-inherit"
+                        : ""
+                    }`}
                   >
                     <div className="text-[13px]">{getDayNumber(dateKey)}</div>
                     <div className="text-[11px] font-normal uppercase text-[#666]">

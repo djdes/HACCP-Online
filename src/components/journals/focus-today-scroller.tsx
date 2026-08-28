@@ -18,6 +18,14 @@ import {
  * `[data-focus-today]`) to appear in the DOM, scrolls it into view
  * and applies a short indigo ring pulse.
  *
+ * `always` включает скролл и БЕЗ `?focus=today` — при каждом открытии
+ * документа. Нужен журналам-таблицам, где строки идут за весь период:
+ * бланк открывается на первой строке периода, и владелец однажды внёс
+ * замеры в 28 июля вместо 28 августа — число дня совпало, а что строка
+ * не сегодняшняя, ничто не подсказывало. Пульс в этом режиме не
+ * показываем: он — реакция на осознанный переход «к сегодня», а на
+ * обычном открытии был бы дёрганьем без причины.
+ *
  * When the target is NOT found after a few seconds (i.e. the user
  * followed «Перейти к сегодня» but no row for today exists yet),
  * we surface a soft dialog: «Записи за сегодня ещё нет» with a
@@ -30,12 +38,15 @@ import {
  */
 export function FocusTodayScroller({
   selector = "[data-focus-today]",
+  always = false,
   onCreate,
   createLabel = "Создать запись за сегодня",
   emptyTitle = "Записи за сегодня ещё нет",
   emptyBody = "Нажмите кнопку ниже, чтобы создать строку за сегодняшнее число — откроется форма с предзаполненной датой.",
 }: {
   selector?: string;
+  /** Скроллить к сегодняшней строке при каждом открытии, не только по `?focus=today`. */
+  always?: boolean;
   onCreate?: () => void;
   createLabel?: string;
   emptyTitle?: string;
@@ -47,7 +58,8 @@ export function FocusTodayScroller({
   const [showEmpty, setShowEmpty] = useState(false);
 
   useEffect(() => {
-    if (focus !== "today") return;
+    const requested = focus === "today";
+    if (!requested && !always) return;
     // Give the editor a tick to paint before we scroll. Waiting for the
     // selector handles async data loads too (e.g. entries fetched on
     // mount before the table renders).
@@ -59,23 +71,32 @@ export function FocusTodayScroller({
       if (!el && attempts < maxAttempts) return;
       window.clearInterval(interval);
       if (!el) {
-        setShowEmpty(true);
+        // Диалог «записи за сегодня нет» — только для осознанного перехода.
+        // На обычном открытии документа он был бы непрошеным всплытием.
+        if (requested) setShowEmpty(true);
         return;
       }
 
       try {
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        el.scrollIntoView({
+          // На обычном открытии — мгновенно: плавная анимация на первом
+          // кадре читается как «страница уехала сама».
+          behavior: requested ? "smooth" : "auto",
+          block: "center",
+          inline: "center",
+        });
       } catch {
         // older WebViews that don't support smooth or inline options
         (el as HTMLElement).scrollIntoView();
       }
+      if (!requested) return;
       el.classList.add("ring-4", "ring-[#5566f6]/40", "transition-shadow");
       window.setTimeout(() => {
         el.classList.remove("ring-4", "ring-[#5566f6]/40");
       }, 2000);
     }, 100);
     return () => window.clearInterval(interval);
-  }, [focus, selector]);
+  }, [focus, selector, always]);
 
   function dismiss() {
     setShowEmpty(false);

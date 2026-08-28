@@ -1513,6 +1513,7 @@ export function ClimateDocumentClient({
   return (
     <div className="bg-white text-black">
       <FocusTodayScroller
+        always
         onCreate={
           status === "active" ? () => setRowDialogOpen(true) : undefined
         }
@@ -1812,7 +1813,11 @@ export function ClimateDocumentClient({
                 const employee = employeeMap[row.employeeId];
                 const isToday = row.date === todayKey;
                 return (
-                  <tr key={row.id} data-focus-today={isToday ? "" : undefined}>
+                  <tr
+                    key={row.id}
+                    data-focus-today={isToday ? "" : undefined}
+                    className={isToday ? "bg-[#f5f6ff]" : undefined}
+                  >
                     <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
                       <Checkbox
                         checked={selectedRowIds.includes(row.id)}
@@ -1826,7 +1831,14 @@ export function ClimateDocumentClient({
                         disabled={status !== "active"}
                       />
                     </td>
-                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{getClimateDateLabel(row.date)}</td>
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                      {getClimateDateLabel(row.date)}
+                      {isToday ? (
+                        <span className="mt-0.5 block text-[11px] font-semibold text-[#3848c7] print:hidden">
+                          сегодня
+                        </span>
+                      ) : null}
+                    </td>
                     {visibleRooms.flatMap((room) =>
                       config.controlTimes.flatMap((time) => [
                         room.temperature.enabled ? (
