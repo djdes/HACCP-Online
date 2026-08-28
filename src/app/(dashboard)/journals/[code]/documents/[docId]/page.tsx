@@ -177,6 +177,7 @@ import {
   getJournalCrumbMenu,
 } from "@/lib/journal-crumb-menu";
 
+import { orgTodayKey } from "@/lib/timezone";
 export const dynamic = "force-dynamic";
 
 type TrackedFieldOption = {
@@ -298,6 +299,7 @@ async function JournalDocumentBody({
         where: { id: getActiveOrgId(session) },
         select: {
           name: true,
+          timezone: true,
           disabledJournalCodes: true,
           experimentalUiV2: true,
           journalAutomationJson: true,
@@ -394,7 +396,9 @@ async function JournalDocumentBody({
   const automationLocked =
     document.autoFill === true &&
     isJournalAutomationEnabled(organization, document.template.code);
-  const todayKey = toDateKey(new Date());
+  // Дата считается в зоне организации, а не в UTC процесса: иначе до
+  // 03:00 МСК «сегодня» на сервере — вчерашний день (см. orgTodayKey).
+  const todayKey = orgTodayKey(organization?.timezone);
 
   if (document.template.code === "hygiene") {
     return (

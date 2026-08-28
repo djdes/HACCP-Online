@@ -77,6 +77,7 @@ import {
   JournalPaperHeaderRows,
 } from "@/components/journals/journal-document-header";
 
+import { useTodayKey } from "@/lib/use-today-key";
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
@@ -929,6 +930,9 @@ export function ClimateDocumentClient({
   useV2 = false,
 }: Props) {
   const router = useRouter();
+  // «Сегодня» — после mount (useTodayKey): new Date() в рендере
+  // расходился между сервером (UTC) и браузером и врал подсветкой.
+  const todayKey = useTodayKey();
   const [config, setConfig] = useState(initialConfig);
   const [rows, setRows] = useState(getSortedRows(initialEntries));
   const [documentTitle, setDocumentTitle] = useState(title);
@@ -1772,7 +1776,7 @@ export function ClimateDocumentClient({
             <tbody>
               {rows.map((row) => {
                 const employee = employeeMap[row.employeeId];
-                const isToday = row.date === new Date().toISOString().slice(0, 10);
+                const isToday = row.date === todayKey;
                 return (
                   <tr key={row.id} data-focus-today={isToday ? "" : undefined}>
                     <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>

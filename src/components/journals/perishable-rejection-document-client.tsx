@@ -75,6 +75,7 @@ import {
 } from "@/components/journals/journal-grid";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 
+import { useTodayKey } from "@/lib/use-today-key";
 type Props = {
   documentId: string;
   title: string;
@@ -609,7 +610,9 @@ export function PerishableRejectionDocumentClient({
   const arrivalHM = parseTimeToHM(draftRow.arrivalTime);
   const saleHM = parseTimeToHM(draftRow.actualSaleTime);
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  // «Сегодня» — после mount (useTodayKey): new Date() в рендере
+  // расходился между сервером (UTC) и браузером и врал подсветкой.
+  const todayKey = useTodayKey();
   const todayFocusRowId = config.rows.find((row) => row.arrivalDate === todayKey)?.id;
 
   /**

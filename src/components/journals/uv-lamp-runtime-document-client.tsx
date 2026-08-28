@@ -79,6 +79,7 @@ import {
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
+import { useTodayKey } from "@/lib/use-today-key";
 type UserItem = {
   id: string;
   name: string;
@@ -1333,7 +1334,9 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     router.refresh();
   }
 
-  const todayKey = toDateKey(new Date());
+  // «Сегодня» — после mount (useTodayKey): new Date() в рендере
+  // расходился между сервером (UTC) и браузером и врал подсветкой.
+  const todayKey = useTodayKey();
   const todayFocusRowIndex = rows.findIndex((row) => row.date === todayKey);
 
   return (

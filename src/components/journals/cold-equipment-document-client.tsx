@@ -93,6 +93,7 @@ import {
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 
+import { useTodayKey } from "@/lib/use-today-key";
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
@@ -579,6 +580,9 @@ export function ColdEquipmentDocumentClient({
 }: Props) {
   const router = useRouter();
   const [documentTitle, setDocumentTitle] = useState(title);
+  // «Сегодня» считаем после mount (см. useTodayKey): new Date() в
+  // рендере давал hydration mismatch и подсветку не того дня.
+  const todayKey = useTodayKey();
   const [rows, setRows] = useState<EntryRow[]>(initialEntries);
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [checkedAutoFill, setCheckedAutoFill] = useState(autoFill);
@@ -1348,7 +1352,7 @@ export function ColdEquipmentDocumentClient({
                 {dateKeys.map((dateKey) => (
                   <th
                     key={dateKey}
-                    data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
+                    data-focus-today={dateKey === todayKey ? "" : undefined}
                     // X7: заливки выходных здесь нет — эталон
                     // cold_equipment_control-2-doc.png печатает сетку
                     // однотонной, а чередование фона читалось как «зебра».

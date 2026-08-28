@@ -46,6 +46,31 @@ export function formatLocalDate(
 }
 
 /**
+ * «Сегодня» в зоне организации в формате `YYYY-MM-DD`.
+ *
+ * ПОЧЕМУ отдельный хелпер: на проде процесс живёт в UTC, и
+ * `new Date().toISOString().slice(0, 10)` до 03:00 МСК отдаёт ВЧЕРАШНИЙ
+ * день. Такой ключ уезжал в клиент пропом `todayKey` — подсветка
+ * «сегодня» и блокировка прошлых дней целились не туда.
+ */
+export function orgTodayKey(
+  timezone: string = "Europe/Moscow",
+  now: Date = new Date()
+): string {
+  try {
+    // en-CA даёт ровно ISO-формат YYYY-MM-DD.
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+  } catch {
+    return now.toISOString().slice(0, 10);
+  }
+}
+
+/**
  * Список зон РФ для UI-селектора. Можно расширить.
  */
 export const RUSSIAN_TIMEZONES = [

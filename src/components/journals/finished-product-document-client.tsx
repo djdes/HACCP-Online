@@ -62,6 +62,7 @@ import {
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
+import { useTodayKey } from "@/lib/use-today-key";
 type Props = {
   documentId: string;
   title: string;
@@ -489,7 +490,9 @@ export function FinishedProductDocumentClient({
     setAddModalOpen(false);
   }
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  // «Сегодня» — после mount (useTodayKey): new Date() в рендере
+  // расходился между сервером (UTC) и браузером и врал подсветкой.
+  const todayKey = useTodayKey();
   const todayFocusRowId = config.rows.find((row) => row.productionDateTime.slice(0, 10) === todayKey)?.id;
 
   return (

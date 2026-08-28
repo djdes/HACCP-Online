@@ -67,6 +67,7 @@ import {
   getDayColumnBgClass,
   getDayColumnPrintKeepBg,
 } from "@/components/journals/journal-grid";
+import { useTodayKey } from "@/lib/use-today-key";
 type Props = {
   documentId: string;
   title: string;
@@ -174,6 +175,9 @@ function getHealthMeasures(
 
 export function HealthDocumentClient(props: Props) {
   const router = useRouter();
+  // «Сегодня» считаем после mount (см. useTodayKey): new Date() в
+  // рендере давал hydration mismatch и подсветку не того дня.
+  const todayKey = useTodayKey();
   const {
     documentId,
     title,
@@ -620,7 +624,7 @@ export function HealthDocumentClient(props: Props) {
                 {dateKeys.map((dateKey) => (
                   <th
                     key={dateKey}
-                    data-focus-today={dateKey === toDateKey(new Date()) ? "" : undefined}
+                    data-focus-today={dateKey === todayKey ? "" : undefined}
                     /* R5-4: на бумаге колонка дня сжимается, и «Сб.»
                        ломалось ПО ТОЧКЕ — заголовок вырастал в три
                        строки («1» / «Сб» / «.») и распирал всю шапку.

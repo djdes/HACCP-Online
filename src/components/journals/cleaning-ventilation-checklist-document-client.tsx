@@ -92,6 +92,7 @@ function filterUsersByBucket<T extends { role?: string | null }>(
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { useTodayKey } from "@/lib/use-today-key";
 type UserItem = {
   id: string;
   name: string;
@@ -680,6 +681,9 @@ export function CleaningVentilationChecklistDocumentClient({
   useV2 = false,
 }: Props) {
   const router = useRouter();
+  // «Сегодня» считаем после mount (см. useTodayKey): new Date() в
+  // рендере давал hydration mismatch и подсветку не того дня.
+  const todayKey = useTodayKey();
   const [config, setConfig] = useState(() =>
     normalizeCleaningVentilationConfig(initialConfig, users)
   );
@@ -1378,7 +1382,7 @@ export function CleaningVentilationChecklistDocumentClient({
                     <tr
                       key={`${row.dateKey}-${procedure.id}`}
                       data-focus-today={
-                        index === 0 && row.dateKey === toDateKey(new Date()) ? "" : undefined
+                        index === 0 && row.dateKey === todayKey ? "" : undefined
                       }
                       className="bg-white"
                     >
