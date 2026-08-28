@@ -3,7 +3,6 @@ import {
   Building2,
   ClipboardList,
   ListChecks,
-  Network,
   Users,
   Wrench,
 } from "lucide-react";
@@ -46,7 +45,6 @@ export default async function OnboardingPage() {
     roomsCount,
     equipmentCount,
     activeTemplates,
-    journalsWithResponsiblesCount,
     activeDocumentsCount,
   ] = await Promise.all([
     db.organization.findUnique({
@@ -64,19 +62,6 @@ export default async function OnboardingPage() {
       where: { isActive: true },
       select: { code: true },
     }),
-    db.journalTemplate
-      .findMany({
-        where: { isActive: true },
-        select: {
-          id: true,
-          _count: {
-            select: {
-              positionAccess: { where: { organizationId } },
-            },
-          },
-        },
-      })
-      .then((rows) => rows.filter((r) => r._count.positionAccess > 0).length),
     db.journalDocument.count({
       where: { organizationId, status: "active" },
     }),
@@ -137,32 +122,18 @@ export default async function OnboardingPage() {
     metric: `${activeUsersCount}`,
   };
 
+  // Шаг закрыт, если выбран хотя бы один журнал. Раньше здесь стояло
+  // «меньше пяти — жёлтый», и у ресторана с его четырьмя обязательными
+  // журналами шаг не закрывался никогда: человек шёл искать, что ещё
+  // включить, хотя набор уже правильный. Набор ставится по сфере при
+  // регистрации, то есть у новой организации шаг выполнен сразу — это и
+  // надо показать, а не требовать действия.
   const journalsSetItem: SetupItem = {
     title: "Выбор журналов",
     href: "/settings/journals",
     icon: ClipboardList,
-    state:
-      enabledTemplatesCount === 0
-        ? "empty"
-        : enabledTemplatesCount < 5
-          ? "partial"
-          : "complete",
-    metric: `${enabledTemplatesCount}`,
-  };
-
-  const responsiblesItem: SetupItem = {
-    title: "Назначение ответственных",
-    href: "/settings/journal-responsibles",
-    icon: Network,
-    state:
-      enabledTemplatesCount === 0
-        ? "empty"
-        : journalsWithResponsiblesCount >= enabledTemplatesCount
-          ? "complete"
-          : journalsWithResponsiblesCount > 0
-            ? "partial"
-            : "empty",
-    metric: `${journalsWithResponsiblesCount}/${enabledTemplatesCount}`,
+    state: enabledTemplatesCount === 0 ? "empty" : "complete",
+    metric: `${enabledTemplatesCount} по сфере`,
   };
 
   // === Phases ===
@@ -187,7 +158,7 @@ export default async function OnboardingPage() {
       number: 3,
       title: "Журналы",
       icon: ClipboardList,
-      items: [journalsSetItem, responsiblesItem],
+      items: [journalsSetItem],
     },
   ];
 
