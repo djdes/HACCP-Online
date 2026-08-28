@@ -60,6 +60,7 @@ import {
   getHygienePositionLabel,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
+import { buildJournalDocumentTitle } from "@/lib/journal-document-title";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
 import { getDefaultControlPeriodicity } from "@/lib/control-periodicity";
 import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
@@ -117,33 +118,6 @@ import {
  * «Добавлять пустых строк при печати» — тот же набор значений, что в
  * «Настройках журнала» здоровья (`health-documents-client.tsx`).
  */
-/**
- * Название документа подставляется автоматически: «2025.08.27 22:05».
- *
- * Решение владельца 2026-08-27 (отменяет прежний запрет S7 «поле всегда
- * пустое»): человек создаёт документ раз в полмесяца и каждый раз
- * придумывал название заново, а в списке они всё равно различаются
- * только периодом. Поле остаётся редактируемым и выделяется целиком
- * при фокусе.
- */
-function formatDocumentTimestamp(
-  now: Date,
-  timeZone = "Europe/Moscow"
-): string {
-  const parts = new Intl.DateTimeFormat("ru-RU", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? "";
-  return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
-}
-
 interface Props {
   templateCode: string;
   templateName: string;
@@ -162,8 +136,6 @@ interface Props {
    * Считается на списке документов журнала — диалог сам список не видит.
    */
   nextLampNumber?: string;
-  /** IANA-таймзона организации для автоназвания. По умолчанию МСК. */
-  timezone?: string;
 }
 
 export function CreateDocumentDialog({
@@ -174,7 +146,6 @@ export function CreateDocumentDialog({
   triggerLabel = "Создать документ",
   triggerIcon,
   nextLampNumber = "1",
-  timezone = "Europe/Moscow",
 }: Props) {
   const router = useRouter();
   const formId = useId();
@@ -241,15 +212,53 @@ export function CreateDocumentDialog({
   const showDateFields = !isColdEquipmentJournal;
 
   /**
-   * Название документа. Подставляется при открытии диалога (см.
-   * `handleOpenChange`) — считать `new Date()` в рендере нельзя.
+   * Название документа. Собирается из названия журнала и ПЕРИОДА
+   * («Гигиенический журнал — 1–15 сентября 2026»), см.
+   * `buildJournalDocumentTitle`. Пересчитывается при смене дат, но
+   * только пока человек не правил поле руками (`titleTouched`) —
+   * правил, значит знает лучше.
    * Поле остаётся обязательным: если человек стёр значение, при сабмите
    * рамка краснеет и под ней появляется «Поле не заполнено».
    */
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(() =>
+    buildJournalDocumentTitle({
+      journalName: templateName,
+      dateFrom: defaultPeriod.dateFrom,
+      dateTo: defaultPeriod.dateTo,
+    })
+  );
+  const [titleTouched, setTitleTouched] = useState(false);
   const [titleError, setTitleError] = useState("");
   const [dateFrom, setDateFrom] = useState(defaultPeriod.dateFrom);
   const [dateTo, setDateTo] = useState(defaultPeriod.dateTo);
+
+  /**
+   * Единая точка смены периода: кроме самой даты обновляет автоназвание.
+   * Через `useEffect` это делать нельзя — эффект перетирал бы поле после
+   * ручной правки на любом ре-рендере.
+   */
+  function applyPeriod(next: { dateFrom?: string; dateTo?: string }) {
+    const nextFrom = next.dateFrom ?? dateFrom;
+    const nextTo = next.dateTo ?? dateTo;
+    if (next.dateFrom !== undefined) setDateFrom(next.dateFrom);
+    if (next.dateTo !== undefined) setDateTo(next.dateTo);
+    if (titleTouched) return;
+    setTitle(
+      buildJournalDocumentTitle({
+        journalName: templateName,
+        dateFrom: nextFrom,
+        dateTo: nextTo,
+      })
+    );
+    setTitleError("");
+  }
+
+  /** Ручная правка названия — с этого момента автоподстановка молчит. */
+  function handleTitleChange(value: string) {
+    setTitle(value);
+    setTitleTouched(true);
+    if (titleError) setTitleError("");
+  }
   const [responsibleUserId, setResponsibleUserId] = useState("");
   /**
    * Должность НЕ предзаполняем: раньше сюда падала первая должность из
@@ -488,20 +497,19 @@ export function CreateDocumentDialog({
   const hasNoEmployees = users.length === 0;
 
   /**
-   * Открытие диалога — единственное место, где можно взять «сейчас»:
-   * в рендере `new Date()` запрещён (react-hooks/purity). Название
-   * перезаписываем только пока человек его не трогал.
+   * При открытии возвращаем автоназвание, если поле пустое (человек
+   * стёр его и передумал). Название журнала в префиксе оставляем и у
+   * кадровых журналов: владелец просит именно «Гигиенический журнал — …».
    */
   function handleOpenChange(next: boolean) {
     if (next && !title.trim()) {
-      const stamp = formatDocumentTimestamp(new Date(), timezone);
-      // Кадровые журналы (гигиена / здоровье / уборка) ведутся пачкой
-      // однотипных документов — там имя журнала в названии только шум.
-      // У остальных без префикса список превращается в столбик дат.
+      setTitleTouched(false);
       setTitle(
-        isStaffJournal || isCleaningJournal
-          ? stamp
-          : `${templateName} · ${stamp}`
+        buildJournalDocumentTitle({
+          journalName: templateName,
+          dateFrom,
+          dateTo,
+        })
       );
     }
     setOpen(next);
@@ -636,10 +644,7 @@ export function CreateDocumentDialog({
                   placeholder="Введите название документа"
                   selectOnFocus
                   value={title}
-                  onChange={(value) => {
-                    setTitle(value);
-                    if (titleError) setTitleError("");
-                  }}
+                  onChange={handleTitleChange}
                   error={titleError || undefined}
                 />
               )}
@@ -672,10 +677,13 @@ export function CreateDocumentDialog({
                      и на проде подпись оставалась «Дата начала». */
                   label={isGeneralCleaningJournal ? "Дата документа" : "Дата начала"}
                   value={dateFrom}
-                  onChange={(value) => {
-                    setDateFrom(value);
-                    if (isEquipmentCleaningJournal) setDateTo(value);
-                  }}
+                  onChange={(value) =>
+                    applyPeriod(
+                      isEquipmentCleaningJournal
+                        ? { dateFrom: value, dateTo: value }
+                        : { dateFrom: value }
+                    )
+                  }
                 />
               )}
 
@@ -685,7 +693,7 @@ export function CreateDocumentDialog({
                     id="perishable-date-to"
                     label="Дата окончания"
                     value={dateTo}
-                    onChange={setDateTo}
+                    onChange={(value) => applyPeriod({ dateTo: value })}
                   />
                   <FloatingLabelField label="Добавить поля">
                     <div className="flex flex-col gap-3 pt-2">
@@ -705,7 +713,15 @@ export function CreateDocumentDialog({
                   <select
                     id="doc-year"
                     value={dateFrom.slice(0, 4)}
-                    onChange={(e) => setDateFrom(`${e.target.value}-01-01`)}
+                    onChange={(e) =>
+                      // ТО и поверки — годовой документ: смена года двигает
+                      // обе границы. Раньше `dateTo` оставался в прошлом
+                      // году, и период документа получался вывернутым.
+                      applyPeriod({
+                        dateFrom: `${e.target.value}-01-01`,
+                        dateTo: `${e.target.value}-12-31`,
+                      })
+                    }
                     className="h-7 w-full border-0 bg-transparent p-0 text-[15px] text-[#0b1024] outline-none"
                   >
                     {Array.from({ length: 10 }, (_, i) =>
@@ -796,10 +812,7 @@ export function CreateDocumentDialog({
                 placeholder="Введите название документа"
                 selectOnFocus
                 value={title}
-                onChange={(value) => {
-                  setTitle(value);
-                  if (titleError) setTitleError("");
-                }}
+                onChange={handleTitleChange}
                 error={titleError || undefined}
               />
 
@@ -811,14 +824,14 @@ export function CreateDocumentDialog({
                       isGeneralCleaningJournal ? "Дата документа" : "Дата начала"
                     }
                     value={dateFrom}
-                    onChange={setDateFrom}
+                    onChange={(value) => applyPeriod({ dateFrom: value })}
                   />
                   {showDateTo && (
                     <DateField
                       id="doc-to"
                       label="Дата окончания"
                       value={dateTo}
-                      onChange={setDateTo}
+                      onChange={(value) => applyPeriod({ dateTo: value })}
                     />
                   )}
                 </>
