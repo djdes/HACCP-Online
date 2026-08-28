@@ -4,6 +4,7 @@ import {
   CONFIG_DAILY_CODES,
 } from "@/lib/daily-journal-codes";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
+import { orgTodayKey } from "@/lib/timezone";
 
 export { DAILY_JOURNAL_CODES, CONFIG_DAILY_CODES };
 
@@ -128,16 +129,42 @@ type DocumentRollup = {
 };
 
 /**
- * UTC-midnight of `now`'s calendar date. Entries are stored with their
- * `date` field at UTC-midnight (see /api/journal-documents/[id]/entries
- * — `new Date("YYYY-MM-DD")` parses as UTC midnight). We must compare
- * against UTC-today, otherwise a server that runs in a non-UTC
- * timezone produces a date-key off by one day.
+ * Начало «сегодня» для сравнения с `JournalDocumentEntry.date`.
+ *
+ * Записи хранятся UTC-полночью того дня, который человек выбрал в своём
+ * календаре (см. /api/journal-documents/[id]/entries — `new Date("YYYY-MM-DD")`
+ * парсится как UTC-полночь). Поэтому и «сегодня» надо брать в зоне
+ * организации, а не в зоне процесса: на проде процесс живёт в UTC, и с
+ * 00:00 до 03:00 МСК `now` по UTC — это ещё ВЧЕРА. Повар, заполнивший
+ * журнал в час ночи, видел красную карточку: его запись легла в 29-е,
+ * а статус искал 28-е. Та же причина уже описана в `orgTodayKey`
+ * (src/lib/timezone.ts) — здесь просто не была учтена.
+ *
+ * `now`, пришедший РОВНО UTC-полночью, — это не «сейчас», а явно
+ * названный день: так его передают отчёт за период и сертификат, которые
+ * идут по датам в цикле. Такой вход берём как есть, иначе в зоне с
+ * отрицательным смещением день уехал бы на сутки назад.
+ *
+ * Решение вынесено в чистую `resolveDayStart` — её проверяет
+ * `today-compliance.test.ts` без похода в БД.
  */
-function utcDayStart(now: Date): Date {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
+export function resolveDayStart(timezone: string | null, now: Date): Date {
+  const isExplicitDay =
+    now.getUTCHours() === 0 &&
+    now.getUTCMinutes() === 0 &&
+    now.getUTCSeconds() === 0 &&
+    now.getUTCMilliseconds() === 0;
+  if (isExplicitDay) return now;
+
+  return new Date(`${orgTodayKey(timezone || undefined, now)}T00:00:00.000Z`);
+}
+
+async function orgDayStart(organizationId: string, now: Date): Promise<Date> {
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { timezone: true },
+  });
+  return resolveDayStart(org?.timezone ?? null, now);
 }
 
 async function rollupDocumentForDay(
@@ -195,26 +222,6 @@ async function rollupDocumentForDay(
   };
 }
 
-async function isDocumentFilledForDay(
-  documentId: string,
-  todayStart: Date,
-  todayEnd: Date
-): Promise<boolean> {
-  const rollup = await rollupDocumentForDay(documentId, todayStart, todayEnd);
-  return rollup.filled;
-}
-
-/**
- * Templates whose entries pack many sub-values into `entry.data` and
- * need per-template inspection instead of entry-count. Keep in sync
- * with the branches inside `rollupEntryDataDocumentForDay`.
- */
-const DEEP_INSPECT_CODES = new Set([
-  "cold_equipment_control",
-  "climate_control",
-  "cleaning_ventilation_checklist",
-]);
-
 /**
  * Journals we still judge by «все ли из ростера сделали запись» — где
  * журнал реально ведётся по КАЖДОМУ сотруднику ежедневно, и любая
@@ -228,192 +235,6 @@ const DEEP_INSPECT_CODES = new Set([
  */
 const STRICT_COMPLETENESS_CODES = new Set(["hygiene", "health_check"]);
 
-/**
- * Per-template rollup for daily journals that store ONE entry per date
- * but pack many sub-values inside `entry.data`. Counting entries alone
- * would mark «1 entry = filled» even if only 1 fridge out of 10 had a
- * temperature recorded. We look inside `entry.data` and compare the
- * count of non-null sub-values to the document's configured roster.
- *
- * Returns null for template codes that don't need the deep inspection
- * (hygiene, health_check, fryer_oil, uv_lamp_runtime,
- * cleaning_ventilation_checklist), letting the caller fall back to the
- * entry-count rollup.
- */
-async function rollupEntryDataDocumentForDay(
-  templateCode: string,
-  documentId: string,
-  config: unknown,
-  todayStart: Date,
-  todayEnd: Date
-): Promise<DocumentRollup | null> {
-  if (!config || typeof config !== "object") return null;
-  const cfg = config as Record<string, unknown>;
-
-  if (templateCode === "cold_equipment_control") {
-    // data = { temperatures: { equipmentId: number|null } }
-    const equipment = Array.isArray(cfg.equipment) ? cfg.equipment : [];
-    const equipmentIds = equipment
-      .map((item) => (item as { id?: string })?.id)
-      .filter((id): id is string => typeof id === "string" && id.length > 0);
-    const expectedCount = equipmentIds.length;
-    if (expectedCount === 0) {
-      return { todayCount: 0, expectedCount: 0, filled: false };
-    }
-    const entries = await db.journalDocumentEntry.findMany({
-      where: {
-        documentId,
-        date: { gte: todayStart, lt: todayEnd },
-        ...NOT_AUTO_SEEDED,
-      },
-      select: { data: true },
-    });
-    const recordedIds = new Set<string>();
-    for (const entry of entries) {
-      const temps =
-        (entry.data as { temperatures?: Record<string, unknown> } | null)
-          ?.temperatures;
-      if (!temps || typeof temps !== "object") continue;
-      for (const [equipId, value] of Object.entries(temps)) {
-        if (value !== null && value !== undefined && value !== "") {
-          recordedIds.add(equipId);
-        }
-      }
-    }
-    const todayCount = equipmentIds.filter((id) => recordedIds.has(id)).length;
-    return {
-      todayCount,
-      expectedCount,
-      filled: todayCount >= expectedCount,
-    };
-  }
-
-  if (templateCode === "cleaning_ventilation_checklist") {
-    // data.procedures = { [procedureId]: time[] } — array of applied times.
-    // Expected = sum over enabled procedures of their scheduled times.length.
-    //
-    // The UI at cleaning-ventilation-checklist-document-client.tsx
-    // displays config `procedure.times` as the default cell value when
-    // `entry.procedures[id]` is absent (`entry?.procedures[id] ||
-    // procedure.times`). Users see times in the cells and consider the
-    // procedure «done» even without explicitly saving. To match that
-    // expectation, a procedure with no entry override falls back to its
-    // config-default count — «all cells show a time» = «filled».
-    type Procedure = { id?: string; enabled?: boolean; times?: string[] };
-    const procedures = Array.isArray(cfg.procedures)
-      ? (cfg.procedures as Procedure[])
-      : [];
-    const enabled = procedures.filter((p) => p?.enabled && p.id);
-    const perProc = new Map<string, { expected: number; defaultFilled: number }>();
-    let expectedCount = 0;
-    for (const p of enabled) {
-      const rawTimes = Array.isArray(p.times) ? (p.times as string[]) : [];
-      const slots = rawTimes.filter(Boolean).length;
-      if (slots === 0) continue;
-      const defaultFilled = rawTimes.filter(
-        (t) => typeof t === "string" && t !== "" && t !== "00:00"
-      ).length;
-      perProc.set(p.id as string, { expected: slots, defaultFilled });
-      expectedCount += slots;
-    }
-    if (expectedCount === 0) {
-      return { todayCount: 0, expectedCount: 0, filled: false };
-    }
-    const entries = await db.journalDocumentEntry.findMany({
-      where: {
-        documentId,
-        date: { gte: todayStart, lt: todayEnd },
-        ...NOT_AUTO_SEEDED,
-      },
-      select: { data: true },
-    });
-    let todayCount = 0;
-    for (const [procId, { expected, defaultFilled }] of perProc.entries()) {
-      let hasOverride = false;
-      let overrideFilled = 0;
-      for (const entry of entries) {
-        const data = entry.data as { procedures?: Record<string, unknown> } | null;
-        const raw = data?.procedures?.[procId];
-        if (!Array.isArray(raw)) continue;
-        hasOverride = true;
-        const filled = raw.filter(
-          (t) => typeof t === "string" && t !== "" && t !== "00:00"
-        ).length;
-        overrideFilled = Math.max(overrideFilled, filled);
-      }
-      const actualForProc = hasOverride ? overrideFilled : defaultFilled;
-      todayCount += Math.min(actualForProc, expected);
-    }
-    return {
-      todayCount,
-      expectedCount,
-      filled: todayCount >= expectedCount,
-    };
-  }
-
-  if (templateCode === "climate_control") {
-    // data = { measurements: { roomId: { time: { temperature?, humidity? } } } }
-    const rooms = Array.isArray(cfg.rooms) ? cfg.rooms : [];
-    const controlTimes = Array.isArray(cfg.controlTimes) ? cfg.controlTimes : [];
-    type ClimateRoom = {
-      id?: string;
-      temperature?: { enabled?: boolean };
-      humidity?: { enabled?: boolean };
-    };
-    let expectedCount = 0;
-    const expectedSlots: Array<{ roomId: string; time: string; kind: "temperature" | "humidity" }> = [];
-    for (const raw of rooms) {
-      const room = raw as ClimateRoom;
-      const roomId = room?.id;
-      if (!roomId) continue;
-      for (const rawTime of controlTimes) {
-        const time = typeof rawTime === "string" ? rawTime : null;
-        if (!time) continue;
-        if (room.temperature?.enabled) {
-          expectedSlots.push({ roomId, time, kind: "temperature" });
-          expectedCount += 1;
-        }
-        if (room.humidity?.enabled) {
-          expectedSlots.push({ roomId, time, kind: "humidity" });
-          expectedCount += 1;
-        }
-      }
-    }
-    if (expectedCount === 0) {
-      return { todayCount: 0, expectedCount: 0, filled: false };
-    }
-    const entries = await db.journalDocumentEntry.findMany({
-      where: {
-        documentId,
-        date: { gte: todayStart, lt: todayEnd },
-        ...NOT_AUTO_SEEDED,
-      },
-      select: { data: true },
-    });
-    let todayCount = 0;
-    for (const { roomId, time, kind } of expectedSlots) {
-      for (const entry of entries) {
-        const measurements = (
-          entry.data as {
-            measurements?: Record<string, Record<string, Record<string, unknown>>>;
-          } | null
-        )?.measurements;
-        const value = measurements?.[roomId]?.[time]?.[kind];
-        if (value !== null && value !== undefined && value !== "") {
-          todayCount += 1;
-          break;
-        }
-      }
-    }
-    return {
-      todayCount,
-      expectedCount,
-      filled: todayCount >= expectedCount,
-    };
-  }
-
-  return null;
-}
 
 /**
  * Per-template-code rollup for journals that store rows inside
@@ -503,7 +324,7 @@ export async function getTemplatesFilledToday(
   options: TemplatesFilledTodayOptions = {}
 ): Promise<Set<string>> {
   const treatAperiodicAsFilled = options.treatAperiodicAsFilled ?? true;
-  const todayStart = utcDayStart(now);
+  const todayStart = await orgDayStart(organizationId, now);
   const todayEnd = new Date(todayStart);
   todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
   const lookbackStart = new Date(todayStart);
@@ -828,7 +649,7 @@ export async function getTemplateTodaySummary(
   options: TemplateTodaySummaryOptions = {}
 ): Promise<TemplateTodaySummary> {
   const treatAperiodicAsFilled = options.treatAperiodicAsFilled ?? true;
-  const todayStart = utcDayStart(now);
+  const todayStart = await orgDayStart(organizationId, now);
   const todayEnd = new Date(todayStart);
   todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
 
