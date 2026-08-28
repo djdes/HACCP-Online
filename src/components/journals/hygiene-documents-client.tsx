@@ -92,7 +92,12 @@ type Props = {
    * которые автоматика умеет обслуживать (hygiene / health_check) —
    * этот же клиент рендерит десяток других журналов.
    */
-  automation?: { code: string; enabled: boolean; canManage: boolean };
+  automation?: {
+    code: string;
+    enabled: boolean;
+    canManage: boolean;
+    noticeSeen: boolean;
+  };
 };
 
 function EditDocumentDialog({
@@ -314,6 +319,7 @@ export function HygieneDocumentsClient(props: Props) {
               code={props.automation.code}
               enabled={props.automation.enabled}
               canManage={props.automation.canManage}
+              noticeSeen={props.automation.noticeSeen}
             />
             <PageGuide
               title="Как журнал ведётся сам"

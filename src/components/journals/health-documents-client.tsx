@@ -69,7 +69,12 @@ type Props = {
   users: { id: string; name: string; role: string }[];
   documents: HealthListDocument[];
   /** См. HygieneDocumentsClient.automation — тумблер «журнал ведётся сам». */
-  automation?: { code: string; enabled: boolean; canManage: boolean };
+  automation?: {
+    code: string;
+    enabled: boolean;
+    canManage: boolean;
+    noticeSeen: boolean;
+  };
 };
 
 const EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 10, 15, 20];
@@ -247,6 +252,7 @@ export function HealthDocumentsClient(props: Props) {
               code={props.automation.code}
               enabled={props.automation.enabled}
               canManage={props.automation.canManage}
+              noticeSeen={props.automation.noticeSeen}
             />
             <PageGuide
               title="Как журнал ведётся сам"

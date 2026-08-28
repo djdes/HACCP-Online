@@ -23,7 +23,12 @@ import {
  * Поэтому одно и то же объяснение живёт в трёх местах: модалка
  * включения, ⓘ-модалка и разовое уведомление после backfill'а.
  */
-const SEEN_STORAGE_KEY = "wesetup.hygiene-automation-seen";
+/**
+ * Ключ разового уведомления. Хранится в аккаунте (`User.seenNoticesJson`),
+ * а не в localStorage: раньше отметка жила в браузере, и человек, который
+ * заходит с ноутбука и с телефона, видел уведомление снова и снова.
+ */
+const NOTICE_KEY = "hygiene-automation";
 
 type DialogMode = "enable" | "disable" | "info" | "notice" | null;
 
@@ -31,10 +36,13 @@ export function JournalAutomationCard({
   code,
   enabled: initialEnabled,
   canManage,
+  noticeSeen,
 }: {
   code: string;
   enabled: boolean;
   canManage: boolean;
+  /** Человек уже видел разовое уведомление про автоматику. */
+  noticeSeen: boolean;
 }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(initialEnabled);
@@ -44,16 +52,21 @@ export function JournalAutomationCard({
   // Разовое уведомление после массового включения автоматики: человек
   // не нажимал тумблер сам, поведение изменилось «само» — обязаны
   // сказать об этом один раз и дать выключить.
+  //
+  // Отметку ставим сразу при показе и не ждём ответа сервера: если
+  // запрос не дойдёт, уведомление всплывёт ещё раз — это терпимо, а вот
+  // показать его дважды подряд из-за гонки нельзя.
   useEffect(() => {
-    if (!initialEnabled) return;
-    try {
-      if (window.localStorage.getItem(SEEN_STORAGE_KEY)) return;
-      window.localStorage.setItem(SEEN_STORAGE_KEY, "1");
-      setDialog("notice");
-    } catch {
-      /* localStorage заблокирован — просто не показываем уведомление */
-    }
-  }, [initialEnabled]);
+    if (!initialEnabled || noticeSeen) return;
+    setDialog("notice");
+    void fetch("/api/me/notices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: NOTICE_KEY }),
+    }).catch(() => {
+      /* не смогли отметить — увидит ещё раз, это не ошибка */
+    });
+  }, [initialEnabled, noticeSeen]);
 
   async function apply(next: boolean) {
     if (saving) return;

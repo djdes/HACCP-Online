@@ -1,4 +1,5 @@
 import type React from "react";
+import { hasSeenNotice } from "@/lib/seen-notices";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -1456,6 +1457,9 @@ export default async function JournalDocumentsPage({
           code: resolvedCode,
           enabled: isJournalAutomationEnabled(orgSettings, resolvedCode),
           canManage: hasFullWorkspaceAccess(session.user),
+          // Разовое уведомление про автоматику — отметка в аккаунте:
+          // в localStorage оно всплывало заново в каждом браузере.
+          noticeSeen: await hasSeenNotice(session.user.id, "hygiene-automation"),
         }
       : undefined;
 
