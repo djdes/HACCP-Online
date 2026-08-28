@@ -119,9 +119,9 @@ import {
   getFryerOilDocumentTitle,
   getFryerOilFilePrefix,
   formatTime as formatFryerTime,
+  formatQualityLabel as formatFryerQuality,
   formatDateRu as formatFryerDateRu,
   QUALITY_ASSESSMENT_TABLE,
-  QUALITY_LABELS,
   type FryerOilDocumentConfig,
 } from "@/lib/fryer-oil-document";
 import {
@@ -1975,6 +1975,11 @@ function drawCleaningPdf(doc: jsPDF, params: {
   entries: { employeeId: string; date: Date; data: Record<string, unknown> }[];
   /** roomId → имя помещения (для rooms-mode). */
   roomNamesById?: Record<string, string>;
+  /** roomId → средства и шаги уборки из Room (для rooms-mode, C7). */
+  roomDetailsById?: Record<
+    string,
+    { name: string; detergent: string; currentScope: string[]; generalScope: string[] }
+  >;
   /** userId → инициалы (для rooms-mode, инициалы cleaner-а / контролёра). */
   userInitialsById?: Record<string, string>;
 }) {
@@ -2185,6 +2190,10 @@ function drawCleaningPdf(doc: jsPDF, params: {
     if (selectedRoomIds.length === 0) return [];
     const detergentByRoom = new Map<string, string>();
     config.rooms.forEach((r) => detergentByRoom.set(r.id, r.detergent || ""));
+    // Room (БД) приоритетнее config.rooms — см. C7.
+    for (const [roomId, details] of Object.entries(params.roomDetailsById ?? {})) {
+      if (details.detergent) detergentByRoom.set(roomId, details.detergent);
+    }
     const namesMap = params.roomNamesById ?? {};
 
     const roomRows: RowInput[] = selectedRoomIds.map((roomId) => [
@@ -2304,7 +2313,22 @@ function drawCleaningPdf(doc: jsPDF, params: {
   );
   doc.setFont("JournalUnicode", "normal");
 
-  const referenceRows: RowInput[] = config.rooms.map((room) => [
+  // C7: в rooms-mode справочник строится по выбранным Room, а не по
+  // (теперь пустому) config.rooms.
+  const referenceSource =
+    isRoomsMode && params.roomDetailsById
+      ? (config.selectedRoomIds ?? [])
+          .map((roomId) => params.roomDetailsById?.[roomId])
+          .filter(
+            (item): item is {
+              name: string;
+              detergent: string;
+              currentScope: string[];
+              generalScope: string[];
+            } => Boolean(item),
+          )
+      : config.rooms;
+  const referenceRows: RowInput[] = referenceSource.map((room) => [
     {
       content: room.name,
       styles: { halign: "left" as const, valign: "middle" as const },
@@ -5555,8 +5579,8 @@ function drawFryerOilPdf(doc: jsPDF, params: {
           : formatFryerDateRu(String(entry.date).slice(0, 10)));
     const startTimeStr = formatFryerTime(data.startHour, data.startMinute);
     const endTimeStr = formatFryerTime(data.endHour, data.endMinute);
-    const qualityStartLabel = QUALITY_LABELS[data.qualityStart] || String(data.qualityStart);
-    const qualityEndLabel = QUALITY_LABELS[data.qualityEnd] || String(data.qualityEnd);
+    const qualityStartLabel = formatFryerQuality(data.qualityStart);
+    const qualityEndLabel = formatFryerQuality(data.qualityEnd);
 
     // Пустая ячейка на экране и в печати — «-», а не пустое место.
     const dash = (value: string) => centerCell(value.trim() ? value : "-");
@@ -5872,8 +5896,15 @@ export type JournalDocumentPdfInput = {
   users: JournalDocumentPdfUser[];
   equipment: { id: string; name: string }[];
   /// Помещения организации. Нужны только журналу уборки в rooms-mode —
-  /// у остальных пустой список, лишнего запроса не делаем.
-  rooms: { id: string; name: string }[];
+  /// у остальных пустой список, лишнего запроса не делаем. detergent и
+  /// scope нужны для колонки «средства» и справочника под бланком (C7).
+  rooms: {
+    id: string;
+    name: string;
+    detergent?: string | null;
+    currentScope?: unknown;
+    generalScope?: unknown;
+  }[];
 };
 
 /**
@@ -5954,8 +5985,20 @@ export async function loadJournalDocumentPdfInput(params: {
   const rooms =
     document.template.code === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? await db.room.findMany({
+          // C7 аудита: печать уборки в rooms-mode берёт название,
+          // средства и шаги (scope) из Room — единственного источника
+          // правды. Раньше detergent/scope читались из config.rooms,
+          // и после перевода документа на Room справочник под бланком
+          // печатался пустым, а колонка «средства» — прочерками.
           where: { building: { organizationId } },
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+            detergent: true,
+            currentScope: true,
+            generalScope: true,
+          },
+          orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
         })
       : [];
 
@@ -6113,8 +6156,24 @@ export function renderJournalDocumentPdf(
     // логике из config.rooms / config.controlResponsibles.
     const cleaningRoomNamesById: Record<string, string> = {};
     const cleaningUserInitialsById: Record<string, string> = {};
+    const cleaningRoomDetailsById: Record<
+      string,
+      { name: string; detergent: string; currentScope: string[]; generalScope: string[] }
+    > = {};
+    const asStringList = (value: unknown): string[] =>
+      Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === "string")
+        : [];
     if (cleaningConfig?.cleaningMode === "rooms") {
-      for (const r of rooms) cleaningRoomNamesById[r.id] = r.name;
+      for (const r of rooms) {
+        cleaningRoomNamesById[r.id] = r.name;
+        cleaningRoomDetailsById[r.id] = {
+          name: r.name,
+          detergent: r.detergent ?? "",
+          currentScope: asStringList(r.currentScope),
+          generalScope: asStringList(r.generalScope),
+        };
+      }
       for (const u of users) {
         const parts = (u.name ?? "").trim().split(/\s+/);
         cleaningUserInitialsById[u.id] = parts
@@ -6130,6 +6189,7 @@ export function renderJournalDocumentPdf(
       dateTo: document.dateTo,
       config: cleaningConfig,
       roomNamesById: cleaningRoomNamesById,
+      roomDetailsById: cleaningRoomDetailsById,
       userInitialsById: cleaningUserInitialsById,
       entries: entries.map((entry) => ({
         employeeId: entry.employeeId,

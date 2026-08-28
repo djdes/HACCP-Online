@@ -124,10 +124,12 @@ export function getDefaultMetalImpurityConfig(params?: {
   date?: string;
 }): MetalImpurityDocumentConfig {
   const startDate = params?.date || new Date().toISOString().slice(0, 10);
-  const materialNames =
-    params?.materials?.filter(Boolean) || ["Мука", "Мука пшеничная в/с"];
-  const supplierNames =
-    params?.suppliers?.filter(Boolean) || ['ИП "Ромашка"', 'ООО "Агро-Юг"'];
+  // ПОЧЕМУ пусто: журнал предъявляют инспектору. Любая «примерная»
+  // строка или выдуманный поставщик в свежем документе — это подлог.
+  // Справочники материалов/поставщиков наполняются организацией через
+  // «Редактировать списки» (или приходят в params при импорте).
+  const materialNames = params?.materials?.filter(Boolean) || [];
+  const supplierNames = params?.suppliers?.filter(Boolean) || [];
   const materials = materialNames.map((name, index) => ({
     id: `mat-${index + 1}`,
     name,
@@ -147,16 +149,10 @@ export function getDefaultMetalImpurityConfig(params?: {
     manager ||
     params?.users?.[0] ||
     null;
-  const responsibleEmployee =
-    params?.responsibleName ||
-    responsibleUser?.name ||
-    "Иванов И.И.";
+  // Без реального сотрудника оставляем пусто — «Иванов И.И.» в бланке
+  // выглядит как настоящая подпись несуществующего человека.
+  const responsibleEmployee = params?.responsibleName || responsibleUser?.name || "";
   const responsibleEmployeeId = responsibleUser?.id || params?.responsibleEmployeeId || null;
-  const secondRowDate = new Date(`${startDate}T00:00:00`);
-  secondRowDate.setDate(secondRowDate.getDate() + 16);
-  const secondRowDateKey = Number.isNaN(secondRowDate.getTime())
-    ? startDate
-    : secondRowDate.toISOString().slice(0, 10);
 
   return {
     startDate,
@@ -166,30 +162,9 @@ export function getDefaultMetalImpurityConfig(params?: {
     responsibleEmployee,
     materials,
     suppliers,
-    rows: [
-      createMetalImpurityRow({
-        date: startDate,
-        materialId: materials[1]?.id || materials[0]?.id || "",
-        supplierId: suppliers[0]?.id || "",
-        consumedQuantityKg: "100",
-        impurityQuantityG: "0",
-        impurityCharacteristic: "",
-        responsibleRole: responsiblePosition,
-        responsibleEmployeeId,
-        responsibleName: responsibleEmployee,
-      }),
-      createMetalImpurityRow({
-        date: secondRowDateKey,
-        materialId: materials[1]?.id || materials[0]?.id || "",
-        supplierId: suppliers[1]?.id || suppliers[0]?.id || "",
-        consumedQuantityKg: "1000",
-        impurityQuantityG: "3",
-        impurityCharacteristic: "",
-        responsibleRole: responsiblePosition,
-        responsibleEmployeeId,
-        responsibleName: responsibleEmployee,
-      }),
-    ],
+    // Новый документ — пустой: строки появляются по факту контроля
+    // (event-based журнал), а не «для примера».
+    rows: [],
   };
 }
 

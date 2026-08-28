@@ -57,24 +57,11 @@ export function createBreakdownRow(
 }
 
 export function getBreakdownHistoryDefaultConfig(): BreakdownHistoryDocumentConfig {
+  // ПОЧЕМУ пусто: журнал предъявляют инспектору. Раньше здесь лежала
+  // готовая «поломка весов 28.10.2021» — в свежем документе это запись
+  // о событии, которого не было. Строки заводит сотрудник по факту.
   return {
-    rows: [
-      createBreakdownRow({
-        startDate: "2021-10-28",
-        startHour: "12",
-        startMinute: "15",
-        equipmentName: "Весы платформенные 012-В",
-        breakdownDescription: "Некорректно показывают вес",
-        repairPerformed:
-          "Произведен сброс настроек и проведена дополнительная калибровка весов",
-        partsReplaced: "Нет",
-        endDate: "2021-10-28",
-        endHour: "13",
-        endMinute: "15",
-        downtimeHours: "1",
-        responsiblePerson: "Иванов, Петров",
-      }),
-    ],
+    rows: [],
   };
 }
 

@@ -46,6 +46,7 @@ import {
   formatDateRu,
   formatTime,
   normalizeFryerOilEntryData,
+  formatQualityLabel,
   QUALITY_ASSESSMENT_TABLE,
   QUALITY_LABELS,
   type FryerOilDocumentConfig,
@@ -62,6 +63,7 @@ import {
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 
+import { useTodayKey } from "@/lib/use-today-key";
 /**
  * ЭКРАН = WeSetup (мягкие серые рамки `#ececf4`, шапка `#f8f9fc`),
  * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
@@ -112,13 +114,18 @@ const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 const QUALITY_OPTIONS = [5, 4, 3, 2, 1] as const;
 
+/** Ключ сортировки: незаполненное время идёт как 00:00, а не «null». */
+function sortKey(data: FryerOilEntryData) {
+  const hour = String(data.startHour ?? 0).padStart(2, "0");
+  const minute = String(data.startMinute ?? 0).padStart(2, "0");
+  return `${data.startDate}-${hour}-${minute}`;
+}
+
 function sortEntries(items: EntryItem[]) {
   return [...items]
     .map((item) => ({ ...item, data: normalizeFryerOilEntryData(item.data) }))
     .sort((a, b) =>
-      `${a.data.startDate}-${a.data.startHour}-${a.data.startMinute}`.localeCompare(
-        `${b.data.startDate}-${b.data.startHour}-${b.data.startMinute}`
-      )
+      sortKey(a.data).localeCompare(sortKey(b.data))
     );
 }
 
@@ -168,11 +175,11 @@ function EntryDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время начала</Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
               <Input type="date" value={data.startDate} onChange={(e) => setData((v) => ({ ...v, startDate: e.target.value }))} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
-              <Select value={String(data.startHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startHour: Number(value) }))}>
+              <Select value={data.startHour === null ? "" : String(data.startHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startHour: Number(value) }))}>
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Час" /></SelectTrigger>
                 <SelectContent>{HOURS.map((v) => <SelectItem key={v} value={v}>{v} ч</SelectItem>)}</SelectContent>
               </Select>
-              <Select value={String(data.startMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startMinute: Number(value) }))}>
+              <Select value={data.startMinute === null ? "" : String(data.startMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startMinute: Number(value) }))}>
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Мин" /></SelectTrigger>
                 <SelectContent>{MINUTES.map((v) => <SelectItem key={v} value={v}>{v} мин</SelectItem>)}</SelectContent>
               </Select>
@@ -192,7 +199,7 @@ function EntryDialog(props: {
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Качество на начало</Label>
-            <Select value={String(data.qualityStart)} onValueChange={(value) => setData((d) => ({ ...d, qualityStart: Number(value) }))}>
+            <Select value={data.qualityStart === null ? "" : String(data.qualityStart)} onValueChange={(value) => setData((d) => ({ ...d, qualityStart: Number(value) }))}>
               <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
               <SelectContent>
                 {QUALITY_OPTIONS.map((v) => <SelectItem key={v} value={String(v)}>{v} - {QUALITY_LABELS[v]}</SelectItem>)}
@@ -226,11 +233,11 @@ function EntryDialog(props: {
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Время окончания</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Select value={String(data.endHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endHour: Number(value) }))}>
+              <Select value={data.endHour === null ? "" : String(data.endHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endHour: Number(value) }))}>
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Час" /></SelectTrigger>
                 <SelectContent>{HOURS.map((v) => <SelectItem key={v} value={v}>{v} ч</SelectItem>)}</SelectContent>
               </Select>
-              <Select value={String(data.endMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endMinute: Number(value) }))}>
+              <Select value={data.endMinute === null ? "" : String(data.endMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endMinute: Number(value) }))}>
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Мин" /></SelectTrigger>
                 <SelectContent>{MINUTES.map((v) => <SelectItem key={v} value={v}>{v} мин</SelectItem>)}</SelectContent>
               </Select>
@@ -239,7 +246,7 @@ function EntryDialog(props: {
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Качество на конец</Label>
-            <Select value={String(data.qualityEnd)} onValueChange={(value) => setData((d) => ({ ...d, qualityEnd: Number(value) }))}>
+            <Select value={data.qualityEnd === null ? "" : String(data.qualityEnd)} onValueChange={(value) => setData((d) => ({ ...d, qualityEnd: Number(value) }))}>
               <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
               <SelectContent>
                 {QUALITY_OPTIONS.map((v) => <SelectItem key={v} value={String(v)}>{v} - {QUALITY_LABELS[v]}</SelectItem>)}
@@ -483,7 +490,7 @@ export function FryerOilDocumentClient(props: Props) {
     fields: [
       {
         label: "Оценка на начало",
-        value: QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart,
+        value: formatQualityLabel(entry.data.qualityStart),
         hideIfEmpty: true,
       },
       { label: "Оборудование", value: entry.data.equipmentType, hideIfEmpty: true },
@@ -494,7 +501,7 @@ export function FryerOilDocumentClient(props: Props) {
       },
       {
         label: "Оценка по окончании",
-        value: QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd,
+        value: formatQualityLabel(entry.data.qualityEnd),
         hideIfEmpty: true,
       },
       {
@@ -579,7 +586,9 @@ export function FryerOilDocumentClient(props: Props) {
     );
   }
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  // «Сегодня» — после mount (useTodayKey): new Date() в рендере
+  // расходился между сервером (UTC) и браузером и врал подсветкой.
+  const todayKey = useTodayKey();
   const todayFocusEntryId = entries.find((entry) => entry.data.startDate === todayKey)?.id;
 
   return (
@@ -702,7 +711,7 @@ export function FryerOilDocumentClient(props: Props) {
                 <col className="w-[100px]" />
               </colgroup>
               <thead><tr>{isActive ? <th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-0 py-1.5 print:hidden leading-tight`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Утилизированный, кг</th></tr></thead>
-              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282] leading-tight`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-0 py-1 text-center print:hidden leading-tight`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate || entry.date)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityStart] || entry.data.qualityStart}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatTime(entry.data.endHour, entry.data.endMinute)}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{QUALITY_LABELS[entry.data.qualityEnd] || entry.data.qualityEnd}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
+              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282] leading-tight`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-0 py-1 text-center print:hidden leading-tight`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate || entry.date)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatQualityLabel(entry.data.qualityStart) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatTime(entry.data.endHour, entry.data.endMinute) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatQualityLabel(entry.data.qualityEnd) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
             </table>
             </MobileViewTableWrapper>
             <div className={DOC_EXTRA_BLOCK_CLASS}>

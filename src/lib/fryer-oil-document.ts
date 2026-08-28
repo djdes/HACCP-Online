@@ -103,19 +103,28 @@ export type FryerOilDocumentConfig = {
   lists: FryerOilSelectLists;
 };
 
+/**
+ * Время и оценки качества — nullable. ПОЧЕМУ: сидер создаёт строку на
+ * каждый день периода (структура «дата → строка» нужна), но сама строка
+ * пустая — `{_autoSeeded:true}`. Раньше нормализация подставляла
+ * qualityStart/qualityEnd = 5 («Отличное») и endHour = 17, и свежий
+ * журнал открывался «идеально заполненным на месяц вперёд» — для
+ * инспектора это выдуманные записи. Теперь незаполненное = null и
+ * рисуется прочерком.
+ */
 export type FryerOilEntryData = {
-  startDate: string;        // ISO date string "YYYY-MM-DD"
-  startHour: number;        // 0–23
-  startMinute: number;      // 0–59
+  startDate: string;                // ISO date string "YYYY-MM-DD"
+  startHour: number | null;         // 0–23
+  startMinute: number | null;       // 0–59
   fatType: string;
-  qualityStart: number;     // 1–5
+  qualityStart: number | null;      // 1–5
   equipmentType: string;
   productType: string;
-  endHour: number;          // 0–23
-  endMinute: number;        // 0–59
-  qualityEnd: number;       // 1–5
-  carryoverKg: number;      // остаток жира, кг
-  disposedKg: number;       // слито/утилизировано, кг
+  endHour: number | null;           // 0–23
+  endMinute: number | null;         // 0–59
+  qualityEnd: number | null;        // 1–5
+  carryoverKg: number;              // остаток жира, кг
+  disposedKg: number;               // слито/утилизировано, кг
   controllerName: string;
 };
 
@@ -162,15 +171,15 @@ export function normalizeFryerOilDocumentConfig(value: unknown): FryerOilDocumen
 export function normalizeFryerOilEntryData(value: unknown): FryerOilEntryData {
   const defaults: FryerOilEntryData = {
     startDate: "",
-    startHour: 8,
-    startMinute: 0,
+    startHour: null,
+    startMinute: null,
     fatType: "",
-    qualityStart: 5,
+    qualityStart: null,
     equipmentType: "",
     productType: "",
-    endHour: 17,
-    endMinute: 0,
-    qualityEnd: 5,
+    endHour: null,
+    endMinute: null,
+    qualityEnd: null,
     carryoverKg: 0,
     disposedKg: 0,
     controllerName: "",
@@ -182,7 +191,12 @@ export function normalizeFryerOilEntryData(value: unknown): FryerOilEntryData {
 
   const item = value as Record<string, unknown>;
 
-  function safeInt(v: unknown, fallback: number, min?: number, max?: number): number {
+  function safeInt(
+    v: unknown,
+    fallback: number | null,
+    min?: number,
+    max?: number
+  ): number | null {
     const n = typeof v === "number" ? Math.round(v) : typeof v === "string" ? parseInt(v, 10) : NaN;
     if (isNaN(n)) return fallback;
     if (min !== undefined && n < min) return fallback;
@@ -223,8 +237,16 @@ export function getFryerOilFilePrefix(): string {
 }
 
 // Formatting utilities
-export function formatTime(hour: number, minute: number): string {
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+/** Пустое время (обе части null) — пустая строка, а не «00:00». */
+export function formatTime(hour: number | null, minute: number | null): string {
+  if (hour === null && minute === null) return "";
+  return `${String(hour ?? 0).padStart(2, "0")}:${String(minute ?? 0).padStart(2, "0")}`;
+}
+
+/** Подпись оценки качества (1–5) или пусто, если оценки нет. */
+export function formatQualityLabel(score: number | null): string {
+  if (score === null) return "";
+  return QUALITY_LABELS[score] || String(score);
 }
 
 export function formatDateRu(dateStr: string): string {

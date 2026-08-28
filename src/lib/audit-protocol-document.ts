@@ -77,19 +77,11 @@ export function getDefaultAuditProtocolConfig(): AuditProtocolConfig {
     basisTitle: "Годовой план-программа внутренних аудитов",
     auditedObject: "Производственный участок",
     sections,
-    rows: [
-      createAuditProtocolRow({
-        sectionId: sections[0].id,
-        text: "Наличие утвержденных процедур и записей по внутреннему контролю.",
-        result: "yes",
-      }),
-      createAuditProtocolRow({
-        sectionId: sections[1].id,
-        text: "Актуальность инструкций и журналов на рабочих местах.",
-        result: "no",
-        note: "Требуется обновить часть документов.",
-      }),
-    ],
+    // ПОЧЕМУ пусто: разделы — это каркас протокола, а строки с
+    // результатом «да/нет» — уже результат проведённой проверки.
+    // Готовое «нет — требуется обновить документы» в свежем документе
+    // для инспектора выглядит как выдуманный аудит.
+    rows: [],
     signatures: [
       createAuditProtocolSignature({
         name: "",

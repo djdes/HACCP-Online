@@ -30,9 +30,16 @@ async function resolveEmployeeId(
   return fallback?.id ?? null;
 }
 
-function toTimestamp(data: { startDate: string; startHour: number; startMinute: number }, second = 0) {
+function toTimestamp(
+  data: { startDate: string; startHour: number | null; startMinute: number | null },
+  second = 0
+) {
+  // Время может быть не заполнено (строка-заготовка на день) — тогда
+  // ключом даты служит полночь, а не «null:null».
+  const hour = String(data.startHour ?? 0).padStart(2, "0");
+  const minute = String(data.startMinute ?? 0).padStart(2, "0");
   return new Date(
-    `${data.startDate}T${String(data.startHour).padStart(2, "0")}:${String(data.startMinute).padStart(2, "0")}:${String(second).padStart(2, "0")}.000Z`
+    `${data.startDate}T${hour}:${minute}:${String(second).padStart(2, "0")}.000Z`
   );
 }
 
