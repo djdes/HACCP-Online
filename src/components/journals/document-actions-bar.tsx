@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MoreHorizontal, Printer, Settings2 } from "lucide-react";
+import { MoreHorizontal, Printer, Redo2, Settings2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,6 +11,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DOC_TITLE_ROW_CLASS } from "@/components/journals/journal-responsive";
 import { cn } from "@/lib/utils";
+
+/**
+ * Контракт кнопок отмены. Проп опциональный: журналы, где отмена ещё
+ * не подключена, ничего не передают — и шапка выглядит как раньше.
+ */
+export type DocumentBarUndo = {
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  /** Сколько правок можно откатить — бейджем на кнопке. */
+  undoCount?: number;
+};
 
 export type DocumentBarMenuItem = {
   key: string;
@@ -46,6 +59,8 @@ type Props = {
   settingsLabel?: string;
   /** Вторичные действия — попадают в меню «⋯» после «Печати». */
   menuItems?: DocumentBarMenuItem[];
+  /** Отмена/повтор правок сетки. Не передан — кнопок нет. */
+  undo?: DocumentBarUndo;
   className?: string;
   /**
    * Диалоги/поповеры, которым нужен монтаж вне DropdownMenuContent
@@ -53,6 +68,13 @@ type Props = {
    */
   children?: ReactNode;
 };
+
+/**
+ * Иконочная кнопка шапки. `relative` — под бейдж-счётчик отмены,
+ * disabled приглушается, чтобы «отменять нечего» читалось без тултипа.
+ */
+const ICON_BUTTON_CLASS =
+  "relative flex size-9 items-center justify-center rounded-lg border-0 bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-150 hover:bg-[#5566f6]/[0.09] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 disabled:cursor-not-allowed disabled:bg-[#f5f6ff] disabled:text-[#c3c6d6] disabled:hover:bg-[#f5f6ff]";
 
 const ACTION_BUTTON_CLASS =
   "h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none transition-colors hover:bg-[#5566f6]/[0.09]";
@@ -78,6 +100,7 @@ export function DocumentActionsBar({
   onSettings,
   settingsLabel = "Настройки журнала",
   menuItems = [],
+  undo,
   className,
   children,
 }: Props) {
@@ -97,6 +120,35 @@ export function DocumentActionsBar({
       >
         {heading ? <div className="min-w-0 flex-1">{heading}</div> : null}
         <div className="flex flex-wrap items-center gap-2">
+          {undo ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={undo.onUndo}
+                disabled={!undo.canUndo}
+                aria-label="Отменить последнее изменение"
+                title="Отменить (Ctrl+Z). Отменяются только ваши правки в этой вкладке — автозаполнение не трогаем."
+                className={ICON_BUTTON_CLASS}
+              >
+                <Undo2 className="size-4" />
+                {undo.undoCount ? (
+                  <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-[#5566f6] px-1 text-[10px] font-semibold leading-4 text-white tabular-nums">
+                    {undo.undoCount}
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={undo.onRedo}
+                disabled={!undo.canRedo}
+                aria-label="Повторить отменённое изменение"
+                title="Повторить (Ctrl+Shift+Z)"
+                className={ICON_BUTTON_CLASS}
+              >
+                <Redo2 className="size-4" />
+              </button>
+            </div>
+          ) : null}
           {/* Печать страницы (Ctrl+P) — иконка рядом с «Настройками
               журнала», как на эталоне. Печатные стили документа уже есть,
               поэтому кнопка просто зовёт window.print(). Серверный PDF

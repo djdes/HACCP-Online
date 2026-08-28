@@ -25,7 +25,10 @@ import {
   DocumentCloseButton,
   useDocumentCloseAction,
 } from "@/components/journals/document-close-button";
-import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import {
+  DocumentActionsBar,
+  type DocumentBarUndo,
+} from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
@@ -77,6 +80,12 @@ type Props = {
   hidePrint?: boolean;
   hideAutoFill?: boolean;
   onSettingsClick?: () => void;
+  /**
+   * Кнопки «Отменить/Повторить» в шапке. Проброс до
+   * <DocumentActionsBar>: сам стек живёт в клиенте журнала, потому что
+   * только он знает, как переписать ячейку обратно.
+   */
+  undo?: DocumentBarUndo;
   /**
    * Design v2 toggle — модалка «Настройки журнала» рендерится через
    * `<JournalSettingsModal>` вместо собственного Dialog. Действия
@@ -635,6 +644,7 @@ export function StaffJournalToolbar({
   hidePrint = false,
   hideAutoFill = false,
   onSettingsClick,
+  undo,
   useV2 = false,
 }: Props) {
   const router = useRouter();
@@ -698,6 +708,7 @@ export function StaffJournalToolbar({
             documentId={documentId}
             showPrint={!hidePrint}
             heading={headingNode}
+            undo={undo}
             onSettings={
               status === "active"
                 ? () => (onSettingsClick ? onSettingsClick() : setSettingsOpen(true))

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useJournalUndo } from "@/lib/journal-undo";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
@@ -595,6 +596,8 @@ export function ColdEquipmentDocumentClient({
   const [summaryOpen, setSummaryOpen] = useState(autoFill);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const copyYesterday = useCopyYesterdayAction(documentId);
+  // История отмены (Ctrl+Z) — только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
   const closeAction = useDocumentCloseAction({ documentId, title });
   const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<ColdEquipmentConfigItem | null>(null);
@@ -816,11 +819,22 @@ export function ColdEquipmentDocumentClient({
     }
   }
 
+  /**
+   * `silent` — откат/повтор из истории отмены: шаг в стек не кладём и
+   * ошибку пробрасываем наружу, чтобы протухший шаг (сервер ответил
+   * «прошлые дни закрыты») вылетел из истории.
+   */
   async function handleTemperatureBlur(
     dateKey: string,
     equipmentId: string,
-    rawValue: string
+    rawValue: string,
+    options?: { silent?: boolean }
   ) {
+    const previousValue = rowByDate[dateKey]?.data.temperatures?.[equipmentId];
+    const previousRaw =
+      previousValue === null || previousValue === undefined
+        ? ""
+        : String(previousValue);
     const employeeId = rowByDate[dateKey]?.employeeId || responsibleUserId || employees[0]?.id;
     if (!employeeId) {
       toast.error("Нет сотрудника, которого можно назначить ответственным.");
@@ -878,7 +892,9 @@ export function ColdEquipmentDocumentClient({
     const response = submit.response;
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.entry) {
-      toast.error(result?.error || "Не удалось сохранить значение");
+      const message = result?.error || "Не удалось сохранить значение";
+      if (options?.silent) throw new Error(message);
+      toast.error(message);
       return;
     }
 
@@ -895,6 +911,15 @@ export function ColdEquipmentDocumentClient({
         left.date.localeCompare(right.date)
       );
     });
+
+    if (!options?.silent && previousRaw !== rawValue) {
+      undoStack.push({
+        undo: () =>
+          handleTemperatureBlur(dateKey, equipmentId, previousRaw, { silent: true }),
+        redo: () =>
+          handleTemperatureBlur(dateKey, equipmentId, rawValue, { silent: true }),
+      });
+    }
   }
 
   /**
@@ -975,6 +1000,13 @@ export function ColdEquipmentDocumentClient({
           documentId={documentId}
           heading={<h1 className={DOC_HEADING_CLASS}>{documentTitle}</h1>}
           onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
+          undo={{
+            canUndo: undoStack.canUndo,
+            canRedo: undoStack.canRedo,
+            onUndo: () => void undoStack.undo(),
+            onRedo: () => void undoStack.redo(),
+            undoCount: undoStack.undoCount,
+          }}
           menuItems={
             status === "active"
               ? [

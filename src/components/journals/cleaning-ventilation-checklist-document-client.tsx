@@ -43,6 +43,7 @@ import {
 } from "@/lib/cleaning-ventilation-checklist-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useJournalUndo } from "@/lib/journal-undo";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_HEADING_CLASS,
@@ -707,6 +708,8 @@ export function CleaningVentilationChecklistDocumentClient({
   const [panelOpen, setPanelOpen] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
   const isActive = status === "active";
+  // История отмены (Ctrl+Z) — только правки этого человека в этой вкладке.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
   const { mobileView, switchMobileView } = useMobileView("cleaning_ventilation_checklist");
   const docTitle = title || CLEANING_VENTILATION_CHECKLIST_TITLE;
 
@@ -802,13 +805,22 @@ export function CleaningVentilationChecklistDocumentClient({
     router.refresh();
   };
 
+  /**
+   * `silent` — это откат/повтор из истории отмены: такой вызов не кладёт
+   * новый шаг в стек и пробрасывает ошибку наружу, чтобы протухший шаг
+   * (сервер ответил «прошлые дни закрыты») вылетел из истории.
+   */
   const persistEntry = async (
     dateKey: string,
-    nextData: CleaningVentilationChecklistEntryData
+    nextData: CleaningVentilationChecklistEntryData,
+    options?: { silent?: boolean }
   ) => {
     const employeeId =
       nextData.responsibleUserId || config.mainResponsibleUserId || users[0]?.id;
     if (!employeeId) return;
+
+    const previousData: CleaningVentilationChecklistEntryData =
+      entryMap[dateKey]?.data ?? { procedures: {} };
 
     const result = await requestJson(`/api/journal-documents/${documentId}/entries`, {
       method: "PUT",
@@ -830,6 +842,13 @@ export function CleaningVentilationChecklistDocumentClient({
         data: nextData,
       },
     }));
+
+    if (!options?.silent) {
+      undoStack.push({
+        undo: () => persistEntry(dateKey, previousData, { silent: true }),
+        redo: () => persistEntry(dateKey, nextData, { silent: true }),
+      });
+    }
   };
 
   const updateProcedureTime = async (
@@ -916,6 +935,13 @@ export function CleaningVentilationChecklistDocumentClient({
           documentId={documentId}
           heading={<h1 className={`${DOC_HEADING_CLASS} max-w-[980px]`}>{docTitle}</h1>}
           onSettings={isActive ? () => setSettingsOpen(true) : undefined}
+          undo={{
+            canUndo: undoStack.canUndo,
+            canRedo: undoStack.canRedo,
+            onUndo: () => void undoStack.undo(),
+            onRedo: () => void undoStack.redo(),
+            undoCount: undoStack.undoCount,
+          }}
           menuItems={
             isActive
               ? [

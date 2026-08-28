@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,6 +48,7 @@ import {
 
 import { toast } from "sonner";
 import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
+import { useJournalUndo } from "@/lib/journal-undo";
 import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
@@ -100,6 +101,31 @@ type Props = {
  * ПРИ ПЕЧАТИ (Ctrl+P) инспектор РПН/СЭС ждёт «бумагу» — чёрные рамки
  * без заливок. Поэтому каждый токен несёт пару screen + `print:`.
  */
+
+/**
+ * Покраска мышью — как в графике выходных на /settings/users.
+ *
+ * Один «штрих» (зажал ЛКМ → провёл → отпустил) копит правки в ref, а на
+ * pointerup уходит ОДНИМ запросом в bulk-эндпоинт и кладёт ОДИН шаг в
+ * историю отмены. Ref, а не state: pointermove не должен ждать
+ * перерисовку 31×N ячеек.
+ */
+type PaintCellRef = {
+  employeeId: string;
+  dateKey: string;
+};
+
+type PaintStroke = {
+  kind: "status" | "temperature";
+  /** Что красим: статус «Зд.» / отметку T° / снятие (null). */
+  status: HygieneStatus | null;
+  temperature: boolean | null;
+  /** Курсор ушёл на другую ячейку — значит это штрих, а не тап. */
+  moved: boolean;
+  anchor: PaintCellRef;
+  cells: Map<string, PaintCellRef & { data: HygieneEntryData }>;
+  previous: Map<string, HygieneEntryData | undefined>;
+};
 
 const STATUS_CYCLE: Array<HygieneStatus | null> = [
   null,
@@ -274,6 +300,19 @@ export function HygieneDocumentClient({
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
     null
   );
+  // Покраска: контейнер листа ловит pointermove/up (pointer capture),
+  // поэтому нужен ref именно на него, а не на таблицу.
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const strokeRef = useRef<PaintStroke | null>(null);
+  // Якорь живёт МЕЖДУ штрихами: Shift+клик тянет прямоугольник от
+  // последней тронутой ячейки, как в графике выходных.
+  const lastAnchorRef = useRef<(PaintCellRef & { kind: PaintStroke["kind"] }) | null>(
+    null
+  );
+  const [painting, setPainting] = useState(false);
+  // История отмены: только правки этого человека в этой вкладке.
+  // Автозаполнение сюда не попадает — иначе Ctrl+Z откатывал бы чужое.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
 
   useEffect(() => {
     setEntryMap(buildEntryMap(initialEntries));
@@ -341,11 +380,56 @@ export function HygieneDocumentClient({
     setSelectedEmployeeIds(checked ? rosterUsers.map((employee) => employee.id) : []);
   }
 
-  async function persistEntry(employeeId: string, dateKey: string, nextData: HygieneEntryData) {
+  /** Локально применить набор ячеек (пустой объект = очистить ячейку). */
+  function applyCellsLocal(
+    cells: Array<PaintCellRef & { data: HygieneEntryData }>
+  ) {
+    setEntryMap((current) => {
+      const copy = { ...current };
+      cells.forEach((cell) => {
+        const key = makeCellKey(cell.employeeId, cell.dateKey);
+        if (Object.keys(cell.data).length === 0) {
+          delete copy[key];
+        } else {
+          copy[key] = cell.data;
+        }
+      });
+      return copy;
+    });
+  }
+
+  function restoreCellsLocal(previous: Map<string, HygieneEntryData | undefined>) {
+    setEntryMap((current) => {
+      const copy = { ...current };
+      previous.forEach((value, key) => {
+        if (value && Object.keys(value).length > 0) {
+          copy[key] = value;
+        } else {
+          delete copy[key];
+        }
+      });
+      return copy;
+    });
+  }
+
+  /**
+   * Запись одной ячейки.
+   *
+   * `silent` — это откат/повтор из истории: такой вызов НЕ кладёт новый
+   * шаг в стек (иначе Ctrl+Z зациклился бы) и пробрасывает ошибку
+   * наружу, чтобы хук выбросил протухший шаг (сервер мог ответить 403
+   * «прошлые дни закрыты», если после правки наступила полночь).
+   */
+  async function persistEntry(
+    employeeId: string,
+    dateKey: string,
+    nextData: HygieneEntryData,
+    options?: { silent?: boolean }
+  ) {
     const key = makeCellKey(employeeId, dateKey);
     const previous = entryMap[key];
 
-    setEntryMap((current) => ({ ...current, [key]: nextData }));
+    applyCellsLocal([{ employeeId, dateKey, data: nextData }]);
     setSavingCellKey(key);
 
     try {
@@ -358,19 +442,93 @@ export function HygieneDocumentClient({
           data: nextData,
         }),
       });
+
+      if (!options?.silent) {
+        // Шаг кладём ТОЛЬКО после успешного PUT: при ошибке значение уже
+        // откатилось само, и отмена стала бы двойной.
+        undoStack.push({
+          undo: () =>
+            persistEntry(employeeId, dateKey, previous ?? {}, { silent: true }),
+          redo: () =>
+            persistEntry(employeeId, dateKey, nextData, { silent: true }),
+        });
+      }
     } catch (error) {
-      setEntryMap((current) => {
-        const copy = { ...current };
-        if (previous && Object.keys(previous).length > 0) {
-          copy[key] = previous;
-        } else {
-          delete copy[key];
-        }
-        return copy;
-      });
+      restoreCellsLocal(new Map([[key, previous]]));
+      if (options?.silent) throw error;
       toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
     } finally {
       setSavingCellKey((current) => (current === key ? null : current));
+    }
+  }
+
+  /**
+   * Запись пачки ячеек одним запросом (покраска и её отмена).
+   *
+   * Запертые прошлые дни сервер пропускает молча и возвращает `skipped` —
+   * штрих поперёк границы «вчера/сегодня» сохраняет то, что можно, а не
+   * падает целиком.
+   */
+  async function persistCells(
+    cells: Array<PaintCellRef & { data: HygieneEntryData }>,
+    options?: { silent?: boolean; previous?: Map<string, HygieneEntryData | undefined> }
+  ) {
+    if (cells.length === 0) return;
+    const previous =
+      options?.previous ??
+      new Map(
+        cells.map((cell) => {
+          const key = makeCellKey(cell.employeeId, cell.dateKey);
+          return [key, entryMap[key]] as const;
+        })
+      );
+
+    applyCellsLocal(cells);
+
+    try {
+      const result = await requestJson(
+        `/api/journal-documents/${documentId}/entries/bulk`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: cells.map((cell) => ({
+              employeeId: cell.employeeId,
+              date: cell.dateKey,
+              data: cell.data,
+            })),
+          }),
+        }
+      );
+
+      const saved = typeof result?.saved === "number" ? result.saved : cells.length;
+      const skipped = typeof result?.skipped === "number" ? result.skipped : 0;
+
+      if (saved === 0 && skipped > 0) {
+        // Ничего не записалось — для истории отмены это провал шага.
+        throw new Error(PAST_DAY_LOCKED_MESSAGE);
+      }
+      if (skipped > 0) {
+        toast.warning(
+          `Сохранено ${saved}, пропущено ${skipped}: ${PAST_DAY_LOCKED_MESSAGE.toLowerCase()}`
+        );
+      }
+
+      if (!options?.silent) {
+        const undoCells = cells.map((cell) => ({
+          employeeId: cell.employeeId,
+          dateKey: cell.dateKey,
+          data: previous.get(makeCellKey(cell.employeeId, cell.dateKey)) ?? {},
+        }));
+        undoStack.push({
+          undo: () => persistCells(undoCells, { silent: true }),
+          redo: () => persistCells(cells, { silent: true }),
+        });
+      }
+    } catch (error) {
+      restoreCellsLocal(previous);
+      if (options?.silent) throw error;
+      toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
     }
   }
 
@@ -446,6 +604,186 @@ export function HygieneDocumentClient({
           };
 
     await persistEntry(employeeId, dateKey, nextData);
+  }
+
+  /**
+   * Значение ячейки для текущего штриха. Семантика «снятие и
+   * проставление», как у чекбоксов графика выходных: якорная ячейка
+   * пустая → красим «Зд.» (или «нет» на строке температуры), якорная
+   * заполнена → снимаем. Редкие статусы (Отп/Б-л) остаются на ПКМ.
+   */
+  function buildPaintCell(
+    stroke: PaintStroke,
+    employeeId: string,
+    dateKey: string
+  ): PaintCellRef & { data: HygieneEntryData } {
+    const current = normalizeHygieneEntryData(
+      entryMap[makeCellKey(employeeId, dateKey)]
+    );
+
+    if (stroke.kind === "status") {
+      return {
+        employeeId,
+        dateKey,
+        data: buildEntryForStatus(stroke.status, current),
+      };
+    }
+
+    if (stroke.temperature === null) {
+      // На строке температуры снимаем ТОЛЬКО отметку T°, статус
+      // сотрудника за этот день трогать нельзя.
+      return {
+        employeeId,
+        dateKey,
+        data: { ...current, temperatureAbove37: null },
+      };
+    }
+
+    return {
+      employeeId,
+      dateKey,
+      data: {
+        status: current.status ?? "healthy",
+        temperatureAbove37: stroke.temperature,
+      },
+    };
+  }
+
+  function paintCell(stroke: PaintStroke, employeeId: string, dateKey: string) {
+    const key = makeCellKey(employeeId, dateKey);
+    if (stroke.cells.has(key)) return;
+    // Запертые дни не красим вовсе — сервер их всё равно пропустит.
+    if (isDayLocked(dateKey)) return;
+    stroke.previous.set(key, entryMap[key]);
+    const cell = buildPaintCell(stroke, employeeId, dateKey);
+    stroke.cells.set(key, cell);
+    applyCellsLocal([cell]);
+  }
+
+  /** Shift+клик — прямоугольник от прошлого якоря до текущей ячейки. */
+  function paintRect(stroke: PaintStroke, from: PaintCellRef, to: PaintCellRef) {
+    const rowIds = printableEmployees
+      .filter((employee) => employee.name)
+      .map((employee) => employee.id);
+    const r1 = rowIds.indexOf(from.employeeId);
+    const r2 = rowIds.indexOf(to.employeeId);
+    const c1 = dateKeys.indexOf(from.dateKey);
+    const c2 = dateKeys.indexOf(to.dateKey);
+    if (r1 < 0 || r2 < 0 || c1 < 0 || c2 < 0) return;
+    for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r += 1) {
+      for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c += 1) {
+        paintCell(stroke, rowIds[r], dateKeys[c]);
+      }
+    }
+  }
+
+  function cellFromPoint(x: number, y: number) {
+    const element = document.elementFromPoint(x, y);
+    const cell =
+      element instanceof HTMLElement
+        ? element.closest<HTMLElement>("[data-hyg-cell]")
+        : null;
+    if (!cell?.dataset.emp || !cell.dataset.date || !cell.dataset.kind) return null;
+    return {
+      employeeId: cell.dataset.emp,
+      dateKey: cell.dataset.date,
+      kind: cell.dataset.kind as PaintStroke["kind"],
+    };
+  }
+
+  /**
+   * Начало взаимодействия с ячейкой. Пока курсор не ушёл на соседнюю
+   * ячейку — это обычный тап (прежний цикл статусов); как только ушёл,
+   * превращается в штрих покраски.
+   */
+  function handleCellPointerDown(
+    event: React.PointerEvent<HTMLTableCellElement>,
+    employeeId: string,
+    dateKey: string,
+    kind: PaintStroke["kind"],
+    interactive: boolean
+  ) {
+    if (!isActive || !interactive) return;
+    // ПКМ покраску не запускает — там своё меню выбора статуса.
+    if (event.button !== 0) return;
+    if (isDayLocked(dateKey)) {
+      refusePastDay();
+      return;
+    }
+    // Иначе браузер начнёт выделять текст таблицы вместо покраски.
+    event.preventDefault();
+
+    const current = normalizeHygieneEntryData(
+      entryMap[makeCellKey(employeeId, dateKey)]
+    );
+    const stroke: PaintStroke = {
+      kind,
+      status: kind === "status" ? (current.status ? null : "healthy") : null,
+      temperature:
+        kind === "temperature"
+          ? current.temperatureAbove37 === true ||
+            current.temperatureAbove37 === false
+            ? null
+            : false
+          : null,
+      moved: false,
+      anchor: { employeeId, dateKey },
+      cells: new Map(),
+      previous: new Map(),
+    };
+    strokeRef.current = stroke;
+
+    const previousAnchor = lastAnchorRef.current;
+    if (event.shiftKey && previousAnchor && previousAnchor.kind === kind) {
+      paintRect(stroke, previousAnchor, { employeeId, dateKey });
+      stroke.moved = true;
+      setPainting(true);
+    }
+
+    lastAnchorRef.current = { employeeId, dateKey, kind };
+    sheetRef.current?.setPointerCapture(event.pointerId);
+  }
+
+  function handleSheetPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const stroke = strokeRef.current;
+    if (!stroke) return;
+    const cell = cellFromPoint(event.clientX, event.clientY);
+    if (!cell || cell.kind !== stroke.kind) return;
+    const sameAsAnchor =
+      cell.employeeId === stroke.anchor.employeeId &&
+      cell.dateKey === stroke.anchor.dateKey;
+    if (sameAsAnchor && !stroke.moved) return;
+
+    if (!stroke.moved) {
+      stroke.moved = true;
+      setPainting(true);
+      paintCell(stroke, stroke.anchor.employeeId, stroke.anchor.dateKey);
+    }
+    paintCell(stroke, cell.employeeId, cell.dateKey);
+    lastAnchorRef.current = { ...cell, kind: stroke.kind };
+  }
+
+  /**
+   * Конец взаимодействия: тап — прежний цикл статусов, штрих — ОДИН
+   * POST в bulk и ОДИН шаг в истории отмены.
+   */
+  function finishStroke() {
+    const stroke = strokeRef.current;
+    if (!stroke) return;
+    strokeRef.current = null;
+    setPainting(false);
+
+    if (!stroke.moved) {
+      const { employeeId, dateKey } = stroke.anchor;
+      (stroke.kind === "status"
+        ? handleStatusClick(employeeId, dateKey)
+        : handleTemperatureClick(employeeId, dateKey)
+      ).catch(() => {});
+      return;
+    }
+
+    const cells = [...stroke.cells.values()];
+    void persistCells(cells, { previous: stroke.previous });
   }
 
   /**
@@ -563,6 +901,29 @@ export function HygieneDocumentClient({
     <div className="bg-white text-black">
       <FocusTodayScroller />
       <style jsx global>{`
+        /* Пары строк сотрудника: жирная граница сверху и снизу пары и
+           подсветка всей пары при наведении. На экране это единственный
+           способ не потерять, где чья строка, на 31 колонке. Тонкие
+           внутренние линии пары остаются от GRID_CELL_CLASS. */
+        .hygiene-grid tbody.hygiene-pair > tr:first-child > td {
+          border-top: 2px solid #0b1024;
+        }
+
+        .hygiene-grid tbody.hygiene-pair > tr:last-child > td {
+          border-bottom: 2px solid #0b1024;
+        }
+
+        /* Ячейки с rowSpan (чекбокс, №) живут в первой строке пары —
+           нижнюю жирную линию им нужно нарисовать отдельно, иначе у
+           последней пары низ остаётся тонким. */
+        .hygiene-grid tbody.hygiene-pair > tr:first-child > td[rowspan] {
+          border-bottom: 2px solid #0b1024;
+        }
+
+        .hygiene-grid tbody.hygiene-pair:hover > tr > td {
+          background-color: #f7f8ff;
+        }
+
         /* A1: локальный @page убран — ориентация задаётся один раз в
            globals.css (именованный @page journal-landscape + маркер
            [data-journal-print-root] страницы документа). */
@@ -643,6 +1004,20 @@ export function HygieneDocumentClient({
             margin-top: 120px !important;
           }
 
+          /* Бумажная форма для инспектора не меняется: экранные
+             рамки пар и подсветка сбрасываются до обычной сетки. */
+          .hygiene-grid tbody.hygiene-pair > tr:first-child > td,
+          .hygiene-grid tbody.hygiene-pair > tr:first-child > td[rowspan],
+          .hygiene-grid tbody.hygiene-pair > tr:last-child > td {
+            border-top-width: 1px !important;
+            border-bottom-width: 1px !important;
+            border-color: #000 !important;
+          }
+
+          .hygiene-grid tbody.hygiene-pair:hover > tr > td {
+            background-color: transparent !important;
+          }
+
           .hygiene-checkbox {
             width: 10px !important;
             height: 10px !important;
@@ -677,6 +1052,13 @@ export function HygieneDocumentClient({
           organizationName={organizationLabel}
           showHeaderActions
           useV2={useV2}
+          undo={{
+            canUndo: undoStack.canUndo,
+            canRedo: undoStack.canRedo,
+            onUndo: () => void undoStack.undo(),
+            onRedo: () => void undoStack.redo(),
+            undoCount: undoStack.undoCount,
+          }}
         />
 
         {!isActive ? (
@@ -869,7 +1251,16 @@ export function HygieneDocumentClient({
         {/* Q3: `py-6` добавлял 24px СВЕРХУ к 40px полосы автозаполнения —
             H1 → бумажная шапка выходил 65px вместо канонических 41.
             Верхний отступ задаёт полоса, тут остаётся только нижний. */}
-        <div className="hygiene-sheet min-w-[1100px] pb-6 sm:min-w-0">
+        <div
+          ref={sheetRef}
+          onPointerMove={handleSheetPointerMove}
+          onPointerUp={finishStroke}
+          onPointerCancel={finishStroke}
+          onLostPointerCapture={finishStroke}
+          className={`hygiene-sheet min-w-[1100px] pb-6 sm:min-w-0 ${
+            painting ? "cursor-crosshair select-none [touch-action:none]" : ""
+          }`}
+        >
 
         <div className="hygiene-page">
           <div>
@@ -954,9 +1345,13 @@ export function HygieneDocumentClient({
                 </tr>
               </thead>
 
-              <tbody>
-                {printableEmployees.map((employee) => (
-                  <Fragment key={employee.id}>
+              {/* Каждый сотрудник — отдельный <tbody> на ДВЕ строки
+                  («Зд./В» и «Температура»). Так пара получает узел, на
+                  который вешается жирная граница и подсветка целиком:
+                  раньше на 31 колонке взгляд терял, где чья пара.
+                  Несколько tbody в таблице — валидный HTML. */}
+              {printableEmployees.map((employee) => (
+                <tbody key={employee.id} className="hygiene-pair">
                     <tr>
                       <td rowSpan={2} className={`${GRID_CELL_CLASS} px-2 py-0.5 text-center align-middle leading-tight print:hidden`}>
                         {employee.name ? (
@@ -1000,10 +1395,21 @@ export function HygieneDocumentClient({
                                   ? "cursor-pointer hover:bg-[#f5f6ff]"
                                   : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
-                            onClick={() => {
-                              if (!employee.name) return;
-                              handleStatusClick(employee.id, dateKey).catch(() => {});
-                            }}
+                            data-hyg-cell={
+                              isActive && employee.name && !locked ? "" : undefined
+                            }
+                            data-emp={employee.id}
+                            data-date={dateKey}
+                            data-kind="status"
+                            onPointerDown={(event) =>
+                              handleCellPointerDown(
+                                event,
+                                employee.id,
+                                dateKey,
+                                "status",
+                                Boolean(employee.name)
+                              )
+                            }
                             onContextMenu={(event) =>
                               openCellMenu(
                                 event,
@@ -1043,10 +1449,21 @@ export function HygieneDocumentClient({
                                   ? "cursor-pointer hover:bg-[#f5f6ff]"
                                   : ""
                             } ${isSaving ? "bg-[#f7f8ff]" : ""}`}
-                            onClick={() => {
-                              if (!employee.name) return;
-                              handleTemperatureClick(employee.id, dateKey).catch(() => {});
-                            }}
+                            data-hyg-cell={
+                              isActive && employee.name && !locked ? "" : undefined
+                            }
+                            data-emp={employee.id}
+                            data-date={dateKey}
+                            data-kind="temperature"
+                            onPointerDown={(event) =>
+                              handleCellPointerDown(
+                                event,
+                                employee.id,
+                                dateKey,
+                                "temperature",
+                                Boolean(employee.name)
+                              )
+                            }
                             onContextMenu={(event) =>
                               openCellMenu(
                                 event,
@@ -1062,9 +1479,10 @@ export function HygieneDocumentClient({
                         );
                       })}
                     </tr>
-                  </Fragment>
-                ))}
+                </tbody>
+              ))}
 
+              <tbody>
                 <tr>
                   {/* Служебная строка бланка. Её саму удалить нельзя, но
                       галочка не декоративная: как на эталоне, она работает
@@ -1100,6 +1518,16 @@ export function HygieneDocumentClient({
                 3) «Условные обозначения» простым курсивом, без карточки.
                 Подсказка «клик по ячейке…» убрана: то же самое написано
                 в «Как заполнять». */}
+            {/* Подсказка по покраске — только экран: на бумаге её быть
+                не должно. Формулировка та же, что в графике выходных,
+                чтобы приём читался как один и тот же жест. */}
+            <div className="screen-only mt-4 text-[12px] text-[#9b9fb3] print:hidden">
+              Зажмите левую кнопку и проведите по ячейкам, чтобы отметить
+              сразу несколько дней. Shift + клик — прямоугольник. Правая
+              кнопка — выбор статуса (Отп, Б/л). Ctrl+Z отменяет последнее
+              изменение, Ctrl+Shift+Z — повторяет.
+            </div>
+
             <div className={`hygiene-notes mt-6 ${DOC_NOTE_TEXT_CLASS}`}>
               <div className="font-semibold">В журнал регистрируются результаты:</div>
               {HYGIENE_REGISTER_NOTES.map((note) => (

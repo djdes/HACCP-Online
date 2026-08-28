@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
@@ -6,100 +5,32 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { reconcileEntryStaffFields } from "@/lib/journal-staff-binding";
 import { isManagementRole } from "@/lib/user-roles";
-import { detectTemperatureCapas } from "@/lib/capa-auto-detect";
 import {
-  canEditAutomationCell,
-  canEditEntryAt,
   isCellLocked,
   PAST_DAY_LOCKED_MESSAGE,
   type AutomationLockContext,
 } from "@/lib/closed-day";
-import { isJournalAutomationEnabled } from "@/lib/journal-automation";
 import { canWriteJournal } from "@/lib/journal-acl";
+import {
+  checkEntryWrite,
+  isValidDate,
+  loadEntryWriteContext,
+  logPastDayOverride,
+  maybeTriggerColdEquipmentCapaDetection,
+  toPrismaJsonValue,
+  type EntryWriteActor,
+  type EntryWriteDoc,
+} from "@/lib/journal-entry-write";
 
 /**
- * Fire-and-forget авто-детектор CAPA по температуре. Дёргается после
- * каждой записи в документ `cold_equipment_control` — если среди трёх
- * последних дней по одному и тому же холодильнику есть отклонение от
- * нормы, detectTemperatureCapas откроет CAPA с заготовленным планом
- * «проверить компрессор». Идемпотентно.
+ * Контекст автоматического запрета «день в день» — для PATCH/DELETE,
+ * которым нужен только он. Полный контекст (плюс `lockPastDayEdits`)
+ * живёт в `@/lib/journal-entry-write` и общий с bulk-роутом.
  */
-function maybeTriggerColdEquipmentCapaDetection(
-  templateCode: string | undefined,
-  organizationId: string
-): void {
-  if (templateCode !== "cold_equipment_control") return;
-  detectTemperatureCapas({ organizationId }).catch((err) => {
-    console.warn("[capa-auto] cold-equipment detect failed:", err);
-  });
-}
-
-/**
- * Контекст правила «изменения день в день» для документа.
- *
- * Живёт отдельно от `Organization.lockPastDayEdits`: тот тумблер
- * опциональный и пускает management, а автоматика запирает прошлые дни
- * для ВСЕХ, кроме ROOT (см. closed-day.ts). Иначе смысл автозаполнения
- * теряется: сайт проставил «Здоров» всем, а вчера кто-то дописал
- * «был с температурой» — и журнал перестаёт быть доказательством.
- */
-async function loadAutomationLockContext(doc: {
-  organizationId: string;
-  autoFill: boolean;
-  template?: { code: string } | null;
-}): Promise<AutomationLockContext> {
-  const org = await db.organization.findUnique({
-    where: { id: doc.organizationId },
-    select: {
-      shiftEndHour: true,
-      journalAutomationJson: true,
-      autoJournalCodes: true,
-    },
-  });
-  return {
-    documentAutoFill: doc.autoFill === true,
-    automationEnabled: Boolean(
-      doc.template?.code && isJournalAutomationEnabled(org, doc.template.code)
-    ),
-    shiftEndHour: org?.shiftEndHour ?? 0,
-  };
-}
-
-/** Лог ROOT-override — событие, на которое смотрит ХАССП-аудит. */
-async function logPastDayOverride(args: {
-  organizationId: string;
-  userId: string;
-  userName: string | null;
-  documentId: string;
-  employeeId: string | null;
-  date: Date;
-  templateCode: string | null;
-}) {
-  await db.auditLog.create({
-    data: {
-      organizationId: args.organizationId,
-      userId: args.userId,
-      userName: args.userName,
-      action: "closed_day.override",
-      entity: "journal_document_entry",
-      entityId: args.documentId,
-      details: {
-        documentId: args.documentId,
-        employeeId: args.employeeId,
-        date: args.date.toISOString(),
-        templateCode: args.templateCode,
-        rule: "journal_automation",
-      },
-    },
-  });
-}
-
-function isValidDate(value: Date) {
-  return Number.isFinite(value.getTime());
-}
-
-function toPrismaJsonValue(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
-  return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
+async function loadAutomationLockContext(
+  doc: EntryWriteDoc
+): Promise<AutomationLockContext> {
+  return (await loadEntryWriteContext(doc)).automation;
 }
 
 /**
@@ -186,74 +117,32 @@ export async function PUT(
     );
   }
 
-  // Жёсткое правило автоматики «день в день» — строже, чем
-  // lockPastDayEdits, и действует на все роли кроме ROOT.
-  const automationCtx = await loadAutomationLockContext(doc);
-  const automationDecision = canEditAutomationCell(
-    dateObj,
-    { role: session.user.role, isRoot: session.user.isRoot === true },
-    automationCtx
-  );
-  if (!automationDecision.allowed) {
+  // Запреты «прошлый день закрыт» — общие с bulk-роутом (см.
+  // journal-entry-write.ts): жёсткий автоматический и опциональный
+  // организационный. Оба пишут override в AuditLog.
+  const actor: EntryWriteActor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+    name: session.user.name ?? null,
+  };
+  const writeCtx = await loadEntryWriteContext(doc);
+  const decision = checkEntryWrite(writeCtx, actor, dateObj);
+  if (!decision.allowed) {
     return NextResponse.json(
-      { error: PAST_DAY_LOCKED_MESSAGE, code: "past_day_locked" },
+      { error: decision.error, code: decision.code },
       { status: 403 }
     );
   }
-  if (automationDecision.isOverride) {
+  if (decision.isOverride) {
     await logPastDayOverride({
       organizationId: doc.organizationId,
-      userId: session.user.id,
-      userName: session.user.name ?? null,
+      actor,
       documentId,
       employeeId,
-      date: dateObj,
+      dates: [dateObj],
       templateCode: doc.template?.code ?? null,
     });
-  }
-
-  // «Закрытый день»: рядовой сотрудник не может править прошедшие
-  // дни, если org.lockPastDayEdits=true. Management — может, но
-  // мы запишем override в AuditLog.
-  const orgConfig = await db.organization.findUnique({
-    where: { id: doc.organizationId },
-    select: { lockPastDayEdits: true, shiftEndHour: true },
-  });
-  if (orgConfig) {
-    const decision = canEditEntryAt(
-      dateObj,
-      { role: session.user.role, isRoot: session.user.isRoot === true },
-      orgConfig
-    );
-    if (!decision.allowed) {
-      return NextResponse.json(
-        {
-          error:
-            "День закрыт. Рядовые сотрудники не могут редактировать записи прошедших дней.",
-          code: "past_day_locked",
-        },
-        { status: 403 }
-      );
-    }
-    if (decision.isOverride) {
-      // Лог переопределения — событие на которое смотрит ХАССП-аудит.
-      await db.auditLog.create({
-        data: {
-          organizationId: doc.organizationId,
-          userId: session.user.id,
-          userName: session.user.name ?? null,
-          action: "closed_day.override",
-          entity: "journal_document_entry",
-          entityId: documentId,
-          details: {
-            documentId,
-            employeeId,
-            date: dateObj.toISOString(),
-            templateCode: doc.template?.code ?? null,
-          },
-        },
-      });
-    }
   }
 
   const entry = await db.journalDocumentEntry.upsert({
@@ -374,12 +263,17 @@ export async function PATCH(
   if (lockedEntry) {
     await logPastDayOverride({
       organizationId: doc.organizationId,
-      userId: session.user.id,
-      userName: session.user.name ?? null,
+      actor: {
+        id: session.user.id,
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+        name: session.user.name ?? null,
+      },
       documentId,
       employeeId: lockedEntry.employeeId,
-      date: lockedEntry.date,
+      dates: [lockedEntry.date],
       templateCode: doc.template?.code ?? null,
+      rule: "journal_automation",
     });
   }
 

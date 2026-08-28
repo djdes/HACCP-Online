@@ -35,6 +35,7 @@ import {
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
+import { useJournalUndo } from "@/lib/journal-undo";
 import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
@@ -943,6 +944,9 @@ export function ClimateDocumentClient({
     responsibleUserId
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // История отмены (Ctrl+Z). Пока курсор в поле ввода, хоткей отдан
+  // нативной отмене браузера — стек ловит уже сохранённые значения.
+  const undoStack = useJournalUndo({ enabled: status === "active" });
   const closeAction = useDocumentCloseAction({ documentId, title: documentTitle });
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
@@ -1174,6 +1178,25 @@ export function ClimateDocumentClient({
     }
   }
 
+  /**
+   * Откат/повтор из истории отмены. Пишем тем же PUT, что и обычная
+   * правка, поэтому серверные запреты (закрытый день, права) действуют
+   * сами; ошибка пробрасывается, чтобы протухший шаг вылетел из стека.
+   */
+  async function applyRowSilent(row: RowItem, fallback: RowItem) {
+    setRows((currentRows) =>
+      currentRows.map((item) => (item.id === row.id ? row : item))
+    );
+    try {
+      await saveRow(row);
+    } catch (error) {
+      setRows((currentRows) =>
+        currentRows.map((item) => (item.id === row.id ? fallback : item))
+      );
+      throw error;
+    }
+  }
+
   async function saveRow(nextRow: RowItem) {
     const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
       method: "PUT",
@@ -1240,6 +1263,10 @@ export function ClimateDocumentClient({
 
     try {
       await saveRow(nextRow);
+      undoStack.push({
+        undo: () => applyRowSilent(previousRow, nextRow),
+        redo: () => applyRowSilent(nextRow, previousRow),
+      });
     } catch (error) {
       setRows((currentRows) =>
         currentRows.map((item) => (item.id === rowId ? previousRow : item))
@@ -1498,6 +1525,13 @@ export function ClimateDocumentClient({
           documentId={documentId}
           heading={<h1 className={DOC_HEADING_CLASS}>{documentTitle}</h1>}
           onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
+          undo={{
+            canUndo: undoStack.canUndo,
+            canRedo: undoStack.canRedo,
+            onUndo: () => void undoStack.undo(),
+            onRedo: () => void undoStack.redo(),
+            undoCount: undoStack.undoCount,
+          }}
           menuItems={
             status === "active"
               ? [
