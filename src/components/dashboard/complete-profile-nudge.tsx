@@ -107,8 +107,12 @@ function phoneLooksValid(raw: string): boolean {
 
 /**
  * Анкета. Обязательны только название организации и телефон — они
- * наверху, отдельной группой. Всё остальное человек дозаполнит в
+ * наверху, помечены красной точкой. Всё остальное человек дозаполнит в
  * настройках, и держать его на пути к первому журналу незачем.
+ *
+ * Подписи-разделители («Обязательно», «можно заполнить позже») и
+ * пояснения к необязательным полям убраны: они ничего не добавляли к
+ * подписям самих полей, но делали модалку на треть выше.
  *
  * Подтверждения почты здесь больше нет: оно блокировало «Готово» до
  * похода в почтовый ящик. Переехало в /settings.
@@ -193,7 +197,7 @@ function CompleteProfileModal({
               {welcome ? "Аккаунт создан!" : "Завершите регистрацию"}
             </h2>
             <p className="mt-0.5 text-[13px] leading-snug text-[#6f7282]">
-              Пароль отправлен на {email}. Осталось назвать организацию.
+              Пароль отправлен на {email}
             </p>
           </div>
           <button
@@ -210,81 +214,70 @@ function CompleteProfileModal({
           id="complete-profile-form"
           noValidate
           onSubmit={submit}
-          className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5"
+          className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5"
         >
-          <div className="space-y-3">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
-              Обязательно
-            </div>
+          <Field
+            label="Название организации"
+            required
+            error={touched.org && !nameOk ? "Минимум 2 символа" : null}
+          >
+            <input
+              value={organizationName}
+              onChange={(e) => setOrganizationName(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, org: true }))}
+              aria-required
+              placeholder="ООО «Ромашка»"
+              maxLength={200}
+              className={CONTROL_CLASS}
+            />
+          </Field>
 
+          {/* Телефон занимает ровно свою ширину — в российском номере
+              11 цифр, растягивать поле на всю строку незачем. Справа
+              от него встаёт узкое промо TasksFlow: место, где человек
+              вводит номер, — единственное, где реклама автосвязки
+              уместна, потому что связывает аккаунты именно номер.
+
+              Промо вынесено из <Field>: внутри <label> ссылка и кнопка
+              «скопировать» перехватывались бы фокусом инпута. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
             <Field
-              label="Название организации"
+              label="Телефон"
               required
-              error={touched.org && !nameOk ? "Минимум 2 символа" : null}
+              className="sm:w-[188px] sm:shrink-0"
+              error={
+                touched.phone && !phoneOk ? "Формат: +7 999 123-45-67" : null
+              }
             >
               <input
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, org: true }))}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
                 aria-required
-                placeholder="ООО «Ромашка»"
-                maxLength={200}
-                className={inputCls(touched.org && !nameOk)}
+                inputMode="tel"
+                placeholder="+7 999 123-45-67"
+                maxLength={40}
+                className={CONTROL_CLASS}
               />
             </Field>
 
-            {/* Телефон занимает ровно свою ширину — в российском номере
-                11 цифр, растягивать поле на всю строку незачем. Справа
-                от него встаёт узкое промо TasksFlow: место, где человек
-                вводит номер, — единственное, где реклама автосвязки
-                уместна, потому что связывает аккаунты именно номер.
-
-                Промо вынесено из <Field>: внутри <label> ссылка и кнопка
-                «скопировать» перехватывались бы фокусом инпута. */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-              <Field
-                label="Телефон"
-                required
-                className="sm:w-[188px] sm:shrink-0"
-                error={
-                  touched.phone && !phoneOk ? "Формат: +7 999 123-45-67" : null
-                }
-              >
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
-                  aria-required
-                  inputMode="tel"
-                  placeholder="+7 999 123-45-67"
-                  maxLength={40}
-                  className={inputCls(touched.phone && !phoneOk)}
-                />
-              </Field>
-
-              <TasksFlowPromoHint
-                campaign="register_nudge"
-                compact
-                className="min-w-0 flex-1"
-              />
-            </div>
+            <TasksFlowPromoHint
+              campaign="register_nudge"
+              compact
+              className="min-w-0 flex-1"
+            />
           </div>
 
-          <div className="flex items-center gap-3 pt-1">
-            <span className="h-px flex-1 bg-[#eef0f6]" />
-            <span className="text-[11px] text-[#9b9fb3]">
-              можно заполнить позже
-            </span>
-            <span className="h-px flex-1 bg-[#eef0f6]" />
-          </div>
-
+          {/* Остальное необязательно и живёт одной сеткой: подписи в
+              полях уже говорят, что это, а отдельная шапка «можно
+              заполнить позже» только добавляла модалке высоты. */}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Сфера">
               <SelectShell>
                 <select
                   value={sphere}
                   onChange={(e) => setSphere(e.target.value)}
-                  className={selectCls}
+                  className={SELECT_CLASS}
                 >
                   {ORG_SPHERES.map((s) => (
                     <option key={s.value} value={s.value}>
@@ -300,7 +293,7 @@ function CompleteProfileModal({
                 <select
                   value={ownershipKind}
                   onChange={(e) => setOwnershipKind(e.target.value)}
-                  className={selectCls}
+                  className={SELECT_CLASS}
                 >
                   {ORG_OWNERSHIP.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -311,7 +304,7 @@ function CompleteProfileModal({
               </SelectShell>
             </Field>
 
-            <Field label="Точек">
+            <Field label="Точек" plain>
               <NumberStepper
                 value={locationsCount}
                 onChange={setLocationsCount}
@@ -321,51 +314,46 @@ function CompleteProfileModal({
               />
             </Field>
 
-            <Field label="ИНН" hint="Необязательно">
+            <Field label="ИНН">
               <input
                 value={inn}
                 onChange={(e) => setInn(e.target.value.replace(/\D/g, ""))}
                 inputMode="numeric"
                 placeholder="7701234567"
                 maxLength={12}
-                className={inputCls(false)}
+                className={CONTROL_CLASS}
               />
             </Field>
-          </div>
 
-          <p className="text-[12px] leading-snug text-[#6f7282]">
-            1 точка = 1 объект со своим списком сотрудников и журналами.
-            {locationsCount > 1 ? (
-              <>
-                {" "}
-                Остальные точки создадим после настройки первой — напишем
-                вам.
-              </>
-            ) : null}
-          </p>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Ваше имя" hint="Если не указать — возьмём название">
+            <Field label="Ваше имя">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Мария Иванова"
                 maxLength={100}
-                className={inputCls(false)}
+                className={CONTROL_CLASS}
               />
             </Field>
 
-            <Field label="Новый пароль" hint="Необязательно">
+            <Field label="Новый пароль">
               <input
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 type="password"
                 placeholder="••••••"
                 maxLength={200}
-                className={inputCls(false)}
+                className={CONTROL_CLASS}
               />
             </Field>
           </div>
+
+          {/* Единственное, что нельзя не сказать: вторую точку человек
+              сам не создаст. Остальные пояснения ушли. */}
+          {locationsCount > 1 ? (
+            <p className="text-[12px] leading-snug text-[#6f7282]">
+              Остальные точки создадим после настройки первой — напишем вам.
+            </p>
+          ) : null}
         </form>
 
         <div className="shrink-0 border-t border-[#eef0f6] p-5">
@@ -398,20 +386,14 @@ function CompleteProfileModal({
 
 // text-[16px] во всех полях анкеты: ниже 16px iOS Safari зумит
 // страницу при фокусе и обратно масштаб не возвращает.
-const selectCls =
-  "h-11 w-full appearance-none rounded-2xl border border-[#dcdfed] bg-white pl-4 pr-10 text-[16px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15";
-
-/**
- * Контрол без рамки: рамку и фокус-кольцо рисует `Field` вокруг подписи
- * и значения. 16px — чтобы Safari на iPhone не увеличивал страницу при
- * фокусе.
- */
+//
+// Контролы — без своей рамки: рамку и фокус-кольцо рисует `Field`
+// вокруг подписи и значения. Иначе внутри поля видна вторая
+// скруглённая область.
 const CONTROL_CLASS =
   "h-6 w-full border-0 bg-transparent p-0 text-[16px] leading-6 text-[#0b1024] placeholder:text-[#c1c5d6] focus:outline-none focus:ring-0";
 
-function inputCls(_invalid: boolean) {
-  return CONTROL_CLASS;
-}
+const SELECT_CLASS = `${CONTROL_CLASS} appearance-none pr-6`;
 
 /** Обёртка нативного select со стрелкой — как в форме настроек. */
 function SelectShell({ children }: { children: React.ReactNode }) {
@@ -437,20 +419,28 @@ function SelectShell({ children }: { children: React.ReactNode }) {
 function Field({
   label,
   required,
-  hint,
   error,
+  plain = false,
   className = "",
   children,
 }: {
   label: string;
   required?: boolean;
-  hint?: string;
   error?: string | null;
+  /**
+   * Обернуть в <div>, а не в <label>. Нужно, когда внутри не один
+   * инпут, а группа контролов (счётчик «−/значение/+»): <label>
+   * форвардит и :hover, и клик на свой первый контрол, поэтому наводка
+   * куда угодно по полю подсвечивала кнопку «−», а клик по подписи её
+   * нажимал. Контролы внутри подписаны своим aria-label.
+   */
+  plain?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
+  const Tag = plain ? "div" : "label";
   return (
-    <label className={`block ${className}`}>
+    <Tag className={`block ${className}`}>
       <span
         className={`flex flex-col gap-0.5 rounded-2xl border bg-white px-4 py-2 transition-[border-color,box-shadow] focus-within:ring-4 ${
           error
@@ -468,9 +458,7 @@ function Field({
       </span>
       {error ? (
         <span className="mt-1 block text-[12px] text-[#d2453d]">{error}</span>
-      ) : hint ? (
-        <span className="mt-1 block text-[12px] text-[#9b9fb3]">{hint}</span>
       ) : null}
-    </label>
+    </Tag>
   );
 }

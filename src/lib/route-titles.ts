@@ -9,23 +9,30 @@
  */
 export const ROUTE_TITLES: Record<string, string> = {
   "/batches": "Партии",
+  "/batches/new": "Новая партия",
   "/bonuses": "Премии",
   "/capa": "CAPA",
-  "/catch-up": "Догнать пропуски",
+  "/capa/new": "Новое CAPA",
   "/changes": "Изменения",
+  "/changes/new": "Новое изменение",
   "/competencies": "Компетенции",
   "/control-board": "Панель контроля",
   "/dashboard": "Главная",
+  "/dashboard/catch-up": "Догнать пропуски",
+  "/dashboard/compliance-audit": "Готовность к проверке",
   "/equipment-fill": "Заполнение оборудования",
   "/journals": "Журналы",
+  "/journals-progress": "Прогресс по журналам",
+  "/journals/new": "Новый журнал",
+  "/journals/traceability": "Прослеживаемость",
   "/losses": "Потери",
+  "/losses/new": "Новая потеря",
   "/plans": "Производственный план",
+  "/plans/new": "Новый план",
   "/reports": "Отчёты",
+  "/reports/by-user": "Отчёт по сотруднику",
   "/sanpin": "Справочник СанПиН",
   "/settings": "Настройки",
-  "/task-fill": "Заполнение задачи",
-  "/tasks": "Задачи",
-  "/journals/new": "Новый журнал",
   "/settings/accounting": "Бухгалтерия",
   "/settings/api": "API интеграций",
   "/settings/areas": "Цеха и участки",
@@ -35,22 +42,28 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/settings/buildings": "Здания и помещения",
   "/settings/compliance": "Compliance",
   "/settings/equipment": "Оборудование",
+  "/settings/equipment/qr-sheet": "QR-лист оборудования",
   "/settings/experimental": "Бета-функции",
   "/settings/inspector-portal": "Портал инспектора",
+  "/settings/integrations/tasksflow": "TasksFlow",
   "/settings/journal-access": "Журналы для сотрудников",
   "/settings/journal-bonuses": "Премии за журналы",
   "/settings/journal-checklists": "Чек-листы для журналов",
   "/settings/journal-difficulty": "Сложность журналов",
   "/settings/journal-flow": "Кто забирает задачу",
+  "/settings/journal-guides-tree": "Гайды по журналам",
   "/settings/journal-periods": "Периоды журналов",
   "/settings/journal-pipelines": "Настройки журналов (pipeline)",
+  "/settings/journal-pipelines-tree": "Пошаговые сценарии",
   "/settings/journal-responsibles": "Ответственные за журналы",
   "/settings/journal-task-mode": "Раздача и проверка задач",
   "/settings/journals": "Набор журналов",
   "/settings/journals-by-position": "Матрица «должность × журнал»",
+  "/settings/journals/paper": "Бумажные журналы",
   "/settings/notifications": "Уведомления",
   "/settings/onboarding": "Быстрая настройка",
   "/settings/onboarding-template": "Шаблоны заведений",
+  "/settings/onboarding/advanced": "Продвинутая настройка",
   "/settings/organization": "Информация об организации",
   "/settings/permissions": "Права доступа",
   "/settings/phone": "Привязка телефона",
@@ -62,14 +75,43 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/settings/subscription": "Подписка",
   "/settings/task-visibility": "Admin-флаг в TasksFlow",
   "/settings/users": "Сотрудники",
-  "/settings/workload-balance": "Дашборд нагрузки",
-  "/settings/integrations/tasksflow": "TasksFlow",
-  "/settings/onboarding/advanced": "Продвинутая настройка",
   "/settings/users/invite": "Приглашение сотрудника",
+  "/settings/workload-balance": "Дашборд нагрузки",
+  "/staff": "Сотрудники",
+  "/task-fill": "Заполнение задачи",
+  "/tasks": "Задачи",
+  "/team": "Команда",
+  "/verifications": "Подтверждения",
 };
 
 /** Точное совпадение пути. Для динамических путей вернёт null. */
 export function getRouteTitle(pathname: string): string | null {
   const clean = pathname.replace(/\/+$/, "") || "/";
   return ROUTE_TITLES[clean] ?? null;
+}
+
+/** Родительский путь: `/settings/buildings` → `/settings`, `/batches` → ``. */
+function parentOf(pathname: string): string {
+  return pathname.slice(0, pathname.lastIndexOf("/"));
+}
+
+/**
+ * Соседи по уровню — из них собирается выпадающий список у звена крошек.
+ *
+ * Смысл тот же, что у переключателя журналов: находясь в «Здания и
+ * помещения», проще перепрыгнуть в «Оборудование» прямо из крошки, чем
+ * возвращаться в список настроек. Работает для любого раздела бесплатно,
+ * потому что весь словарь маршрутов и так лежит здесь.
+ *
+ * Сам путь в результат не входит — он и есть текущее звено.
+ */
+export function getSiblingRoutes(
+  pathname: string,
+): { path: string; title: string }[] {
+  const clean = pathname.replace(/\/+$/, "") || "/";
+  const parent = parentOf(clean);
+  return Object.entries(ROUTE_TITLES)
+    .filter(([path]) => path !== clean && parentOf(path) === parent)
+    .map(([path, title]) => ({ path, title }))
+    .sort((a, b) => a.title.localeCompare(b.title, "ru"));
 }

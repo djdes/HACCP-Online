@@ -117,8 +117,12 @@ export function QuickStartCardCompact({
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <section
-      className="relative overflow-hidden rounded-3xl border border-[#5566f6]/25 bg-white shadow-[0_10px_30px_-15px_rgba(85,102,246,0.25)]"
+    // Ссылка — вся карточка целиком, а не одна кнопка в углу. Блок
+    // ведёт ровно в одно место, поэтому «мимо» тут кликнуть нельзя, а
+    // цель попадания становится во весь экран шириной.
+    <Link
+      href="/settings/onboarding"
+      className="group relative block overflow-hidden rounded-3xl border border-[#5566f6]/25 bg-white shadow-[0_10px_30px_-15px_rgba(85,102,246,0.25)] transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/50 hover:shadow-[0_16px_38px_-16px_rgba(85,102,246,0.45)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/20"
     >
       {/* Лёгкий индиго-подсвет вместо сплошной заливки: карточка
           остаётся заметной, но не спорит с тёмным hero над ней. */}
@@ -187,20 +191,22 @@ export function QuickStartCardCompact({
           </div>
 
           <div className="flex shrink-0 items-center justify-end sm:w-[260px]">
-            <Link
-              href="/settings/onboarding"
-              // max-sm:w-auto — на 360px «Начальная настройка» и
-              // «Завершить →» помещаются в одну строку только если кнопка
-              // сжимается по содержимому.
-              className="inline-flex h-10 w-[180px] items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] max-sm:w-auto"
-            >
+            {/* Уже не ссылка, а её вид: кликабельна вся карточка, а
+                вложенная <a> внутри <a> невалидна. Подсветку берёт от
+                группы-родителя, чтобы кнопка реагировала на наведение
+                в любой точке блока.
+
+                max-sm:w-auto — на 360px «Начальная настройка» и
+                «Завершить →» помещаются в одну строку только если
+                кнопка сжимается по содержимому. */}
+            <span className="inline-flex h-10 w-[180px] items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors group-hover:bg-[#4a5bf0] max-sm:w-auto">
               Завершить
-              <ArrowRight className="size-4" />
-            </Link>
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
           </div>
         </div>
       </div>
-    </section>
+    </Link>
   );
 }
 

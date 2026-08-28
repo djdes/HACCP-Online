@@ -1,0 +1,122 @@
+import { cache } from "react";
+import type { Session } from "next-auth";
+import { db } from "@/lib/db";
+import { getActiveOrgId } from "@/lib/auth-helpers";
+import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
+import { parseDisabledCodes } from "@/lib/disabled-journals";
+import { getTemplatesFilledToday } from "@/lib/today-compliance";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import type { CrumbMenuItem } from "@/components/ui/breadcrumbs";
+
+/**
+ * Содержимое выпадающих списков в хлебных крошках раздела журналов.
+ *
+ * Крошка «журнал» раскрывается в набор журналов организации, крошка
+ * «документ» — в документы этого журнала. Смысл: за смену человек обходит
+ * несколько журналов подряд, и переход «журнал → журнал» не должен стоить
+ * возврата в список и обратно.
+ *
+ * Правила видимости — те же, что на `/journals`: свой ACL у сотрудника,
+ * отключённые журналы прячем от всех, кроме управляющих (сотрудник всё
+ * равно не может включить их обратно, и пункт стал бы тупиком).
+ *
+ * `cache` — на один серверный рендер: страница документа спрашивает и
+ * список журналов, и список документов, а её ветки могут спросить дважды.
+ */
+
+/** Набор журналов организации со статусом «заполнен сегодня». */
+export const getJournalCrumbMenu = cache(
+  async (session: Session, currentCode?: string): Promise<CrumbMenuItem[]> => {
+    const organizationId = getActiveOrgId(session);
+    const isManager = hasFullWorkspaceAccess(session.user);
+    const allowedCodes = await getAllowedJournalCodes(
+      aclActorFromSession(session),
+    );
+
+    const [templates, organization] = await Promise.all([
+      db.journalTemplate.findMany({
+        where: {
+          isActive: true,
+          ...(allowedCodes ? { code: { in: allowedCodes } } : {}),
+        },
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, code: true, name: true },
+      }),
+      db.organization.findUnique({
+        where: { id: organizationId },
+        select: { disabledJournalCodes: true },
+      }),
+    ]);
+
+    const disabledCodes = parseDisabledCodes(organization?.disabledJournalCodes);
+    const visible = isManager
+      ? templates
+      : templates.filter((t) => !disabledCodes.has(t.code));
+
+    const filledIds = await getTemplatesFilledToday(
+      organizationId,
+      new Date(),
+      visible.map((t) => ({ id: t.id, code: t.code })),
+      disabledCodes,
+    );
+
+    return visible.map((template) => {
+      const disabled = disabledCodes.has(template.code);
+      return {
+        label: template.name,
+        href: `/journals/${template.code}`,
+        // Отключённый журнал серый, а не красный: он не «просрочен», его
+        // просто не ведут — красным он бы звал заполнять то, чего нет.
+        status: disabled
+          ? ("muted" as const)
+          : filledIds.has(template.id)
+            ? ("ok" as const)
+            : ("danger" as const),
+        hint: disabled ? "выключен" : undefined,
+        current: template.code === currentCode,
+        // Наведение на строку раскрывает документы этого журнала —
+        // второй уровень подгружается лениво, по одному запросу.
+        submenuJournalCode: template.code,
+      };
+    });
+  },
+);
+
+/** Сколько документов журнала показываем в списке крошки. */
+const DOCUMENT_MENU_LIMIT = 40;
+
+/**
+ * Документы одного журнала, свежие сверху. Точка показывает, открыт
+ * документ или закрыт: закрытый заполнять уже нельзя, и это первое, что
+ * нужно знать при выборе.
+ */
+export const getDocumentCrumbMenu = cache(
+  async (
+    organizationId: string,
+    templateCode: string,
+    currentDocumentId?: string,
+  ): Promise<CrumbMenuItem[]> => {
+    const documents = await db.journalDocument.findMany({
+      where: { organizationId, template: { code: templateCode } },
+      orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
+      take: DOCUMENT_MENU_LIMIT,
+      select: { id: true, title: true, status: true, dateFrom: true },
+    });
+
+    return documents.map((doc) => ({
+      label: doc.title,
+      href: `/journals/${templateCode}/documents/${doc.id}`,
+      status: doc.status === "active" ? ("ok" as const) : ("muted" as const),
+      hint: formatPeriodStart(doc.dateFrom),
+      current: doc.id === currentDocumentId,
+    }));
+  },
+);
+
+/** «сен 2026» — период документа одной короткой подписью справа. */
+function formatPeriodStart(date: Date): string {
+  return new Intl.DateTimeFormat("ru-RU", {
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}

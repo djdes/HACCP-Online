@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
+import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
+import { getCrumbOrganizationName } from "@/lib/crumb-organization";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { loadGuideNodesForUI } from "@/lib/journal-guide-tree";
 import { db } from "@/lib/db";
@@ -144,15 +146,22 @@ export default async function NewJournalEntryPage({
     (await loadGuideNodesForUI(getActiveOrgId(session), resolvedCode)) ??
     undefined;
 
+  // Рукописная ссылка «← К журналу» убрана: наверх ведут крошки, назад —
+  // общая кнопка из layout'а раздела.
+  const [crumbOrganizationName, journalMenu] = await Promise.all([
+    getCrumbOrganizationName(getActiveOrgId(session)),
+    getJournalCrumbMenu(session, resolvedCode),
+  ]);
+
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
-      <Link
-        href={`/journals/${resolvedCode}`}
-        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
-      >
-        <ArrowLeft className="size-4" />
-        К журналу
-      </Link>
+      <JournalPageCrumbs
+        organizationName={crumbOrganizationName}
+        journalName={template.name}
+        journalCode={resolvedCode}
+        journalMenu={journalMenu}
+        tail={[{ label: "Новая запись" }]}
+      />
 
       {/* Тёмный hero снят: форма — главное на этом экране, заголовку
           достаточно одной строки. */}

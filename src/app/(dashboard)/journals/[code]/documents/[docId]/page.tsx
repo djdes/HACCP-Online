@@ -171,7 +171,11 @@ import {
 import { ComplaintDocumentClient } from "@/components/journals/complaint-document-client";
 import { COMPLAINT_REGISTER_TEMPLATE_CODE, normalizeComplaintConfig } from "@/lib/complaint-document";
 import { isIntegrationCryptoConfigured } from "@/lib/integration-crypto";
-import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
+import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
+import {
+  getDocumentCrumbMenu,
+  getJournalCrumbMenu,
+} from "@/lib/journal-crumb-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -230,6 +234,15 @@ export default async function JournalDocumentPage(props: {
   const showCrumbs =
     Boolean(crumbDocument) && crumbDocument?.organizationId === activeOrgId;
 
+  // Оба списка нужны прямо здесь: из бланка уходят и в соседний журнал,
+  // и в соседний документ этого же журнала.
+  const [crumbJournalMenu, crumbDocumentMenu] = showCrumbs
+    ? await Promise.all([
+        getJournalCrumbMenu(session, code),
+        getDocumentCrumbMenu(activeOrgId, code, docId),
+      ])
+    : [undefined, undefined];
+
   return (
     <>
       {/* A1 аудита: маркер альбомной ориентации печати. `@page` нельзя
@@ -239,15 +252,17 @@ export default async function JournalDocumentPage(props: {
           влияние на разметку экрана. */}
       <span data-journal-print-root hidden aria-hidden="true" />
       {showCrumbs ? (
-        <JournalBreadcrumbs
-          className="mb-3"
-          items={[
-            { label: crumbOrganization?.name || ORG_NAME_FALLBACK, href: "/journals" },
+        <JournalPageCrumbs
+          organizationName={crumbOrganization?.name || ORG_NAME_FALLBACK}
+          journalName={crumbDocument?.template.name ?? ""}
+          journalCode={code}
+          journalMenu={crumbJournalMenu}
+          tail={[
             {
-              label: crumbDocument?.template.name ?? "",
-              href: `/journals/${code}`,
+              label: crumbDocument?.title ?? "",
+              menu: crumbDocumentMenu,
+              menuTitle: "Документы журнала",
             },
-            { label: crumbDocument?.title ?? "" },
           ]}
         />
       ) : null}

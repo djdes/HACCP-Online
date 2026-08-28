@@ -1,0 +1,48 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
+import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
+import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
+import { getDocumentCrumbMenu } from "@/lib/journal-crumb-menu";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Документы журнала для вложенного меню хлебных крошек.
+ *
+ * Список грузится по наведению на строку журнала, а не вместе со
+ * страницей: журналов в наборе три-четыре десятка, и тянуть документы
+ * всех сразу ради одного подменю — тридцать пять лишних запросов на
+ * каждый рендер. По наведению нужен ровно один.
+ *
+ * ACL проверяем здесь же: маршрут отдаёт названия документов, и сотрудник
+ * без доступа к журналу не должен видеть их подбором кода в URL.
+ */
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ code: string }> },
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  }
+
+  const { code } = await params;
+  const resolvedCode = resolveJournalCodeAlias(code);
+
+  const allowed = await hasJournalAccess(
+    aclActorFromSession(session),
+    resolvedCode,
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
+
+  const items = await getDocumentCrumbMenu(
+    getActiveOrgId(session),
+    resolvedCode,
+  );
+
+  return NextResponse.json({ items });
+}

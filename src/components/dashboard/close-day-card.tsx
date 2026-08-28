@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowDownToLine, AlertTriangle, CheckCircle2, Wand2 } from "lucide-react";
+import { Sparkles, AlertTriangle, CheckCheck, CheckCircle2, Wand2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
@@ -128,8 +128,8 @@ export function CloseDayCard({
           disabled={busy}
           className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-1"
         >
-          <ArrowDownToLine className="size-4" />
-          {busy ? "Копирую…" : "Закрыть день одним кликом"}
+          <CheckCheck className="size-4" />
+          {busy ? "Копирую…" : "Закрыть день"}
         </button>
         <Link
           href="/dashboard/catch-up"
@@ -149,8 +149,8 @@ export function CloseDayCard({
             await handleClose();
           }}
           variant="info"
-          icon={ArrowDownToLine}
-          title="Закрыть день одним кликом?"
+          icon={CheckCheck}
+          title="Закрыть день?"
           description={`Вчерашние записи скопируются в сегодня для всех ежедневных журналов с активным документом.${
             unfilledCount > 0
               ? ` Сейчас ${unfilledCount} ${journalWord(unfilledCount)} без записей за сегодня.`
@@ -175,7 +175,7 @@ export function CloseDayCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[14px] font-semibold text-[#0b1024]">
-            Закрыть день одним кликом
+            Закрыть день
           </div>
           <p className="mt-0.5 text-[13px] leading-snug text-[#6f7282]">
             Копирует вчерашние записи в сегодня для всех ежедневных
@@ -194,8 +194,8 @@ export function CloseDayCard({
             disabled={busy}
             className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-none"
           >
-            <ArrowDownToLine className="size-4" />
-            {busy ? "Копирую…" : "Закрыть день одним кликом"}
+            <CheckCheck className="size-4" />
+            {busy ? "Копирую…" : "Закрыть день"}
           </button>
           <Link
             href="/dashboard/catch-up"

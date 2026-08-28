@@ -1,12 +1,14 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, User, MapPin, Wrench, Clock, Wifi, CheckCircle2, XCircle } from "lucide-react";
+import { User, MapPin, Wrench, Clock, Wifi, CheckCircle2, XCircle } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { EntryApprovalActions } from "@/components/journals/entry-approval";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { PageHeader } from "@/components/ui/page-header";
+import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
+import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
+import { getCrumbOrganizationName } from "@/lib/crumb-organization";
 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "\u2014";
@@ -126,15 +128,26 @@ export default async function EntryDetailPage({
     ([key]) => !["ocrUsed", "ocrConfidence", "source"].includes(key)
   );
 
+  // Рукописная ссылка «← К журналу» убрана: наверх ведут крошки, назад —
+  // общая кнопка из layout'а раздела.
+  const [crumbOrganizationName, journalMenu] = await Promise.all([
+    getCrumbOrganizationName(getActiveOrgId(session)),
+    getJournalCrumbMenu(session, resolvedCode),
+  ]);
+
   return (
     <div className="space-y-5">
-      <Link
-        href={`/journals/${resolvedCode}`}
-        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
-      >
-        <ArrowLeft className="size-4" />
-        К журналу
-      </Link>
+      <JournalPageCrumbs
+        organizationName={crumbOrganizationName}
+        journalName={entry.template.name}
+        journalCode={resolvedCode}
+        journalMenu={journalMenu}
+        tail={[
+          {
+            label: `Запись от ${entry.createdAt.toLocaleDateString("ru-RU")}`,
+          },
+        ]}
+      />
 
       {/* Тёмный hero снят: карточка записи — это данные, а не баннер. */}
       <PageHeader

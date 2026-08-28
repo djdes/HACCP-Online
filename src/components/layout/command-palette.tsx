@@ -59,7 +59,7 @@ type FlatItem =
 const ACTION_ITEMS: StaticItem[] = [
   {
     kind: "action",
-    label: "Закрыть день одним кликом",
+    label: "Закрыть день",
     hint: "Скопировать вчера → сегодня для всех ежедневных журналов",
     icon: ArrowDownToLine,
     keywords: ["закрыть", "копировать", "вчера", "сегодня", "close day"],

@@ -3,6 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
+import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
+import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { Prisma } from "@prisma/client";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
@@ -1336,6 +1339,13 @@ export default async function JournalDocumentsPage({
       autoJournalCodes: true,
     },
   });
+  // Набор журналов для выпадающего списка в крошке «журнал»:
+  // за смену обходят несколько журналов подряд, и переход между
+  // ними не должен стоить возврата в список.
+  const journalMenu = await getJournalCrumbMenu(session, resolvedCode);
+  // Локальная копия названия: внутри `withBanner` TS уже не помнит, что
+  // `template` прошёл проверку на null выше.
+  const journalTitle = template.name;
   const disabledCodes = Array.isArray(orgSettings?.disabledJournalCodes)
     ? (orgSettings?.disabledJournalCodes as string[])
     : [];
@@ -1377,10 +1387,21 @@ export default async function JournalDocumentsPage({
    * остаётся на `/dashboard` (там `TodayPendingBanner` не трогали).
    *
    * `withBanner` сохранён как единственная обёртка всех ~40 return-веток
-   * файла: менять их по одной было бы источником расхождений.
+   * файла: менять их по одной было бы источником расхождений. Крошки
+   * поэтому живут здесь — иначе на сорока ветках они бы разъехались.
    */
   function withBanner(children: React.ReactNode) {
-    return <div className="space-y-5">{children}</div>;
+    return (
+      <div className="space-y-5">
+        <JournalPageCrumbs
+          organizationName={orgSettings?.name || ORG_NAME_FALLBACK}
+          journalName={journalTitle}
+          journalCode={resolvedCode}
+          journalMenu={journalMenu}
+        />
+        {children}
+      </div>
+    );
   }
   const shouldNormalizeDemoSamples = isDemoSeedOrganization(orgUsers);
 

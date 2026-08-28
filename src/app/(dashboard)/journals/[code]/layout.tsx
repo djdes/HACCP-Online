@@ -1,4 +1,5 @@
 import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide";
+import { PageBackLink } from "@/components/layout/page-nav";
 
 /**
  * Shared layout for the `/journals/<code>` subtree.
@@ -9,9 +10,12 @@ import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide"
  * `(dashboard)/layout.tsx`. `bg-white` намеренно — в тёмной теме он
  * автоматически мапится в `--app-surface` (см. `app-theme.css`).
  *
- * Навигация вверх — хлебные крошки (`JournalBreadcrumbs`), которые
- * рендерятся серверно на самих страницах; отдельной кнопки «Назад»
- * больше нет.
+ * Навигация вверх — «← Назад» из этого layout'а плюс хлебные крошки
+ * (`JournalBreadcrumbs`), которые рендерятся серверно на самих страницах.
+ * Кнопка живёт здесь, а не на страницах: так она гарантированно есть на
+ * каждом экране раздела, включая те, что появятся позже. Глобальный
+ * `PageNav` в этом поддереве отключён — его место снаружи белой подложки,
+ * на сером фоне, а навигация должна стоять внутри неё.
  *
  * `JournalDocGuideOverlay` рендерит floating-кнопку «Как заполнять» —
  * сама компонента детектит по URL, что мы на странице документа, и
@@ -55,6 +59,7 @@ export default function JournalCodeLayout({ children }: { children: React.ReactN
           середине второй, а хвостовой padding дотягивал высоту до
           следующего листа. Кнопок в печати нет — запас под них не нужен. */}
       <div className="mx-auto w-full max-w-[1800px] space-y-3 px-4 pb-28 md:px-8 print:pb-0">
+        <PageBackLink fallbackHref="/journals" className="-mb-1.5" />
         {children}
         <JournalDocGuideOverlay />
       </div>

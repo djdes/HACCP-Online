@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { JournalGuide } from "@/components/journals/journal-guide";
-import { JournalBreadcrumbs } from "@/components/journals/journal-breadcrumbs";
+import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
+import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { getServerSession } from "@/lib/server-session";
@@ -45,14 +46,18 @@ export default async function JournalGuidePage({
       : Promise.resolve(null),
   ]);
 
+  const journalMenu = session
+    ? await getJournalCrumbMenu(session, resolvedCode)
+    : undefined;
+
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
-      <JournalBreadcrumbs
-        items={[
-          { label: organization?.name || ORG_NAME_FALLBACK, href: "/journals" },
-          { label: template.name, href: `/journals/${resolvedCode}` },
-          { label: "Инструкция" },
-        ]}
+      <JournalPageCrumbs
+        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        journalName={template.name}
+        journalCode={resolvedCode}
+        journalMenu={journalMenu}
+        tail={[{ label: "Инструкция" }]}
       />
 
       {/* Тёмный hero снят: инструкцию читают перед сменой, и полезный

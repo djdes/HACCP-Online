@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Package, Clock, User as UserIcon } from "lucide-react";
+import { Package, Clock, User as UserIcon } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
@@ -45,14 +45,6 @@ export default async function TraceabilityPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
-      <Link
-        href="/journals"
-        className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
-      >
-        <ArrowLeft className="size-4" />
-        К журналам
-      </Link>
-
       {/* Тёмный hero снят: история партии — это цепочка записей, её и
           нужно видеть первой. */}
       <PageHeader

@@ -1,11 +1,14 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ClipboardCheck } from "lucide-react";
+import { ClipboardCheck } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { VerifierClient } from "@/components/journals/verifier-client";
 import { PageGuide } from "@/components/ui/page-guide";
+import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
+import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
+import { getCrumbOrganizationName } from "@/lib/crumb-organization";
+import { getDocumentCrumbMenu } from "@/lib/journal-crumb-menu";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,17 +83,31 @@ export default async function VerifyDocumentPage({
   };
   const pending = totals.all - totals.approved - totals.rejected;
 
+  const [crumbOrganizationName, journalMenu, documentMenu] = await Promise.all([
+    getCrumbOrganizationName(orgId),
+    getJournalCrumbMenu(session, code),
+    getDocumentCrumbMenu(orgId, code, docId),
+  ]);
+
   return (
     <div className="space-y-5">
-      <div>
-        <Link
-          href={`/journals/${code}/documents/${docId}`}
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К журналу
-        </Link>
-      </div>
+      {/* Рукописная ссылка «← К журналу» убрана: наверх ведут крошки,
+          назад — общая кнопка из layout'а раздела. */}
+      <JournalPageCrumbs
+        organizationName={crumbOrganizationName}
+        journalName={doc.template.name}
+        journalCode={code}
+        journalMenu={journalMenu}
+        tail={[
+          {
+            label: doc.title,
+            href: `/journals/${code}/documents/${docId}`,
+            menu: documentMenu,
+            menuTitle: "Документы журнала",
+          },
+          { label: "Проверка" },
+        ]}
+      />
 
       <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
         <div className="flex flex-wrap items-start justify-between gap-3">

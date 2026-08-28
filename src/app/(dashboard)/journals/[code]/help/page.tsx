@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { ArrowLeft, BookOpen, FileText, Lightbulb } from "lucide-react";
+import { BookOpen, FileText, Lightbulb } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { JOURNAL_HELP } from "@/lib/journal-help";
+import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
+import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
+import { getCrumbOrganizationName } from "@/lib/crumb-organization";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +24,7 @@ export default async function JournalHelpPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
-  await requireAuth();
+  const session = await requireAuth();
   const { code } = await params;
 
   const template = await db.journalTemplate.findFirst({
@@ -31,21 +34,25 @@ export default async function JournalHelpPage({
   if (!template) notFound();
 
   const help = JOURNAL_HELP[code];
-  const session = null; // не используется
-  void session;
-  void getActiveOrgId; // helpers may be needed in future
+
+  // Рукописная ссылка «← К журналу» убрана: наверх ведут крошки, назад —
+  // общая кнопка из layout'а раздела.
+  const [crumbOrganizationName, journalMenu] = await Promise.all([
+    getCrumbOrganizationName(getActiveOrgId(session)),
+    getJournalCrumbMenu(session, code),
+  ]);
 
   return (
     <div className="space-y-5">
+      <JournalPageCrumbs
+        organizationName={crumbOrganizationName}
+        journalName={template.name}
+        journalCode={code}
+        journalMenu={journalMenu}
+        tail={[{ label: "Справка" }]}
+      />
       <div>
-        <Link
-          href={`/journals/${code}`}
-          className="inline-flex items-center gap-1 text-[13px] text-[#6f7282] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          К журналу
-        </Link>
-        <div className="mt-3 flex items-start gap-3">
+        <div className="flex items-start gap-3">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
             <BookOpen className="size-6" />
           </span>

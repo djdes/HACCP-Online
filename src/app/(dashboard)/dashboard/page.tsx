@@ -32,7 +32,6 @@ import {
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
@@ -94,35 +93,6 @@ function formatRelativeTime(date: Date): string {
   return `${Math.floor(hours / 24)} д назад`;
 }
 
-/**
- * Time-of-day greeting for the hero. Keeps it warm + respectful regardless
- * of whether the user is a manager or a line cook.
- */
-function timeBasedGreeting(hour: number): string {
-  if (hour >= 5 && hour < 12) return "Доброе утро";
-  if (hour >= 12 && hour < 18) return "Добрый день";
-  if (hour >= 18 && hour < 23) return "Добрый вечер";
-  return "Доброй ночи";
-}
-
-/**
- * From a full name "Крылов Денис Сергеевич" returns "Денис Сергеевич"
- * (formal but not distant — works for both 20-year-old cook and a grandma
- * who grew up with Имя + Отчество). Falls back to the raw string if only
- * one or two words are present.
- */
-function addressedName(fullName: string): string {
-  const value = fullName.trim();
-  // После мгновенной регистрации имя равно почте, пока человек не
-  // заполнил анкету. Здороваться «Добрый день, ivan@mail.ru» — плохо,
-  // поэтому в таком случае обращаемся без имени.
-  if (!value || value.includes("@")) return "";
-  const parts = value.split(/\s+/).filter(Boolean);
-  if (parts.length >= 3) return `${parts[1]} ${parts[2]}`;
-  if (parts.length === 2) return parts[1];
-  return parts[0] ?? "";
-}
-
 type EntryData = Record<string, unknown>;
 function getEntryData(data: unknown): EntryData {
   if (data && typeof data === "object" && !Array.isArray(data)) {
@@ -150,22 +120,11 @@ export default async function DashboardPage() {
   const organizationId = getActiveOrgId(session);
 
   const now = new Date();
-  // UTC-midnight — matches how `JournalDocumentEntry.date` is stored
-  // (midnight UTC of the day the row represents) and how the
-  // today-compliance helper derives `todayKey`. Keeping everything on
-  // the same clock means the «записей сегодня» counter and the
-  // compliance ring never disagree about what "today" means.
-  const todayStart = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
   const cutoff48h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
   const [
-    todayEntries,
     totalEntriesEver,
-    todayDocumentEntries,
     pendingApproval,
-    activeUsers,
     activeTemplates,
     recentEntries,
     openCapaCount,
@@ -175,25 +134,12 @@ export default async function DashboardPage() {
     templates,
     org,
   ] = await Promise.all([
-    db.journalEntry.count({
-      where: { organizationId, createdAt: { gte: todayStart } },
-    }),
     // Была ли у организации хоть одна запись за всё время. Отличает
     // «новичок, ещё не начинал» от «работает, но отстаёт» — от этого
     // зависит, красный на экране или нейтральный.
     db.journalEntry.count({ where: { organizationId } }),
-    db.journalDocumentEntry.count({
-      where: {
-        date: { gte: todayStart },
-        document: { organizationId },
-        ...NOT_AUTO_SEEDED,
-      },
-    }),
     db.journalEntry.count({
       where: { organizationId, status: "submitted" },
-    }),
-    db.user.count({
-      where: { organizationId, isActive: true, archivedAt: null },
     }),
     db.journalTemplate.count({ where: { isActive: true } }),
     db.journalEntry.findMany({
@@ -284,8 +230,6 @@ export default async function DashboardPage() {
       getStrugglingWorkers(organizationId, 3, 30),
     ]);
 
-  const totalTodayEntries = todayEntries + todayDocumentEntries;
-
   // Treat every enabled journal as required for today. This keeps the
   // dashboard and the TasksFlow fan-out on the same selected count.
   const selectedEnabledTemplates = templates.filter(
@@ -336,9 +280,6 @@ export default async function DashboardPage() {
             label: "требует внимания",
           };
 
-  const greetingName = addressedName(session.user.name ?? "");
-  const greeting = timeBasedGreeting(now.getHours());
-
   return (
     <div className="space-y-5">
       {/* Persist для DashboardSection (collapsible-блоки): inline-script
@@ -353,60 +294,9 @@ export default async function DashboardPage() {
           в TF без time-фильтра — для итеративного тестирования. */}
       <SuperUserDevTools enabled={isSuperUser(session)} />
 
-      {/* Одна тонкая строка: приветствие слева, цифры справа. Дата и
-          подписи к числам убраны — они не меняют ни одного решения, а
-          вместе съедали две строки над списком журналов. */}
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-        <h1 className="text-[19px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
-          {greeting}
-          {greetingName ? `, ${greetingName}` : ""}
-        </h1>
-
-        {/* На мобиле из четырёх метрик остаются две: «на проверке» —
-            единственная, которая требует действия, и пилюля готовности.
-            «записей» и «в команде» решения не меняют, а вчетвером они
-            мялись в рваные две-три строки. */}
-        <div className="flex items-center gap-2 text-[13px] text-[#6f7282]">
-          <span className="tabular-nums max-sm:hidden">
-            <b className="font-semibold text-[#0b1024]">{totalTodayEntries}</b>{" "}
-            записей
-          </span>
-          <span className="text-[#dcdfed] max-sm:hidden">·</span>
-          <span className="tabular-nums">
-            <b
-              className={cn(
-                "font-semibold",
-                pendingApproval > 0 ? "text-[#a13a32]" : "text-[#0b1024]"
-              )}
-            >
-              {pendingApproval}
-            </b>{" "}
-            на проверке
-          </span>
-          <span className="text-[#dcdfed] max-sm:hidden">·</span>
-          <span className="tabular-nums max-sm:hidden">
-            <b className="font-semibold text-[#0b1024]">{activeUsers}</b> в
-            команде
-          </span>
-          <span className="text-[#dcdfed]">·</span>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium",
-              compliancePercent >= 90
-                ? "bg-[#ecfdf5] text-[#116b2a]"
-                : compliancePercent >= 60
-                  ? "bg-[#fff8eb] text-[#a16d32]"
-                  : "bg-[#fff4f2] text-[#a13a32]"
-            )}
-          >
-            Готовность {compliancePercent}%
-          </span>
-        </div>
-      </div>
-
-      {/* Quick Start — большая карточка прогресса настройки для новых
-          организаций. Auto-hide когда всё настроено. Свёртывается
-          вручную (localStorage). Только для management ролей. */}
+      {/* Quick Start — карточка прогресса настройки для новых
+          организаций: кликабельна целиком, ведёт в /settings/onboarding.
+          Auto-hide когда всё настроено. Только для management ролей. */}
       {hasFullWorkspaceAccess(session.user) ? (
         <QuickStartCard
           organizationId={getActiveOrgId(session)}
@@ -429,16 +319,6 @@ export default async function DashboardPage() {
               icon={ListChecks}
               defaultOpen={true}
               actions={<CloseDayCard unfilledCount={unfilledCount} compact />}
-              titleAction={
-                paperItems.length > 0 ? (
-                  <span
-                    title="Ведутся на бумаге, на готовность не влияют"
-                    className="rounded-full bg-[#fff8f6] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]"
-                  >
-                    +{paperItems.length} бумажных
-                  </span>
-                ) : null
-              }
               titleAside={
                 <Link
                   href="/settings/journals"

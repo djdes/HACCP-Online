@@ -29,8 +29,10 @@ export function TasksFlowPromoHint({
   autolinkNote?: string;
   /**
    * Узкий вариант — когда блок стоит не под полем во всю ширину, а
-   * сбоку от него. Тот же смысл в трёх строках: заголовок, промокод и
-   * ссылка; объяснение про автосвязку уезжает в подсказку под номером.
+   * сбоку от него. Тот же смысл в двух строках: что это + промокод со
+   * ссылкой. Развёрнутое описание и объяснение про автосвязку убраны:
+   * блок стоит в модалке дорегистрации, и каждая его строка добавляет
+   * высоты форме, ради которой человек сюда и пришёл.
    */
   compact?: boolean;
   className?: string;
@@ -56,15 +58,14 @@ export function TasksFlowPromoHint({
   if (compact) {
     return (
       <div
-        className={`flex min-w-0 items-start gap-2 rounded-2xl bg-[#f5f6ff] px-3 py-2 text-[11px] leading-[1.45] text-[#3c4053] ${className}`}
+        className={`flex min-w-0 items-start gap-2 rounded-2xl bg-[#f5f6ff] px-3 py-2 text-[11px] leading-[1.4] text-[#3c4053] ${className}`}
       >
-        <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
+        <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
           <Zap className="size-3" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-[#0b1024]">Подключите TasksFlow.ru</p>
-          <p className="mt-0.5 text-[#6f7282]">
-            Задачи сотрудникам, связанные с журналами.
+          <p className="font-semibold text-[#0b1024]">
+            TasksFlow.ru — задачи сотрудникам
           </p>
           <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <button
