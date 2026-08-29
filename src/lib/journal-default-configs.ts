@@ -19,7 +19,7 @@ import { getAuditPlanDefaultConfig } from "./audit-plan-document";
 import { getDefaultAuditProtocolConfig } from "./audit-protocol-document";
 import { getDefaultAuditReportConfig } from "./audit-report-document";
 import { getBreakdownHistoryDefaultConfig } from "./breakdown-history-document";
-import { getDefaultCleaningDocumentConfig } from "./cleaning-document";
+import { defaultCleaningDocumentConfig } from "./cleaning-document";
 import { getDefaultCleaningVentilationConfig } from "./cleaning-ventilation-checklist-document";
 import {
   buildClimateConfigFromAreas,
@@ -39,7 +39,10 @@ import {
   buildEquipmentMaintenanceConfigFromEquipment,
   getDefaultEquipmentMaintenanceConfig,
 } from "./equipment-maintenance-document";
-import { getDefaultFinishedProductDocumentConfig } from "./finished-product-document";
+import {
+  buildFinishedProductConfigFromUsers,
+  getDefaultFinishedProductDocumentConfig,
+} from "./finished-product-document";
 import { getDefaultGlassControlConfig } from "./glass-control-document";
 import {
   buildGlassListConfigFromData,
@@ -51,7 +54,10 @@ import { getDefaultMetalImpurityConfig } from "./metal-impurity-document";
 import { getDefaultPerishableRejectionConfig } from "./perishable-rejection-document";
 import { getPpeIssuanceDefaultConfig } from "./ppe-issuance-document";
 import { getDefaultProductWriteoffConfig } from "./product-writeoff-document";
-import { getDefaultRegisterDocumentConfig } from "./register-document";
+import {
+  buildRegisterDocumentConfigFromUsers,
+  getDefaultRegisterDocumentConfig,
+} from "./register-document";
 import {
   buildSanitationDayConfigFromAreas,
   getSanitationDayDefaultConfig,
@@ -77,11 +83,53 @@ export type DefaultConfigOrgData = {
     tempMin?: number | null;
     tempMax?: number | null;
   }>;
-  users?: Array<{ id: string; name: string; role: string }>;
+  users?: Array<{
+    id: string;
+    name: string;
+    role: string;
+    /** Должность, вписанная руками в карточке сотрудника. */
+    positionTitle?: string | null;
+    /** Должность из справочника — она приоритетнее вписанной руками. */
+    jobPositionName?: string | null;
+  }>;
   products?: Array<{ id: string; name: string }>;
+  organizationName?: string;
 };
 
+/**
+ * Должность сотрудника для печатной формы. Порядок тот же, что в PDF
+ * (`document-pdf.ts`): справочник → вписанное руками → пусто. Роль
+ * («cook», «waiter») сюда не подставляем: в бланке для проверки она
+ * выглядит как техническая метка, а не как должность.
+ */
+export function pickUserTitle(user: {
+  positionTitle?: string | null;
+  jobPositionName?: string | null;
+}): string {
+  return user.jobPositionName?.trim() || user.positionTitle?.trim() || "";
+}
+
 type Provider = (orgData?: DefaultConfigOrgData) => Record<string, unknown>;
+
+/**
+ * Конфиг журнала-реестра. Строки НЕ создаём: в реестрах (инструктажи,
+ * жалобы, дератизация, прослеживаемость) строка — это случившееся
+ * событие, и заранее насыпанные пустые строки означали бы записи,
+ * которых не было. Подставляем только ответственного по умолчанию.
+ */
+function registerConfig(
+  orgData?: DefaultConfigOrgData
+): Record<string, unknown> {
+  if (orgData?.users?.length) {
+    return buildRegisterDocumentConfigFromUsers(
+      orgData.users
+    ) as unknown as Record<string, unknown>;
+  }
+  return getDefaultRegisterDocumentConfig() as unknown as Record<
+    string,
+    unknown
+  >;
+}
 
 const PROVIDERS: Record<string, Provider> = {
   // ═══ ТЕМПЕРАТУРА ═══
@@ -108,14 +156,18 @@ const PROVIDERS: Record<string, Provider> = {
       unknown
     >;
   },
-  intensive_cooling: () =>
-    getDefaultIntensiveCoolingConfig([]) as unknown as Record<string, unknown>,
-  fryer_oil: () =>
-    getDefaultRegisterDocumentConfig() as unknown as Record<string, unknown>,
+  intensive_cooling: (orgData) =>
+    getDefaultIntensiveCoolingConfig(
+      orgData?.users ?? []
+    ) as unknown as Record<string, unknown>,
+  fryer_oil: (orgData) => registerConfig(orgData),
 
   // ═══ УБОРКА ═══
-  cleaning: () =>
-    getDefaultCleaningDocumentConfig() as unknown as Record<string, unknown>,
+  cleaning: (orgData) =>
+    defaultCleaningDocumentConfig(
+      orgData?.users,
+      orgData?.areas
+    ) as unknown as Record<string, unknown>,
   general_cleaning: (orgData) => {
     if (orgData?.areas && orgData.areas.length > 0) {
       return buildSanitationDayConfigFromAreas(
@@ -135,8 +187,7 @@ const PROVIDERS: Record<string, Provider> = {
       unknown
     >;
   },
-  uv_lamp_runtime: () =>
-    getDefaultRegisterDocumentConfig() as unknown as Record<string, unknown>,
+  uv_lamp_runtime: (orgData) => registerConfig(orgData),
   disinfectant_usage: () =>
     getDisinfectantDefaultConfig() as unknown as Record<string, unknown>,
   sanitary_day_control: () =>
@@ -145,21 +196,32 @@ const PROVIDERS: Record<string, Provider> = {
     getDefaultEquipmentCleaningConfig() as unknown as Record<string, unknown>,
 
   // ═══ ПРИЁМКА ═══
-  incoming_control: () =>
-    getAcceptanceDocumentDefaultConfig([]) as unknown as Record<string, unknown>,
-  incoming_raw_materials_control: () =>
-    getAcceptanceDocumentDefaultConfig([]) as unknown as Record<string, unknown>,
+  incoming_control: (orgData) =>
+    getAcceptanceDocumentDefaultConfig(
+      orgData?.users ?? []
+    ) as unknown as Record<string, unknown>,
+  incoming_raw_materials_control: (orgData) =>
+    getAcceptanceDocumentDefaultConfig(
+      orgData?.users ?? []
+    ) as unknown as Record<string, unknown>,
   perishable_rejection: () =>
     getDefaultPerishableRejectionConfig() as unknown as Record<string, unknown>,
   metal_impurity: () =>
     getDefaultMetalImpurityConfig() as unknown as Record<string, unknown>,
 
   // ═══ ПРОИЗВОДСТВО / БРАКЕРАЖ ═══
-  finished_product: () =>
-    getDefaultFinishedProductDocumentConfig() as unknown as Record<
+  finished_product: (orgData) => {
+    if (orgData?.users?.length) {
+      return buildFinishedProductConfigFromUsers(
+        orgData.users,
+        (orgData.products ?? []).map((p) => p.name)
+      ) as unknown as Record<string, unknown>;
+    }
+    return getDefaultFinishedProductDocumentConfig() as unknown as Record<
       string,
       unknown
-    >,
+    >;
+  },
   product_writeoff: () =>
     getDefaultProductWriteoffConfig() as unknown as Record<string, unknown>,
 
@@ -223,30 +285,32 @@ const PROVIDERS: Record<string, Provider> = {
   // ═══ ОБУЧЕНИЕ / ПЕРСОНАЛ ═══
   training_plan: () =>
     getTrainingPlanDefaultConfig() as unknown as Record<string, unknown>,
-  staff_training: () =>
-    getDefaultRegisterDocumentConfig() as unknown as Record<string, unknown>,
-  ppe_issuance: () =>
-    getPpeIssuanceDefaultConfig([]) as unknown as Record<string, unknown>,
+  staff_training: (orgData) => registerConfig(orgData),
+  ppe_issuance: (orgData) =>
+    getPpeIssuanceDefaultConfig(orgData?.users ?? []) as unknown as Record<
+      string,
+      unknown
+    >,
   med_books: () =>
     getDefaultMedBookConfig() as unknown as Record<string, unknown>,
 
   // ═══ ИНЦИДЕНТЫ ═══
   accident_journal: () =>
     getAccidentDocumentDefaultConfig() as unknown as Record<string, unknown>,
-  complaint_register: () =>
-    getDefaultRegisterDocumentConfig() as unknown as Record<string, unknown>,
-  pest_control: () =>
-    getDefaultRegisterDocumentConfig() as unknown as Record<string, unknown>,
+  complaint_register: (orgData) => registerConfig(orgData),
+  pest_control: (orgData) => registerConfig(orgData),
 
   // ═══ АУДИТЫ ═══
-  audit_plan: () =>
-    getAuditPlanDefaultConfig() as unknown as Record<string, unknown>,
+  audit_plan: (orgData) =>
+    getAuditPlanDefaultConfig({
+      organizationName: orgData?.organizationName,
+      users: orgData?.users,
+    }) as unknown as Record<string, unknown>,
   audit_protocol: () =>
     getDefaultAuditProtocolConfig() as unknown as Record<string, unknown>,
   audit_report: () =>
     getDefaultAuditReportConfig() as unknown as Record<string, unknown>,
-  traceability_test: () =>
-    getDefaultRegisterDocumentConfig() as unknown as Record<string, unknown>,
+  traceability_test: (orgData) => registerConfig(orgData),
 };
 
 export function getDefaultConfigForJournal(

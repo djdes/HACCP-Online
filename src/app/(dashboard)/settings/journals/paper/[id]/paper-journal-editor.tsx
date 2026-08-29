@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Download, ExternalLink, Plus, Printer, Trash2 } from "lucide-react";
+import {
+  Download,
+  Eraser,
+  ExternalLink,
+  Plus,
+  Printer,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { PaperJournal } from "@/lib/sphere-journal-rules";
 
@@ -13,15 +20,38 @@ type Organization = {
 
 const START_ROWS = 5;
 
+type StaffMember = { name: string; title: string };
+
+/**
+ * Колонки бланка — обычные строки заголовков, единого справочника у них
+ * нет. Поэтому узнаём нужные по вхождению слова: «ФИО инструктируемого»,
+ * «Ф.И.О. работника», «Должность, профессия». Не угадали — колонка
+ * просто остаётся пустой, как и была.
+ */
+function fillRowForStaff(columns: string[], person: StaffMember): string[] {
+  return columns.map((column) => {
+    const c = column.toLowerCase();
+    if (c.includes("фио") || c.includes("ф.и.о")) return person.name;
+    if (c.includes("должность") || c.includes("профессия")) return person.title;
+    // Даты, виды инструктажа и подписи — только от руки.
+    return "";
+  });
+}
+
 export function PaperJournalEditor({
   journal,
   organization,
+  staff = [],
 }: {
   journal: PaperJournal;
   organization: Organization;
+  /** Активные сотрудники — ими предзаполняются строки бланка. */
+  staff?: StaffMember[];
 }) {
   const [rows, setRows] = useState<string[][]>(() =>
-    Array.from({ length: START_ROWS }, () => journal.columns.map(() => "")),
+    staff.length > 0
+      ? staff.map((person) => fillRowForStaff(journal.columns, person))
+      : Array.from({ length: START_ROWS }, () => journal.columns.map(() => "")),
   );
   const [busy, setBusy] = useState(false);
 
@@ -37,6 +67,10 @@ export function PaperJournalEditor({
 
   function addRow() {
     setRows((prev) => [...prev, journal.columns.map(() => "")]);
+  }
+
+  function clearRows() {
+    setRows(Array.from({ length: START_ROWS }, () => journal.columns.map(() => "")));
   }
 
   function removeRow(rowIndex: number) {
@@ -155,6 +189,14 @@ export function PaperJournalEditor({
         </table>
       </div>
 
+      {staff.length > 0 ? (
+        <p className="rounded-2xl bg-[#f5f6ff] px-4 py-2.5 text-[13px] leading-snug text-[#3c4053]">
+          Сотрудники подставлены из карточек — допишите даты и соберите
+          подписи на распечатке. Подписи и даты специально пустые: бумажный
+          журнал тем и ценен, что они живые.
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -164,6 +206,17 @@ export function PaperJournalEditor({
           <Plus className="size-4 text-[#5566f6]" />
           Строка
         </button>
+        {staff.length > 0 ? (
+          <button
+            type="button"
+            onClick={clearRows}
+            title="Убрать подставленных сотрудников и начать с пустого бланка"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#6f7282] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            <Eraser className="size-4" />
+            Очистить
+          </button>
+        ) : null}
         <div className="flex-1" />
         <button
           type="button"

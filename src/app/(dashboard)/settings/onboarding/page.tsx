@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
-import { db } from "@/lib/db";
+import { getCoreSetupStatus } from "@/lib/onboarding-core-status";
 import { OnboardingFinishCta } from "@/components/settings/onboarding-finish-cta";
 import {
   PhaseCard,
@@ -35,46 +35,12 @@ export default async function OnboardingPage() {
   if (!hasCapability(session.user, "admin.full")) redirect("/settings");
   const organizationId = getActiveOrgId(session);
 
-  // Считаем только то, что нужно шести карточкам — тяжёлый Promise.all
-  // из 17 count'ов остался на advanced-странице.
-  const [
-    org,
-    positionsCount,
-    activeUsersCount,
-    buildingsCount,
-    roomsCount,
-    equipmentCount,
-    activeTemplates,
-    activeDocumentsCount,
-  ] = await Promise.all([
-    db.organization.findUnique({
-      where: { id: organizationId },
-      select: { disabledJournalCodes: true },
-    }),
-    db.jobPosition.count({ where: { organizationId } }),
-    db.user.count({
-      where: { organizationId, isActive: true, archivedAt: null },
-    }),
-    db.building.count({ where: { organizationId } }),
-    db.room.count({ where: { building: { organizationId } } }),
-    db.equipment.count({ where: { area: { organizationId } } }),
-    db.journalTemplate.findMany({
-      where: { isActive: true },
-      select: { code: true },
-    }),
-    db.journalDocument.count({
-      where: { organizationId, status: "active" },
-    }),
-  ]);
-
-  const disabledCodes = new Set<string>(
-    Array.isArray(org?.disabledJournalCodes)
-      ? (org!.disabledJournalCodes as string[])
-      : []
-  );
-  const enabledTemplatesCount = activeTemplates.filter(
-    (t) => !disabledCodes.has(t.code)
-  ).length;
+  // Условия трёх этапов живут в `getCoreSetupStatus` — их же читает
+  // карточка «Начальная настройка» на дашборде. Пока расчёт был здесь,
+  // дашборд считал по-своему, и страница показывала три «ГОТОВО», а
+  // дашборд — «71%, завершите настройку».
+  const status = await getCoreSetupStatus(organizationId);
+  const activeDocumentsCount = status.activeDocumentsCount;
 
   // === Items ===
 
@@ -82,21 +48,16 @@ export default async function OnboardingPage() {
     title: "Помещения",
     href: "/settings/buildings",
     icon: Building2,
-    state:
-      buildingsCount === 0
-        ? "empty"
-        : roomsCount === 0
-          ? "partial"
-          : "complete",
-    metric: `${buildingsCount} зд., ${roomsCount} помещ.`,
+    state: status.buildings.state,
+    metric: `${status.buildings.buildingsCount} зд., ${status.buildings.roomsCount} помещ.`,
   };
 
   const equipmentItem: SetupItem = {
     title: "Оборудование",
     href: "/settings/equipment",
     icon: Wrench,
-    state: equipmentCount === 0 ? "empty" : "complete",
-    metric: `${equipmentCount}`,
+    state: status.equipment.state,
+    metric: `${status.equipment.count}`,
   };
 
   // Должности заводятся на странице сотрудников — отдельного роута
@@ -105,35 +66,24 @@ export default async function OnboardingPage() {
     title: "Должности",
     href: "/settings/users",
     icon: ListChecks,
-    state: positionsCount === 0 ? "empty" : "complete",
-    metric: `${positionsCount}`,
+    state: status.positions.state,
+    metric: `${status.positions.count}`,
   };
 
   const usersItem: SetupItem = {
     title: "Сотрудники",
     href: "/settings/users",
     icon: Users,
-    state:
-      activeUsersCount < 2
-        ? "empty"
-        : activeUsersCount < 4
-          ? "partial"
-          : "complete",
-    metric: `${activeUsersCount}`,
+    state: status.users.state,
+    metric: `${status.users.count}`,
   };
 
-  // Шаг закрыт, если выбран хотя бы один журнал. Раньше здесь стояло
-  // «меньше пяти — жёлтый», и у ресторана с его четырьмя обязательными
-  // журналами шаг не закрывался никогда: человек шёл искать, что ещё
-  // включить, хотя набор уже правильный. Набор ставится по сфере при
-  // регистрации, то есть у новой организации шаг выполнен сразу — это и
-  // надо показать, а не требовать действия.
   const journalsSetItem: SetupItem = {
     title: "Выбор журналов",
     href: "/settings/journals",
     icon: ClipboardList,
-    state: enabledTemplatesCount === 0 ? "empty" : "complete",
-    metric: `${enabledTemplatesCount} по сфере`,
+    state: status.journals.state,
+    metric: `${status.journals.enabledCount} по сфере`,
   };
 
   // === Phases ===

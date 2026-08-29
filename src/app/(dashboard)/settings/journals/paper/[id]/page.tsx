@@ -14,6 +14,13 @@ export const dynamic = "force-dynamic";
  * Ничего не сохраняем в БД: журнал по закону живёт на бумаге с живой
  * подписью, а здесь мы лишь избавляем человека от рукописной шапки —
  * данные организации подставляются сами, строки печатаются ровно.
+ *
+ * Сотрудники подставляются в строки заранее: колонки «ФИО» и «должность»
+ * заполняются из карточек, остальное остаётся пустым. Переписывать
+ * полтора десятка фамилий от руки в каждый из бумажных журналов — ровно
+ * та работа, ради избавления от которой сервис и существует. Подписи,
+ * даты и виды инструктажа НЕ трогаем: в бумажном журнале они живые, в
+ * этом весь его смысл.
  */
 export default async function PaperJournalPage({
   params,
@@ -26,10 +33,29 @@ export default async function PaperJournalPage({
   const journal = paperJournalById(id);
   if (!journal) notFound();
 
-  const organization = await db.organization.findUnique({
-    where: { id: getActiveOrgId(session) },
-    select: { name: true, inn: true, address: true },
-  });
+  const organizationId = getActiveOrgId(session);
+  const [organization, employees] = await Promise.all([
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true, inn: true, address: true },
+    }),
+    db.user.findMany({
+      where: { organizationId, isActive: true, archivedAt: null },
+      select: {
+        name: true,
+        positionTitle: true,
+        jobPosition: { select: { name: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  // Должность: справочник → вписанная руками → пусто. Роль («cook») в
+  // бланк для проверки не подставляем — это техническая метка.
+  const staff = employees.map((u) => ({
+    name: u.name,
+    title: u.jobPosition?.name?.trim() || u.positionTitle?.trim() || "",
+  }));
 
   return (
     <div className="space-y-5">
@@ -47,6 +73,7 @@ export default async function PaperJournalPage({
           inn: organization?.inn ?? null,
           address: organization?.address ?? null,
         }}
+        staff={staff}
       />
     </div>
   );

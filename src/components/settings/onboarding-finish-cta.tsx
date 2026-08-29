@@ -10,6 +10,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Props = {
   /** Все обязательные шаги пройдены — кнопку можно жать. */
@@ -27,18 +28,20 @@ export function OnboardingFinishCta({
 }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  function start() {
+    if (busy || !prereqsReady) return;
+    // Пересоздание закрывает активные документы — спрашиваем. Когда
+    // документов ещё нет, спрашивать не о чем: терять нечего.
+    if (activeDocumentsCount > 0) {
+      setConfirming(true);
+      return;
+    }
+    void createAll();
+  }
 
   async function createAll() {
-    if (busy || !prereqsReady) return;
-    if (
-      activeDocumentsCount > 0 &&
-      !window.confirm(
-        `Сейчас уже есть ${activeDocumentsCount} активных документ(ов). ` +
-          "При создании они будут закрыты, и заведутся свежие — со строками " +
-          "по умолчанию и расставленными ответственными. Продолжить?"
-      )
-    )
-      return;
     setBusy(true);
     try {
       const res = await fetch(
@@ -124,14 +127,14 @@ export function OnboardingFinishCta({
             </h2>
             <p className="mt-1 max-w-[480px] text-[13px] leading-relaxed text-[#6f7282]">
               {alreadyHas
-                ? "Можно пересоздать с нуля — старые закроются, заведутся свежие со строками и текущими ответственными."
-                : "Один клик — заведёт документы по всем включённым журналам, расставит ответственных и подтянет дефолтные строки."}
+                ? "Можно пересоздать с нуля — старые закроются, а в свежих уже будут вписаны сотрудники с должностями."
+                : "Один клик — заведёт документы по всем включённым журналам и впишет сотрудников с должностями. Показатели и подписи остаются за людьми."}
             </p>
           </div>
         </div>
         <button
           type="button"
-          onClick={createAll}
+          onClick={start}
           disabled={busy}
           className="inline-flex h-10 shrink-0 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
         >
@@ -147,6 +150,28 @@ export function OnboardingFinishCta({
               : "Создать все документы"}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={async () => {
+          setConfirming(false);
+          await createAll();
+        }}
+        variant="warn"
+        title="Пересоздать документы?"
+        description={`Сейчас активных документов: ${activeDocumentsCount}. Они закроются, вместо них заведутся свежие на текущий период.`}
+        bullets={[
+          { label: "Записи в старых документах сохранятся — они закрываются, а не удаляются" },
+          { label: "В новых уже вписаны сотрудники, должности и ответственные" },
+          {
+            label:
+              "Показатели, отметки и подписи останутся пустыми — их ставят люди",
+            tone: "warn",
+          },
+        ]}
+        confirmLabel="Пересоздать"
+      />
     </section>
   );
 }

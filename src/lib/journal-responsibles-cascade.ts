@@ -22,7 +22,11 @@ import {
 async function fetchOrgDataForDefaults(
   organizationId: string
 ): Promise<DefaultConfigOrgData> {
-  const [areas, equipment, users, products] = await Promise.all([
+  const [org, areas, equipment, users, products] = await Promise.all([
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    }),
     db.area.findMany({
       where: { organizationId },
       select: { id: true, name: true },
@@ -41,7 +45,16 @@ async function fetchOrgDataForDefaults(
     }),
     db.user.findMany({
       where: { organizationId, isActive: true, archivedAt: null },
-      select: { id: true, name: true, role: true },
+      // Должность нужна, чтобы бланк печатался с «Иванова · Повар», а не
+      // с одним ФИО: иначе человеку всё равно приходится вписывать её
+      // рукой в каждую строку.
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        positionTitle: true,
+        jobPosition: { select: { name: true } },
+      },
       orderBy: { name: "asc" },
     }),
     db.product.findMany({
@@ -50,7 +63,19 @@ async function fetchOrgDataForDefaults(
       orderBy: { name: "asc" },
     }),
   ]);
-  return { areas, equipment, users, products };
+  return {
+    areas,
+    equipment,
+    users: users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      role: u.role,
+      positionTitle: u.positionTitle,
+      jobPositionName: u.jobPosition?.name ?? null,
+    })),
+    products,
+    organizationName: org?.name ?? undefined,
+  };
 }
 
 /**

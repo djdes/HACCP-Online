@@ -259,10 +259,7 @@ export default async function DashboardPage() {
           организаций: кликабельна целиком, ведёт в /settings/onboarding.
           Auto-hide когда всё настроено. Только для management ролей. */}
       {hasFullWorkspaceAccess(session.user) ? (
-        <QuickStartCard
-          organizationId={getActiveOrgId(session)}
-          userId={session.user.id}
-        />
+        <QuickStartCard organizationId={getActiveOrgId(session)} />
       ) : null}
 
       {/* Action-first: what the user needs to do TODAY.
