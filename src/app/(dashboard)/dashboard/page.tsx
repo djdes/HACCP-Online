@@ -46,6 +46,7 @@ import { SuperUserDevTools } from "@/components/dashboard/super-user-dev-tools";
 import { isSuperUser } from "@/lib/super-user";
 import { OrgHealthWidget } from "@/components/dashboard/org-health-widget";
 import { QuickStartCard } from "@/components/dashboard/quick-start-card";
+import { PrintAgentCard } from "@/components/dashboard/print-agent-card";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { getStrugglingWorkers, getWorkerLeaderboard } from "@/lib/worker-leaderboard";
@@ -421,6 +422,20 @@ export default async function DashboardPage() {
               </div>
             </DashboardSection>
           )}
+
+          {/* «Онлайн принтер» — прямо под журналами, как просил владелец:
+              решение «распечатать журнал» принимается, когда смотришь на
+              список журналов, а не в настройках. */}
+          <DashboardSection
+            storageKey="print-agent"
+            title="Онлайн принтер"
+            subtitle="Печать журнала с телефона — на принтер заведения."
+            icon={Printer}
+            defaultOpen={false}
+          >
+            <PrintAgentCard />
+          </DashboardSection>
+
           {/* Compliance audit shortcut */}
           <Link
             href="/dashboard/compliance-audit"

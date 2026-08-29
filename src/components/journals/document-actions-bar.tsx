@@ -1,7 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MoreHorizontal, Printer, Settings2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  Printer,
+  PrinterCheck,
+  Settings2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -97,6 +103,39 @@ export function DocumentActionsBar({
 }: Props) {
   const items = menuItems.filter(Boolean);
   const hasPrint = Boolean(showPrint && documentId);
+
+  /**
+   * «На принтер заведения» — то самое «с телефона жмякнул и готово».
+   * Обычная «Печать» открывает PDF в браузере, а это ставит задание в
+   * очередь, и бланк выезжает на кассе без похода к компьютеру.
+   */
+  async function sendToAgent(id: string) {
+    const toastId = toast.loading("Отправляю на принтер…");
+    try {
+      const res = await fetch("/api/print/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: id }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        toast.error(data?.error ?? "Не удалось отправить", { id: toastId });
+        return;
+      }
+      // Про офлайн говорим сразу: иначе человек стоит у принтера и не
+      // понимает, чего ждёт.
+      if (data?.agentOnline) {
+        toast.success(`Отправлено на «${data.agentName}»`, { id: toastId });
+      } else {
+        toast.warning(
+          "Принтер сейчас не на связи — распечатается, как только программа поднимется",
+          { id: toastId },
+        );
+      }
+    } catch {
+      toast.error("Не удалось отправить", { id: toastId });
+    }
+  }
   const hasMenu = hasPrint || items.length > 0;
 
   return (
@@ -165,6 +204,15 @@ export function DocumentActionsBar({
                   >
                     <Printer className="mr-3 size-4 text-[#6f7282]" />
                     Печать
+                  </DropdownMenuItem>
+                ) : null}
+                {hasPrint ? (
+                  <DropdownMenuItem
+                    className="h-9 rounded-xl px-3 text-[13.5px]"
+                    onSelect={() => sendToAgent(documentId as string)}
+                  >
+                    <PrinterCheck className="mr-3 size-4 text-[#5566f6]" />
+                    На принтер заведения
                   </DropdownMenuItem>
                 ) : null}
                 {items.map((item) => (

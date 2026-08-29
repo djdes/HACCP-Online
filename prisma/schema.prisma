@@ -289,6 +289,8 @@ model Organization {
   journalTaskClaims        JournalTaskClaim[]
   tasksFlowIntegration     TasksFlowIntegration?
   tasksFlowOutbox          TasksFlowOutbox[]
+  printAgents              PrintAgent[]
+  printJobs                PrintJob[]
   journalGuideTemplates    JournalGuideTemplate[]
   journalPipelineTemplates JournalPipelineTemplate[]
 }
@@ -1571,6 +1573,7 @@ model JournalDocument {
   updatedAt         DateTime               @updatedAt
   entries           JournalDocumentEntry[]
   closeEvents       JournalCloseEvent[]
+  printJobs         PrintJob[]
 
   @@index([organizationId, templateId, status])
   @@index([organizationId, dateFrom])
@@ -1734,6 +1737,83 @@ model TasksFlowTaskLink {
 
   @@unique([integrationId, journalDocumentId, rowKey])
   @@index([tasksflowTaskId])
+}
+
+enum PrintJobStatus {
+  pending
+  printing
+  done
+  error
+  cancelled
+}
+
+/// Установленный экземпляр программы «Онлайн принтер»: одна строка — одна
+/// машина, к которой подключён принтер.
+///
+/// Токен хранится ТОЛЬКО хешем (как `InspectorToken`): плейнтекст
+/// показывается один раз при подключении и на сервере не оседает. bcrypt
+/// здесь не нужен — токен и так высокоэнтропийный, перебирать нечего.
+model PrintAgent {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Кто подключил машину — чтобы через полгода было понятно, чей это принтер.
+  createdById    String?
+  /// Имя машины: «Касса», «Кабинет заведующей». Задаётся при подключении.
+  name           String
+  tokenHash      String       @unique
+  /// Выбранный принтер по умолчанию — агент присылает его при опросе.
+  printerName    String?
+  /// Все принтеры машины (JSON string[]) — чтобы в дашборде было видно,
+  /// из чего человек выбирал.
+  printers       Json?
+  agentVersion   String?
+  /// Обновляется при опросе с троттлингом: писать в БД каждые 5 секунд
+  /// ради «онлайн» — дорого и незачем.
+  lastSeenAt     DateTime?
+  /// Отзыв из дашборда: токен перестаёт работать, строка остаётся, чтобы
+  /// история печати не потеряла, на какой машине что печаталось.
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  jobs           PrintJob[]
+
+  @@index([organizationId])
+}
+
+/// Задание печати.
+///
+/// Храним ССЫЛКУ на документ, а не сам файл: у Magday в очереди лежит
+/// base64 чека — для чека нормально, для журнала за месяц это сотни
+/// килобайт на строку. PDF агент забирает отдельным запросом, он и так
+/// собирается на лету.
+model PrintJob {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Пусто, пока задание не забрал агент.
+  agentId        String?
+  agent          PrintAgent?      @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  documentId     String?
+  document       JournalDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  /// Снимок названия: документ могут закрыть или удалить, а история печати
+  /// должна читаться и через год.
+  docTitle       String
+  createdById    String?
+  /// Снимок имени отправителя — по той же причине, что и docTitle.
+  createdByName  String?
+  status         PrintJobStatus   @default(pending)
+  attempts       Int              @default(0)
+  claimedAt      DateTime?
+  printedAt      DateTime?
+  errorMsg       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId, status, createdAt])
+  @@index([agentId, status])
+  /// Возврат зависших `printing` обратно в очередь.
+  @@index([status, claimedAt])
 }
 
 enum TasksFlowOutboxStatus {

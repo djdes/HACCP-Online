@@ -1,17 +1,8 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
+import { verifyEmailPassword } from "@/lib/credentials";
 import { issueSession } from "@/lib/issue-session";
 import { loginRateLimiter } from "@/lib/rate-limit";
 import { recordLogin } from "@/lib/login-trace";
-
-// Pre-computed bcrypt hash для несуществующих email'ов. Без этого
-// ответ на «пользователь не найден» приходит в ~5ms, а на
-// «неверный пароль» — в ~100ms (bcrypt.compare). Атакующий замеряет
-// разницу и enumerate'ит существующие email'ы. Фейковый compare
-// выравнивает время.
-const DUMMY_BCRYPT_HASH =
-  "$2a$10$CwTycUXWue0Thq9StjUM0uJ8.lllkbczy3.0qVxgApY/I5p9mElqS";
 
 
 export async function POST(request: Request) {
@@ -42,18 +33,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await db.user.findUnique({
-      where: { email },
-      include: { organization: true },
-    });
+    // Проверка и защита от user-enumeration — в `lib/credentials.ts`:
+    // тем же кодом входит программа «Онлайн принтер», и защита у обоих
+    // входов обязана быть одна.
+    const user = await verifyEmailPassword(email, password);
 
-    // Anti user-enumeration: всегда делаем bcrypt.compare, даже если
-    // юзер не найден или неактивен. Иначе атакующий замеряет timing
-    // (ms) и understands какие email'ы существуют.
-    const passwordHashToCheck = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
-    const isPasswordValid = await bcrypt.compare(password, passwordHashToCheck);
-
-    if (!user || !user.isActive || !isPasswordValid) {
+    if (!user) {
       return NextResponse.json(
         { error: "Неверный email или пароль" },
         { status: 401 }

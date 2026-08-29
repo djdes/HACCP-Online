@@ -68,6 +68,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/settings/permissions": "Права доступа",
   "/settings/phone": "Привязка телефона",
   "/settings/position-staff-visibility": "Кто видит коллег",
+  "/settings/print-agent": "Онлайн принтер",
   "/settings/products": "Справочник продуктов",
   "/settings/role-presets": "Пресеты ролей",
   "/settings/schedule": "График смен",
