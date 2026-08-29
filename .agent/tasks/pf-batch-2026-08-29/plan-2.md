@@ -329,96 +329,117 @@ bullet-список последствий: «Старые активные до
 
 ---
 
-## Задача C. PrintAgent — декомпозиция (без реализации)
+## Задача C. PrintAgent — референс Magday найден
 
-### Что уже есть в репозитории (инвентаризация, переиспользуем)
+> Обновлено после того, как исходники Magday нашлись на диске. Прошлая
+> версия этого раздела строилась на догадках («нужен WebSocket», «Magday
+> в репозитории не упоминается») — они оказались неверны, и раздел
+> переписан по фактическому коду.
 
-| Актив | Где | Роль в PrintAgent |
-|---|---|---|
-| Серверный PDF любого документа | `src/lib/document-pdf.ts` (`generateJournalDocumentPdf`, `loadJournalDocumentPdfInput` :5915, :6009) | Готовый рендер «что печатать» — агенту отдаём именно этот PDF |
-| PDF field-based журналов | `src/lib/pdf.ts` (`generateJournalPDF`) | То же для журналов без документов |
-| PDF бумажных бланков | `src/lib/paper-journal-pdf.ts` | Печать бланков через агента |
-| HTTP-роут PDF | `src/app/api/journal-documents/[id]/pdf/route.ts` | Образец ACL-проверки (hasJournalAccess) для файлового эндпоинта агента |
-| Кнопка «Печать» в каждом журнале | `src/components/journals/document-actions-bar.tsx` (`showPrint`, `documentId`) + `src/lib/open-document-pdf.ts` | Единая точка, куда добавляется пункт «На принтер заведения» |
-| Per-org токен + Bearer-auth | `Organization.externalApiToken`, `src/lib/external/auth.ts` (timing-safe, tokenHint) | Шаблон аутентификации агента; но агенту нужен СВОЙ токен, не общий org-токен |
-| Токены с хэшированием | модели `InviteToken`, `InspectorToken` (schema.prisma:671, :698) — SHA-256, показ один раз | Шаблон хранения agent-токена |
-| Очередь с retry | модель `TasksFlowOutbox` (schema.prisma:1756-1780): status/attempts/lastError/idempotencyKey + cron-проигрыватель | Шаблон модели PrintJob |
-| Cron-инфраструктура | `src/app/api/cron/*` (20+ роутов) | Чистка старых PrintJob, offline-детект агентов |
-| Rate-limit | `src/lib/rate-limit.ts` (`destructiveOpsRateLimiter`) | Анти-флуд на постановку заданий |
-| Дашборд-блоки | `src/components/dashboard/*` (org-health-widget, live-claims-card — образцы) | Блок «Онлайн принтер» |
+### Где лежит рабочий референс
 
-**Чего в репозитории НЕТ:** упоминаний Magday — ноль (проверено полнотекстовым
-поиском). Реализацию Magday исполнителю нужно запросить у владельца отдельно
-(репозиторий/архив), в этом репо опереться не на что. Также нет custom server
-(`server.js` отсутствует) — приложение живёт как `next start` под PM2, поэтому
-**встроенный WebSocket-сервер недоступен без серьёзной перестройки деплоя**.
+На `C:\www` два готовых агента печати, оба боевые:
+
+| Путь | Что это |
+|---|---|
+| `C:\www\YandexEdaPrintAgent` | C# .NET Framework 4.8, WinForms. Печатает через **SumatraPDF**, опрос раз в 5 сек. 2075 строк, вся логика в `Program.cs`. Есть `README.md` и `docs/log-format.md`. |
+| `C:\www\managermagday\print-agent` | **Node.js** + `puppeteer-core`. Ближе нам: наш стек, Electron-трей (`tray-app/`), установка службой через `install-service.bat` (NSSM), автозапуск. |
+| `C:\www\magday-backend\api\manager\print.php` | Серверная часть, 548 строк. Очередь `print_jobs` в SQLite. |
+| `C:\www\printAgent` | Собранный бинарник на кассе (exe + SumatraPDF + config). |
+
+Брать за основу надо **Node-агента из `managermagday`**: он на нашем языке,
+у него уже есть трей, служба и автозапуск — ровно то, что просит владелец.
+
+### Протокол (снят с кода, а не придуман)
+
+Никакого WebSocket — обычный HTTP-поллинг с токеном в query. Это и
+правильно: агент стоит за NAT в кафе, входящих соединений к нему нет.
+
+```
+GET  ?action=poll&token=<agentToken>[&source=<channel>]
+     → отдаёт самое старое pending-задание и помечает его printing
+POST {action:"complete", token, id}        → done + printed_at
+POST {action:"fail", token, id, error}     → error + error_msg (255 симв.)
+GET  ?action=view&token=<agentToken>       → страница истории печати
+GET  ?action=cleanup&force=1&token=...     → отменить всё pending/printing
+```
+
+Ключевые решения референса, которые стоит повторить:
+
+- **Самолечение зависших заданий**: `UPDATE print_jobs SET status='pending'
+  WHERE status='printing' AND created_at < :cutoff`. Агент мог умереть
+  посреди печати — без этого задание висит вечно.
+- **Статусы**: `pending → printing → done | error | cancelled`.
+- **Каналы (`source`)**: один агент слушает свой набор источников. У
+  Magday так разведены чеки Я.Еды, киоск и этикетки; у нас это будут
+  журналы против отчётов.
+- **Разные принтеры под разные задания** (`labelPrinterName` для этикеток).
+  Нам нужно позже, но заложить `source` в модель стоит сразу.
+- Агент **ничего не масштабирует**: PDF приходит готовым, он печатает
+  «как есть». Вся вёрстка остаётся на сервере — у нас она уже есть.
+
+### Чего повторять НЕ надо
+
+Magday кладёт сам файл в очередь: `file_content` — base64 прямо в строке
+таблицы. Для чека это нормально, для журнала на месяц — нет: PDF бланка
+весит сотни килобайт, и очередь распухнет.
+
+У нас PDF уже собирается на лету (`/api/journal-documents/[id]/pdf`,
+`document-pdf.ts`). Поэтому в `PrintJob` храним **ссылку на документ**, а
+не байты, и агент забирает файл отдельным запросом со своим токеном:
+
+```
+GET /api/print/agent/jobs/<jobId>/file   (Bearer <agentToken>)
+```
+
+Это и очередь держит лёгкой, и убирает дубль «PDF в базе против PDF на лету».
 
 ### Разрез по системам
 
-**1. Wesetup (этот репозиторий):**
+**Живёт в Wesetup (этот репозиторий):**
 
-- **Prisma** (`prisma/schema.prisma`), 2 модели:
-  - `PrintAgent { id, organizationId, name, tokenHash (SHA-256, по образцу InspectorToken), lastSeenAt, version, createdAt, revokedAt }` — «онлайн» = `lastSeenAt > NOW() - 90s`, отдельного поля статуса не нужно.
-  - `PrintJob { id, organizationId, agentId?, kind ("journal_document" | "paper_blank"), refId (documentId или paperJournalId), copies, status ("pending"|"claimed"|"printed"|"failed"), attempts, lastError, createdByUserId, createdAt, claimedAt, printedAt }` + индекс `[organizationId, status, createdAt]` — калька с TasksFlowOutbox.
-- **API для агента** (Bearer = agent-токен, свой мини-`requireAgentAuth` по образцу `src/lib/external/auth.ts`):
-  - `GET /api/print-agent/poll` — **long-poll**: держим запрос до ~25 сек или до появления pending-job; заодно обновляем `lastSeenAt` (heartbeat). Long-poll, а не WebSocket: под `next start`/PM2/nginx это единственный вариант без custom-server, и для очереди печати задержка в секунды не важна. Не SSE — агенту всё равно нужен обратный канал ack, два протокола хуже одного.
-  - `POST /api/print-agent/jobs/[id]/claim` и `POST .../result { ok | error }` — идемпотентно (повторный claim того же агента = no-op, по духу П-19).
-  - `GET /api/print-agent/jobs/[id]/file` — генерирует PDF через существующие `generateJournalDocumentPdf` / `renderPaperJournalPdf`. ACL: job принадлежит организации агента — этого достаточно, пер-журнальный ACL проверяется при постановке job.
-- **API для людей** (session-auth): `POST /api/print/jobs { documentId, copies }` — проверка `hasJournalAccess`, создание PrintJob; `GET /api/print/jobs` — история; `POST /api/settings/print-agent` — выпуск/ревокация токена (admin.full), токен показывается один раз (как InspectorToken).
-- **UI:**
-  - `/settings/print-agent` — страница: выпуск токена, ссылка на скачивание программы, список агентов со статусом (зелёная точка = lastSeenAt свежий), инструкция «поставьте на компьютер рядом с принтером». PageHeader-recipe, без hero (design-system «When to apply»).
-  - Дашборд-блок «Онлайн принтер» — `src/components/dashboard/printer-card.tsx`: статус агента, последние 5 заданий, ссылка «Скачать программу». Показывать только если у организации есть хотя бы один PrintAgent ИЛИ фича включена — не засорять дашборд всем остальным (UX-принцип 1).
-  - В `document-actions-bar.tsx` меню «Печать» становится двумя пунктами, когда есть онлайн-агент: «Открыть PDF» (текущее) и «На принтер заведения» (один клик → toast «Отправлено на печать»). В Mini App (`/mini/documents/[id]`) — та же кнопка, это требование П-3 (зеркальность сайта и Mini App).
+1. Модели `PrintAgent` (организация, имя точки, хеш токена, `printerName`,
+   `lastSeenAt`) и `PrintJob` (организация, агент, `documentId`, `source`,
+   статус, `error`, `printedAt`). Хеш токена — как у `InspectorToken`,
+   плейнтекст не храним.
+2. `/api/print/agent` — poll/complete/fail по протоколу выше.
+3. `/api/print/agent/jobs/<id>/file` — отдаёт готовый PDF.
+4. `POST /api/print/jobs` — постановка в очередь из интерфейса.
+5. Кнопка «На принтер» рядом с «Скачать PDF» в панели документа
+   (`document-actions-bar.tsx`) — то самое «с телефона жмякнул и готово».
+6. Страница `/settings/print-agent`: выпуск токена, имя точки, статус
+   соединения (`lastSeenAt` свежее двух минут), история печати.
+7. Блок «Онлайн принтер» на дашборде — статус и ссылка на скачивание.
 
-**2. Отдельная программа (НЕ этот репозиторий):**
+**Живёт отдельной программой:** Node-агент по образцу `managermagday/print-agent`
+(поллинг, печать, трей, служба, автозапуск). В репозиторий Wesetup не кладём.
 
-Desktop-агент для Windows: логин (вставить токен один раз), трей-иконка,
-long-poll цикл, скачивание PDF, печать (SumatraPDF `-print-to-default` как
-самый надёжный headless-путь на Windows, либо системный default handler),
-автозапуск (ключ реестра `HKCU\...\Run`), retry с backoff, лог. Технологию
-(Electron vs .NET vs Go) выбирать по коду Magday — если Magday-агент рабочий,
-переиспользовать его каркас и заменить протокол на наш. В этом репо для агента
-максимум — папка `docs/print-agent-protocol.md` со спекой протокола.
+### Первый шаг, который даёт пользу без десктопа
 
-**3. Протокол (фиксируем в спеке до кода):**
+Пункты 1–4 и 6 сами по себе бесполезны, пока некому печатать. Поэтому
+начинать надо с пары «очередь + агент», а не с одной очереди. Но объём
+первого шага можно резко сократить: взять `print-agent.js` Magday,
+выкинуть из него puppeteer (нам HTML→PDF не нужен, у нас уже PDF) и
+поменять адреса эндпоинтов. Останется ~150 строк вместо 350.
 
-- HTTPS only, `Authorization: Bearer <agent-token>`; токен привязан к организации
-  (multi-org isolation по духу П-18: агент видит только job'ы своей org).
-- Long-poll 25s; heartbeat = сам poll; job lifecycle
-  `pending → claimed (агентом) → printed | failed`; повторная выдача pending-job,
-  если claimed висит > 2 мин (агент умер посреди печати).
-- Идемпотентность по jobId; никакого состояния на агенте, кроме токена.
+### Что нужно от владельца
 
-**4. Минимальный первый шаг, дающий пользу без десктопной части:**
-
-Этап 1 (этот репо, небольшой PR): модели PrintAgent/PrintJob + `/settings/print-agent`
-(выпуск токена + инструкция) + дашборд-блок в состоянии «Принтер не подключён —
-скачайте агент» + логирование существующих PDF-печатей в PrintJob
-(`open-document-pdf.ts` шлёт `POST /api/print/jobs` с kind="pdf_opened") → у
-владельца сразу появляется «история печати» в блоке, а серверная half готова
-принять агента. Этап 2: agent API (poll/claim/file) + эмулятор-скрипт в
-`scripts/print-agent-emulator.ts` для e2e-проверки без десктопа. Этап 3: сам
-десктопный агент (вне репо, на базе Magday).
-
-### Критерии приёмки C (для этапа декомпозиции)
-
-- Спека протокола записана (docs/print-agent-protocol.md) и согласована с владельцем
-  ДО начала кода (по процессу CLAUDE.md — superpowers:brainstorming для новых
-  архитектурных элементов).
-- У владельца запрошены исходники Magday; выбор технологии агента отложен до их
-  получения.
-- Этап 1 оценён и не блокируется этапами 2–3.
+- Где живёт репозиторий агента: в ProjectsFlow уже заведён проект
+  `PrintAgent` — вести там?
+- Название и иконка для трея, и под каким именем ставить службу.
+- Нужны ли сразу несколько принтеров на точку (этикетки против бланков)
+  или на старте хватит одного.
 
 ### Риски C
 
-- PDF-генерация тяжёлая (document-pdf.ts ~6000 строк, шрифты) — генерировать файл
-  в момент запроса агентом, не при постановке job (job хранит только ссылку).
-- Long-poll держит соединение — проверить таймауты nginx на проде (обычно 60s,
-  25s безопасно).
-- Токен агента в реестре/файле на общем компьютере — хранить hash на сервере,
-  ревокация с `/settings/print-agent` должна работать мгновенно (проверка на каждом poll).
-
----
+- **Базовая аутентификация агента**: токен уходит в query-строке (так у
+  Magday). У нас лучше сразу Bearer-заголовком — query-строки попадают в
+  логи nginx целиком.
+- **Разрастание очереди**: нужен cron-cleanup, как у TasksFlow-outbox, и
+  тот же самолечащий сброс зависших `printing`.
+- **Печать чужого документа**: `PrintJob` обязан проверяться по
+  `organizationId` агента, иначе токен одной точки распечатает журнал
+  другой организации.
 
 ## Общее
 
