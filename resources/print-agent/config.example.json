@@ -1,0 +1,8 @@
+{
+  "apiUrl": "https://wesetup.ru",
+  "agentToken": "",
+  "printerName": "",
+  "pollIntervalMs": 5000,
+  "sumatraPath": "SumatraPDF.exe",
+  "maxLogSizeMb": 10
+}

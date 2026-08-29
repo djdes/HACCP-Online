@@ -63,7 +63,7 @@ export function PrintAgentSettingsClient({ agents }: { agents: Agent[] }) {
             </p>
           </div>
           <a
-            href="/downloads/wesetup-print-agent.zip"
+            href="/api/print/agent/download"
             className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
           >
             <Download className="size-4" />

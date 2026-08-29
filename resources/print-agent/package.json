@@ -1,0 +1,11 @@
+{
+  "name": "wesetup-print-agent",
+  "version": "1.0.0",
+  "description": "Онлайн принтер Wesetup — печать журналов с телефона на принтер заведения",
+  "main": "agent.js",
+  "scripts": {
+    "setup": "node setup.js",
+    "start": "node agent.js"
+  },
+  "license": "UNLICENSED"
+}
