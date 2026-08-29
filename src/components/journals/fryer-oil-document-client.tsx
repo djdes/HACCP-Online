@@ -1,9 +1,17 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Archive, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Archive,
+  Download,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -130,6 +138,14 @@ function sortEntries(items: EntryItem[]) {
     );
 }
 
+/** Разбор графы продукции: в ячейке они лежат через запятую. */
+function splitProducts(value: string): string[] {
+  return value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function EntryDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -150,6 +166,19 @@ function EntryDialog(props: {
         controllerName: props.users[0]?.name ?? "",
       };
   const [data, setData] = useState<FryerOilEntryData>(initial);
+
+  const selectedProducts = splitProducts(data.productType);
+
+  /** Клик по позиции добавляет её в ячейку или убирает оттуда. */
+  function toggleProduct(value: string) {
+    setData((current) => {
+      const chosen = splitProducts(current.productType);
+      const next = chosen.includes(value)
+        ? chosen.filter((item) => item !== value)
+        : [...chosen, value];
+      return { ...current, productType: next.join(", ") };
+    });
+  }
   const [busy, setBusy] = useState(false);
 
   async function save() {
@@ -220,14 +249,42 @@ function EntryDialog(props: {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Вид продукции</Label>
-              <Select value={toNone(data.productType)} onValueChange={(value) => setData((d) => ({ ...d, productType: fromNone(value) }))}>
-                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="— выберите —" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
-                  {props.lists.productTypes.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label className="text-[13px] font-medium text-[#3c4053]">
+                Вид продукции
+              </Label>
+              {/* Отмечаем несколько позиций — они склеиваются через запятую
+                  в ОДНУ ячейку. Одна строка журнала = один день работы
+                  фритюра, а оценка ставится маслу в целом, сколько бы
+                  разных продуктов в нём ни жарили: заводить строку на
+                  каждое блюдо неправильно и по смыслу, и по бланку. */}
+              <div className="flex flex-wrap gap-1.5">
+                {props.lists.productTypes.map((value) => {
+                  const chosen = selectedProducts.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => toggleProduct(value)}
+                      className={cn(
+                        "h-8 rounded-full border px-3 text-[13px] transition-colors",
+                        chosen
+                          ? "border-[#5566f6] bg-[#5566f6] text-white"
+                          : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#f5f6ff]"
+                      )}
+                    >
+                      {value}
+                    </button>
+                  );
+                })}
+              </div>
+              <Input
+                value={data.productType}
+                onChange={(event) =>
+                  setData((d) => ({ ...d, productType: event.target.value }))
+                }
+                placeholder="Или впишите своё — через запятую"
+                className="h-10 rounded-xl text-[13.5px]"
+              />
             </div>
           </div>
 
@@ -312,6 +369,59 @@ function EntryDialog(props: {
 function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => void; lists: FryerOilSelectLists; onSave: (lists: FryerOilSelectLists) => Promise<void> }) {
   const [lists, setLists] = useState(props.lists);
   const tabs: Array<[keyof FryerOilSelectLists, string]> = [["fatTypes", "Вид жира"], ["equipmentTypes", "Оборудование"], ["productTypes", "Вид продукции"]];
+
+  /**
+   * Читаем первый столбец первого листа. Формат намеренно самый простой:
+   * заведение выгружает список из своей учётной системы, а не подгоняет
+   * его под нашу структуру.
+   */
+  async function importList(key: keyof FryerOilSelectLists, file: File) {
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const book = XLSX.read(buffer, { type: "array" });
+      const sheet = book.Sheets[book.SheetNames[0]];
+      if (!sheet) throw new Error("В файле нет ни одного листа");
+
+      const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
+      const values = rows
+        .map((row) => String(row?.[0] ?? "").trim())
+        .filter(Boolean);
+
+      if (values.length === 0) {
+        toast.error("В первом столбце файла ничего не нашлось");
+        return;
+      }
+
+      // Дубликаты убираем: список выгружают повторно, и без этого он
+      // после второго импорта удваивается.
+      setLists((current) => ({
+        ...current,
+        [key]: Array.from(
+          new Set([...current[key].filter(Boolean), ...values]),
+        ),
+      }));
+      toast.success(`Добавлено позиций: ${values.length}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось прочитать файл",
+      );
+    }
+  }
+
+  /** Пример файла — ровно того формата, который ждёт импорт. */
+  async function downloadExample(key: keyof FryerOilSelectLists) {
+    const XLSX = await import("xlsx");
+    const sample = lists[key].filter(Boolean).slice(0, 5);
+    const rows = (sample.length > 0
+      ? sample
+      : ["Первая позиция", "Вторая позиция", "Третья позиция"]
+    ).map((value) => [value]);
+
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(rows), "Список");
+    XLSX.writeFile(book, "wesetup-пример-списка.xlsx");
+  }
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
@@ -330,6 +440,43 @@ function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => vo
                   </div>
                 ))}
                 <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={() => setLists((v) => ({ ...v, [key]: [...v[key], ""] }))}><Plus className="size-4" />Добавить</Button>
+
+                {/* Импорт списком. Пример файла даём ВСЕГДА: без него
+                    человек не угадает, что нужен один столбец без
+                    заголовка, и получит список из мусора. */}
+                <div className="mt-4 rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-4">
+                  <div className="text-[13px] font-medium text-[#0b1024]">
+                    Загрузить списком
+                  </div>
+                  <p className="mt-1 text-[12.5px] leading-snug text-[#6f7282]">
+                    Файл Excel или CSV: один столбец, по строке на позицию,
+                    без заголовка. Загруженное добавится к текущему списку.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]">
+                      <Upload className="size-4 text-[#5566f6]" />
+                      Выбрать файл
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) void importList(key, file);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => downloadExample(key)}
+                      className="inline-flex h-9 items-center gap-2 rounded-xl px-3 text-[13px] font-medium text-[#5566f6] transition-colors hover:bg-[#f5f6ff]"
+                    >
+                      <Download className="size-4" />
+                      Скачать пример
+                    </button>
+                  </div>
+                </div>
               </TabsContent>
             ))}
           </Tabs>
