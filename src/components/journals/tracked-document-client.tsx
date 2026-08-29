@@ -50,7 +50,7 @@ import {
 } from "@/lib/pest-control-document";
 
 import { toast } from "sonner";
-import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
 type EmployeeItem = {
@@ -370,7 +370,7 @@ function TrackedDocumentClientImpl({
 
           <div className={JOURNAL_DOCUMENT_ACTIONS_CLASS}>
             {status === "active" && (
-              <UndoRedoButtons
+              <PublishUndoToHeader
                 undo={{
                   canUndo: undoStack.canUndo,
                   canRedo: undoStack.canRedo,

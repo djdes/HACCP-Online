@@ -38,7 +38,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
-import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { PositionNativeOptions } from "@/components/shared/position-select";
 type UserItem = {
@@ -394,7 +394,7 @@ export function EquipmentCleaningDocumentClient({
               отмены ставим в его шапку слева от «Печати», чтобы порядок
               совпадал с остальными журналами. */}
           {status === "active" ? (
-            <UndoRedoButtons
+            <PublishUndoToHeader
               undo={{
                 canUndo: undoStack.canUndo,
                 canRedo: undoStack.canRedo,

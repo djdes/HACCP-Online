@@ -16,10 +16,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DOC_TITLE_ROW_CLASS } from "@/components/journals/journal-responsive";
-import {
-  UndoRedoButtons,
-  type DocumentBarUndo,
-} from "@/components/journals/undo-redo-buttons";
+import type { DocumentBarUndo } from "@/components/journals/undo-redo-buttons";
+import { usePublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { cn } from "@/lib/utils";
 
 /**
@@ -104,6 +102,10 @@ export function DocumentActionsBar({
   const items = menuItems.filter(Boolean);
   const hasPrint = Boolean(showPrint && documentId);
 
+  // Панель рендерят почти все журналы — публикуем состояние отмены в
+  // шапку отсюда, чтобы не звать хук в каждом клиенте по отдельности.
+  usePublishUndoToHeader(undo ?? null);
+
   /**
    * «На принтер заведения» — то самое «с телефона жмякнул и готово».
    * Обычная «Печать» открывает PDF в браузере, а это ставит задание в
@@ -150,7 +152,10 @@ export function DocumentActionsBar({
       >
         {heading ? <div className="min-w-0 flex-1">{heading}</div> : null}
         <div className="flex flex-wrap items-center gap-2">
-          {undo ? <UndoRedoButtons undo={undo} /> : null}
+          {/* Сами кнопки рисует шапка сайта — сюда приходит только их
+              состояние, и мы его туда пробрасываем. В длинном журнале
+              кнопки нужны там, где человек сейчас смотрит, а не в двух
+              экранах прокрутки вверх. */}
           {/* Печать страницы (Ctrl+P) — иконка рядом с «Настройками
               журнала», как на эталоне. Печатные стили документа уже есть,
               поэтому кнопка просто зовёт window.print(). Серверный PDF

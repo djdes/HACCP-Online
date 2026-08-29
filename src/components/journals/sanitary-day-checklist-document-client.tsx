@@ -41,7 +41,7 @@ import {
 } from "@/components/journals/mobile-view-toggle";
 
 import { toast } from "sonner";
-import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 /* ─── Types ─── */
 
@@ -917,7 +917,7 @@ export function SanitaryDayChecklistDocumentClient({
                   отмены ставим в его собственную шапку, слева от
                   «Печати», чтобы порядок совпадал с остальными журналами. */}
               {isActive && (
-                <UndoRedoButtons
+                <PublishUndoToHeader
                   undo={{
                     canUndo: undoStack.canUndo,
                     canRedo: undoStack.canRedo,

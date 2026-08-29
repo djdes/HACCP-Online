@@ -21,6 +21,7 @@ import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
 import { listAccessibleOrganizations } from "@/lib/organization-access";
 import { BILLING_TEST_MODE, FREE_MAX_USERS } from "@/lib/plan-limits";
 import { PageNav, PageNavProvider } from "@/components/layout/page-nav";
+import { JournalUndoProvider } from "@/components/journals/journal-undo-slot";
 import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
@@ -159,6 +160,10 @@ export default async function DashboardLayout({
               <CompleteProfileNudge email={profile?.email ?? ""} />
             </Suspense>
           ) : null}
+          {/* Провайдер обнимает и шапку, и страницу: кнопки отмены
+              рендерятся наверху, а их состояние живёт в клиенте открытого
+              документа — иначе они друг друга не видят. */}
+          <JournalUndoProvider>
           <Header
             userName={session.user.name ?? "Пользователь"}
             userEmail={session.user.email ?? ""}
@@ -210,6 +215,7 @@ export default async function DashboardLayout({
               </PageNavProvider>
             </div>
           </main>
+          </JournalUndoProvider>
           {/* Футер дашборда — виден на каждой странице (требование
               владельца: «наш футер на каждой странице»). `mt-auto`
               прижимает его к низу на коротких экранах. */}

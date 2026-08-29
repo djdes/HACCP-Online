@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -693,7 +693,7 @@ export function PestControlDocumentClient(props: Props) {
           {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
               отмены ставим в его шапку слева от «Печати». */}
           {!readOnly && (
-            <UndoRedoButtons
+            <PublishUndoToHeader
               undo={{
                 canUndo: undoStack.canUndo,
                 canRedo: undoStack.canRedo,

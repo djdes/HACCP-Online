@@ -49,6 +49,8 @@ import {
 } from "@/components/ui/sheet";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
+import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { useHeaderUndo } from "@/components/journals/journal-undo-slot";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
 import { ThemeModeControls } from "@/components/theme/theme-quick-switch";
 import { planLabel } from "@/lib/plan-limits";
@@ -145,6 +147,7 @@ export function Header({
   billingTestMode,
 }: HeaderProps) {
   const pathname = usePathname();
+  const headerUndo = useHeaderUndo();
   const fullAccess = hasFullWorkspaceAccess({ role: userRole, isRoot });
   // Заведующая (head_chef / technologist) — даём отдельную ссылку
   // на /verifications вместо «Журналы». Сотрудник так и не узнает что
@@ -357,6 +360,18 @@ export function Header({
               <STAFF_NAV_ITEM.icon className="size-5 shrink-0" />
               <span className="truncate">{STAFF_NAV_ITEM.label}</span>
             </Link>
+          ) : null}
+
+          {/* Отмена и повтор открытого журнала. Стоят здесь, а не в
+              заголовке документа: журнал длинный, и когда человек
+              промахнулся мимо ячейки где-то внизу таблицы, кнопки должны
+              быть под рукой, а не в двух экранах прокрутки вверх.
+              Состояние приезжает из клиента документа через контекст. */}
+          {headerUndo ? (
+            <UndoRedoButtons
+              undo={headerUndo}
+              className="ml-1 flex items-center gap-1.5"
+            />
           ) : null}
 
           {isHeadChef ? (

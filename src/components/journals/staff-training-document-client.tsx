@@ -53,7 +53,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
-import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -371,7 +371,7 @@ export function StaffTrainingDocumentClient({
           {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
               отмены ставим в его шапку слева от «Печати». */}
           {!isClosed && (
-            <UndoRedoButtons
+            <PublishUndoToHeader
               undo={{
                 canUndo: undoStack.canUndo,
                 canRedo: undoStack.canRedo,

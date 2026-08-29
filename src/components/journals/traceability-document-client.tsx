@@ -38,7 +38,7 @@ import {
 } from "@/lib/traceability-document";
 
 import { toast } from "sonner";
-import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
+import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -769,7 +769,7 @@ export function TraceabilityDocumentClient(props: Props) {
           {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
               отмены ставим в его панель действий слева от «Печати». */}
           {!isClosed && (
-            <UndoRedoButtons
+            <PublishUndoToHeader
               undo={{
                 canUndo: undoStack.canUndo,
                 canRedo: undoStack.canRedo,
