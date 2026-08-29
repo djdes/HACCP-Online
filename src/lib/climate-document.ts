@@ -7,9 +7,29 @@ import {
 } from "@/lib/hygiene-document";
 
 export const CLIMATE_DOCUMENT_TEMPLATE_CODE = "climate_control";
-export const CLIMATE_DOCUMENT_TITLE = "Бланк контроля температуры и влажности";
-export const DEFAULT_CLIMATE_CONTROL_TIMES = ["10:00", "17:00"] as const;
-export const DEFAULT_CLIMATE_ROOM_NAME = "Склад";
+export const CLIMATE_DOCUMENT_TITLE =
+  "Бланк контроля температуры и влажности на складах";
+
+/**
+ * Журнал ведётся ТОЛЬКО по складским помещениям, где хранятся продукты:
+ * сухие склады, кладовые бакалеи, овощные склады и цеха. В обеденном
+ * зале, гардеробе и коридорах он не нужен — требование СанПиН
+ * 2.3/2.4.3590-20 касается мест хранения пищевых продуктов. Название с
+ * уточнением «на складах» стоит именно затем, чтобы заведение не заносило
+ * сюда все помещения подряд.
+ */
+export const CLIMATE_SCOPE_HINT =
+  "Только складские помещения с продуктами: сухие склады, кладовые бакалеи, овощные склады и цеха. Обеденный зал, гардероб и коридоры сюда не вносят.";
+
+/**
+ * Периодичность по регламенту — раз в день, в первой половине дня.
+ * Пропущенный день при проверке трактуется как невыполнение контроля.
+ */
+export const CLIMATE_FREQUENCY_HINT =
+  "Раз в день, в первой половине дня. Пропуск дня — нарушение при проверке.";
+
+export const DEFAULT_CLIMATE_CONTROL_TIMES = ["10:00"] as const;
+export const DEFAULT_CLIMATE_ROOM_NAME = "Сухой склад";
 
 export type ClimateMetricConfig = {
   enabled: boolean;
@@ -38,7 +58,99 @@ export type ClimateMeasurement = {
 export type ClimateEntryData = {
   responsibleTitle: string | null;
   measurements: Record<string, Record<string, ClimateMeasurement>>;
+  /**
+   * Комментарии к отклонениям: что сделали, когда показатель вышел за
+   * норму. Ключ — `roomId:time:metric`, чтобы комментарий держался за
+   * конкретный замер, а не за строку целиком: в одном дне может выйти
+   * из нормы и температура утром, и влажность вечером.
+   */
+  corrections?: Record<string, string>;
 };
+
+export type ClimateMetricKind = "temperature" | "humidity";
+
+/** Ключ комментария к отклонению. Один на замер. */
+export function climateCorrectionKey(
+  roomId: string,
+  time: string,
+  metric: ClimateMetricKind,
+): string {
+  return `${roomId}:${time}:${metric}`;
+}
+
+export type ClimateDeviation = {
+  key: string;
+  rowId: string;
+  date: string;
+  time: string;
+  roomId: string;
+  roomName: string;
+  metric: ClimateMetricKind;
+  value: number;
+  min: number | null;
+  max: number | null;
+  comment: string;
+};
+
+/** Значение вне нормы. Пустое значение отклонением не считается — его просто ещё не внесли. */
+export function isClimateValueOutOfRange(
+  value: number | null | undefined,
+  metric: ClimateMetricConfig,
+): boolean {
+  if (value === null || value === undefined) return false;
+  if (!metric.enabled) return false;
+  if (metric.min !== null && value < metric.min) return true;
+  if (metric.max !== null && value > metric.max) return true;
+  return false;
+}
+
+/**
+ * Все отклонения документа — из тех же данных, что и таблица.
+ *
+ * Считается на лету, а не хранится: поэтому исправленное значение убирает
+ * строку из корректирующих действий сразу, без перезагрузки страницы, а
+ * заново вышедшее за норму — возвращает.
+ */
+export function collectClimateDeviations(
+  config: ClimateDocumentConfig,
+  rows: Array<{ id: string; date: string; data: ClimateEntryData }>,
+): ClimateDeviation[] {
+  const result: ClimateDeviation[] = [];
+
+  for (const row of rows) {
+    for (const room of config.rooms) {
+      for (const time of config.controlTimes) {
+        const cell = row.data.measurements?.[room.id]?.[time];
+        if (!cell) continue;
+
+        const checks: Array<[ClimateMetricKind, ClimateMetricConfig, number | null]> = [
+          ["temperature", room.temperature, cell.temperature],
+          ["humidity", room.humidity, cell.humidity],
+        ];
+
+        for (const [metric, limits, value] of checks) {
+          if (!isClimateValueOutOfRange(value, limits)) continue;
+          const key = climateCorrectionKey(room.id, time, metric);
+          result.push({
+            key: `${row.id}:${key}`,
+            rowId: row.id,
+            date: row.date,
+            time,
+            roomId: room.id,
+            roomName: room.name,
+            metric,
+            value: value as number,
+            min: limits.min,
+            max: limits.max,
+            comment: row.data.corrections?.[key] ?? "",
+          });
+        }
+      }
+    }
+  }
+
+  return result;
+}
 
 function createId(prefix: string) {
   const randomPart =

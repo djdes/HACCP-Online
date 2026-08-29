@@ -16,7 +16,7 @@ export interface JournalTariffDefinition {
 const BASIC_JOURNALS = [
   { code: "hygiene", name: "Гигиенический журнал" },
   { code: "health_check", name: "Журнал здоровья" },
-  { code: "climate_control", name: "Бланк контроля температуры и влажности" },
+  { code: "climate_control", name: "Бланк контроля температуры и влажности на складах" },
   {
     code: "cold_equipment_control",
     name: "Журнал контроля температурного режима холодильного и морозильного оборудования",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Archive, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,12 @@ import {
   createEmptyClimateEntryData,
   getClimateDateLabel,
   getClimatePeriodicityText,
+  CLIMATE_DOCUMENT_TITLE,
+  climateCorrectionKey,
+  collectClimateDeviations,
+  isClimateValueOutOfRange,
+  CLIMATE_FREQUENCY_HINT,
+  CLIMATE_SCOPE_HINT,
   normalizeClimateDocumentConfig,
   syncClimateEntryDataWithConfig,
   type ClimateDocumentConfig,
@@ -947,6 +954,49 @@ export function ClimateDocumentClient({
   // История отмены (Ctrl+Z). Пока курсор в поле ввода, хоткей отдан
   // нативной отмене браузера — стек ловит уже сохранённые значения.
   const undoStack = useJournalUndo({ enabled: status === "active" });
+
+  // Считаем из текущих строк, а не храним: исправленное значение убирает
+  // отклонение из списка сразу, без перезагрузки страницы.
+  const deviations = useMemo(
+    () => collectClimateDeviations(config, rows),
+    [config, rows],
+  );
+
+  /** Комментарий к отклонению. Сохраняем тем же путём, что и замеры. */
+  async function saveCorrection(
+    rowId: string,
+    roomId: string,
+    time: string,
+    metric: "temperature" | "humidity",
+    text: string,
+  ) {
+    const row = rows.find((item) => item.id === rowId);
+    if (!row) return;
+    const previousRow = row;
+    const key = climateCorrectionKey(roomId, time, metric);
+
+    const nextRow: RowItem = {
+      ...row,
+      data: {
+        ...row.data,
+        corrections: { ...(row.data.corrections ?? {}), [key]: text },
+      },
+    };
+
+    setRows((current) =>
+      current.map((item) => (item.id === rowId ? nextRow : item)),
+    );
+    try {
+      await saveRow(nextRow);
+    } catch (error) {
+      setRows((current) =>
+        current.map((item) => (item.id === rowId ? previousRow : item)),
+      );
+      toast.error(
+        error instanceof Error ? error.message : "Ошибка сохранения",
+      );
+    }
+  }
   const closeAction = useDocumentCloseAction({ documentId, title: documentTitle });
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
@@ -1655,8 +1705,88 @@ export function ClimateDocumentClient({
         </div>
 
         <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
-          Бланк контроля температуры и влажности
+          {CLIMATE_DOCUMENT_TITLE}
         </JournalDocumentTitle>
+
+        {/* Область применения и периодичность — прямо в бланке, а не в
+            справке: журнал заполняет сменный сотрудник, и он должен
+            видеть, что сюда вносят только склады с продуктами и что
+            пропущенный день считается нарушением. */}
+        <p className="mt-1 text-center text-[12px] leading-snug text-[#6f7282] print:text-[10px]">
+          {CLIMATE_SCOPE_HINT} {CLIMATE_FREQUENCY_HINT}
+        </p>
+
+        {deviations.length > 0 ? (
+          <section className="mt-6">
+            <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
+              Корректирующие действия
+            </JournalDocumentTitle>
+            <p className="mt-1 text-center text-[12px] leading-snug text-[#a13a32] print:text-[10px]">
+              Показатель вышел за норму — опишите, что сделали. Пустая графа
+              при проверке читается как «нарушение заметили и проигнорировали».
+            </p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full border-collapse text-[13px]">
+                <thead>
+                  <tr>
+                    <th className={`${GRID_CELL_CLASS} w-[110px] px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                      Дата
+                    </th>
+                    <th className={`${GRID_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                      Время
+                    </th>
+                    <th className={`${GRID_CELL_CLASS} w-[160px] px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                      Точка контроля
+                    </th>
+                    <th className={`${GRID_CELL_CLASS} w-[190px] px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                      Зафиксированный параметр
+                    </th>
+                    <th className={`${GRID_CELL_CLASS} px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                      Комментарий / действие
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deviations.map((d) => (
+                    <tr key={d.key} className="bg-[#fff4f2]">
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center tabular-nums`}>
+                        {getClimateDateLabel(d.date)}
+                      </td>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center tabular-nums`}>
+                        {d.time}
+                      </td>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1`}>{d.roomName}</td>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-medium text-[#d2453d]`}>
+                        {d.metric === "temperature" ? "T" : "ВВ"}, {d.value}
+                        {d.metric === "temperature" ? " °C" : " %"}
+                        <span className="ml-1 text-[11px] font-normal text-[#a13a32]">
+                          (норма {d.min ?? "—"}–{d.max ?? "—"})
+                        </span>
+                      </td>
+                      <td className={`${GRID_CELL_CLASS} p-0`}>
+                        <Input
+                          defaultValue={d.comment}
+                          placeholder="Что сделали: проветрили, вызвали мастера…"
+                          disabled={status !== "active"}
+                          onBlur={(event) =>
+                            void saveCorrection(
+                              d.rowId,
+                              d.roomId,
+                              d.time,
+                              d.metric,
+                              event.target.value,
+                            )
+                          }
+                          className="h-10 w-full border-0 bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-1"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
 
         {status === "active" && (
           <StickyActionBar>
@@ -1869,7 +1999,13 @@ export function ClimateDocumentClient({
                                     event.target.value
                                   )
                                 }
-                                className="h-10 min-w-[88px] border-0 px-2 text-center shadow-none focus-visible:ring-1"
+                                className={cn(
+                                  "h-10 min-w-[88px] border-0 px-2 text-center shadow-none focus-visible:ring-1",
+                                  isClimateValueOutOfRange(
+                                    row.data.measurements[room.id]?.[time]?.temperature,
+                                    room.temperature
+                                  ) && "font-semibold text-[#d2453d]"
+                                )}
                               />
                             ) : (
                               row.data.measurements[room.id]?.[time]?.temperature ?? ""
@@ -1904,7 +2040,13 @@ export function ClimateDocumentClient({
                                     event.target.value
                                   )
                                 }
-                                className="h-10 min-w-[88px] border-0 px-2 text-center shadow-none focus-visible:ring-1"
+                                className={cn(
+                                  "h-10 min-w-[88px] border-0 px-2 text-center shadow-none focus-visible:ring-1",
+                                  isClimateValueOutOfRange(
+                                    row.data.measurements[room.id]?.[time]?.humidity,
+                                    room.humidity
+                                  ) && "font-semibold text-[#d2453d]"
+                                )}
                               />
                             ) : (
                               row.data.measurements[room.id]?.[time]?.humidity ?? ""
