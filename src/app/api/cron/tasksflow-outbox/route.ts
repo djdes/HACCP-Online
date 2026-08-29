@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
+import { checkTasksflowOutboxHealth } from "@/lib/platform-alerts";
 import { tasksflowClientFor, TasksFlowError } from "@/lib/tasksflow-client";
 
 export const runtime = "nodejs";
@@ -224,12 +225,17 @@ export async function GET(request: Request) {
       }
     }
 
+    // Проверяем очередь ПОСЛЕ проигрывания: до него в ней штатно лежат
+    // записи, накопившиеся с прошлого тика, и алерт был бы ложным.
+    const health = await checkTasksflowOutboxHealth();
+
     return NextResponse.json({
       ok: true,
       processed: pending.length,
       delivered,
       failed,
       errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+      health: health ?? undefined,
     });
   } finally {
     await db.$queryRaw`SELECT pg_advisory_unlock(${ADVISORY_LOCK_KEY})`;

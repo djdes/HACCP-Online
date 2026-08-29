@@ -198,11 +198,14 @@ export async function syncTasksflowUsers(args: {
     if (!remote && !remoteCreateDisabled) {
       let nextRemote: RemoteSyncUser | null = null;
       try {
+        // Ключи именно ОПУСКАЕМ, а не шлём со значением undefined: так же
+        // собирается payload веткой выше, и «поле не передано» не должно
+        // выглядеть в объекте как «поле передано пустым».
         nextRemote = await args.createRemoteUser({
           name: user.name?.trim() || undefined,
           phone,
-          isAdmin: isOwner ? true : undefined,
-          position: user.positionTitle ?? undefined,
+          ...(isOwner ? { isAdmin: true } : {}),
+          ...(user.positionTitle ? { position: user.positionTitle } : {}),
         });
       } catch (err) {
         const status = extractHttpStatus(err);

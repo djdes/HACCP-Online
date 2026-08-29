@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { pullCompletionsForOrganization } from "@/lib/tasksflow-sync";
 import { checkCronSecret } from "@/lib/cron-auth";
+import {
+  FAIL_STREAK_ALERT_THRESHOLD,
+  raisePlatformAlert,
+  recordCronRun,
+} from "@/lib/platform-alerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,6 +103,31 @@ export async function GET(request: Request) {
     }
   }
 
+  // Провалом считаем запуск, где НИ ОДНА организация не синхронизировалась,
+  // хотя интеграции есть: одна упавшая организация — это её проблема
+  // (отозванный токен, удалённая компания в TF), а не поломка канала.
+  const runFailed = orgErrors.length > 0 && orgErrors.length === integrations.length;
+  const streak = await recordCronRun({
+    job: "tasksflow-poll",
+    ok: !runFailed,
+    error: runFailed ? orgErrors[0]?.reason : null,
+  });
+
+  // Со второго подряд провала: разовая сетевая ошибка чинится следующим
+  // тиком через 10 минут, и будить из-за неё человека незачем.
+  if (runFailed && streak >= FAIL_STREAK_ALERT_THRESHOLD) {
+    await raisePlatformAlert({
+      kind: "tasksflow-poll",
+      dedupeKey: "down",
+      text:
+        `<b>TasksFlow: синхронизация не работает</b>\n` +
+        `${streak} запуска подряд не смогли опросить ни одну из ` +
+        `${integrations.length} организаций.\n` +
+        `Причина: ${orgErrors[0]?.reason ?? "неизвестна"}\n` +
+        `Статусы задач перестали приезжать в журналы.`,
+    });
+  }
+
   if (totalNewlyCompleted > 0 || totalReopened > 0) {
     console.info(
       `[tasksflow-poll] orgs=${integrations.length} checked=${totalChecked} newlyCompleted=${totalNewlyCompleted} reopened=${totalReopened} errors=${totalErrors}`,
@@ -112,5 +142,6 @@ export async function GET(request: Request) {
     reopened: totalReopened,
     errors: totalErrors,
     orgErrors: orgErrors.length > 0 ? orgErrors : undefined,
+    failStreak: streak,
   });
 }

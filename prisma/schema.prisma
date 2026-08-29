@@ -1395,6 +1395,19 @@ model TelegramLog {
   @@index([status, createdAt])
 }
 
+/// Состояние фоновой задачи между запусками. Нужно ровно для одного:
+/// отличить разовый сетевой сбой, который сам себя вылечит ретраем, от
+/// настоящей поломки. Алерт админу шлём только со второго подряд провала
+/// (см. src/lib/platform-alerts.ts), а для этого счёт надо где-то хранить.
+model CronRunState {
+  /// Имя задачи: `tasksflow-poll`, `journal-automation`, ...
+  job        String   @id
+  /// Сколько запусков подряд закончились провалом. Успех обнуляет.
+  failStreak Int      @default(0)
+  lastError  String?
+  updatedAt  DateTime @updatedAt
+}
+
 model Batch {
   id             String       @id @default(cuid())
   code           String

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
+import { raisePlatformAlert } from "@/lib/platform-alerts";
 import { toDateKey } from "@/lib/hygiene-document";
 import {
   ensureActiveDocument,
@@ -246,6 +247,30 @@ async function handle(request: Request) {
     }
     value.errors.forEach((error) => errors.push(`org=${value.organizationId} ${error}`));
   });
+
+  // Ночная автоматика — единственный шанс создать журналы на день: она
+  // ходит раз в сутки, и если упала, то до завтра никто ничего не создаст,
+  // а сотрудники утром увидят пустой список. Поэтому будим сразу, без
+  // серии провалов — второго запуска, который «сам починится», не будет.
+  //
+  // dedupeKey с датой: одна новость в сутки, но завтрашняя поломка не
+  // будет заглушена сегодняшним кулдауном.
+  if (errors.length > 0) {
+    await raisePlatformAlert({
+      kind: "journal-automation",
+      dedupeKey: `failed:${todayKey}`,
+      text:
+        `<b>Автосоздание журналов: ошибки</b>
+` +
+        `Дата ${todayKey}, организаций затронуто ${organizationsTouched} из ${orgs.length}.
+` +
+        `Ошибок: ${errors.length}
+` +
+        `Первая: ${errors[0]}
+` +
+        `Журналы за день могли не создаться.`,
+    });
+  }
 
   return NextResponse.json({
     ok: true,

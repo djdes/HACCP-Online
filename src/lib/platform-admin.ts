@@ -66,14 +66,16 @@ export function maskEmail(email: string): string {
  * TelegramLog и retry на 429, поэтому свой транспорт не изобретаем.
  *
  * `kind` попадает в `TelegramLog.kind` как `admin:<kind>` — по логу видно,
- * какие именно служебные уведомления реально ушли.
+ * какие именно служебные уведомления реально ушли. `dedupeKey` пишется
+ * туда же: по паре kind+dedupeKey алерты о сбоях считают свой кулдаун
+ * (см. `raisePlatformAlert`), не заводя отдельной таблицы.
  *
  * Возвращает true, если хотя бы одна отправка успешна: вызывающий код
  * (форма обратной связи, бот) записывает по этому флагу `adminTgNotifiedAt`.
  */
 export async function notifyPlatformAdmin(
   text: string,
-  opts?: { kind?: string }
+  opts?: { kind?: string; dedupeKey?: string }
 ): Promise<boolean> {
   const chatIds = getPlatformAdminChatIds();
   if (chatIds.length === 0) {
@@ -87,7 +89,9 @@ export async function notifyPlatformAdmin(
   const results = await Promise.all(
     chatIds.map(async (chatId) => {
       try {
-        return await sendTelegramMessage(chatId, text, { delivery: { kind } });
+        return await sendTelegramMessage(chatId, text, {
+          delivery: { kind, dedupeKey: opts?.dedupeKey },
+        });
       } catch (error) {
         console.error("[platform-admin] telegram send failed:", error);
         return false;
