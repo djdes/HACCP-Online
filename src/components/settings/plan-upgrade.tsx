@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CircleArrowUp, Loader2, Users } from "lucide-react";
+import { Check, CircleArrowUp, Loader2, Users, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -12,6 +12,13 @@ import {
   type CatalogPlanId,
 } from "@/lib/plan-catalog";
 
+/** Что даёт железо — те же три пункта, что в карточке на лендинге. */
+const HARDWARE_POINTS = [
+  "Датчики в холодильники — температура пишется сама",
+  "Планшет на кухне и NFC-брелоки для смены",
+  "Выезд, монтаж и обучение смены",
+];
+
 type Props = {
   /** Текущее значение `Organization.subscriptionPlan`. */
   currentPlan: string;
@@ -20,6 +27,8 @@ type Props = {
   freeUserLimit: number;
   /** Тестовый режим биллинга — оплата не списывается. */
   billingTestMode: boolean;
+  /** Самый дешёвый комплект железа — считается на сервере. */
+  hardwareFromRub: number;
 };
 
 /**
@@ -35,6 +44,7 @@ export function PlanUpgrade({
   activeUsers,
   freeUserLimit,
   billingTestMode,
+  hardwareFromRub,
 }: Props) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -196,6 +206,48 @@ export function PlanUpgrade({
             </div>
           );
         })}
+
+        {/* Железо. Кнопка ведёт на лендинг: там живёт калькулятор
+            комплектов, дублировать его в кабинете незачем. */}
+        <div className="flex flex-col rounded-2xl border border-[#ececf4] bg-white p-5">
+          <div className="flex min-h-6 items-center justify-between gap-2">
+            <span className="text-[15px] font-semibold text-[#0b1024]">
+              + Оборудование
+            </span>
+            <span className="flex size-7 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
+              <Wrench className="size-4" />
+            </span>
+          </div>
+
+          <div className="mt-1 text-[26px] font-semibold leading-none tabular-nums text-[#0b1024]">
+            от {hardwareFromRub.toLocaleString("ru-RU")} ₽
+            <span className="text-[14px] font-normal text-[#6f7282]"> разово</span>
+          </div>
+          <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[#6f7282]">
+            Чтобы температура писалась сама, а смена отмечалась брелоком
+          </p>
+
+          <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+            Что входит
+          </div>
+          <ul className="mt-2 flex-1 space-y-1.5 text-[13px]">
+            {HARDWARE_POINTS.map((point) => (
+              <li key={point} className="flex gap-2 text-[#3c4053]">
+                <Check className="mt-0.5 size-4 shrink-0 text-[#5566f6]/70" />
+                <span>{point}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-5">
+            <a
+              href="/#pricing"
+              className="flex h-11 w-full items-center justify-center rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Подобрать комплект
+            </a>
+          </div>
+        </div>
       </div>
 
       <p className="mt-5 text-center text-[12px] leading-relaxed text-[#6f7282]">

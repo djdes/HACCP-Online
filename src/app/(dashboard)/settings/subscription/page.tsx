@@ -5,6 +5,7 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { PlanUpgrade } from "@/components/settings/plan-upgrade";
 import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
+import { HARDWARE_BUNDLES, bundleTotal } from "@/lib/hardware-pricing";
 import {
   BILLING_TEST_MODE,
   FREE_MAX_USERS,
@@ -32,6 +33,9 @@ export default async function SubscriptionPage() {
   const employees = org?._count.users || 1;
   const price = calculatePerEmployeePrice(employees);
   const plan = org?.subscriptionPlan ?? "trial";
+  // Та же цифра, что в карточке железа на лендинге — считаем из одного
+  // источника, чтобы витрины не разъехались.
+  const hardwareFromRub = Math.min(...HARDWARE_BUNDLES.map(bundleTotal));
 
   return (
     <div className="space-y-5">
@@ -48,6 +52,7 @@ export default async function SubscriptionPage() {
         activeUsers={employees}
         freeUserLimit={FREE_MAX_USERS}
         billingTestMode={BILLING_TEST_MODE}
+        hardwareFromRub={hardwareFromRub}
       />
 
       {/* Расчёт по числу сотрудников — «как считается платный тариф».
