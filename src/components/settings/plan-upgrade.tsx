@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, CircleArrowUp, Loader2, Users, Wrench } from "lucide-react";
 import { toast } from "sonner";
@@ -240,12 +241,12 @@ export function PlanUpgrade({
           </ul>
 
           <div className="mt-5">
-            <a
+            <Link
               href="/#pricing"
               className="flex h-11 w-full items-center justify-center rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
             >
               Подобрать комплект
-            </a>
+            </Link>
           </div>
         </div>
       </div>
