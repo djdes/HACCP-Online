@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  Check,
   CheckCircle2,
   ChevronDown,
   ClipboardList,
   Download,
   ExternalLink,
   EyeOff,
+  Loader2,
   Printer,
   Save,
   Settings2,
@@ -20,8 +22,8 @@ import {
   Wifi,
   ZoomIn,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -287,6 +289,16 @@ export function JournalsSettingsClient({
       setDistSavingCode(null);
     }
   }
+
+  // Пачка кликов подряд (включили пять журналов) должна уйти одним
+  // запросом, а не пятью: иначе последний ответ может прийти раньше
+  // предыдущего и вернуть старое состояние.
+  useEffect(() => {
+    if (!dirty) return;
+    const timer = setTimeout(() => void handleSave(), 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, state, paperState]);
 
   async function handleSave() {
     setSaving(true);
@@ -756,16 +768,29 @@ export function JournalsSettingsClient({
         </div>
       </section>
 
+      {/* Кнопки «Сохранить» нет: переключатель журнала — это уже
+          законченное действие, и требовать после него второе нажатие
+          значит терять изменения тех, кто ушёл со страницы. Осталась
+          тихая строка состояния — человек должен видеть, что записалось. */}
       <div className="flex justify-end">
-        <Button
-          type="button"
-          onClick={handleSave}
-          disabled={saving || !dirty}
-          className="h-11 w-full rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
+        <span
+          className={cn(
+            "inline-flex items-center gap-2 text-[13px] transition-colors",
+            saving ? "text-[#6f7282]" : "text-[#116b2a]"
+          )}
         >
-          <Save className="size-4" />
-          {saving ? "Сохраняю…" : dirty ? "Сохранить" : "Сохранено"}
-        </Button>
+          {saving ? (
+            <>
+              <Loader2 className="size-3.5 animate-spin" />
+              Сохраняю…
+            </>
+          ) : (
+            <>
+              <Check className="size-3.5" />
+              Изменения сохраняются сами
+            </>
+          )}
+        </span>
       </div>
 
       <GroupHeading
@@ -797,7 +822,9 @@ export function JournalsSettingsClient({
         </>
       ) : null}
 
-      <details className="group rounded-2xl border border-[#ececf4] bg-white">
+      {/* open по умолчанию: свёрнутый список читался как «тут ничего
+          нет», и половина набора журналов оставалась незамеченной. */}
+      <details open className="group rounded-2xl border border-[#ececf4] bg-white">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
           <span className="text-[15px] font-semibold text-[#0b1024]">
             Остальные журналы

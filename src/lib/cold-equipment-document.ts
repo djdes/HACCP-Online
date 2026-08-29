@@ -33,7 +33,102 @@ export type ColdEquipmentConfigItem = {
   name: string;
   min: number | null;
   max: number | null;
+  /** Сколько раз в день снимают показания у ЭТОГО оборудования. */
+  readingMode?: ColdEquipmentReadingModeId;
 };
+
+/**
+ * Типовое холодильное оборудование с нормами по СанПиН.
+ *
+ * Нужен затем, что раньше диалог просил вписать «Температуру от» и
+ * «до» руками — а повар этих цифр не знает и вписывал наугад. Норма
+ * должна приходить вместе с выбором типа, как в бумажных методичках:
+ * человек выбирает «Морозильное», а не вспоминает, что там −18.
+ */
+export type ColdEquipmentPreset = {
+  id: string;
+  label: string;
+  min: number | null;
+  max: number | null;
+  /** Короткая расшифровка нормы под названием. */
+  hint: string;
+};
+
+export const COLD_EQUIPMENT_PRESETS: ColdEquipmentPreset[] = [
+  {
+    id: "fridge",
+    label: "Холодильное",
+    min: 2,
+    max: 6,
+    hint: "от +2 °C до +6 °C",
+  },
+  {
+    id: "freezer",
+    label: "Морозильное",
+    min: null,
+    max: -18,
+    hint: "−18 °C и ниже",
+  },
+  {
+    id: "poultry",
+    label: "Холодильное для птицы",
+    min: -2,
+    max: 2,
+    hint: "от −2 °C до +2 °C",
+  },
+  {
+    id: "drinks",
+    label: "Холодильное для напитков",
+    min: 5,
+    max: 20,
+    hint: "от +5 °C до +20 °C",
+  },
+  {
+    id: "butter",
+    label: "Холодильное для масла",
+    min: -6,
+    max: -3,
+    hint: "от −6 °C до −3 °C",
+  },
+  {
+    id: "fridge-wide",
+    label: "Холодильное (расширенный диапазон)",
+    min: 2,
+    max: 10,
+    hint: "от +2 °C до +10 °C",
+  },
+  {
+    id: "caviar",
+    label: "Икорная витрина",
+    min: -4,
+    max: -2,
+    hint: "от −4 °C до −2 °C",
+  },
+  {
+    id: "display",
+    label: "Охлаждаемая витрина",
+    min: 0,
+    max: 2,
+    hint: "от 0 °C до +2 °C",
+  },
+  {
+    id: "custom",
+    label: "Другое — задать вручную",
+    min: null,
+    max: null,
+    hint: "нормы вводятся сами",
+  },
+];
+
+/** Сколько раз в день снимают показания. Влияет на число строк в бланке. */
+export const COLD_EQUIPMENT_READING_MODES = [
+  { id: "once", label: "1 раз в день", times: 1 },
+  { id: "twice", label: "2 раза в день", times: 2 },
+  { id: "thrice", label: "3 раза в день", times: 3 },
+] as const;
+
+export type ColdEquipmentReadingModeId =
+  (typeof COLD_EQUIPMENT_READING_MODES)[number]["id"];
 
 export type ColdEquipmentDocumentConfig = {
   equipment: ColdEquipmentConfigItem[];
@@ -81,6 +176,7 @@ export function createColdEquipmentConfigItem(
     name: overrides.name?.trim() || "Холодильное оборудование",
     min: normalizeNumber(overrides.min),
     max: normalizeNumber(overrides.max),
+    readingMode: overrides.readingMode ?? "once",
   };
 }
 

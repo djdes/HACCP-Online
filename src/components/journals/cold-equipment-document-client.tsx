@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
+  COLD_EQUIPMENT_PRESETS,
+  COLD_EQUIPMENT_READING_MODES,
+  type ColdEquipmentReadingModeId,
+} from "@/lib/cold-equipment-document";
+import {
   DOC_ADD_ROW_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
   DOC_CAPS_TITLE_CLASS,
@@ -204,6 +209,10 @@ function EquipmentDialog({
   const [name, setName] = useState(initialItem?.name || "");
   const [min, setMin] = useState(initialItem?.min?.toString() || "");
   const [max, setMax] = useState(initialItem?.max?.toString() || "");
+  const [presetId, setPresetId] = useState<string>("fridge");
+  const [readingMode, setReadingMode] = useState<ColdEquipmentReadingModeId>(
+    initialItem?.readingMode ?? "once",
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -211,7 +220,27 @@ function EquipmentDialog({
     setName(initialItem?.name || "");
     setMin(initialItem?.min?.toString() || "");
     setMax(initialItem?.max?.toString() || "");
+    setReadingMode(initialItem?.readingMode ?? "once");
+    // При правке подсвечиваем тот пресет, чьи нормы совпадают с
+    // сохранёнными: человек должен видеть, что стоит «Морозильное», а
+    // не гадать по двум числам.
+    const matched = COLD_EQUIPMENT_PRESETS.find(
+      (preset) =>
+        preset.id !== "custom" &&
+        preset.min === (initialItem?.min ?? null) &&
+        preset.max === (initialItem?.max ?? null),
+    );
+    setPresetId(matched?.id ?? (initialItem ? "custom" : "fridge"));
   }, [initialItem, open]);
+
+  /** Выбор типа сразу подставляет норму — вспоминать цифры не нужно. */
+  function applyPreset(id: string) {
+    setPresetId(id);
+    const preset = COLD_EQUIPMENT_PRESETS.find((item) => item.id === id);
+    if (!preset || preset.id === "custom") return;
+    setMin(preset.min === null ? "" : String(preset.min));
+    setMax(preset.max === null ? "" : String(preset.max));
+  }
 
   async function handleSave() {
     const item = createColdEquipmentConfigItem({
@@ -220,6 +249,7 @@ function EquipmentDialog({
       name,
       min: min === "" ? null : Number(min),
       max: max === "" ? null : Number(max),
+      readingMode,
     });
 
     setIsSubmitting(true);
@@ -263,6 +293,69 @@ function EquipmentDialog({
               placeholder="Например: Холодильная камера"
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Сколько раз снимаются показания
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {COLD_EQUIPMENT_READING_MODES.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setReadingMode(mode.id)}
+                  className={cn(
+                    "h-9 rounded-xl border px-3.5 text-[13.5px] transition-colors",
+                    readingMode === mode.id
+                      ? "border-[#5566f6] bg-[#f5f6ff] font-medium text-[#3848c7]"
+                      : "border-[#dfe1ec] bg-white text-[#3c4053] hover:bg-[#fafbff]",
+                  )}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Тип оборудования с нормой. Раньше нормы вводились двумя
+              пустыми полями, и повар вписывал их наугад — цифры по
+              СанПиН он наизусть не помнит. */}
+          <div className="space-y-3">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Данное оборудование
+            </Label>
+            <div className="space-y-1.5">
+              {COLD_EQUIPMENT_PRESETS.map((preset) => (
+                <label
+                  key={preset.id}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-2.5 rounded-xl border px-3 py-2 transition-colors",
+                    presetId === preset.id
+                      ? "border-[#5566f6] bg-[#f5f6ff]"
+                      : "border-[#ececf4] bg-white hover:bg-[#fafbff]",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="cold-equipment-preset"
+                    checked={presetId === preset.id}
+                    onChange={() => applyPreset(preset.id)}
+                    className="mt-0.5 size-4 accent-[#5566f6]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] text-[#0b1024]">
+                      {preset.label}
+                    </span>
+                    <span className="block text-[12px] text-[#6f7282]">
+                      {preset.id === "custom"
+                        ? preset.hint
+                        : `температура должна быть ${preset.hint}`}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
