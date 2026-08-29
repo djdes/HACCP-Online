@@ -1,12 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CircleArrowUp, Loader2, Users, Wrench } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  CircleArrowUp,
+  Loader2,
+  Users,
+  Wrench,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PricingCalculator } from "@/components/public/pricing-calculator";
 import {
   PLAN_CATALOG,
   catalogPlanIdFor,
@@ -30,6 +37,8 @@ type Props = {
   billingTestMode: boolean;
   /** Самый дешёвый комплект железа — считается на сервере. */
   hardwareFromRub: number;
+  /** Цена подписки из БД — калькулятор считает с ней общий итог. */
+  subscriptionMonthly: number;
 };
 
 /**
@@ -46,9 +55,11 @@ export function PlanUpgrade({
   freeUserLimit,
   billingTestMode,
   hardwareFromRub,
+  subscriptionMonthly,
 }: Props) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [hardwareOpen, setHardwareOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
   const currentId: CatalogPlanId = catalogPlanIdFor(currentPlan);
@@ -240,16 +251,47 @@ export function PlanUpgrade({
             ))}
           </ul>
 
-          <div className="mt-5">
-            <Link
-              href="/#pricing"
-              className="flex h-11 w-full items-center justify-center rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-            >
-              Подобрать комплект
-            </Link>
-          </div>
+          {/* mt-auto прижимает кнопку к низу: три карточки читаются
+              рядом только когда у них совпадает нижняя граница. */}
+          <button
+            type="button"
+            onClick={() => setHardwareOpen((v) => !v)}
+            aria-expanded={hardwareOpen}
+            aria-controls="hardware-calculator"
+            className="mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            {hardwareOpen ? "Свернуть подбор" : "Подобрать комплект"}
+            <ChevronDown
+              className={cn(
+                "size-4 text-[#5566f6] transition-transform duration-200",
+                hardwareOpen && "rotate-180"
+              )}
+            />
+          </button>
         </div>
       </div>
+
+      {/* Калькулятор раскрывается ПОД тарифами, а не внутри карточки:
+          внутри он разносил её высоту вдвое против соседних, и ряд из
+          трёх переставал читаться как ряд. Во всю ширину помещаются и
+          позиции, и итог. */}
+      {hardwareOpen ? (
+        <div
+          id="hardware-calculator"
+          className="mt-5 rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8"
+        >
+          <div className="mb-5 max-w-[560px]">
+            <div className="text-[16px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+              Подбор оборудования
+            </div>
+            <p className="mt-1.5 text-[14px] leading-[1.55] text-[#6f7282]">
+              Выберите, что нужно — цена пересчитается. Уже есть планшет
+              или датчики: снимите галочку, и останется только подписка.
+            </p>
+          </div>
+          <PricingCalculator subscriptionMonthly={subscriptionMonthly} />
+        </div>
+      ) : null}
 
       <p className="mt-5 text-center text-[12px] leading-relaxed text-[#6f7282]">
         {billingTestMode

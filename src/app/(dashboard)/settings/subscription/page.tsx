@@ -7,6 +7,11 @@ import { PlanUpgrade } from "@/components/settings/plan-upgrade";
 import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
 import { HARDWARE_BUNDLES, bundleTotal } from "@/lib/hardware-pricing";
 import {
+  readTariffs,
+  fallbackTariffs,
+  TARIFF_MONTHLY,
+} from "@/lib/tariffs";
+import {
   BILLING_TEST_MODE,
   FREE_MAX_USERS,
   planLabel,
@@ -36,6 +41,11 @@ export default async function SubscriptionPage() {
   // Та же цифра, что в карточке железа на лендинге — считаем из одного
   // источника, чтобы витрины не разъехались.
   const hardwareFromRub = Math.min(...HARDWARE_BUNDLES.map(bundleTotal));
+  // Цена подписки живёт в БД и правится ROOT'ом — калькулятор берёт её
+  // оттуда же, что и лендинг, иначе итоги на двух витринах разойдутся.
+  const tariffs = await readTariffs().catch(() => fallbackTariffs());
+  const monthly =
+    tariffs.find((t) => t.key === TARIFF_MONTHLY) ?? fallbackTariffs()[0];
 
   return (
     <div className="space-y-5">
@@ -53,6 +63,7 @@ export default async function SubscriptionPage() {
         freeUserLimit={FREE_MAX_USERS}
         billingTestMode={BILLING_TEST_MODE}
         hardwareFromRub={hardwareFromRub}
+        subscriptionMonthly={monthly.priceRub}
       />
 
       {/* Расчёт по числу сотрудников — «как считается платный тариф».
