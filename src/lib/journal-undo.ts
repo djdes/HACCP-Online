@@ -125,19 +125,27 @@ export function createUndoStack(options?: { depth?: number }): UndoStackCore {
  */
 function shouldIgnoreHotkey(): boolean {
   if (typeof document === "undefined") return true;
+  // Модалка сверху — Ctrl+Z принадлежит ей, а не журналу под ней.
+  if (document.querySelector('[role="dialog"]')) return true;
+
   const active = document.activeElement as HTMLElement | null;
-  if (active) {
-    const tag = active.tagName;
-    if (
-      tag === "INPUT" ||
-      tag === "TEXTAREA" ||
-      tag === "SELECT" ||
-      active.isContentEditable
-    ) {
-      return true;
-    }
+  if (!active) return false;
+
+  // Настоящий набор текста: отменять надо буквы, а не отметку в журнале.
+  if (active.isContentEditable || active.tagName === "TEXTAREA") return true;
+
+  if (active.tagName === "INPUT" || active.tagName === "SELECT") {
+    // Ячейка журнала — это input ВНУТРИ таблицы. Раньше здесь стоял
+    // безусловный выход, и получалось, что горячая клавиша не работала
+    // нигде: в журнале фокус всегда в какой-нибудь ячейке, других мест
+    // просто нет. Человек ставил отметку, жал Ctrl+Z — и ничего.
+    //
+    // Поля вне таблицы (поиск, название документа) по-прежнему отдаём
+    // браузеру: там Ctrl+Z ожидаемо отменяет набранный текст.
+    return !active.closest("table");
   }
-  return Boolean(document.querySelector('[role="dialog"]'));
+
+  return false;
 }
 
 export function useJournalUndo(opts?: {

@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
-import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 /**
  * Метрики по одной организации для ROOT-дашборда. Считаются по сырым
@@ -45,6 +44,66 @@ export type OrgMetrics = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Записи журналов-таблиц по организациям, сгруппированные в БД.
+ *
+ * `groupBy` Prisma здесь не работает: организация у `JournalDocumentEntry`
+ * лежит через связь с документом. Раньше это обходили выгрузкой ВСЕХ строк
+ * за окно в память и подсчётом на месте — на растущей платформе это
+ * десятки тысяч строк на каждый из трёх периодов, только чтобы получить
+ * три числа. Агрегируем на стороне Postgres.
+ *
+ * Условие по `data` повторяет `NOT_AUTO_SEEDED`: структурные заготовки,
+ * созданные при заведении документа, — не заполненные записи.
+ */
+async function countDocEntriesByOrg(
+  since: Date,
+  until?: Date
+): Promise<Map<string, number>> {
+  const rows = until
+    ? await db.$queryRaw<Array<{ organizationId: string; count: bigint }>>`
+        SELECT d."organizationId", COUNT(*)::bigint AS count
+        FROM "JournalDocumentEntry" e
+        JOIN "JournalDocument" d ON d.id = e."documentId"
+        WHERE e."createdAt" >= ${since}
+          AND e."createdAt" < ${until}
+          AND e.data <> '{"_autoSeeded": true}'::jsonb
+        GROUP BY d."organizationId"
+      `
+    : await db.$queryRaw<Array<{ organizationId: string; count: bigint }>>`
+        SELECT d."organizationId", COUNT(*)::bigint AS count
+        FROM "JournalDocumentEntry" e
+        JOIN "JournalDocument" d ON d.id = e."documentId"
+        WHERE e."createdAt" >= ${since}
+          AND e.data <> '{"_autoSeeded": true}'::jsonb
+        GROUP BY d."organizationId"
+      `;
+  return new Map(rows.map((r) => [r.organizationId, Number(r.count)]));
+}
+
+/**
+ * Последняя запись журнала-таблицы по каждой организации.
+ *
+ * Раньше брались 5000 самых свежих строк по всей платформе, и из них
+ * выбирался максимум на организацию. При полусотне активных заведений
+ * этого хватало на пару дней: организация, не писавшая дольше, просто
+ * выпадала из выборки, и «Last activity» показывала дату последней
+ * записи-формы или «никогда» — хотя журналы велись. Максимум надо брать
+ * по каждой организации, а не по обрезанному хвосту.
+ */
+async function lastDocEntryByOrg(): Promise<Map<string, Date>> {
+  const rows = await db.$queryRaw<
+    Array<{ organizationId: string; lastAt: Date }>
+  >`
+    SELECT d."organizationId", MAX(e."createdAt") AS "lastAt"
+    FROM "JournalDocumentEntry" e
+    JOIN "JournalDocument" d ON d.id = e."documentId"
+    WHERE e.data <> '{"_autoSeeded": true}'::jsonb
+    GROUP BY d."organizationId"
+  `;
+  return new Map(rows.map((r) => [r.organizationId, r.lastAt]));
+}
 
 export async function getAllOrgMetrics(
   excludeOrgId: string,
@@ -95,47 +154,24 @@ export async function getAllOrgMetrics(
       where: { createdAt: { gte: since30 } },
       _count: { id: true },
     }),
-    // groupBy на JournalDocumentEntry по organizationId напрямую нельзя
-    // (FK через document) — берём count через findMany + bucket по ходу.
-    db.journalDocumentEntry.findMany({
-      where: { createdAt: { gte: since30 }, ...NOT_AUTO_SEEDED },
-      select: { document: { select: { organizationId: true } } },
-    }),
+    countDocEntriesByOrg(since30),
     db.journalEntry.groupBy({
       by: ["organizationId"],
       where: { createdAt: { gte: since7 } },
       _count: { id: true },
     }),
-    db.journalDocumentEntry.findMany({
-      where: { createdAt: { gte: since7 }, ...NOT_AUTO_SEEDED },
-      select: { document: { select: { organizationId: true } } },
-    }),
+    countDocEntriesByOrg(since7),
     db.journalEntry.groupBy({
       by: ["organizationId"],
       where: { createdAt: { gte: since14, lt: since7 } },
       _count: { id: true },
     }),
-    db.journalDocumentEntry.findMany({
-      where: { createdAt: { gte: since14, lt: since7 }, ...NOT_AUTO_SEEDED },
-      select: { document: { select: { organizationId: true } } },
-    }),
+    countDocEntriesByOrg(since14, since7),
     db.journalEntry.groupBy({
       by: ["organizationId"],
       _max: { createdAt: true },
     }),
-    db.journalDocumentEntry.findMany({
-      // _autoSeeded плейсхолдеры создаются при пересоздании документа
-      // и засоряли «last activity» — ROOT-дашборд показывал, что
-      // неактивная org «была активна вчера» когда seed-cron создал
-      // placeholder-rows.
-      where: NOT_AUTO_SEEDED,
-      orderBy: { createdAt: "desc" },
-      take: 5000, // ограничиваем чтобы не тащить миллион строк
-      select: {
-        createdAt: true,
-        document: { select: { organizationId: true } },
-      },
-    }),
+    lastDocEntryByOrg(),
     // Владелец организации: берём самого раннего пользователя. Сортируем
     // по возрастанию, поэтому первый встреченный на организацию — он и есть.
     db.user.findMany({
@@ -161,26 +197,10 @@ export async function getAllOrgMetrics(
     }
   }
 
-  function bucket(rows: { document: { organizationId: string } }[]) {
-    const map = new Map<string, number>();
-    for (const r of rows) {
-      const id = r.document.organizationId;
-      map.set(id, (map.get(id) ?? 0) + 1);
-    }
-    return map;
-  }
-  const docEntries30 = bucket(docEntries30Raw);
-  const docEntries7 = bucket(docEntries7Raw);
-  const docEntries14to7 = bucket(docEntries14to7Raw);
-
-  // last document entry per org — берём максимум из таскуем top 5000.
-  const lastDocByOrg = new Map<string, Date>();
-  for (const r of lastDocByOrgRaw) {
-    const id = r.document.organizationId;
-    if (!lastDocByOrg.has(id)) {
-      lastDocByOrg.set(id, r.createdAt);
-    }
-  }
+  const docEntries30 = docEntries30Raw;
+  const docEntries7 = docEntries7Raw;
+  const docEntries14to7 = docEntries14to7Raw;
+  const lastDocByOrg = lastDocByOrgRaw;
 
   function entriesFor(
     orgId: string,
