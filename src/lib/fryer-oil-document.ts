@@ -146,9 +146,56 @@ export type FryerOilSelectLists = {
   productTypes: string[];
 };
 
+/**
+ * Смена, в которую работает фритюрница.
+ *
+ * Нужна затем, чтобы форма подставляла типичные часы, а не текущее
+ * время: повар открывает журнал когда придётся, а жарка идёт с начала
+ * смены. Часы всё равно остаются в поле — человек их видит и правит.
+ */
+export type FryerOilShift = {
+  /** `HH:MM`. Начало смены. */
+  startTime: string;
+  /** `HH:MM`. Конец смены. */
+  endTime: string;
+};
+
+export const DEFAULT_FRYER_OIL_SHIFT: FryerOilShift = {
+  startTime: "07:00",
+  endTime: "16:00",
+};
+
 export type FryerOilDocumentConfig = {
   lists: FryerOilSelectLists;
+  shift: FryerOilShift;
 };
+
+/** `HH:MM` → часы и минуты. Мусор на входе даёт `null`. */
+export function parseShiftTime(
+  value: string
+): { hour: number; minute: number } | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+}
+
+function normalizeShiftTime(value: unknown, fallback: string): string {
+  return typeof value === "string" && parseShiftTime(value) ? value.trim() : fallback;
+}
+
+export function normalizeFryerOilShift(value: unknown): FryerOilShift {
+  const item =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  return {
+    startTime: normalizeShiftTime(item.startTime, DEFAULT_FRYER_OIL_SHIFT.startTime),
+    endTime: normalizeShiftTime(item.endTime, DEFAULT_FRYER_OIL_SHIFT.endTime),
+  };
+}
 
 /**
  * Время и оценки качества — nullable. ПОЧЕМУ: сидер создаёт строку на
@@ -185,6 +232,7 @@ export type FryerOilEntryData = {
 // Factory / default helpers
 export function defaultFryerOilDocumentConfig(): FryerOilDocumentConfig {
   return {
+    shift: { ...DEFAULT_FRYER_OIL_SHIFT },
     lists: {
       fatTypes: [...DEFAULT_FAT_TYPES],
       equipmentTypes: [...DEFAULT_EQUIPMENT_TYPES],
@@ -219,6 +267,7 @@ export function normalizeFryerOilDocumentConfig(value: unknown): FryerOilDocumen
   const item = value as Record<string, unknown>;
   return {
     lists: normalizeFryerOilSelectLists(item.lists),
+    shift: normalizeFryerOilShift(item.shift),
   };
 }
 

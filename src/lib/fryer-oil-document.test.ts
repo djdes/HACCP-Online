@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  DEFAULT_FRYER_OIL_SHIFT,
+  defaultFryerOilDocumentConfig,
   fryerOilDayKey,
+  normalizeFryerOilDocumentConfig,
   normalizeFryerOilEntryData,
+  normalizeFryerOilShift,
+  parseShiftTime,
 } from "@/lib/fryer-oil-document";
 
 test("fryerOilDayKey groups rows by the date the person entered", () => {
@@ -61,4 +66,40 @@ test("normalizeFryerOilEntryData leaves measurements empty", () => {
   assert.equal(blank.qualityEnd, null);
   assert.equal(blank.carryoverKg, 0);
   assert.equal(blank.disposedKg, 0);
+});
+
+test("parseShiftTime accepts valid HH:MM and rejects the rest", () => {
+  assert.deepEqual(parseShiftTime("07:00"), { hour: 7, minute: 0 });
+  assert.deepEqual(parseShiftTime("16:30"), { hour: 16, minute: 30 });
+  assert.deepEqual(parseShiftTime(" 7:05 "), { hour: 7, minute: 5 });
+
+  // Мусор в конфиге не должен ронять форму — вызывающий падает на «сейчас».
+  assert.equal(parseShiftTime(""), null);
+  assert.equal(parseShiftTime("25:00"), null);
+  assert.equal(parseShiftTime("07:60"), null);
+  assert.equal(parseShiftTime("утро"), null);
+});
+
+test("normalizeFryerOilShift falls back to the default shift", () => {
+  assert.deepEqual(normalizeFryerOilShift(undefined), DEFAULT_FRYER_OIL_SHIFT);
+  assert.deepEqual(normalizeFryerOilShift({ startTime: "нет" }), DEFAULT_FRYER_OIL_SHIFT);
+  assert.deepEqual(normalizeFryerOilShift({ startTime: "08:15", endTime: "20:00" }), {
+    startTime: "08:15",
+    endTime: "20:00",
+  });
+});
+
+test("default fryer config carries the 07:00-16:00 shift", () => {
+  const config = defaultFryerOilDocumentConfig();
+
+  assert.equal(config.shift.startTime, "07:00");
+  assert.equal(config.shift.endTime, "16:00");
+});
+
+test("normalizeFryerOilDocumentConfig keeps a saved shift", () => {
+  const config = normalizeFryerOilDocumentConfig({
+    shift: { startTime: "06:30", endTime: "18:30" },
+  });
+
+  assert.deepEqual(config.shift, { startTime: "06:30", endTime: "18:30" });
 });

@@ -53,8 +53,11 @@ import {
 import {
   formatDateRu,
   formatTime,
+  FRYER_OIL_TEMPLATE_CODE,
   fryerOilDayKey,
   normalizeFryerOilEntryData,
+  parseShiftTime,
+  type FryerOilShift,
   formatQualityLabel,
   QUALITY_ASSESSMENT_TABLE,
   DEFAULT_QUALITY_PHRASES,
@@ -66,6 +69,7 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 import { localDayKey, localTimeParts } from "@/lib/entry-defaults";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
@@ -178,6 +182,8 @@ function EntryDialog(props: {
   users: UserItem[];
   /** Кто сейчас заполняет — он и подставляется контролёром. */
   currentUserId: string | null;
+  /** Часы смены — из них берутся время начала и окончания по умолчанию. */
+  shift: FryerOilShift;
   /** Все строки этого дня. Пусто — заводим день с нуля. */
   dayEntries: EntryItem[];
   /** По какой строке кликнули: её вкладка открывается активной. */
@@ -207,14 +213,18 @@ function EntryDialog(props: {
    */
   function withDefaults(data: FryerOilEntryData, dayKey?: string): FryerOilEntryData {
     const now = new Date();
-    const { hour, minute } = localTimeParts(now);
+    // Часы смены, а не «сейчас»: повар открывает журнал когда придётся,
+    // а жарка идёт с начала смены. Смена настраивается в «Настройках
+    // журнала»; если там мусор — падаем на текущее время.
+    const start = parseShiftTime(props.shift.startTime) ?? localTimeParts(now);
+    const end = parseShiftTime(props.shift.endTime) ?? localTimeParts(now);
     return {
       ...data,
       startDate: data.startDate || dayKey || localDayKey(now),
-      startHour: data.startHour ?? hour,
-      startMinute: data.startMinute ?? minute,
-      endHour: data.endHour ?? hour,
-      endMinute: data.endMinute ?? minute,
+      startHour: data.startHour ?? start.hour,
+      startMinute: data.startMinute ?? start.minute,
+      endHour: data.endHour ?? end.hour,
+      endMinute: data.endMinute ?? end.minute,
       controllerName: data.controllerName || defaultControllerName,
     };
   }
@@ -832,10 +842,11 @@ function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => vo
   );
 }
 
-function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) => void; title: string; dateFrom: string; status: "active" | "closed"; onSave: (v: { title: string; dateFrom: string; status: "active" | "closed" }) => Promise<void>; useV2?: boolean }) {
+function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) => void; title: string; dateFrom: string; status: "active" | "closed"; shift: FryerOilShift; onSave: (v: { title: string; dateFrom: string; status: "active" | "closed"; shift: FryerOilShift }) => Promise<void>; useV2?: boolean }) {
   const [title, setTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
   const [status, setStatus] = useState<"active" | "closed">(props.status);
+  const [shift, setShift] = useState<FryerOilShift>(props.shift);
 
   if (props.useV2) {
     return (
@@ -846,7 +857,7 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
         description="Название журнала, дата начала и статус."
         size="md"
         onSave={async () => {
-          await props.onSave({ title, dateFrom, status });
+          await props.onSave({ title, dateFrom, status, shift });
         }}
         onCancel={() => props.onOpenChange(false)}
       >
@@ -885,6 +896,31 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
             </SelectContent>
           </Select>
         </div>
+        {/* Часы смены. Из них форма берёт время начала и окончания по
+            умолчанию — повар не набивает их на каждой строке. Значения
+            остаются в полях и правятся, если день выдался другой. */}
+        <div className="space-y-2">
+          <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            Часы смены
+          </Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="time"
+              value={shift.startTime}
+              onChange={(e) => setShift((v) => ({ ...v, startTime: e.target.value }))}
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+            <Input
+              type="time"
+              value={shift.endTime}
+              onChange={(e) => setShift((v) => ({ ...v, endTime: e.target.value }))}
+              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </div>
+          <p className="text-[12px] leading-snug text-[#6f7282]">
+            Подставляются в новую строку как время начала и окончания жарки.
+          </p>
+        </div>
       </JournalSettingsModal>
     );
   }
@@ -899,7 +935,8 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
           <div className="space-y-1"><Label>Название документа</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-10 rounded-xl" /></div>
           <div className="space-y-1"><Label>Дата начала</Label><Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl" /></div>
           <div className="space-y-1"><Label>Статус документа</Label><Select value={status} onValueChange={(v: "active" | "closed") => setStatus(v)}><SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Активный</SelectItem><SelectItem value="closed">Закрытый</SelectItem></SelectContent></Select></div>
-          <div className="flex justify-end"><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => { void props.onSave({ title, dateFrom, status }); props.onOpenChange(false); }}>Сохранить</Button></div>
+          <div className="space-y-1"><Label>Часы смены</Label><div className="grid grid-cols-2 gap-2"><Input type="time" value={shift.startTime} onChange={(e) => setShift((v) => ({ ...v, startTime: e.target.value }))} className="h-10 rounded-xl" /><Input type="time" value={shift.endTime} onChange={(e) => setShift((v) => ({ ...v, endTime: e.target.value }))} className="h-10 rounded-xl" /></div><p className="text-[12px] text-[#6f7282]">Подставляются в новую строку как время начала и окончания жарки.</p></div>
+          <div className="flex justify-end"><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => { void props.onSave({ title, dateFrom, status, shift }); props.onOpenChange(false); }}>Сохранить</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -1236,6 +1273,15 @@ export function FryerOilDocumentClient(props: Props) {
             </table>
             {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
             <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold uppercase`}>Журнал учета использования фритюрных жиров</div>
+            {/* Автосоздание документа на новый период. Ставится здесь, а
+                не только в настройках организации: решение «пусть
+                заводится само» человек принимает ровно тогда, когда
+                заводит документ руками и понимает, что через месяц
+                придётся снова. */}
+            <JournalAutoCreateToggle
+              templateCode={FRYER_OIL_TEMPLATE_CODE}
+              disabled={!isActive}
+            />
             {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => openDay(null)} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
             {isActive ? (
               <JournalSelectionBar
@@ -1306,9 +1352,9 @@ export function FryerOilDocumentClient(props: Props) {
         </div>
       </div>
 
-      <EntryDialog key={dialogSeq} open={entryOpen} onOpenChange={(open) => { setEntryOpen(open); if (!open) { setDayEntries([]); setFocusEntryId(null); } }} lists={config.lists} users={props.users} currentUserId={props.currentUserId} dayEntries={dayEntries} focusEntryId={focusEntryId} onSave={saveDay} />
+      <EntryDialog key={dialogSeq} open={entryOpen} onOpenChange={(open) => { setEntryOpen(open); if (!open) { setDayEntries([]); setFocusEntryId(null); } }} lists={config.lists} users={props.users} currentUserId={props.currentUserId} shift={config.shift} dayEntries={dayEntries} focusEntryId={focusEntryId} onSave={saveDay} />
       <ListsDialog key={JSON.stringify(config.lists)} open={listsOpen} onOpenChange={setListsOpen} lists={config.lists} onSave={async (lists) => { const nextConfig = { ...config, lists }; const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config: nextConfig }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить списки"); setConfig(nextConfig); router.refresh(); }} />
-      <SettingsDialog key={`${title}-${dateFrom}-${status}`} open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} status={status} useV2={props.useV2} onSave={async (v) => { const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: v.title, dateFrom: v.dateFrom, status: v.status }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить настройки"); setTitle(v.title); setDateFrom(v.dateFrom); setStatus(v.status); router.refresh(); }} />
+      <SettingsDialog key={`${title}-${dateFrom}-${status}`} open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} status={status} shift={config.shift} useV2={props.useV2} onSave={async (v) => { const nextConfig = { ...config, shift: v.shift }; const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: v.title, dateFrom: v.dateFrom, status: v.status, config: nextConfig }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить настройки"); setTitle(v.title); setDateFrom(v.dateFrom); setStatus(v.status); setConfig(nextConfig); router.refresh(); }} />
     </div>
   );
 }
