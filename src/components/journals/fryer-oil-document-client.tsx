@@ -1,11 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
   Download,
+  ListPlus,
   Pencil,
   Plus,
   Trash2,
@@ -52,6 +53,7 @@ import {
 import {
   formatDateRu,
   formatTime,
+  fryerOilDayKey,
   normalizeFryerOilEntryData,
   formatQualityLabel,
   QUALITY_ASSESSMENT_TABLE,
@@ -145,76 +147,176 @@ function splitProducts(value: string): string[] {
     .filter(Boolean);
 }
 
+type DayTab = {
+  /** React-ключ. У сохранённых строк — их id, у новых — свой счётчик. */
+  key: string;
+  /** Есть — строка уже в базе; нет — будет создана при сохранении. */
+  id?: string;
+  data: FryerOilEntryData;
+};
+
+/**
+ * Диалог ДНЯ, а не строки.
+ *
+ * В заведении может стоять хоть сто фритюрниц, и каждая за день даёт
+ * свою строку бланка: свой жир, своё время, своя оценка. Поэтому диалог
+ * открывается сразу на весь день и показывает его вкладками — по клику
+ * на любую строку видно все фритюрницы этого дня, а не одну.
+ *
+ * Раньше вкладки были только при создании новой строки. Но журнал
+ * заводит строки-заготовки на каждый день заранее, так что обычное
+ * действие — клик по существующей строке, и там добавить вторую
+ * фритюрницу было нечем.
+ */
 function EntryDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lists: FryerOilSelectLists;
   users: UserItem[];
-  initialEntry: EntryItem | null;
-  onSubmit: (payload: { id?: string; data: FryerOilEntryData }) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
+  /** Все строки этого дня. Пусто — заводим день с нуля. */
+  dayEntries: EntryItem[];
+  /** По какой строке кликнули: её вкладка открывается активной. */
+  focusEntryId: string | null;
+  onSave: (payload: {
+    updates: Array<{ id: string; data: FryerOilEntryData }>;
+    creates: FryerOilEntryData[];
+    removedIds: string[];
+  }) => Promise<void>;
 }) {
-  const initial = props.initialEntry?.data
-    ? normalizeFryerOilEntryData(props.initialEntry.data)
-    : {
-        ...normalizeFryerOilEntryData({}),
-        startDate: new Date().toISOString().slice(0, 10),
-        fatType: props.lists.fatTypes[0] ?? "",
-        equipmentType: props.lists.equipmentTypes[0] ?? "",
-        productType: props.lists.productTypes[0] ?? "",
-        controllerName: props.users[0]?.name ?? "",
-      };
-  // В заведении может стоять несколько фритюрниц, и у каждой свой жир,
-  // своё время и своя оценка. Держим список заходов: вкладка = одна
-  // фритюрница за этот день. При сохранении каждый уйдёт отдельной
-  // строкой с той же датой — так и выглядит бумажный бланк.
-  const [entries, setEntries] = useState<FryerOilEntryData[]>([initial]);
-  const [activeIndex, setActiveIndex] = useState(0);
+  /**
+   * Заготовка строки. Предзаполняем только справочное — дату,
+   * контролёра, название оборудования, вид жира. Время, оценки и
+   * килограммы остаются пустыми: это журнал для Роспотребнадзора, и
+   * проставленное значение за непроведённый контроль хуже пустой графы.
+   */
+  function blankEntry(equipmentType: string, base?: FryerOilEntryData): FryerOilEntryData {
+    return {
+      ...normalizeFryerOilEntryData({}),
+      startDate: base?.startDate || new Date().toISOString().slice(0, 10),
+      controllerName: base?.controllerName || props.users[0]?.name || "",
+      fatType: props.lists.fatTypes[0] ?? "",
+      equipmentType,
+      productType: "",
+    };
+  }
 
-  const data = entries[activeIndex] ?? initial;
+  const keySeq = useRef(0);
+  function nextKey() {
+    keySeq.current += 1;
+    return `new-${keySeq.current}`;
+  }
 
-  /** Правит активную вкладку. Сигнатура прежняя — разметка не менялась. */
+  const [tabs, setTabs] = useState<DayTab[]>(() =>
+    props.dayEntries.length > 0
+      ? props.dayEntries.map((entry) => ({
+          key: entry.id,
+          id: entry.id,
+          data: normalizeFryerOilEntryData(entry.data),
+        }))
+      : [
+          {
+            key: "new-0",
+            data: {
+              ...blankEntry(props.lists.equipmentTypes[0] ?? ""),
+              productType: props.lists.productTypes[0] ?? "",
+            },
+          },
+        ]
+  );
+  // Строки, убранные крестиком: удаляются в базе при «Сохранить», а не
+  // сразу — до нажатия человек может передумать и закрыть диалог.
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [activeIndex, setActiveIndex] = useState(() => {
+    const index = props.dayEntries.findIndex((entry) => entry.id === props.focusEntryId);
+    return index >= 0 ? index : 0;
+  });
+
+  const data = tabs[activeIndex]?.data ?? tabs[0]?.data ?? blankEntry("");
+
+  /** Правит активную вкладку. Сигнатура прежняя — форма ниже не менялась. */
   function setData(
-    updater: FryerOilEntryData | ((current: FryerOilEntryData) => FryerOilEntryData),
+    updater: FryerOilEntryData | ((current: FryerOilEntryData) => FryerOilEntryData)
   ) {
-    setEntries((current) =>
-      current.map((item, index) =>
+    setTabs((current) =>
+      current.map((tab, index) =>
         index === activeIndex
-          ? typeof updater === "function"
-            ? (updater as (c: FryerOilEntryData) => FryerOilEntryData)(item)
-            : updater
-          : item,
-      ),
+          ? {
+              ...tab,
+              data:
+                typeof updater === "function"
+                  ? (updater as (c: FryerOilEntryData) => FryerOilEntryData)(tab.data)
+                  : updater,
+            }
+          : tab
+      )
     );
   }
 
-  /** Новая фритюрница: дата и контролёр те же, остальное чистое. */
+  /** Названия фритюрниц, уже занятые в этом дне. */
+  const usedEquipment = new Set(
+    tabs.map((tab) => tab.data.equipmentType).filter(Boolean)
+  );
+  /** Позиции справочника, которых в этом дне ещё нет. */
+  const freeEquipment = props.lists.equipmentTypes.filter(
+    (name) => !usedEquipment.has(name)
+  );
+
   function addEntry() {
-    setEntries((current) => {
-      const base = current[activeIndex] ?? initial;
-      return [
-        ...current,
-        {
-          ...normalizeFryerOilEntryData({}),
-          startDate: base.startDate,
-          controllerName: base.controllerName,
-          fatType: props.lists.fatTypes[0] ?? "",
-          equipmentType: props.lists.equipmentTypes[current.length] ?? "",
-          productType: "",
-        },
-      ];
-    });
-    setActiveIndex((index) => index + 1);
+    setTabs((current) => [
+      ...current,
+      { key: nextKey(), data: blankEntry(freeEquipment[0] ?? "", data) },
+    ]);
+    setActiveIndex(tabs.length);
   }
 
-  function removeEntry(index: number) {
-    const next = entries.filter((_, i) => i !== index);
-    setEntries(next);
-    // Курсор остаётся на той же фритюрнице: сдвигаем его, только если
-    // убрали вкладку левее. Раньше уходили на шаг назад всегда — удалив
-    // третью вкладку, человек оказывался на первой.
+  /**
+   * Все фритюрницы из справочника разом.
+   *
+   * На сотне единиц нажимать «Ещё фритюрница» сто раз — не работа.
+   * Справочник заполняется один раз в «Редактировать списки» (там же
+   * импорт из Excel), а здесь разворачивается в строки одним кликом.
+   */
+  function addAllFromList() {
+    if (freeEquipment.length === 0) return;
+    setTabs((current) => [
+      ...current,
+      ...freeEquipment.map((name) => ({
+        key: nextKey(),
+        data: blankEntry(name, data),
+      })),
+    ]);
+    setActiveIndex(tabs.length);
+  }
+
+  async function removeEntry(index: number) {
+    const tab = tabs[index];
+    if (!tab) return;
+    if (tab.id) {
+      const confirmed = await confirmAsync({
+        title: "Убрать фритюрницу из этого дня?",
+        description: "Строка журнала будет удалена, когда вы нажмёте «Сохранить».",
+        variant: "danger",
+        confirmLabel: "Убрать",
+        bullets: [
+          {
+            label: tab.data.equipmentType
+              ? `Оборудование: ${tab.data.equipmentType}`
+              : "Оборудование не указано",
+            tone: "info",
+          },
+          { label: "Закрыть диалог без сохранения — строка останется", tone: "default" },
+        ],
+      });
+      if (!confirmed) return;
+      setRemovedIds((current) => [...current, tab.id as string]);
+    }
+    const next = tabs.filter((_, i) => i !== index);
+    setTabs(next);
+    // Курсор остаётся на той же фритюрнице: сдвигаем, только если убрали
+    // вкладку левее. Раньше уходили на шаг назад всегда — удалив третью,
+    // человек оказывался на первой.
     setActiveIndex(
-      Math.min(activeIndex > index ? activeIndex - 1 : activeIndex, next.length - 1),
+      Math.min(activeIndex > index ? activeIndex - 1 : activeIndex, next.length - 1)
     );
   }
 
@@ -222,11 +324,11 @@ function EntryDialog(props: {
    * Дата у всех вкладок одна: один заход в диалог = один день журнала.
    * Иначе, поправив дату на первой вкладке, человек молча получал бы
    * строки за разные дни. Время начала и окончания у каждой фритюрницы
-   * своё — оно и отличает строки между собой.
+   * своё — оно строки и различает.
    */
   function setStartDateForAll(value: string) {
-    setEntries((current) =>
-      current.map((item) => ({ ...item, startDate: value })),
+    setTabs((current) =>
+      current.map((tab) => ({ ...tab, data: { ...tab.data, startDate: value } }))
     );
   }
 
@@ -247,17 +349,20 @@ function EntryDialog(props: {
   async function save() {
     setBusy(true);
     try {
-      if (props.initialEntry) {
-        // Правка существующей строки — она всегда одна.
-        await props.onSubmit({ id: props.initialEntry.id, data: entries[0] });
-      } else {
-        // Последовательно, а не Promise.all: строки за один день должны
-        // лечь в том порядке, в каком их завёл человек.
-        for (const item of entries) {
-          await props.onSubmit({ data: item });
-        }
-      }
+      await props.onSave({
+        updates: tabs
+          .filter((tab) => tab.id)
+          .map((tab) => ({ id: tab.id as string, data: tab.data })),
+        creates: tabs.filter((tab) => !tab.id).map((tab) => tab.data),
+        removedIds,
+      });
       props.onOpenChange(false);
+    } catch (error) {
+      // Диалог не закрываем: заполненные вкладки должны остаться перед
+      // глазами, чтобы человек мог дожать сохранение, а не набирать заново.
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить записи"
+      );
     } finally {
       setBusy(false);
     }
@@ -268,36 +373,37 @@ function EntryDialog(props: {
       <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
         <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
           <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
-            {props.initialEntry ? "Редактирование записи" : "Добавление новой строки"}
+            Записи за {formatDateRu(data.startDate) || "новый день"}
+            {tabs.length > 1 ? ` · фритюрниц: ${tabs.length}` : ""}
           </DialogTitle>
         </DialogHeader>
 
         <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
-          {/* Вкладки фритюрниц. В заведении их бывает несколько, у каждой
-              свой жир, время и оценка — а день один. При сохранении каждая
-              вкладка уйдёт отдельной строкой с этой же датой, как в
-              бумажном бланке. При правке существующей строки вкладок нет:
-              там всегда одна запись. */}
-          {!props.initialEntry ? (
-            <div className="flex flex-wrap items-center gap-2 border-b border-[#eef0f6] pb-3">
-              {entries.map((item, index) => (
-                <span key={index} className="inline-flex items-center">
+          {/* Вкладки фритюрниц — всегда, а не только при создании.
+              В заведении их бывает хоть сто, у каждой свой жир, время и
+              оценка, а день один: каждая вкладка станет отдельной строкой
+              бланка с этой же датой. */}
+          <div className="border-b border-[#eef0f6] pb-3">
+            <div className="flex max-h-[104px] flex-wrap items-center gap-2 overflow-y-auto">
+              {tabs.map((tab, index) => (
+                <span key={tab.key} className="inline-flex items-center">
                   <button
                     type="button"
                     onClick={() => setActiveIndex(index)}
                     className={cn(
-                      "h-9 rounded-xl px-3 text-[13.5px] transition-colors",
+                      "h-9 max-w-[220px] truncate rounded-xl px-3 text-[13.5px] transition-colors",
                       index === activeIndex
                         ? "bg-[#eef1ff] font-medium text-[#3848c7]"
                         : "text-[#6f7282] hover:bg-[#f5f6ff]"
                     )}
                   >
-                    {item.equipmentType || `Фритюрница ${index + 1}`}
+                    №{index + 1}
+                    {tab.data.equipmentType ? ` · ${tab.data.equipmentType}` : ""}
                   </button>
-                  {entries.length > 1 ? (
+                  {tabs.length > 1 ? (
                     <button
                       type="button"
-                      onClick={() => removeEntry(index)}
+                      onClick={() => void removeEntry(index)}
                       aria-label="Убрать эту фритюрницу"
                       className="ml-0.5 rounded-lg p-1 text-[#9b9fb3] transition-colors hover:text-[#a13a32]"
                     >
@@ -306,6 +412,9 @@ function EntryDialog(props: {
                   ) : null}
                 </span>
               ))}
+            </div>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={addEntry}
@@ -314,13 +423,33 @@ function EntryDialog(props: {
                 <Plus className="size-4" />
                 Ещё фритюрница
               </button>
+              {freeEquipment.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={addAllFromList}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-[#dcdfed] px-3 text-[13px] font-medium text-[#5566f6] transition-colors hover:bg-[#f5f6ff]"
+                >
+                  <ListPlus className="size-4" />
+                  Все из списка ({freeEquipment.length})
+                </button>
+              ) : null}
+              {removedIds.length > 0 ? (
+                <span className="text-[12px] text-[#a13a32]">
+                  будет удалено строк: {removedIds.length}
+                </span>
+              ) : null}
             </div>
-          ) : null}
+
+            <p className="mt-2 text-[12px] leading-snug text-[#6f7282]">
+              Каждая вкладка — отдельная строка журнала за этот день.
+              Список фритюрниц пополняется в «Редактировать списки».
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">
               Дата и время начала
-              {entries.length > 1 ? (
+              {tabs.length > 1 ? (
                 <span className="ml-2 font-normal text-[#6f7282]">
                   дата общая для всех фритюрниц
                 </span>
@@ -515,17 +644,8 @@ function EntryDialog(props: {
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            {props.initialEntry && props.onDelete ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 w-full rounded-xl border-[#ffd7d3] px-5 text-[14px] font-medium text-[#ff3b30] shadow-none hover:bg-[#fff4f2] sm:w-auto"
-                onClick={() => { void props.onDelete?.(props.initialEntry!.id); props.onOpenChange(false); }}
-              >
-                Удалить
-              </Button>
-            ) : null}
+          <div className="text-[12.5px] text-[#6f7282]">
+            {tabs.length > 1 ? `Строк за день: ${tabs.length}` : null}
           </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
@@ -542,7 +662,7 @@ function EntryDialog(props: {
               className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
               onClick={() => { void save(); }}
             >
-              {busy ? "Сохранение..." : props.initialEntry ? "Сохранить" : "Добавить"}
+              {busy ? "Сохранение..." : "Сохранить"}
             </Button>
           </div>
         </div>
@@ -795,7 +915,12 @@ export function FryerOilDocumentClient(props: Props) {
   const [status, setStatus] = useState<"active" | "closed">(props.status === "closed" ? "closed" : "active");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [entryOpen, setEntryOpen] = useState(false);
-  const [entryItem, setEntryItem] = useState<EntryItem | null>(null);
+  // Диалог открывается на весь день: строки этого дня и та, по которой
+  // кликнули. `dialogSeq` — ключ, чтобы состояние вкладок сбрасывалось
+  // при переходе между днями.
+  const [dayEntries, setDayEntries] = useState<EntryItem[]>([]);
+  const [focusEntryId, setFocusEntryId] = useState<string | null>(null);
+  const [dialogSeq, setDialogSeq] = useState(0);
   const [listsOpen, setListsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isActive = status === "active";
@@ -853,16 +978,14 @@ export function FryerOilDocumentClient(props: Props) {
     ],
     onClick: isActive
       ? () => {
-          setEntryItem(entry);
-          setEntryOpen(true);
+          openDay(entry);
         }
       : undefined,
     actions: isActive ? (
       <button
         type="button"
         onClick={() => {
-          setEntryItem(entry);
-          setEntryOpen(true);
+          openDay(entry);
         }}
         className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white hover:bg-[#4a5bf0]"
       >
@@ -870,6 +993,68 @@ export function FryerOilDocumentClient(props: Props) {
       </button>
     ) : null,
   }));
+
+  /**
+   * Открыть день. Кликнули по строке — показываем все строки её дня;
+   * нажали «Добавить» — заводим день с нуля.
+   */
+  function openDay(entry: EntryItem | null) {
+    if (entry) {
+      const key = fryerOilDayKey(entry);
+      setDayEntries(entries.filter((item) => fryerOilDayKey(item) === key));
+      setFocusEntryId(entry.id);
+    } else {
+      setDayEntries([]);
+      setFocusEntryId(null);
+    }
+    setDialogSeq((value) => value + 1);
+    setEntryOpen(true);
+  }
+
+  /**
+   * Сохранение дня целиком: правки существующих строк, новые фритюрницы
+   * одной пачкой и удаление убранных. Удаляем последними — если создание
+   * упадёт, человек не останется с потерянными строками.
+   */
+  async function saveDay(payload: {
+    updates: Array<{ id: string; data: FryerOilEntryData }>;
+    creates: FryerOilEntryData[];
+    removedIds: string[];
+  }) {
+    for (const update of payload.updates) {
+      await saveEntry(update);
+    }
+    if (payload.creates.length > 0) {
+      await createEntries(payload.creates);
+    }
+    if (payload.removedIds.length > 0) {
+      await deleteEntries(payload.removedIds);
+    }
+  }
+
+  /**
+   * Создание нескольких строк одним запросом. Сотня фритюрниц сотней
+   * round-trip'ов — это десятки секунд ожидания и полусохранённый день
+   * при первом же обрыве связи.
+   */
+  async function createEntries(items: FryerOilEntryData[]) {
+    const response = await fetch(`/api/journal-documents/${props.documentId}/fryer-oil`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items }) });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !Array.isArray(result?.entries)) {
+      throw new Error(result?.error || "Не удалось сохранить записи");
+    }
+    const created: EntryItem[] = result.entries.map(
+      (entry: { id: string; date: string; data: unknown }) => ({
+        id: entry.id,
+        date: entry.date,
+        data: normalizeFryerOilEntryData(entry.data),
+      })
+    );
+    const createdIds = new Set(created.map((entry) => entry.id));
+    setEntries((value) =>
+      sortEntries([...value.filter((item) => !createdIds.has(item.id)), ...created])
+    );
+  }
 
   /**
    * Запись строки. Отмена (Ctrl+Z) — это повторная запись прежних
@@ -951,8 +1136,7 @@ export function FryerOilDocumentClient(props: Props) {
         onCreate={
           isActive
             ? () => {
-                setEntryItem(null);
-                setEntryOpen(true);
+                openDay(null);
               }
             : undefined
         }
@@ -1012,7 +1196,7 @@ export function FryerOilDocumentClient(props: Props) {
             </table>
             {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
             <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold uppercase`}>Журнал учета использования фритюрных жиров</div>
-            {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => { setEntryItem(null); setEntryOpen(true); }} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
+            {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => openDay(null)} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
             {isActive ? (
               <JournalSelectionBar
                 count={selectedIds.length}
@@ -1072,7 +1256,7 @@ export function FryerOilDocumentClient(props: Props) {
                 <col className="w-[100px]" />
               </colgroup>
               <thead><tr>{isActive ? <th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-0 py-1.5 print:hidden leading-tight`}><Checkbox checked={entries.length > 0 && selectedIds.length === entries.length} onCheckedChange={(checked) => setSelectedIds(checked === true ? entries.map((x) => x.id) : [])} disabled={entries.length === 0} /></th> : null}<th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Дата, время начала использования фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид фритюрного жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира на начало жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Тип жарочного оборудования</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Вид продукции</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Время окончания фритюрной жарки</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Органолептическая оценка качества жира по окончании жарки</th><th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Использование оставшегося жира</th><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Должность, ФИО контролера</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Переходящий остаток, кг</th><th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight break-words`}>Утилизированный, кг</th></tr></thead>
-              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282] leading-tight`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; setEntryItem(entry); setEntryOpen(true); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-0 py-1 text-center print:hidden leading-tight`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) { setEntryItem(entry); setEntryOpen(true); } }} disabled={!isActive}>{formatDateRu(entry.data.startDate || entry.date)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.qualityStartNote || formatQualityLabel(entry.data.qualityStart) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatTime(entry.data.endHour, entry.data.endMinute) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.qualityEndNote || formatQualityLabel(entry.data.qualityEnd) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
+              <tbody>{entries.length === 0 ? <tr><td colSpan={isActive ? 11 : 10} className={`${GRID_CELL_CLASS} px-6 py-10 text-center text-[#6f7282] leading-tight`}>Нет записей. Нажмите «Добавить», чтобы создать первую запись.</td></tr> : entries.map((entry) => <tr key={entry.id} data-focus-today={entry.id === todayFocusEntryId ? "" : undefined} className={`${selectedIds.includes(entry.id) ? "bg-[#f3f5ff]" : ""} ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`} onClick={() => { if (!isActive) return; openDay(entry); }}>{isActive ? <td className={`${GRID_CELL_CLASS} px-0 py-1 text-center print:hidden leading-tight`} onClick={(e) => e.stopPropagation()}><Checkbox checked={selectedIds.includes(entry.id)} onCheckedChange={() => setSelectedIds((v) => v.includes(entry.id) ? v.filter((x) => x !== entry.id) : [...v, entry.id])} /></td> : null}<td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}><button type="button" className={`flex w-full items-start justify-between gap-3 text-left ${isActive ? "hover:text-[#3848c7]" : ""}`} onClick={(e) => { e.stopPropagation(); if (isActive) openDay(entry) }} disabled={!isActive}>{formatDateRu(entry.data.startDate || entry.date)} {formatTime(entry.data.startHour, entry.data.startMinute)}{isActive ? <Pencil className="mt-0.5 size-4 shrink-0 print:hidden" /> : null}</button></td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.fatType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.qualityStartNote || formatQualityLabel(entry.data.qualityStart) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.equipmentType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.productType || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatTime(entry.data.endHour, entry.data.endMinute) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.qualityEndNote || formatQualityLabel(entry.data.qualityEnd) || "-"}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.carryoverKg > 0 ? entry.data.carryoverKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{entry.data.disposedKg > 0 ? entry.data.disposedKg : ""}</td><td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{entry.data.controllerName || "-"}</td></tr>)}</tbody>
             </table>
             </MobileViewTableWrapper>
             <div className={DOC_EXTRA_BLOCK_CLASS}>
@@ -1082,7 +1266,7 @@ export function FryerOilDocumentClient(props: Props) {
         </div>
       </div>
 
-      <EntryDialog key={entryItem?.id ?? "new"} open={entryOpen} onOpenChange={(open) => { setEntryOpen(open); if (!open) setEntryItem(null); }} lists={config.lists} users={props.users} initialEntry={entryItem} onSubmit={async (payload) => { await saveEntry(payload); }} onDelete={isActive ? async (id) => { await deleteEntries([id]); } : undefined} />
+      <EntryDialog key={dialogSeq} open={entryOpen} onOpenChange={(open) => { setEntryOpen(open); if (!open) { setDayEntries([]); setFocusEntryId(null); } }} lists={config.lists} users={props.users} dayEntries={dayEntries} focusEntryId={focusEntryId} onSave={saveDay} />
       <ListsDialog key={JSON.stringify(config.lists)} open={listsOpen} onOpenChange={setListsOpen} lists={config.lists} onSave={async (lists) => { const nextConfig = { ...config, lists }; const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config: nextConfig }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить списки"); setConfig(nextConfig); router.refresh(); }} />
       <SettingsDialog key={`${title}-${dateFrom}-${status}`} open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} status={status} useV2={props.useV2} onSave={async (v) => { const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: v.title, dateFrom: v.dateFrom, status: v.status }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить настройки"); setTitle(v.title); setDateFrom(v.dateFrom); setStatus(v.status); router.refresh(); }} />
     </div>

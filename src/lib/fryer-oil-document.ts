@@ -222,6 +222,20 @@ export function normalizeFryerOilDocumentConfig(value: unknown): FryerOilDocumen
   };
 }
 
+/**
+ * День, к которому относится строка журнала.
+ *
+ * У строк-заготовок (журнал создаёт по одной на каждый день периода)
+ * `startDate` пустой, и день несёт только техническое поле `date`.
+ * Фолбэк обязателен, иначе все заготовки склеятся в один «пустой день».
+ */
+export function fryerOilDayKey(entry: {
+  date: string;
+  data: { startDate: string };
+}): string {
+  return entry.data.startDate || entry.date.slice(0, 10);
+}
+
 export function normalizeFryerOilEntryData(value: unknown): FryerOilEntryData {
   const defaults: FryerOilEntryData = {
     startDate: "",

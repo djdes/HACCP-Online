@@ -30,18 +30,31 @@ async function resolveEmployeeId(
   return fallback?.id ?? null;
 }
 
-function toTimestamp(
-  data: { startDate: string; startHour: number | null; startMinute: number | null },
-  second = 0
-) {
+function toTimestamp(data: {
+  startDate: string;
+  startHour: number | null;
+  startMinute: number | null;
+}) {
   // Время может быть не заполнено (строка-заготовка на день) — тогда
   // ключом даты служит полночь, а не «null:null».
   const hour = String(data.startHour ?? 0).padStart(2, "0");
   const minute = String(data.startMinute ?? 0).padStart(2, "0");
-  return new Date(
-    `${data.startDate}T${hour}:${minute}:${String(second).padStart(2, "0")}.000Z`
-  );
+  return new Date(`${data.startDate}T${hour}:${minute}:00.000Z`);
 }
+
+/**
+ * Сколько строк помещается в одну минуту журнала.
+ *
+ * В таблице стоит @@unique([documentId, employeeId, date]), а у всех
+ * фритюрниц одного дня время начала совпадает — метки разводятся
+ * сдвигом внутри минуты. Сдвиг был секундным и упирался в 60 строк на
+ * день; в заведении может стоять и сотня фритюрниц, поэтому шаг —
+ * миллисекунда.
+ */
+const MAX_OFFSET_MS = 60_000;
+
+/** Потолок на одну отправку: защита от случайной пачки в миллион строк. */
+const MAX_BATCH_ITEMS = 500;
 
 function isValidDate(value: Date) {
   return Number.isFinite(value.getTime());
@@ -54,22 +67,58 @@ async function getDocument(documentId: string, organizationId: string) {
   });
 }
 
-async function reserveUniqueDate(documentId: string, employeeId: string, data: ReturnType<typeof normalizeFryerOilEntryData>, currentId?: string) {
-  for (let second = 0; second < 60; second += 1) {
-    const date = toTimestamp(data, second);
-    const existing = await db.journalDocumentEntry.findFirst({
-      where: {
-        documentId,
-        employeeId,
-        date,
-        ...(currentId ? { NOT: { id: currentId } } : {}),
-      },
-      select: { id: true },
-    });
-    if (!existing) return date;
+/**
+ * Свободные метки времени для строк одного дня.
+ *
+ * Занятые метки читаются одним запросом на минуту, а не по одной на
+ * попытку: при сотне фритюрниц это была сотня round-trip'ов подряд.
+ * Внутри пачки метки тоже резервируются — иначе две новые строки
+ * получили бы одинаковую дату и упали на unique-констрейнте.
+ */
+async function reserveUniqueDates(
+  documentId: string,
+  employeeId: string,
+  items: ReturnType<typeof normalizeFryerOilEntryData>[],
+  currentId?: string
+): Promise<Date[]> {
+  const takenByMinute = new Map<number, Set<number>>();
+  const dates: Date[] = [];
+
+  for (const data of items) {
+    const base = toTimestamp(data);
+    if (!isValidDate(base)) {
+      // Невалидную дату отдаём как есть — вызывающий её проверит и
+      // ответит 400 с понятной причиной.
+      dates.push(base);
+      continue;
+    }
+
+    const baseMs = base.getTime();
+    let taken = takenByMinute.get(baseMs);
+    if (!taken) {
+      const rows = await db.journalDocumentEntry.findMany({
+        where: {
+          documentId,
+          employeeId,
+          date: { gte: base, lt: new Date(baseMs + MAX_OFFSET_MS) },
+          ...(currentId ? { NOT: { id: currentId } } : {}),
+        },
+        select: { date: true },
+      });
+      taken = new Set(rows.map((row) => row.date.getTime() - baseMs));
+      takenByMinute.set(baseMs, taken);
+    }
+
+    let offset = 0;
+    while (offset < MAX_OFFSET_MS && taken.has(offset)) offset += 1;
+    if (offset >= MAX_OFFSET_MS) {
+      throw new Error("Слишком много записей на одно и то же время");
+    }
+    taken.add(offset);
+    dates.push(new Date(baseMs + offset));
   }
 
-  throw new Error("Слишком много записей на одно и то же время");
+  return dates;
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -94,23 +143,45 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Нет доступа к этому журналу" }, { status: 403 });
   }
 
-  const body = (await request.json().catch(() => null)) as { data?: unknown } | null;
-  const data = normalizeFryerOilEntryData(body?.data);
+  // Две формы тела. `items` — пачка строк за один день (несколько
+  // фритюрниц), `data` — одна строка. Старая форма осталась рабочей:
+  // на неё завязаны прежние вызовы клиента.
+  const body = (await request.json().catch(() => null)) as
+    | { data?: unknown; items?: unknown }
+    | null;
+  const rawItems = Array.isArray(body?.items) ? body.items : [body?.data];
+  if (rawItems.length === 0) {
+    return NextResponse.json({ error: "Нет записей для сохранения" }, { status: 400 });
+  }
+  if (rawItems.length > MAX_BATCH_ITEMS) {
+    return NextResponse.json(
+      { error: `За один раз можно создать не больше ${MAX_BATCH_ITEMS} записей` },
+      { status: 400 }
+    );
+  }
+  const items = rawItems.map((item) => normalizeFryerOilEntryData(item));
   const employeeId = await resolveEmployeeId(session.user.id, orgId);
   if (!employeeId) {
     return NextResponse.json({ error: "Нет активных сотрудников для создания записи" }, { status: 400 });
   }
 
-  const date = await reserveUniqueDate(documentId, employeeId, data);
-  if (!isValidDate(date)) {
+  const dates = await reserveUniqueDates(documentId, employeeId, items);
+  if (dates.some((date) => !isValidDate(date))) {
     return NextResponse.json({ error: "Некорректная дата записи" }, { status: 400 });
   }
 
-  const entry = await db.journalDocumentEntry.create({
-    data: { documentId, employeeId, date, data },
-  });
+  // Транзакцией: полусохранённый день хуже несохранённого — человек не
+  // поймёт, какие фритюрницы уже записаны, а какие нет.
+  const entries = await db.$transaction(
+    items.map((data, index) =>
+      db.journalDocumentEntry.create({
+        data: { documentId, employeeId, date: dates[index], data },
+      })
+    )
+  );
 
-  return NextResponse.json({ entry });
+  // `entry` — для прежних вызовов, которые ждут одну запись.
+  return NextResponse.json({ entries, entry: entries[0] });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -144,7 +215,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!current) return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
 
   const data = normalizeFryerOilEntryData(body.data);
-  const date = await reserveUniqueDate(documentId, current.employeeId, data, current.id);
+  const [date] = await reserveUniqueDates(
+    documentId,
+    current.employeeId,
+    [data],
+    current.id
+  );
+  if (!isValidDate(date)) {
+    return NextResponse.json({ error: "Некорректная дата записи" }, { status: 400 });
+  }
   const entry = await db.journalDocumentEntry.update({
     where: { id: current.id },
     data: { date, data },
