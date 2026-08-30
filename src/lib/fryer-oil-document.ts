@@ -170,6 +170,13 @@ export type FryerOilEntryData = {
   endHour: number | null;           // 0–23
   endMinute: number | null;         // 0–59
   qualityEnd: number | null;        // 1–5
+  /**
+   * Оценка словами — то, что реально читает проверяющий: «доброкачественное»,
+   * «без постороннего запаха», «цвет янтарный». Балл 1–5 остаётся: он нужен
+   * методике из приложения к журналу, но в графу бланка идёт формулировка.
+   */
+  qualityStartNote?: string;
+  qualityEndNote?: string;
   carryoverKg: number;              // остаток жира, кг
   disposedKg: number;               // слито/утилизировано, кг
   controllerName: string;
