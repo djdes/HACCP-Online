@@ -38,6 +38,7 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = { id: string; name: string; role: string };
 
 type DocumentItem = {
@@ -209,7 +210,7 @@ export function PestControlDocumentsClient(props: Props) {
   const createState: EditingState = {
     id: "",
     title: PEST_CONTROL_DOCUMENT_TITLE,
-    dateFrom: new Date().toISOString().slice(0, 10),
+    dateFrom: localDayKey(),
   };
 
   useEffect(() => {

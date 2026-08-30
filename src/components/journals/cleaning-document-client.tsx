@@ -116,6 +116,7 @@ import {
 } from "@/components/journals/journal-grid";
 
 import { useTodayKey } from "@/lib/use-today-key";
+import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
 type Props = {
@@ -510,7 +511,7 @@ export function CleaningDocumentClient(props: Props) {
     // отвязывается от TF). Plus исключаем дни, у которых уже есть
     // completion — на них уборщик уже отметился, перезапись плана
     // на этих днях ломает compliance-trail.
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDayKey();
     const completedDayKeysForRoom = new Set<string>();
     for (const e of props.initialEntries) {
       const d = e.data as Record<string, unknown> | null;

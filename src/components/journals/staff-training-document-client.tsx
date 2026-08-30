@@ -57,6 +57,7 @@ import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
+import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
   title: string;
@@ -72,7 +73,7 @@ type Props = {
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 function nowDate() {
-  return new Date().toISOString().slice(0, 10);
+  return localDayKey();
 }
 
 export function StaffTrainingDocumentClient({

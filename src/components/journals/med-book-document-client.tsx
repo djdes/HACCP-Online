@@ -87,6 +87,7 @@ import {
   GRID_VIEWPORT_CLASS,
   GRID_VIEWPORT_SCROLLBAR_CLASS,
 } from "@/components/journals/journal-grid";
+import { localDayKey } from "@/lib/entry-defaults";
 
 type Employee = { id: string; name: string; role: string };
 type Row = {
@@ -148,7 +149,7 @@ const SELECT_TRIGGER_CLASS =
 /** `<SelectItem value="">` в Radix запрещён — сентинел для «не выбрано». */
 const NONE_VALUE = "__none";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDayKey();
 const emptyDraft = (): Draft => ({
   employeeId: "",
   positionTitle: "",

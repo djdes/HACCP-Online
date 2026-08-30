@@ -33,6 +33,7 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { localDayKey } from "@/lib/entry-defaults";
 type ComplaintListDocument = {
   id: string;
   title: string;
@@ -57,7 +58,7 @@ function CreateDialog({
   onCreated: () => void;
 }) {
   const router = useRouter();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDayKey();
   const [title, setTitle] = useState(COMPLAINT_REGISTER_TITLE);
   const [dateFrom, setDateFrom] = useState(today);
   const [submitting, setSubmitting] = useState(false);

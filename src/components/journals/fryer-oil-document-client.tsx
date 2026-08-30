@@ -66,6 +66,7 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { localDayKey, localTimeParts } from "@/lib/entry-defaults";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
   GRID_CELL_CLASS,
@@ -102,6 +103,8 @@ type UserItem = { id: string; name: string; role: string };
 type EntryItem = { id: string; date: string; data: FryerOilEntryData };
 type Props = {
   documentId: string;
+  /** Кто открыл журнал — он подставляется контролёром в новых строках. */
+  currentUserId: string | null;
   title: string;
   organizationName: string;
   /**
@@ -173,6 +176,8 @@ function EntryDialog(props: {
   onOpenChange: (open: boolean) => void;
   lists: FryerOilSelectLists;
   users: UserItem[];
+  /** Кто сейчас заполняет — он и подставляется контролёром. */
+  currentUserId: string | null;
   /** Все строки этого дня. Пусто — заводим день с нуля. */
   dayEntries: EntryItem[];
   /** По какой строке кликнули: её вкладка открывается активной. */
@@ -184,20 +189,48 @@ function EntryDialog(props: {
   }) => Promise<void>;
 }) {
   /**
-   * Заготовка строки. Предзаполняем только справочное — дату,
-   * контролёра, название оборудования, вид жира. Время, оценки и
-   * килограммы остаются пустыми: это журнал для Роспотребнадзора, и
-   * проставленное значение за непроведённый контроль хуже пустой графы.
+   * Кто заполняет. Раньше подставлялся первый сотрудник по алфавиту —
+   * в журнале оказывался не тот, кто реально менял жир.
    */
-  function blankEntry(equipmentType: string, base?: FryerOilEntryData): FryerOilEntryData {
+  const defaultControllerName =
+    props.users.find((user) => user.id === props.currentUserId)?.name ||
+    props.users[0]?.name ||
+    "";
+
+  /**
+   * Значения по умолчанию: дата, время и контролёр.
+   *
+   * Это «когда и кто», а не показатели — их система знает. Оценки жира,
+   * килограммы и вид продукции не трогаем никогда: журнал показывают
+   * Роспотребнадзору, и значение за непроведённый контроль хуже пустой
+   * графы. Уже заполненное не перетираем — `??` и `||` пропускают его.
+   */
+  function withDefaults(data: FryerOilEntryData, dayKey?: string): FryerOilEntryData {
+    const now = new Date();
+    const { hour, minute } = localTimeParts(now);
     return {
-      ...normalizeFryerOilEntryData({}),
-      startDate: base?.startDate || new Date().toISOString().slice(0, 10),
-      controllerName: base?.controllerName || props.users[0]?.name || "",
-      fatType: props.lists.fatTypes[0] ?? "",
-      equipmentType,
-      productType: "",
+      ...data,
+      startDate: data.startDate || dayKey || localDayKey(now),
+      startHour: data.startHour ?? hour,
+      startMinute: data.startMinute ?? minute,
+      endHour: data.endHour ?? hour,
+      endMinute: data.endMinute ?? minute,
+      controllerName: data.controllerName || defaultControllerName,
     };
+  }
+
+  /** Заготовка строки: справочные поля из списков плюс `withDefaults`. */
+  function blankEntry(equipmentType: string, base?: FryerOilEntryData): FryerOilEntryData {
+    return withDefaults(
+      {
+        ...normalizeFryerOilEntryData({}),
+        startDate: base?.startDate ?? "",
+        controllerName: base?.controllerName ?? "",
+        fatType: props.lists.fatTypes[0] ?? "",
+        equipmentType,
+        productType: "",
+      }
+    );
   }
 
   const keySeq = useRef(0);
@@ -208,10 +241,17 @@ function EntryDialog(props: {
 
   const [tabs, setTabs] = useState<DayTab[]>(() =>
     props.dayEntries.length > 0
-      ? props.dayEntries.map((entry) => ({
+      ? // Строки-заготовки приходят пустыми: дату, время и контролёра
+        // подставляем и в них, иначе человек набивает это руками на
+        // каждой записи. Дата берётся из дня самой строки, а не
+        // сегодняшнего — иначе открытый прошлый день переехал бы.
+        props.dayEntries.map((entry) => ({
           key: entry.id,
           id: entry.id,
-          data: normalizeFryerOilEntryData(entry.data),
+          data: withDefaults(
+            normalizeFryerOilEntryData(entry.data),
+            fryerOilDayKey(entry)
+          ),
         }))
       : [
           {
@@ -1266,7 +1306,7 @@ export function FryerOilDocumentClient(props: Props) {
         </div>
       </div>
 
-      <EntryDialog key={dialogSeq} open={entryOpen} onOpenChange={(open) => { setEntryOpen(open); if (!open) { setDayEntries([]); setFocusEntryId(null); } }} lists={config.lists} users={props.users} dayEntries={dayEntries} focusEntryId={focusEntryId} onSave={saveDay} />
+      <EntryDialog key={dialogSeq} open={entryOpen} onOpenChange={(open) => { setEntryOpen(open); if (!open) { setDayEntries([]); setFocusEntryId(null); } }} lists={config.lists} users={props.users} currentUserId={props.currentUserId} dayEntries={dayEntries} focusEntryId={focusEntryId} onSave={saveDay} />
       <ListsDialog key={JSON.stringify(config.lists)} open={listsOpen} onOpenChange={setListsOpen} lists={config.lists} onSave={async (lists) => { const nextConfig = { ...config, lists }; const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config: nextConfig }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить списки"); setConfig(nextConfig); router.refresh(); }} />
       <SettingsDialog key={`${title}-${dateFrom}-${status}`} open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} status={status} useV2={props.useV2} onSave={async (v) => { const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: v.title, dateFrom: v.dateFrom, status: v.status }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить настройки"); setTitle(v.title); setDateFrom(v.dateFrom); setStatus(v.status); router.refresh(); }} />
     </div>

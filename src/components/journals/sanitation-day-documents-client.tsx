@@ -84,6 +84,7 @@ import {
   getDefaultControlPeriodicity,
   readControlPeriodicity,
 } from "@/lib/control-periodicity";
+import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = {
   id: string;
   name: string;
@@ -124,7 +125,7 @@ function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const date = new Date(value);
   if (Number.isNaN(date.getTime()))
-    return new Date().toISOString().slice(0, 10);
+    return localDayKey();
   return date.toISOString().slice(0, 10);
 }
 

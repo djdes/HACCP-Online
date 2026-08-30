@@ -51,6 +51,7 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import { localDayKey } from "@/lib/entry-defaults";
 type PersonItem = { id: string; name: string; role?: string | null };
 type TraceabilitySettingsDraft = { title: string; dateFrom: string; showShockTempField: boolean; showShipmentBlock: boolean };
 type TraceabilityRowDraft = {
@@ -89,7 +90,7 @@ type Props = {
 const DEFAULT_TITLE = TRACEABILITY_DOCUMENT_TITLE;
 const ROLE_OPTIONS = USER_ROLE_LABEL_VALUES;
 
-function todayIso() { return new Date().toISOString().slice(0, 10); }
+function todayIso() { return localDayKey(); }
 function normalizeIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const date = new Date(value);

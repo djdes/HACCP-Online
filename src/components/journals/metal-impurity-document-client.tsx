@@ -55,6 +55,7 @@ import {
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
   title: string;
@@ -166,7 +167,7 @@ function RowDialog({
   responsibleEmployee,
   onSave,
 }: RowDialogProps) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDayKey();
   const [draft, setDraft] = useState<MetalImpurityRow>(
     createMetalImpurityRow({
       date: today,
@@ -1178,7 +1179,7 @@ export function MetalImpurityDocumentClient({
   }
 
   async function finishJournal() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDayKey();
     await persist(
       documentTitle,
       { ...config, endDate: today },

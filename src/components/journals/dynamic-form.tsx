@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { PhotoCapture, type OcrResult } from "./photo-capture";
 import { VoiceInput } from "./voice-input";
+import { localDayKey } from "@/lib/entry-defaults";
 
 type FieldOption = { value: string; label: string };
 type ShowIfCondition = { field: string; equals: unknown };
@@ -195,7 +196,7 @@ export function DynamicForm({
 
   useEffect(() => {
     if (templateCode !== "equipment_calibration") return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDayKey();
     setFormData((prev) => ({
       ...prev,
       calibrationType: prev.calibrationType ?? "verification",

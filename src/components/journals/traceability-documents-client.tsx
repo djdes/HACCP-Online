@@ -38,6 +38,7 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { localDayKey } from "@/lib/entry-defaults";
 type TraceabilityDocumentItem = {
   id: string;
   title: string;
@@ -66,7 +67,7 @@ const DEFAULT_TITLE = "Журнал прослеживаемости проду�
 function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return new Date().toISOString().slice(0, 10);
+  if (Number.isNaN(parsed.getTime())) return localDayKey();
   return parsed.toISOString().slice(0, 10);
 }
 
@@ -93,7 +94,7 @@ function readFormState(document?: TraceabilityDocumentItem | null): Traceability
   const config = document?.config && typeof document.config === "object" ? document.config : {};
   return {
     title: document?.title || DEFAULT_TITLE,
-    dateFrom: document?.dateFrom ? toIsoDate(document.dateFrom) : new Date().toISOString().slice(0, 10),
+    dateFrom: document?.dateFrom ? toIsoDate(document.dateFrom) : localDayKey(),
     showShockTempField: toBoolean(config.showShockTempField, false),
     showShipmentBlock: toBoolean(config.showShipmentBlock, false),
   };

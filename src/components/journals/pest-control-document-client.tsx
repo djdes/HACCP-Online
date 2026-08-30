@@ -47,6 +47,7 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import { localDayKey } from "@/lib/entry-defaults";
 
 type UserItem = {
   id: string;
@@ -289,7 +290,7 @@ function EntryDialog(props: {
 }) {
   const roleOptions = useMemo(() => getPestControlRoleOptions(props.users), [props.users]);
   const [entry, setEntry] = useState<PestControlEntryData>(
-    createEmptyPestControlEntry(props.users)
+    createEmptyPestControlEntry(props.users, localDayKey())
   );
   const [submitting, setSubmitting] = useState(false);
 
@@ -305,7 +306,7 @@ function EntryDialog(props: {
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String((Math.round(now.getMinutes() / 5) * 5) % 60).padStart(2, "0");
     setEntry({
-      ...createEmptyPestControlEntry(props.users, new Date().toISOString().slice(0, 10)),
+      ...createEmptyPestControlEntry(props.users, localDayKey()),
       timeSpecified: true,
       performedHour: hh,
       performedMinute: mm,
@@ -661,7 +662,7 @@ export function PestControlDocumentClient(props: Props) {
   }
 
   async function closeDocument() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDayKey();
     const response = await fetch(`/api/journal-documents/${props.documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

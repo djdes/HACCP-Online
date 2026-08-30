@@ -65,6 +65,7 @@ import {
   JOURNAL_LIST_STACK_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { localDayKey } from "@/lib/entry-defaults";
 type DocumentItem = {
   id: string;
   title: string;
@@ -101,7 +102,7 @@ type SettingsState = {
 };
 
 function getDefaultDate() {
-  return new Date().toISOString().slice(0, 10);
+  return localDayKey();
 }
 
 function formatDateLabel(isoDate: string) {

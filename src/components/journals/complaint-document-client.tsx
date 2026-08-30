@@ -44,6 +44,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { localDayKey } from "@/lib/entry-defaults";
 type EmployeeItem = {
   id: string;
   name: string;
@@ -73,7 +74,7 @@ function ComplaintRowDialog({
   row: RegisterDocumentRow | null;
   onSave: (row: RegisterDocumentRow) => Promise<void>;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDayKey();
   const [draft, setDraft] = useState<RegisterDocumentRow>(() =>
     buildComplaintRow({ receiptDate: today, decisionDate: today })
   );
@@ -501,7 +502,7 @@ export function ComplaintDocumentClient({
       documentTitle,
       {
         ...config,
-        finishedAt: new Date().toISOString().slice(0, 10),
+        finishedAt: localDayKey(),
       },
       { status: "closed" }
     );

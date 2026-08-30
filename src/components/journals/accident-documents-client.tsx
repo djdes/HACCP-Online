@@ -45,6 +45,7 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { localDayKey } from "@/lib/entry-defaults";
 type DocumentItem = {
   id: string;
   title: string;
@@ -223,7 +224,7 @@ export function AccidentDocumentsClient({
 
   const createInitialState: DialogState = {
     title: ACCIDENT_DOCUMENT_TITLE,
-    dateFrom: new Date().toISOString().slice(0, 10),
+    dateFrom: localDayKey(),
   };
 
   async function createDocument(payload: DialogState) {

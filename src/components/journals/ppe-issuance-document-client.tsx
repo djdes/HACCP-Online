@@ -54,6 +54,7 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = {
   id: string;
   name: string;
@@ -423,7 +424,7 @@ function RowDialog(props: {
       rowToState(
         props.initialRow ||
           createPpeIssuanceRow({
-            issueDate: new Date().toISOString().slice(0, 10),
+            issueDate: localDayKey(),
             issuerUserId: props.config.defaultIssuerUserId || "",
             issuerTitle: props.config.defaultIssuerTitle || "",
           })

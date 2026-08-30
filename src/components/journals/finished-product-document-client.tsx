@@ -63,6 +63,7 @@ import {
 } from "@/components/journals/journal-grid";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { useTodayKey } from "@/lib/use-today-key";
+import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
   title: string;
@@ -137,7 +138,7 @@ const TEMPERATURE_GUIDELINES = [
 ] as const;
 
 function nowDate() {
-  return new Date().toISOString().slice(0, 10);
+  return localDayKey();
 }
 
 function nowTime() {

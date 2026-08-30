@@ -96,6 +96,7 @@ import {
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
+import { localDayKey } from "@/lib/entry-defaults";
 
 type User = { id: string; name: string; role: string };
 
@@ -284,7 +285,7 @@ function RowDialog(props: {
         createAcceptanceRow({
           responsibleUserId: props.config.defaultResponsibleUserId || "",
           responsibleTitle: props.config.defaultResponsibleTitle || "",
-          deliveryDate: new Date().toISOString().slice(0, 10),
+          deliveryDate: localDayKey(),
         })
     );
     setNewProduct("");
@@ -703,7 +704,7 @@ function IncomingControlRowDialog(props: {
         createAcceptanceRow({
           responsibleUserId: props.config.defaultResponsibleUserId || "",
           responsibleTitle: props.config.defaultResponsibleTitle || "",
-          deliveryDate: new Date().toISOString().slice(0, 10),
+          deliveryDate: localDayKey(),
           shelfLifeDate: "",
           manufacturerSupplier: "",
           accompanyingDocs: "",

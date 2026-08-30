@@ -45,6 +45,7 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { localDayKey } from "@/lib/entry-defaults";
 type DocumentItem = {
   id: string;
   title: string;
@@ -63,7 +64,7 @@ type Props = {
 function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10);
+  if (Number.isNaN(date.getTime())) return localDayKey();
   return date.toISOString().slice(0, 10);
 }
 
@@ -244,7 +245,7 @@ export function BreakdownHistoryDocumentsClient({
 
   const defaultCreateState: DialogState = {
     title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
-    dateFrom: new Date().toISOString().slice(0, 10),
+    dateFrom: localDayKey(),
   };
 
   async function createDocument(payload: DialogState) {

@@ -49,6 +49,7 @@ import {
 
 import { toast } from "sonner";
 import { PositionSelectItems } from "@/components/shared/position-select";
+import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
   title: string;
@@ -102,7 +103,7 @@ export function EquipmentCalibrationDocumentClient({
   const [draftPurpose, setDraftPurpose] = useState("");
   const [draftRange, setDraftRange] = useState("");
   const [draftInterval, setDraftInterval] = useState("12");
-  const [draftLastDate, setDraftLastDate] = useState(new Date().toISOString().slice(0, 10));
+  const [draftLastDate, setDraftLastDate] = useState(localDayKey());
   const [draftNote, setDraftNote] = useState("");
 
   // Edit row draft state
@@ -217,7 +218,7 @@ export function EquipmentCalibrationDocumentClient({
     setDraftPurpose("");
     setDraftRange("");
     setDraftInterval("12");
-    setDraftLastDate(new Date().toISOString().slice(0, 10));
+    setDraftLastDate(localDayKey());
     setDraftNote("");
   }
 

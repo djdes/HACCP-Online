@@ -904,6 +904,7 @@ async function JournalDocumentBody({
       return (
         <FryerOilDocumentClient
           documentId={document.id}
+          currentUserId={session.user.id}
           controlPeriodicity={controlPeriodicity}
           title={document.title || "Журнал учета использования фритюрных жиров"}
           organizationName={organization?.name || ORG_NAME_FALLBACK}

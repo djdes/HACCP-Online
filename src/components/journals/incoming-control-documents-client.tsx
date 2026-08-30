@@ -58,6 +58,7 @@ import {
   getDefaultControlPeriodicity,
   readControlPeriodicity,
 } from "@/lib/control-periodicity";
+import { localDayKey } from "@/lib/entry-defaults";
 
 type User = { id: string; name: string; role: string };
 
@@ -116,13 +117,13 @@ function getDefaultDialogState(
     products: availableProducts,
     manufacturers: availableManufacturers,
     suppliers: availableSuppliers,
-    date: new Date().toISOString().slice(0, 10),
+    date: localDayKey(),
   });
 
   return {
     // Название пустое: пользователь вводит своё (S7 аудита).
     title: "",
-    startDate: new Date().toISOString().slice(0, 10),
+    startDate: localDayKey(),
     expiryFieldLabel: config.expiryFieldLabel,
     responsibleTitle: config.defaultResponsibleTitle || USER_ROLE_LABEL_VALUES[0],
     responsibleUserId: config.defaultResponsibleUserId || users[0]?.id || "",

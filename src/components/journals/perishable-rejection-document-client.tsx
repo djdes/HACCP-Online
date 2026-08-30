@@ -76,6 +76,7 @@ import {
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 
 import { useTodayKey } from "@/lib/use-today-key";
+import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
   title: string;
@@ -140,7 +141,7 @@ const HEAD_CELL_CLASS = `${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-[11.5px] fon
 const AUTOSAVE_DELAY_MS = 900;
 
 function nowDate() {
-  return new Date().toISOString().slice(0, 10);
+  return localDayKey();
 }
 
 function nowHour() {

@@ -53,6 +53,7 @@ import { toast } from "sonner";
 import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { localDayKey } from "@/lib/entry-defaults";
 type EmployeeItem = {
   id: string;
   name: string;
@@ -150,7 +151,7 @@ function TrackedDocumentClientImpl({
   );
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [newEmployeeId, setNewEmployeeId] = useState(employees[0]?.id || "");
-  const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newDate, setNewDate] = useState(localDayKey());
 
   useEffect(() => {
     setEntries(sortedEntries(initialEntries));
@@ -166,7 +167,7 @@ function TrackedDocumentClientImpl({
   useEffect(() => {
     if (!addRowOpen) return;
     setNewEmployeeId(employees[0]?.id || "");
-    setNewDate(new Date().toISOString().slice(0, 10));
+    setNewDate(localDayKey());
   }, [addRowOpen, employees]);
 
   const employeeMap = useMemo(
@@ -259,7 +260,7 @@ function TrackedDocumentClientImpl({
     if (employees.length === 0) return;
     setIsCreating(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDayKey();
       await Promise.all(
         employees.map((employee) =>
           fetch(`/api/journal-documents/${documentId}/entries`, {
