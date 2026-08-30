@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Download,
   Eraser,
@@ -89,21 +89,62 @@ export function PaperJournalEditor({
   journal,
   organization,
   staff = [],
+  documentId,
+  initialRows,
+  initialResponsible,
+  readOnly = false,
 }: {
   journal: PaperJournal;
   organization: Organization;
   /** Активные сотрудники — ими предзаполняются строки бланка. */
   staff?: StaffMember[];
+  /** Открытый документ. Без него редактор работает как разовый бланк. */
+  documentId?: string;
+  initialRows?: string[][];
+  initialResponsible?: string;
+  /** Документ закрыт — смотреть можно, править нельзя. */
+  readOnly?: boolean;
 }) {
   // Инструктирующий один на весь журнал — это всегда конкретный человек
   // из штата (по охране труда, по пожарной безопасности и т.д.).
-  const [responsible, setResponsible] = useState<string>("");
-
-  const [rows, setRows] = useState<string[][]>(() =>
-    staff.length > 0
-      ? staff.map((person) => fillRowForStaff(journal.columns, person, ""))
-      : Array.from({ length: START_ROWS }, () => journal.columns.map(() => "")),
+  const [responsible, setResponsible] = useState<string>(
+    initialResponsible ?? "",
   );
+  const [saving, setSaving] = useState(false);
+
+  const [rows, setRows] = useState<string[][]>(() => {
+    if (initialRows && initialRows.length > 0) return initialRows;
+    return staff.length > 0
+      ? staff.map((person) =>
+          fillRowForStaff(journal.columns, person, initialResponsible ?? ""),
+        )
+      : Array.from({ length: START_ROWS }, () => journal.columns.map(() => ""));
+  });
+
+  /**
+   * Сохранение через полсекунды после последней правки.
+   *
+   * Кнопки «Сохранить» здесь нет намеренно: человек заполняет бланк
+   * ячейка за ячейкой, и терять всё из-за закрытой вкладки он не должен.
+   * Задержка склеивает набор в один запрос.
+   */
+  useEffect(() => {
+    if (!documentId || readOnly) return;
+    const timer = setTimeout(() => {
+      setSaving(true);
+      fetch(
+        `/api/settings/journals/paper/${journal.id}/documents/${documentId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows, responsible }),
+        },
+      )
+        .catch(() => toast.error("Не удалось сохранить"))
+        .finally(() => setSaving(false));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [rows, responsible, documentId, journal.id, readOnly]);
 
   const hasResponsibleColumn = journal.columns.some(isResponsibleColumn);
 
@@ -293,6 +334,16 @@ export function PaperJournalEditor({
           </tbody>
         </table>
       </div>
+
+      {documentId ? (
+        <p className="text-[12px] text-[#6f7282]">
+          {readOnly
+            ? "Документ закрыт — правка недоступна."
+            : saving
+              ? "Сохраняю…"
+              : "Изменения сохраняются сами"}
+        </p>
+      ) : null}
 
       {staff.length > 0 ? (
         <p className="rounded-2xl bg-[#f5f6ff] px-4 py-2.5 text-[13px] leading-snug text-[#3c4053]">

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { paperJournalById } from "@/lib/sphere-journal-rules";
 import { PageCrumbs } from "@/components/layout/page-nav";
-import { PaperJournalEditor } from "./paper-journal-editor";
+import { PaperJournalWorkspace } from "./paper-journal-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +66,7 @@ export default async function PaperJournalPage({
           { label: journal.name },
         ]}
       />
-      <PaperJournalEditor
+      <PaperJournalWorkspace
         journal={journal}
         organization={{
           name: organization?.name ?? "Организация",

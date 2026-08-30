@@ -289,6 +289,7 @@ model Organization {
   journalTaskClaims        JournalTaskClaim[]
   tasksFlowIntegration     TasksFlowIntegration?
   tasksFlowOutbox          TasksFlowOutbox[]
+  paperJournalDocuments    PaperJournalDocument[]
   printAgents              PrintAgent[]
   printJobs                PrintJob[]
   journalGuideTemplates    JournalGuideTemplate[]
@@ -1737,6 +1738,33 @@ model TasksFlowTaskLink {
 
   @@unique([integrationId, journalDocumentId, rowKey])
   @@index([tasksflowTaskId])
+}
+
+/// Бумажный журнал, который ведут через сайт: заполнили строки, сохранили,
+/// распечатали, закрыли период. Работает так же, как электронные журналы —
+/// с активными и закрытыми документами.
+///
+/// Юридически это НЕ замена бумаге: подписи в таких журналах живые, и
+/// распечатанный лист с подписями остаётся единственным оригиналом. Здесь
+/// хранится подготовка к печати, чтобы не перезаполнять бланк каждый раз.
+model PaperJournalDocument {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Идентификатор бумажного журнала из `sphere-journal-rules` (`ot_intro` и т.п.).
+  journalId      String
+  title          String
+  /// Строки бланка: массив массивов по колонкам журнала.
+  rows           Json
+  /// Кто проводит инструктаж — один на весь документ.
+  responsible    String?
+  status         String       @default("active") // active | closed
+  closedAt       DateTime?
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, journalId, status])
 }
 
 enum PrintJobStatus {
