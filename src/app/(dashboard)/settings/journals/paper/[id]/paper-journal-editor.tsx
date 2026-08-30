@@ -28,12 +28,59 @@ type StaffMember = { name: string; title: string };
  * «Ф.И.О. работника», «Должность, профессия». Не угадали — колонка
  * просто остаётся пустой, как и была.
  */
-function fillRowForStaff(columns: string[], person: StaffMember): string[] {
+/**
+ * Колонка про того, КОГО инструктируют (или чьи данные вносят).
+ *
+ * Проверяем именно окончание: «инструктируемого» и «инструктирующего»
+ * отличаются двумя буквами, и проверка на одно «ФИО» ставила в обе
+ * колонки одного человека — в журнале выходило, что работник
+ * инструктировал сам себя.
+ */
+function isSubjectColumn(column: string): boolean {
+  const c = column.toLowerCase();
+  if (c.includes("инструктирующ") || c.includes("ответственн")) return false;
+  if (c.includes("проводивш") || c.includes("выдавш")) return false;
+  return c.includes("фио") || c.includes("ф.и.о") || c.includes("работник");
+}
+
+/** Колонка про того, КТО инструктирует / отвечает. Он один на весь журнал. */
+function isResponsibleColumn(column: string): boolean {
+  const c = column.toLowerCase();
+  return (
+    c.includes("инструктирующ") ||
+    c.includes("ответственн") ||
+    c.includes("проводивш") ||
+    c.includes("выдавш")
+  );
+}
+
+function isDateColumn(column: string): boolean {
+  const c = column.toLowerCase();
+  return c.includes("дата") && !c.includes("рождения");
+}
+
+function isPositionColumn(column: string): boolean {
+  const c = column.toLowerCase();
+  return c.includes("должность") || c.includes("профессия");
+}
+
+/** Сегодняшняя дата в том виде, в каком её пишут в бланке. */
+function todayLabel(): string {
+  return new Date().toLocaleDateString("ru-RU");
+}
+
+function fillRowForStaff(
+  columns: string[],
+  person: StaffMember,
+  responsibleName: string,
+): string[] {
   return columns.map((column) => {
-    const c = column.toLowerCase();
-    if (c.includes("фио") || c.includes("ф.и.о")) return person.name;
-    if (c.includes("должность") || c.includes("профессия")) return person.title;
-    // Даты, виды инструктажа и подписи — только от руки.
+    if (isSubjectColumn(column)) return person.name;
+    if (isResponsibleColumn(column)) return responsibleName;
+    if (isPositionColumn(column)) return person.title;
+    if (isDateColumn(column)) return todayLabel();
+    // Год рождения, вид инструктажа и подписи — только от руки: в модели
+    // их нет, а подпись в бумажном журнале и должна быть живой.
     return "";
   });
 }
@@ -48,11 +95,29 @@ export function PaperJournalEditor({
   /** Активные сотрудники — ими предзаполняются строки бланка. */
   staff?: StaffMember[];
 }) {
+  // Инструктирующий один на весь журнал — это всегда конкретный человек
+  // из штата (по охране труда, по пожарной безопасности и т.д.).
+  const [responsible, setResponsible] = useState<string>("");
+
   const [rows, setRows] = useState<string[][]>(() =>
     staff.length > 0
-      ? staff.map((person) => fillRowForStaff(journal.columns, person))
+      ? staff.map((person) => fillRowForStaff(journal.columns, person, ""))
       : Array.from({ length: START_ROWS }, () => journal.columns.map(() => "")),
   );
+
+  const hasResponsibleColumn = journal.columns.some(isResponsibleColumn);
+
+  /** Проставляет выбранного человека во ВСЕ строки разом. */
+  function applyResponsible(name: string) {
+    setResponsible(name);
+    setRows((current) =>
+      current.map((row) =>
+        row.map((cell, index) =>
+          isResponsibleColumn(journal.columns[index] ?? "") ? name : cell,
+        ),
+      ),
+    );
+  }
   const [busy, setBusy] = useState(false);
 
   function setCell(rowIndex: number, columnIndex: number, value: string) {
@@ -70,6 +135,7 @@ export function PaperJournalEditor({
   }
 
   function clearRows() {
+    setResponsible("");
     setRows(Array.from({ length: START_ROWS }, () => journal.columns.map(() => "")));
   }
 
@@ -136,11 +202,50 @@ export function PaperJournalEditor({
             <ExternalLink className="size-3" />
           </a>
         </p>
-        <p className="mt-3 text-[13px] text-[#6f7282]">
-          Шапка подставится сама: {organization.name}
-          {organization.inn ? ` · ИНН ${organization.inn}` : ""}
-          {organization.address ? ` · ${organization.address}` : ""}
-        </p>
+      </section>
+
+      {/* Шапка бланка — так же, как в электронных журналах: человек видит,
+          что именно уйдёт в печать, а не читает обещание «подставится
+          сама». Разметка повторяет верх PDF: организация слева, система
+          по центру, даты справа. */}
+      <section className="overflow-x-auto">
+        <table className="w-full min-w-[640px] border-collapse text-[13px]">
+          <tbody>
+            <tr>
+              <td
+                rowSpan={2}
+                className="w-[34%] border border-[#0b1024] px-3 py-2 text-center align-middle font-semibold"
+              >
+                {organization.name}
+                {organization.inn ? (
+                  <div className="mt-0.5 text-[11px] font-normal text-[#3c4053]">
+                    ИНН {organization.inn}
+                  </div>
+                ) : null}
+                {organization.address ? (
+                  <div className="text-[11px] font-normal text-[#3c4053]">
+                    {organization.address}
+                  </div>
+                ) : null}
+              </td>
+              <td className="border border-[#0b1024] px-3 py-2 text-center">
+                СИСТЕМА ХАССП
+              </td>
+              <td className="w-[22%] border border-[#0b1024] px-3 py-2 text-[12px]">
+                Начат&nbsp;&nbsp;{todayLabel()}
+                <div className="mt-1">Окончен&nbsp;&nbsp;__________</div>
+              </td>
+            </tr>
+            <tr>
+              <td className="border border-[#0b1024] px-3 py-2 text-center italic">
+                {journal.name}
+              </td>
+              <td className="border border-[#0b1024] px-3 py-2 text-center text-[12px]">
+                СТР. 1 ИЗ 1
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       <div className="overflow-x-auto rounded-2xl border border-[#ececf4] bg-white">
@@ -191,10 +296,36 @@ export function PaperJournalEditor({
 
       {staff.length > 0 ? (
         <p className="rounded-2xl bg-[#f5f6ff] px-4 py-2.5 text-[13px] leading-snug text-[#3c4053]">
-          Сотрудники подставлены из карточек — допишите даты и соберите
-          подписи на распечатке. Подписи и даты специально пустые: бумажный
-          журнал тем и ценен, что они живые.
+          Сотрудники и дата подставлены из карточек — остаётся собрать
+          подписи на распечатке. Подписи специально пустые: бумажный журнал
+          тем и ценен, что они живые.
         </p>
+      ) : null}
+
+      {hasResponsibleColumn && staff.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3">
+          <div className="min-w-0">
+            <div className="text-[13px] font-medium text-[#0b1024]">
+              Кто проводит инструктаж
+            </div>
+            <p className="mt-0.5 text-[12px] text-[#6f7282]">
+              Один человек на весь журнал — подставится во все строки.
+            </p>
+          </div>
+          <select
+            value={responsible}
+            onChange={(event) => applyResponsible(event.target.value)}
+            className="ml-auto h-10 min-w-[220px] rounded-2xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          >
+            <option value="">— выберите —</option>
+            {staff.map((person) => (
+              <option key={person.name} value={person.name}>
+                {person.name}
+                {person.title ? ` · ${person.title}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">

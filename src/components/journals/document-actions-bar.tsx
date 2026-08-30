@@ -151,7 +151,9 @@ export function DocumentActionsBar({
         )}
       >
         {heading ? <div className="min-w-0 flex-1">{heading}</div> : null}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* shrink-0: кнопки не должны отжимать заголовок в ноль. На
+            мобиле ряд и так разложен в колонку — они встают под ним. */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* Сами кнопки рисует шапка сайта — сюда приходит только их
               состояние, и мы его туда пробрасываем. В длинном журнале
               кнопки нужны там, где человек сейчас смотрит, а не в двух

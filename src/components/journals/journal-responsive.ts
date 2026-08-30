@@ -378,9 +378,17 @@ export const DOC_BODY_STACK_CLASS = "print:space-y-0";
 export const DOC_HEADING_CLASS =
   "text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]";
 
-/** Строка заголовка: H1 слева, действия справа. 20px до следующего блока. */
+/**
+ * Строка заголовка: H1 слева, действия справа. 20px до следующего блока.
+ *
+ * На узком экране строка ЛОМАЕТСЯ НА ДВЕ: заголовок сверху, действия под
+ * ним. Пока это был один flex-ряд, кнопки («Печать», «Настройки журнала»,
+ * «⋯») занимали свои ~250px и не ужимались, а заголовку доставалось
+ * несколько десятков пикселей — длинное название вроде «Журнал учёта
+ * использования фритюрных жиров» рассыпалось по одной букве в строку.
+ */
 export const DOC_TITLE_ROW_CLASS =
-  "mb-5 flex flex-wrap items-start justify-between gap-4 print:hidden";
+  "mb-5 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-4 print:hidden";
 
 /**
  * Override-отступ строки заголовка для журналов БЕЗ полосы автозаполнения
