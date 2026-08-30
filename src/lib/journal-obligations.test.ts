@@ -28,6 +28,8 @@ test("syncDailyJournalObligationsForUser creates obligations only for allowed da
         "accident_journal",
       ],
       getDisabledJournalCodes: async () => new Set<string>(),
+      // Сотрудник допущен до всех шаблонов: этот тест не про белый список.
+      getEligibleUserIds: async () => new Set(["user_1"]),
       listTemplates: async () => [
         {
           id: "tpl_in",
@@ -90,6 +92,7 @@ test("syncDailyJournalObligationsForUser sends incoming_control to the entry for
       isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["incoming_control"],
       getDisabledJournalCodes: async () => new Set<string>(),
+      getEligibleUserIds: async () => new Set(["user_1"]),
       listTemplates: async () => [
         {
           id: "tpl_in",
@@ -130,6 +133,7 @@ test("syncDailyJournalObligationsForUser clears stale sync rows that are no long
       isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["hygiene"],
       getDisabledJournalCodes: async () => new Set<string>(),
+      getEligibleUserIds: async () => new Set(["user_1"]),
       listTemplates: async () => [
         {
           id: "tpl_hy",
@@ -184,6 +188,7 @@ test("syncDailyJournalObligationsForUser preserves the original completedAt when
       isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["incoming_control"],
       getDisabledJournalCodes: async () => new Set<string>(),
+      getEligibleUserIds: async () => new Set(["user_1"]),
       listTemplates: async () => [
         {
           id: "tpl_in",
@@ -314,6 +319,7 @@ test("syncDailyJournalObligationsForOrganization syncs each active staff user", 
       isUserOffOn: async () => false,
       getAllowedJournalCodes: async () => ["hygiene"],
       getDisabledJournalCodes: async () => new Set<string>(),
+      getEligibleUserIds: async () => new Set(["user_1", "user_2"]),
       listTemplates: async () => [
         {
           id: "tpl_hy",
@@ -371,4 +377,62 @@ test("getManagerObligationSummary counts pending rows and distinct employees", a
     done: 1,
     employeesWithPending: 2,
   });
+});
+
+test("syncDailyJournalObligationsForUser skips templates the employee is not eligible for", async () => {
+  // Белый список должностей — единственное, что не даёт уборщице получить
+  // задачу по фритюру. Без этой проверки регресс в фильтре виден только
+  // в проде, и виден он сотруднику.
+  const saved: unknown[][] = [];
+
+  await syncDailyJournalObligationsForUser(
+    {
+      userId: "user_1",
+      organizationId: "org_1",
+      now: new Date("2026-04-20T08:00:00.000Z"),
+    },
+    {
+      getUserActor: async () => ({ id: "user_1", role: "cook", isRoot: false }),
+      isUserOffOn: async () => false,
+      getAllowedJournalCodes: async () => ["hygiene", "fryer_oil"],
+      getDisabledJournalCodes: async () => new Set<string>(),
+      listTemplates: async () => [
+        {
+          id: "tpl_hy",
+          code: "hygiene",
+          name: "Hygiene",
+          description: null,
+          isDocument: true,
+        },
+        {
+          id: "tpl_fry",
+          code: "fryer_oil",
+          name: "Fryer oil",
+          description: null,
+          isDocument: true,
+        },
+      ],
+      getEligibleUserIds: async (_organizationId, templateId) =>
+        templateId === "tpl_hy" ? new Set(["user_1"]) : new Set(["user_9"]),
+      listExistingDailyObligations: async () => [],
+      deleteStaleDailyObligations: async () => {},
+      getTemplateTodaySummary: async () => ({
+        filled: false,
+        aperiodic: false,
+        todayCount: 0,
+        expectedCount: 1,
+        noActiveDocument: false,
+        activeDocumentId: "doc_7",
+      }),
+      saveDailyObligations: async (rows) => {
+        saved.push(rows as unknown[]);
+        return rows;
+      },
+    }
+  );
+
+  const codes = (saved[0] ?? []).map(
+    (row) => (row as { journalCode?: string }).journalCode
+  );
+  assert.deepEqual(codes, ["hygiene"]);
 });

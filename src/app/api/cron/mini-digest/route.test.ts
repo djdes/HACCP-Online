@@ -128,6 +128,11 @@ test("runMiniDigestCron syncs each organization once and sends only staff digest
       skipOnRerun: true,
       now: REQUEST_NOW,
     },
+    // Дайджест приходит утром и живёт в чате весь день: «отложить» уносит
+    // напоминание на потом, «обновить» перечитывает задачи, не дожидаясь
+    // следующего крона. Без них человек листает историю чата.
+    addSnoozeButton: true,
+    addRefreshButton: true,
   });
   assert.deepEqual(result, {
     ok: true,
