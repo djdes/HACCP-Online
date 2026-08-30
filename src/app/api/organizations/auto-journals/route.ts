@@ -40,6 +40,29 @@ const bodySchema = z.object({
     .optional(),
 });
 
+/**
+ * GET — текущее состояние автоматики по журналам.
+ *
+ * Нужен переключателю, который стоит в самом документе: он показывается
+ * там, где человек работает с журналом, и своего состояния не знает —
+ * страница документа про настройки организации ничего не грузит.
+ */
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  }
+
+  const org = await db.organization.findUnique({
+    where: { id: getActiveOrgId(session) },
+    select: { journalAutomationJson: true },
+  });
+
+  return NextResponse.json({
+    automation: parseJournalAutomationJson(org?.journalAutomationJson),
+  });
+}
+
 export async function PUT(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {

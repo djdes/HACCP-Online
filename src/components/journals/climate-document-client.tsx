@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 import { useRouter } from "next/navigation";
 import { Archive, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
   createEmptyClimateEntryData,
   getClimateDateLabel,
   getClimatePeriodicityText,
+  CLIMATE_DOCUMENT_TEMPLATE_CODE,
   CLIMATE_DOCUMENT_TITLE,
   climateCorrectionKey,
   collectClimateDeviations,
@@ -1707,6 +1709,11 @@ export function ClimateDocumentClient({
         <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
           {CLIMATE_DOCUMENT_TITLE}
         </JournalDocumentTitle>
+
+        <JournalAutoCreateToggle
+          templateCode={CLIMATE_DOCUMENT_TEMPLATE_CODE}
+          disabled={status !== "active"}
+        />
 
         {/* Область применения и периодичность — прямо в бланке, а не в
             справке: журнал заполняет сменный сотрудник, и он должен

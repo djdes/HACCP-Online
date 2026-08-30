@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
+  COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
   COLD_EQUIPMENT_PRESETS,
   collectColdEquipmentDeviations,
   isColdEquipmentValueOutOfRange,
@@ -89,6 +90,7 @@ import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
 
 import { cn } from "@/lib/utils";
+import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -1478,6 +1480,11 @@ export function ColdEquipmentDocumentClient({
             controlPeriodicity={controlPeriodicity}
           />
           </div>
+        <JournalAutoCreateToggle
+          templateCode={COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE}
+          disabled={status !== "active"}
+        />
+
         <div className={DOC_CAPS_TITLE_CLASS}>
           <JournalDocumentTitle>
             Журнал контроля температурного режима холодильного и морозильного
