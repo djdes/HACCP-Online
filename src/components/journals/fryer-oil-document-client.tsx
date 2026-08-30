@@ -165,7 +165,53 @@ function EntryDialog(props: {
         productType: props.lists.productTypes[0] ?? "",
         controllerName: props.users[0]?.name ?? "",
       };
-  const [data, setData] = useState<FryerOilEntryData>(initial);
+  // В заведении может стоять несколько фритюрниц, и у каждой свой жир,
+  // своё время и своя оценка. Держим список заходов: вкладка = одна
+  // фритюрница за этот день. При сохранении каждый уйдёт отдельной
+  // строкой с той же датой — так и выглядит бумажный бланк.
+  const [entries, setEntries] = useState<FryerOilEntryData[]>([initial]);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const data = entries[activeIndex] ?? initial;
+
+  /** Правит активную вкладку. Сигнатура прежняя — разметка не менялась. */
+  function setData(
+    updater: FryerOilEntryData | ((current: FryerOilEntryData) => FryerOilEntryData),
+  ) {
+    setEntries((current) =>
+      current.map((item, index) =>
+        index === activeIndex
+          ? typeof updater === "function"
+            ? (updater as (c: FryerOilEntryData) => FryerOilEntryData)(item)
+            : updater
+          : item,
+      ),
+    );
+  }
+
+  /** Новая фритюрница: дата и контролёр те же, остальное чистое. */
+  function addEntry() {
+    setEntries((current) => {
+      const base = current[activeIndex] ?? initial;
+      return [
+        ...current,
+        {
+          ...normalizeFryerOilEntryData({}),
+          startDate: base.startDate,
+          controllerName: base.controllerName,
+          fatType: props.lists.fatTypes[0] ?? "",
+          equipmentType: props.lists.equipmentTypes[current.length] ?? "",
+          productType: "",
+        },
+      ];
+    });
+    setActiveIndex((index) => index + 1);
+  }
+
+  function removeEntry(index: number) {
+    setEntries((current) => current.filter((_, i) => i !== index));
+    setActiveIndex((current) => (current > 0 ? current - 1 : 0));
+  }
 
   const selectedProducts = splitProducts(data.productType);
 
@@ -184,7 +230,16 @@ function EntryDialog(props: {
   async function save() {
     setBusy(true);
     try {
-      await props.onSubmit({ id: props.initialEntry?.id, data });
+      if (props.initialEntry) {
+        // Правка существующей строки — она всегда одна.
+        await props.onSubmit({ id: props.initialEntry.id, data: entries[0] });
+      } else {
+        // Последовательно, а не Promise.all: строки за один день должны
+        // лечь в том порядке, в каком их завёл человек.
+        for (const item of entries) {
+          await props.onSubmit({ data: item });
+        }
+      }
       props.onOpenChange(false);
     } finally {
       setBusy(false);
@@ -201,6 +256,50 @@ function EntryDialog(props: {
         </DialogHeader>
 
         <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+          {/* Вкладки фритюрниц. В заведении их бывает несколько, у каждой
+              свой жир, время и оценка — а день один. При сохранении каждая
+              вкладка уйдёт отдельной строкой с этой же датой, как в
+              бумажном бланке. При правке существующей строки вкладок нет:
+              там всегда одна запись. */}
+          {!props.initialEntry ? (
+            <div className="flex flex-wrap items-center gap-2 border-b border-[#eef0f6] pb-3">
+              {entries.map((item, index) => (
+                <span key={index} className="inline-flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => setActiveIndex(index)}
+                    className={cn(
+                      "h-9 rounded-xl px-3 text-[13.5px] transition-colors",
+                      index === activeIndex
+                        ? "bg-[#eef1ff] font-medium text-[#3848c7]"
+                        : "text-[#6f7282] hover:bg-[#f5f6ff]"
+                    )}
+                  >
+                    {item.equipmentType || `Фритюрница ${index + 1}`}
+                  </button>
+                  {entries.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => removeEntry(index)}
+                      aria-label="Убрать эту фритюрницу"
+                      className="ml-0.5 rounded-lg p-1 text-[#9b9fb3] transition-colors hover:text-[#a13a32]"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  ) : null}
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={addEntry}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-dashed border-[#dcdfed] px-3 text-[13px] font-medium text-[#5566f6] transition-colors hover:bg-[#f5f6ff]"
+              >
+                <Plus className="size-4" />
+                Ещё фритюрница
+              </button>
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время начала</Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
