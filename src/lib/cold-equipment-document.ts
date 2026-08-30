@@ -138,7 +138,69 @@ export type ColdEquipmentDocumentConfig = {
 export type ColdEquipmentEntryData = {
   responsibleTitle: string | null;
   temperatures: Record<string, number | null>;
+  /**
+   * Комментарии к отклонениям: что сделали, когда температура вышла за
+   * норму. Ключ — id оборудования: у каждого холодильника своя история.
+   */
+  corrections?: Record<string, string>;
 };
+
+export type ColdEquipmentDeviation = {
+  key: string;
+  rowId: string;
+  date: string;
+  equipmentId: string;
+  equipmentName: string;
+  value: number;
+  min: number | null;
+  max: number | null;
+  comment: string;
+};
+
+/** Значение вне нормы. Пустая ячейка отклонением не считается — её просто не заполнили. */
+export function isColdEquipmentValueOutOfRange(
+  value: number | null | undefined,
+  item: { min: number | null; max: number | null },
+): boolean {
+  if (value === null || value === undefined) return false;
+  if (item.min !== null && value < item.min) return true;
+  if (item.max !== null && value > item.max) return true;
+  return false;
+}
+
+/**
+ * Отклонения документа — считаются из тех же строк, что и таблица.
+ *
+ * Именно из строк, а не из отдельного хранилища: поэтому исправленная
+ * температура убирает запись из корректирующих действий сразу, без
+ * перезагрузки, а заново вышедшая за норму возвращает её обратно.
+ */
+export function collectColdEquipmentDeviations(
+  config: ColdEquipmentDocumentConfig,
+  rows: Array<{ id: string; date: string; data: ColdEquipmentEntryData }>,
+): ColdEquipmentDeviation[] {
+  const result: ColdEquipmentDeviation[] = [];
+
+  for (const row of rows) {
+    for (const item of config.equipment) {
+      const value = row.data.temperatures?.[item.id];
+      if (!isColdEquipmentValueOutOfRange(value, item)) continue;
+      result.push({
+        key: `${row.id}:${item.id}`,
+        rowId: row.id,
+        date: row.date,
+        equipmentId: item.id,
+        equipmentName: item.name,
+        value: value as number,
+        min: item.min,
+        max: item.max,
+        comment: row.data.corrections?.[item.id] ?? "",
+      });
+    }
+  }
+
+  return result;
+}
 
 type EquipmentSource = {
   id: string;

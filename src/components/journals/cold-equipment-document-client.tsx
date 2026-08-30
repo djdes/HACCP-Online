@@ -7,6 +7,8 @@ import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
   COLD_EQUIPMENT_PRESETS,
+  collectColdEquipmentDeviations,
+  isColdEquipmentValueOutOfRange,
   COLD_EQUIPMENT_READING_MODES,
   type ColdEquipmentReadingModeId,
 } from "@/lib/cold-equipment-document";
@@ -691,6 +693,52 @@ export function ColdEquipmentDocumentClient({
   const copyYesterday = useCopyYesterdayAction(documentId);
   // История отмены (Ctrl+Z) — только правки этого человека в этой вкладке.
   const undoStack = useJournalUndo({ enabled: status === "active" });
+
+  // Считаем из текущих строк: исправленная температура убирает запись
+  // сразу, без перезагрузки страницы.
+  const deviations = useMemo(
+    () => collectColdEquipmentDeviations(config, rows),
+    [config, rows],
+  );
+
+  /** Комментарий к отклонению. Кладём в ту же запись, что и температуры. */
+  async function saveCorrection(
+    dateKey: string,
+    equipmentId: string,
+    text: string,
+  ) {
+    const existingRow = rowByDate[dateKey];
+    if (!existingRow) return;
+
+    const nextData = {
+      ...existingRow.data,
+      corrections: { ...(existingRow.data.corrections ?? {}), [equipmentId]: text },
+    };
+
+    const response = await fetch(
+      `/api/journal-documents/${documentId}/entries`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: existingRow.employeeId,
+          date: dateKey,
+          data: nextData,
+        }),
+      },
+    ).catch(() => null);
+
+    if (!response?.ok) {
+      toast.error("Не удалось сохранить комментарий");
+      return;
+    }
+
+    setRows((current) =>
+      current.map((row) =>
+        row.date === dateKey ? { ...row, data: nextData } : row,
+      ),
+    );
+  }
   const closeAction = useDocumentCloseAction({ documentId, title });
   const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<ColdEquipmentConfigItem | null>(null);
@@ -1564,10 +1612,22 @@ export function ColdEquipmentDocumentClient({
                             onBlur={(event) =>
                               handleTemperatureBlur(dateKey, item.id, event.target.value)
                             }
-                            className="h-7 min-w-[44px] border-0 px-1 text-center text-[13px] shadow-none focus-visible:ring-1"
+                            className={cn(
+                              "h-7 min-w-[44px] border-0 px-1 text-center text-[13px] shadow-none focus-visible:ring-1",
+                              isColdEquipmentValueOutOfRange(value, item) &&
+                                "font-semibold text-[#d2453d]"
+                            )}
                           />
                         ) : (
-                          <span className="text-[13px]">{value ?? ""}</span>
+                          <span
+                            className={cn(
+                              "text-[13px]",
+                              isColdEquipmentValueOutOfRange(value, item) &&
+                                "font-semibold text-[#d2453d]"
+                            )}
+                          >
+                            {value ?? ""}
+                          </span>
                         )}
                       </td>
                     );
@@ -1629,6 +1689,72 @@ export function ColdEquipmentDocumentClient({
               </tr>
             </tbody>
           </table>
+
+          {deviations.length > 0 ? (
+            <section className="mt-6">
+              <div className={DOC_CAPS_TITLE_CLASS}>
+                <JournalDocumentTitle>Корректирующие действия</JournalDocumentTitle>
+              </div>
+              <p className="mt-1 text-center text-[12px] leading-snug text-[#a13a32] print:text-[10px]">
+                Температура вышла за норму — опишите, что сделали. Пустая
+                графа при проверке читается как «нарушение заметили и
+                проигнорировали».
+              </p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full border-collapse text-[13px]">
+                  <thead>
+                    <tr>
+                      <th className={`${GRID_CELL_CLASS} w-[110px] px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                        Дата
+                      </th>
+                      <th className={`${GRID_CELL_CLASS} w-[200px] px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                        Точка контроля
+                      </th>
+                      <th className={`${GRID_CELL_CLASS} w-[190px] px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                        Зафиксированный параметр
+                      </th>
+                      <th className={`${GRID_CELL_CLASS} px-2 py-1.5 font-semibold text-[#3c4053]`}>
+                        Комментарий / действие
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deviations.map((d) => (
+                      <tr key={d.key} className="bg-[#fff4f2]">
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center tabular-nums`}>
+                          {d.date}
+                        </td>
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1`}>
+                          {d.equipmentName}
+                        </td>
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center font-medium text-[#d2453d]`}>
+                          T, {d.value} °C
+                          <span className="ml-1 text-[11px] font-normal text-[#a13a32]">
+                            (норма {d.min ?? "—"}…{d.max ?? "—"})
+                          </span>
+                        </td>
+                        <td className={`${GRID_CELL_CLASS} p-0`}>
+                          <Input
+                            defaultValue={d.comment}
+                            placeholder="Что сделали: переставили продукт, вызвали мастера…"
+                            disabled={status !== "active"}
+                            onBlur={(event) =>
+                              void saveCorrection(
+                                d.date,
+                                d.equipmentId,
+                                event.target.value
+                              )
+                            }
+                            className="h-10 w-full border-0 bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-1"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : null}
           </div>
         </div>
         </div>
