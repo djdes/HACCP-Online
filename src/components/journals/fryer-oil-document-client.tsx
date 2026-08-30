@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Archive,
   Download,
@@ -19,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
@@ -210,8 +208,26 @@ function EntryDialog(props: {
   }
 
   function removeEntry(index: number) {
-    setEntries((current) => current.filter((_, i) => i !== index));
-    setActiveIndex((current) => (current > 0 ? current - 1 : 0));
+    const next = entries.filter((_, i) => i !== index);
+    setEntries(next);
+    // Курсор остаётся на той же фритюрнице: сдвигаем его, только если
+    // убрали вкладку левее. Раньше уходили на шаг назад всегда — удалив
+    // третью вкладку, человек оказывался на первой.
+    setActiveIndex(
+      Math.min(activeIndex > index ? activeIndex - 1 : activeIndex, next.length - 1),
+    );
+  }
+
+  /**
+   * Дата у всех вкладок одна: один заход в диалог = один день журнала.
+   * Иначе, поправив дату на первой вкладке, человек молча получал бы
+   * строки за разные дни. Время начала и окончания у каждой фритюрницы
+   * своё — оно и отличает строки между собой.
+   */
+  function setStartDateForAll(value: string) {
+    setEntries((current) =>
+      current.map((item) => ({ ...item, startDate: value })),
+    );
   }
 
   const selectedProducts = splitProducts(data.productType);
@@ -302,9 +318,16 @@ function EntryDialog(props: {
           ) : null}
 
           <div className="space-y-2">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время начала</Label>
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Дата и время начала
+              {entries.length > 1 ? (
+                <span className="ml-2 font-normal text-[#6f7282]">
+                  дата общая для всех фритюрниц
+                </span>
+              ) : null}
+            </Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
-              <Input type="date" value={data.startDate} onChange={(e) => setData((v) => ({ ...v, startDate: e.target.value }))} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
+              <Input type="date" value={data.startDate} onChange={(e) => setStartDateForAll(e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
               <Select value={data.startHour === null ? "" : String(data.startHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startHour: Number(value) }))}>
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Час" /></SelectTrigger>
                 <SelectContent>{HOURS.map((v) => <SelectItem key={v} value={v}>{v} ч</SelectItem>)}</SelectContent>

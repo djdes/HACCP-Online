@@ -121,7 +121,11 @@ export function PlanUpgrade({
         </p>
       ) : null}
 
-      <div className="mt-5 grid items-stretch gap-4 sm:grid-cols-2">
+      {/* Три колонки, как на лендинге: две тарифные карточки и железо.
+          Было sm:grid-cols-2 — третья карточка молча съезжала на вторую
+          строку, и ряд тарифов переставал читаться как ряд. Брейкпоинты
+          те же, что в equipment-pricing, чтобы витрины не разъезжались. */}
+      <div className="mt-5 grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
         {PLAN_CATALOG.map((plan) => {
           const isCurrent = plan.id === currentId;
           // Рекомендуем платный только тому, кто ещё на бесплатном —
