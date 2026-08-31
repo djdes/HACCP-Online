@@ -10,6 +10,7 @@ import {
   type TelegramLinkedStartState,
 } from "@/lib/bot/start-response";
 import { db } from "@/lib/db";
+import { parseLinkToken } from "@/lib/telegram";
 import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import { buildTelegramWebAppKeyboard } from "@/lib/telegram-web-app";
 import { userStartedShiftToday } from "./shift-gate";
@@ -161,6 +162,53 @@ function escapeName(name: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/**
+ * Привязка собственного аккаунта по ссылке из настроек.
+ *
+ * Возвращает true, если payload оказался токеном привязки и ответ уже
+ * отправлен. false — payload чужой, пусть решает вызывающий.
+ */
+async function handleSelfLinkToken(
+  ctx: Context,
+  payload: string,
+  chatId: string
+): Promise<boolean> {
+  const parsed = parseLinkToken(payload);
+  if (!parsed) return false;
+
+  const user = await db.user.findUnique({
+    where: { id: parsed.userId },
+    select: { id: true, name: true },
+  });
+  if (!user) {
+    await ctx.reply(
+      "Аккаунт не найден. Сгенерируйте новую ссылку в «Настройки → Уведомления»."
+    );
+    return true;
+  }
+
+  // Один Telegram — один сотрудник: иначе поиск по telegramChatId начнёт
+  // отдавать чужую учётную запись, и Mini App откроется не тому.
+  const collision = await db.user.findFirst({
+    where: { telegramChatId: chatId, id: { not: user.id } },
+    select: { id: true },
+  });
+  if (collision) {
+    await ctx.reply(
+      "Этот Telegram уже привязан к другому сотруднику. Отвяжите его командой /stop в том аккаунте или используйте другой Telegram."
+    );
+    return true;
+  }
+
+  await db.user.update({
+    where: { id: user.id },
+    data: { telegramChatId: chatId },
+  });
+
+  await replyWithLoadedStartHome(ctx, chatId);
+  return true;
+}
+
 export function registerStartHandler(composer: Composer<Context>): void {
   composer.command("start", async (ctx) => {
     const payload = ctx.match?.trim();
@@ -175,19 +223,29 @@ export function registerStartHandler(composer: Composer<Context>): void {
       return;
     }
 
-    if (!stripBotInvitePrefix(payload)) {
-      await ctx.reply(
-        "Ссылка-приглашение некорректна. Попросите руководителя создать новую."
-      );
-      return;
-    }
-
-    const tokenHash = hashBotInviteToken(payload);
     const fromId = ctx.from?.id;
     if (!fromId) {
       await ctx.reply("Не удалось определить ваш Telegram-аккаунт.");
       return;
     }
+
+    if (!stripBotInvitePrefix(payload)) {
+      // Второй тип payload — HMAC-токен привязки СВОЕГО аккаунта из
+      // «Настройки → Уведомления». Раньше обработчик знал только про
+      // приглашения `inv_`, и человек, привязывающий собственный
+      // Telegram, получал «Ссылка-приглашение некорректна. Попросите
+      // руководителя создать новую» — совет, который ему не помогал:
+      // ссылку он сгенерировал сам и она была верной.
+      const handled = await handleSelfLinkToken(ctx, payload, String(fromId));
+      if (handled) return;
+
+      await ctx.reply(
+        "Ссылка не распознана. Откройте «Настройки → Уведомления» в кабинете и нажмите «Привязать Telegram», либо попросите руководителя прислать приглашение."
+      );
+      return;
+    }
+
+    const tokenHash = hashBotInviteToken(payload);
 
     const token = await db.botInviteToken.findUnique({
       where: { tokenHash },
