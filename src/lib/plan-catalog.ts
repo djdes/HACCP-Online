@@ -44,11 +44,6 @@ export const FREE_PLAN_TEST_NOTE =
   `Сейчас тестовый режим до ${TEST_PERIOD_UNTIL} — сотрудников можно добавлять ` +
   "без ограничений.";
 
-export const PAID_PLAN_TEST_NOTE =
-  "В тестовом режиме этот тариф доступен бесплатно. Оплатив до " +
-  `${TEST_PERIOD_UNTIL}, вы поддерживаете проект — за это будут доступны ` +
-  "дополнительные скидки и бонусы, обсуждаемые индивидуально.";
-
 /** Сколько сотрудников покрывает платная подписка. */
 export const SUBSCRIPTION_MAX_USERS = 30;
 
@@ -85,7 +80,6 @@ export const PLAN_CATALOG: CatalogPlan[] = [
       "Свои IoT-датчики и автозаполнение",
       "Приоритетная поддержка в Telegram",
     ],
-    note: PAID_PLAN_TEST_NOTE,
   },
 ];
 

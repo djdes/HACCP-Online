@@ -40,7 +40,6 @@ import {
   catalogPlanIdFor,
   FREE_PLAN_TEST_NOTE,
   LARGE_TEAM_NOTE,
-  PAID_PLAN_TEST_NOTE,
   SUBSCRIPTION_MAX_USERS,
   TEST_PERIOD_BANNER,
 } from "@/lib/plan-catalog";
@@ -854,7 +853,6 @@ export default async function LandingPage() {
             ctaHref="/order?plan=monthly"
             highlighted
             badge="Популярный"
-            note={PAID_PLAN_TEST_NOTE}
           />
         </EquipmentPricing>
         {/* Команды больше 50 человек считаем индивидуально: фиксированный
