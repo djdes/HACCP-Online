@@ -49,6 +49,11 @@ model OrganizationMember {
 
 model Organization {
   id                       String                     @id @default(cuid())
+  /// Короткий номер организации для префикса логинов сотрудников
+  /// (`u12_`). Автоинкремент, а не срез cuid или ИНН: он стабилен
+  /// при переименовании и смене реквизитов, короток настолько, что
+  /// логин можно продиктовать по телефону, и уникален по построению.
+  orgNo              Int            @default(autoincrement()) @unique
   name                     String
   /// Сфера заведения: restaurant | cafe | education | bakery | fastfood |
   /// production | other. Колонка переиспользована — раньше здесь лежал
@@ -408,6 +413,11 @@ model EmployeeJoinToken {
 
 model User {
   id                          String                   @id @default(cuid())
+  /// Контактная почта сотрудника. Отдельно от `email`: тот занят
+  /// логином (или синтетикой вида staff-…@org.local.haccp) и
+  /// уникален на всю платформу, а личный адрес может быть общим
+  /// или отсутствовать вовсе.
+  contactEmail       String?
   email                       String                   @unique
   name                        String
   phone                       String?

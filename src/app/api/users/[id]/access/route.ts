@@ -7,6 +7,7 @@ import { invalidateJournalAcl } from "@/lib/journal-acl";
 import { isManagementRole } from "@/lib/user-roles";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { sendTelegramMessage, escapeTelegramHtml } from "@/lib/telegram";
+import { orgLoginPrefix } from "@/lib/login-prefix";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
       role: true,
       organizationId: true,
       journalAccessMigrated: true,
+      positionTitle: true,
+      phone: true,
+      contactEmail: true,
+      telegramChatId: true,
+      passwordHash: true,
+      jobPositionId: true,
     },
   });
   if (!user) {
@@ -61,15 +68,59 @@ export async function GET(_request: Request, { params }: RouteParams) {
     },
   });
 
+  // Показываем только журналы из набора организации: выключенные она не
+  // ведёт, и предлагать на них доступ — значит спрашивать про то, чего
+  // в кабинете нет.
+  const organization = await db.organization.findUnique({
+    where: { id: user.organizationId },
+    select: { disabledJournalCodes: true, orgNo: true },
+  });
+  const disabled = new Set(
+    Array.isArray(organization?.disabledJournalCodes)
+      ? (organization.disabledJournalCodes as string[]).filter(
+          (code): code is string => typeof code === "string"
+        )
+      : []
+  );
+
+  const catalog = ACTIVE_JOURNAL_CATALOG.filter(
+    (item) => !disabled.has(item.code)
+  );
+
+  // Набор, уже настроенный для должности сотрудника. Если организация
+  // разложила журналы по должностям, это самый точный пресет — точнее
+  // любых ключевых слов.
+  const positionAccess = user.jobPositionId
+    ? await db.jobPositionJournalAccess.findMany({
+        where: { jobPositionId: user.jobPositionId },
+        select: { template: { select: { code: true } } },
+      })
+    : [];
+  const activeCodes = new Set<string>(catalog.map((item) => item.code));
+  const positionPresetCodes = positionAccess
+    .map((row) => row.template?.code)
+    .filter((code): code is string => Boolean(code) && activeCodes.has(code!));
+
   return NextResponse.json({
+    loginPrefix: orgLoginPrefix(organization?.orgNo ?? 0),
+    positionPresetCodes,
     user: {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      positionTitle: user.positionTitle,
+      phone: user.phone,
+      contactEmail: user.contactEmail,
       journalAccessMigrated: user.journalAccessMigrated,
+      // Каналы доступа: что уже выдано. Пароль наружу не отдаём — только
+      // факт, что вход в браузер вообще возможен.
+      hasBrowserAccess: Boolean(user.passwordHash),
+      hasTelegramAccess: Boolean(user.telegramChatId),
+      /** Текущий логин — показываем, когда доступ уже выдан. */
+      login: user.passwordHash ? user.email : null,
     },
-    catalog: ACTIVE_JOURNAL_CATALOG,
+    catalog,
     access: rows,
   });
 }

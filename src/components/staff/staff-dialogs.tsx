@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { ChevronLeft, Copy, ExternalLink, Send } from "lucide-react";
+import { ChevronLeft, Copy, ExternalLink, KeyRound, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -254,6 +254,8 @@ export function StaffAddFlowDialog(props: {
    * чтобы раскрыть и подсветить нужную должность в аккордеоне.
    */
   onCreated: (result?: { positionId: string }) => void;
+  /** Открыть окно выдачи доступа для только что созданного сотрудника. */
+  onOpenAccess?: (userId: string) => void;
 } & Close) {
   const [step, setStep] = useState<1 | 2>(props.initialStep);
 
@@ -498,13 +500,13 @@ export function StaffAddFlowDialog(props: {
             "Сотрудник добавлен",
             <div className="space-y-3 text-[14px] leading-5 text-[#0b1024]">
               <p>
-                <b>{created.userName}</b> добавлен в штат. Можно сразу выдать
-                ссылку-приглашение в Telegram — сотрудник тапнет её с телефона
-                и без пароля попадёт в рабочий кабинет бота.
+                <b>{created.userName}</b> добавлен в штат. Осталось выдать
+                доступ: логин с паролем для браузера, вход через Telegram и
+                журналы, которые он будет вести.
               </p>
               <p className="text-[#6f7282]">
-                Если TG-бот пока не нужен, просто нажмите «Готово» — ссылку
-                можно будет сгенерировать позже.
+                Можно нажать «Готово» — доступ выдаётся и позже, из карточки
+                сотрудника.
               </p>
             </div>,
             <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -517,14 +519,19 @@ export function StaffAddFlowDialog(props: {
               >
                 Готово
               </Button>
+              {/* Доступ выдаём ПОСЛЕ создания: все три операции — логин,
+                  Telegram-приглашение и журналы — привязаны к id сотрудника
+                  и до его появления физически невозможны. Собирать их в
+                  состоянии значило бы завести второй склад правды рядом с
+                  тремя эндпоинтами. */}
               <Button
                 type="button"
-                onClick={() => issueTgInvite(created.userId, created.userName)}
+                onClick={() => props.onOpenAccess?.(created.userId)}
                 disabled={pending}
                 className="h-11 min-w-[180px] rounded-xl bg-[#5566f6] text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0] disabled:opacity-70"
               >
-                <Send className="mr-1.5 size-4" />
-                {pending ? "..." : "Выдать ссылку в Telegram"}
+                <KeyRound className="mr-1.5 size-4" />
+                Добавить доступ
               </Button>
             </div>
           )}
@@ -719,8 +726,10 @@ export function StaffEditEmployeeDialog(props: {
     phone?: string | null;
     weeklyDaysOff?: number[];
   }) => void;
+  /** Открыть окно выдачи доступа вместо этого диалога. */
+  onOpenAccess?: () => void;
 } & Close) {
-  const { employee, open, onClose, pending, onSave } = props;
+  const { employee, open, onClose, pending, onSave, onOpenAccess } = props;
   const [name, setName] = useState(employee.name);
   const [phone, setPhone] = useState(employee.phone ?? "");
   const [weeklyDaysOff, setWeeklyDaysOff] = useState<number[]>(
@@ -808,6 +817,18 @@ export function StaffEditEmployeeDialog(props: {
             </div>
           </div>,
           <>
+            {onOpenAccess ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onOpenAccess}
+                disabled={pending}
+                className="mr-auto border-[#dcdfed] text-[#3848c7] hover:bg-[#f5f6ff]"
+              >
+                <KeyRound className="size-4" />
+                Добавить доступ
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"

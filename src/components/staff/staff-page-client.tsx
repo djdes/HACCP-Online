@@ -57,6 +57,7 @@ import type {
   StaffPosition,
   StaffTelegramInvitePayload,
 } from "@/components/staff/staff-types";
+import { StaffAccessDialog } from "@/components/staff/staff-access-dialog";
 
 type TabKey = "work-off" | "vacations" | "sick-leaves" | "dismissals";
 
@@ -215,6 +216,7 @@ export function StaffPageClient(props: StaffPageProps) {
       }
     | { kind: "edit-position"; position: StaffPosition }
     | { kind: "edit-employee"; employee: StaffEmployee; pending: boolean }
+    | { kind: "access"; employee: StaffEmployee }
     | {
         kind: "tg-invite";
         employee: StaffEmployee;
@@ -911,6 +913,15 @@ export function StaffPageClient(props: StaffPageProps) {
           // Должность создана — список обновляем, но диалог остаётся
           // открытым: он сам уводит менеджера на шаг «сотрудник».
           onPositionCreated={() => startTransition(() => router.refresh())}
+          // Мастер закрывается, окно доступа открывается на его месте —
+          // сотрудник уже создан, и id у нас есть.
+          onOpenAccess={(userId) => {
+            startTransition(() => router.refresh());
+            setDlg({
+              kind: "access",
+              employee: { id: userId } as StaffEmployee,
+            });
+          }}
           onCreated={(result) => {
             // Раскрываем должность, в которую только что добавили
             // человека, и подсвечиваем её — иначе новая фамилия
@@ -948,6 +959,18 @@ export function StaffPageClient(props: StaffPageProps) {
           open
           onClose={() => setDlg(null)}
           onSave={(patch) => void saveEmployeeEdit(dlg.employee.id, patch)}
+          // Диалоги не стекуем: редактирование закрывается, окно доступа
+          // открывается на его месте — два Radix-диалога друг над другом
+          // ловят фокус и закрываются одним Esc не в том порядке.
+          onOpenAccess={() => setDlg({ kind: "access", employee: dlg.employee })}
+        />
+      ) : null}
+      {dlg?.kind === "access" ? (
+        <StaffAccessDialog
+          open
+          userId={dlg.employee.id}
+          onClose={() => setDlg(null)}
+          onSaved={() => router.refresh()}
         />
       ) : null}
       {dlg?.kind === "tg-invite" ? (

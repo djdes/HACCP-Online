@@ -502,3 +502,69 @@ export type ResponsiblePreset = {
   journalCodes: readonly string[];
   positionKeywords: readonly string[];
 };
+
+/* ------------------------------------------------------------------ *
+ * Пресеты доступа к журналам
+ * ------------------------------------------------------------------ */
+
+/**
+ * Готовые наборы журналов для окна выдачи доступа.
+ *
+ * Матчим по ключевым словам ЖУРНАЛА, а не по должностям организации:
+ * доступ выдают конкретному человеку, и кнопка «как у уборщицы» обязана
+ * работать даже там, где должности «Уборщица» в штатке нет.
+ *
+ * `keywords: null` — «все журналы набора»: управляющий по смыслу видит
+ * всё, и перечислять за него список бессмысленно.
+ */
+export type StaffAccessPreset = {
+  id: string;
+  label: string;
+  keywords: readonly string[] | null;
+};
+
+export const STAFF_ACCESS_PRESETS: readonly StaffAccessPreset[] = [
+  { id: "manager", label: "Как у управляющего", keywords: null },
+  {
+    id: "cook",
+    label: "Как у повара",
+    keywords: ["повар", "су-шеф", "шеф", "технолог", "кондитер"],
+  },
+  {
+    id: "cleaner",
+    label: "Как у уборщицы",
+    keywords: ["уборщ", "клинер", "клининг", "санитар", "технич", "мойщи"],
+  },
+  {
+    id: "intake",
+    label: "Приёмка и склад",
+    keywords: ["товаровед", "кладов", "снабж", "приём", "склад"],
+  },
+  {
+    id: "tech",
+    label: "Техник и оборудование",
+    keywords: ["инженер", "техник", "механик", "слесар", "электрик"],
+  },
+] as const;
+
+/**
+ * Коды журналов пресета, суженные до активного набора организации.
+ *
+ * Выключенные журналы организация не ведёт, и предлагать доступ к ним —
+ * значит спрашивать про то, чего в кабинете нет.
+ */
+export function presetJournalCodes(
+  preset: StaffAccessPreset,
+  activeCodes: readonly string[]
+): string[] {
+  const active = new Set(activeCodes);
+  if (!preset.keywords) {
+    return activeCodes.filter((code) => active.has(code));
+  }
+  const wanted = preset.keywords.map((word) => word.toLowerCase());
+  return JOURNAL_RESPONSIBILITY_META.filter((meta) => {
+    if (!active.has(meta.code)) return false;
+    const haystack = [meta.who, ...meta.keywords].join(" ").toLowerCase();
+    return wanted.some((word) => haystack.includes(word));
+  }).map((meta) => meta.code);
+}
