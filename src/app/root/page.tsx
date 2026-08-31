@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { Building2, ChartLine, Coins } from "lucide-react";
+import { ChartLine, Coins } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { getAllOrgMetrics } from "@/lib/org-metrics";
 import { MetricsTable } from "./metrics-table";
+import { SeedDemoButton } from "./seed-demo-button";
 
 export const dynamic = "force-dynamic";
 
@@ -41,16 +41,7 @@ export default async function RootMetricsPage() {
               <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
                 Метрики платформы
               </h1>
-              {/* Карточки организаций с ИНН, сферой и числом точек живут
-                  отдельной страницей: в метриках эти поля не нужны, а
-                  выкидывать их нельзя. */}
-              <Link
-                href="/root/organizations"
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-              >
-                <Building2 className="size-4 text-[#5566f6]" />
-                Карточки организаций
-              </Link>
+              <SeedDemoButton />
             </div>
             <p className="mt-1.5 max-w-[680px] text-[14px] leading-relaxed text-[#6f7282]">
               Активность, retention и выручка по всем организациям.

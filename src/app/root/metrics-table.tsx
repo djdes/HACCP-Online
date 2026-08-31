@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import type { OrgMetrics } from "@/lib/org-metrics";
+import { ownershipLabel, sphereLabel } from "@/lib/org-profile";
 import { ActivityDrawer } from "./activity-drawer";
 import { OrgRowActions } from "@/app/root/organizations/org-row-actions";
 
@@ -27,9 +28,13 @@ type SortKey =
   | "organizationName"
   | "ownerEmail"
   | "ownerRegistrationIp"
+  | "sphere"
+  | "locationsCount"
+  | "inn"
   | "createdAt"
   | "subscriptionPlan"
   | "activeUsers"
+  | "documentsCount"
   | "entries7d"
   | "weeklyTrendPct"
   | "lastEntryAt"
@@ -45,14 +50,28 @@ const COLUMNS: {
   { key: "organizationName", label: "Организация", align: "left" },
   { key: "ownerEmail", label: "Email владельца", align: "left" },
   { key: "ownerRegistrationIp", label: "IP", align: "left" },
+  { key: "sphere", label: "Сфера", align: "left" },
+  { key: "inn", label: "ИНН", align: "left" },
+  { key: "locationsCount", label: "Точек", align: "right" },
   { key: "createdAt", label: "Регистрация", align: "right" },
   { key: "subscriptionPlan", label: "Тариф", align: "center" },
   { key: "activeUsers", label: "Сотрудники", align: "right" },
+  { key: "documentsCount", label: "Документы", align: "right" },
   { key: "entries7d", label: "Записи 7д", align: "right" },
   { key: "weeklyTrendPct", label: "Trend", align: "right" },
   { key: "lastEntryAt", label: "Last activity", align: "right" },
   { key: "actualMrrRub", label: "MRR ₽", align: "right" },
 ];
+
+/** «ООО · Кафе» — форма собственности и сфера одной строкой. */
+function sphereText(m: OrgMetrics): string {
+  return [
+    m.ownershipKind ? ownershipLabel(m.ownershipKind) : null,
+    sphereLabel(m.type),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 /** Значение для сравнения. null уезжает в конец при любом направлении. */
 function sortValue(m: OrgMetrics, key: SortKey): string | number | null {
@@ -67,6 +86,11 @@ function sortValue(m: OrgMetrics, key: SortKey): string | number | null {
       return new Date(m.createdAt).getTime();
     case "subscriptionPlan":
       return m.subscriptionPlan;
+    case "sphere":
+      return sphereText(m).toLowerCase();
+    case "inn":
+      // Пустой ИНН уезжает в конец, а не притворяется нулём.
+      return m.inn ? m.inn : null;
     case "lastEntryAt":
       return m.lastEntryAt ? new Date(m.lastEntryAt).getTime() : null;
     default:
@@ -103,6 +127,10 @@ export function MetricsTable({
             (m.ownerRegistrationIp ?? "").includes(q) ||
             (m.ownerLastLoginIp ?? "").includes(q) ||
             m.type.toLowerCase().includes(q) ||
+            // ИНН и форма собственности — колонки есть, значит и искать
+            // по ним человек будет.
+            (m.inn ?? "").includes(q) ||
+            sphereText(m).toLowerCase().includes(q) ||
             m.subscriptionPlan.toLowerCase().includes(q),
         )
       : rows;
@@ -146,7 +174,7 @@ export function MetricsTable({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Поиск по почте, IP, названию, тарифу"
+            placeholder="Поиск по названию, почте, IP, ИНН, сфере, тарифу"
             className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white pl-10 pr-4 text-[14px] text-[#0b1024] outline-none transition-colors placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
         </label>
@@ -158,7 +186,7 @@ export function MetricsTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-[14px]">
+        <table className="w-full min-w-[1560px] text-[14px]">
           <thead className="bg-[#fafbff] text-[12px] uppercase tracking-wider text-[#6f7282]">
             <tr>
               {COLUMNS.map((c) => {
@@ -237,7 +265,6 @@ export function MetricsTable({
                       className="text-[#0b1024] hover:text-[#3848c7]"
                     >
                       <div className="font-medium">{m.organizationName}</div>
-                      <div className="text-[12px] text-[#9b9fb3]">{m.type}</div>
                     </Link>
                   </td>
                   <td className="px-5 py-3">
@@ -261,6 +288,25 @@ export function MetricsTable({
                       lastLoginAt={m.ownerLastLoginAt}
                     />
                   </td>
+                  <td className="px-5 py-3 text-[13px] text-[#3c4053]">
+                    {sphereText(m) || "—"}
+                  </td>
+                  <td className="px-5 py-3 text-[13px] tabular-nums text-[#3c4053]">
+                    {m.inn || "—"}
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    {m.locationsCount > 1 ? (
+                      // Больше одной точки — организация ждёт multi-org,
+                      // которого в продукте пока нет. Подсвечиваем.
+                      <span className="inline-flex items-center rounded-full bg-[#fff3ed] px-2.5 py-0.5 text-[13px] font-medium text-[#b45309]">
+                        {m.locationsCount}
+                      </span>
+                    ) : (
+                      <span className="text-[#6f7282]">
+                        {m.locationsCount || 1}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-right text-[13px] tabular-nums text-[#3c4053]">
                     {new Date(m.createdAt).toLocaleDateString("ru-RU")}
                   </td>
@@ -269,6 +315,9 @@ export function MetricsTable({
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums">
                     {m.activeUsers}
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums text-[#3c4053]">
+                    {m.documentsCount}
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums">
                     {/* Цифра отвечает «сколько», но не «что»: одна и та же

@@ -21,6 +21,13 @@ export type OrgMetrics = {
   ownerLastLoginIp: string | null;
   ownerLastLoginAt: string | null;
   type: string;
+  /// Форма собственности (ООО / ИП / …) — из карточки организации.
+  ownershipKind: string | null;
+  /// Сколько точек заявила организация при регистрации.
+  locationsCount: number;
+  inn: string | null;
+  /// Документов журналов всего — «сколько бумаги организация завела».
+  documentsCount: number;
   subscriptionPlan: string;
   subscriptionEnd: string | null;
   createdAt: string;
@@ -136,9 +143,13 @@ export async function getAllOrgMetrics(
       id: true,
       name: true,
       type: true,
+      ownershipKind: true,
+      locationsCount: true,
+      inn: true,
       subscriptionPlan: true,
       subscriptionEnd: true,
       createdAt: true,
+      _count: { select: { journalDocuments: true } },
     },
   });
 
@@ -277,6 +288,10 @@ export async function getAllOrgMetrics(
       ownerLastLoginIp: owner?.lastLoginIp ?? null,
       ownerLastLoginAt: owner?.lastLoginAt?.toISOString() ?? null,
       type: org.type,
+      ownershipKind: org.ownershipKind ?? null,
+      locationsCount: org.locationsCount ?? 0,
+      inn: org.inn ?? null,
+      documentsCount: org._count.journalDocuments,
       subscriptionPlan: org.subscriptionPlan,
       subscriptionEnd: org.subscriptionEnd?.toISOString() ?? null,
       createdAt: org.createdAt.toISOString(),
