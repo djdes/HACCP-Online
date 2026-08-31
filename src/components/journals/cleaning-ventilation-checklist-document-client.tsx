@@ -162,7 +162,7 @@ const CHECKLIST_EMPTY_CELL_CLASS =
   "bg-[#fdf0f0] shadow-[inset_0_0_0_1px_#f8d7da] print:bg-white print:shadow-none";
 
 const CHECKLIST_STICKY_HEAD_CLASS =
-  "sticky top-0 z-20 border-[#333] bg-[#f8f9fc] text-[15px] font-semibold leading-tight text-black shadow-[inset_0_-1px_0_#333] print:static print:bg-white print:shadow-none print:border-b print:border-black";
+  "max-sm:static sticky top-0 z-20 border-[#333] bg-[#f8f9fc] text-[15px] font-semibold leading-tight text-black shadow-[inset_0_-1px_0_#333] print:static print:bg-white print:shadow-none print:border-b print:border-black";
 
 /**
  * Дата строки чек-листа. Q2-10: формат унифицирован с остальными
@@ -1365,7 +1365,7 @@ export function CleaningVentilationChecklistDocumentClient({
               <col className="w-[150px]" />
               <col className="w-[280px]" />
             </colgroup>
-            <thead className="sticky top-0 z-20 print:static">
+            <thead className="max-sm:static sticky top-0 z-20 print:static">
               <tr className="bg-[#f8f9fc] print:bg-white">
                 <th className={`${CHECKLIST_STICKY_HEAD_CLASS} border-r px-4 py-4 text-center print:hidden`}>
                   <div className="flex justify-center">

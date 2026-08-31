@@ -150,8 +150,20 @@ export const JOURNAL_DOCUMENT_HEADER_CLASS =
 export const JOURNAL_DOCUMENT_ACTIONS_CLASS =
   "flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3";
 
+/**
+ * Viewport таблицы.
+ *
+ * На мобильном СВОЕГО горизонтального скролла у таблицы нет: документ
+ * листается целиком (см. `DOC_PAPER_CANVAS_CLASS`). Раньше каждая
+ * таблица скроллилась сама по себе, и документ разваливался на куски —
+ * сдвинув вбок одну таблицу, человек видел её не на том месте
+ * относительно соседней, а потянув за текст между ними, не двигал
+ * ничего.
+ *
+ * На `sm+` поведение прежнее: скроллится сама таблица.
+ */
 export const JOURNAL_TABLE_VIEWPORT_CLASS =
-  "-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[14px] bg-white";
+  "max-sm:overflow-visible overflow-x-auto sm:mx-0 sm:px-0 rounded-[14px] bg-white";
 
 /* ------------------------------------------------------------------ *
  * Единая сетка модальных окон журналов
@@ -470,7 +482,11 @@ export const DOC_FILTER_STRIP_CLASS =
  * и токен не должен зависеть от того, вернётся ли когда-нибудь `max-w`.
  */
 export const DOC_PAPER_CANVAS_CLASS =
-  "mx-auto w-full print:max-w-none";
+  // На мобильном полотно — единственный горизонтальный скроллер: тянешь
+  // в любом месте документа, и шапка, таблицы и легенда едут вместе, как
+  // один лист бумаги. Во всю ширину экрана (`-mx-4` + компенсация
+  // ширины), чтобы лист не был уже колонки контента.
+  "mx-auto w-full max-sm:-mx-4 max-sm:w-[calc(100%+2rem)] max-sm:overflow-x-auto max-sm:px-4 print:max-w-none print:overflow-visible";
 
 /**
  * Пояснительные тексты под таблицей (S9/Z2 аудита): «В журнал
