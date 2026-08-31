@@ -90,7 +90,6 @@ import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
 
 import { cn } from "@/lib/utils";
-import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
@@ -1480,10 +1479,6 @@ export function ColdEquipmentDocumentClient({
             controlPeriodicity={controlPeriodicity}
           />
           </div>
-        <JournalAutoCreateToggle
-          templateCode={COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE}
-          disabled={status !== "active"}
-        />
 
         <div className={DOC_CAPS_TITLE_CLASS}>
           <JournalDocumentTitle>

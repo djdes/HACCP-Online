@@ -53,7 +53,6 @@ import {
 import {
   formatDateRu,
   formatTime,
-  FRYER_OIL_TEMPLATE_CODE,
   fryerOilDayKey,
   normalizeFryerOilEntryData,
   parseShiftTime,
@@ -69,7 +68,6 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 import { localDayKey, localTimeParts } from "@/lib/entry-defaults";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
@@ -1273,15 +1271,6 @@ export function FryerOilDocumentClient(props: Props) {
             </table>
             {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
             <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold uppercase`}>Журнал учета использования фритюрных жиров</div>
-            {/* Автосоздание документа на новый период. Ставится здесь, а
-                не только в настройках организации: решение «пусть
-                заводится само» человек принимает ровно тогда, когда
-                заводит документ руками и понимает, что через месяц
-                придётся снова. */}
-            <JournalAutoCreateToggle
-              templateCode={FRYER_OIL_TEMPLATE_CODE}
-              disabled={!isActive}
-            />
             {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => openDay(null)} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
             {isActive ? (
               <JournalSelectionBar
