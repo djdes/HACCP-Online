@@ -90,6 +90,8 @@ export type PaymentParams = {
   Email?: string;
   Receipt?: string;
   IsTest?: string;
+  /// «true» — первый платёж рекуррентной серии: Робокасса сохранит карту.
+  Recurring?: string;
 };
 
 /**
@@ -103,6 +105,9 @@ export function buildPaymentParams(order: {
   email: string;
   isTest: boolean;
   receiptItems?: ReceiptItem[];
+  /// Человек согласился на автосписания — просим Робокассу запомнить
+  /// карту. Без флага платёж разовый, и повторное списание невозможно.
+  recurring?: boolean;
 }): PaymentParams {
   const login = merchantLogin();
   const outSum = formatOutSum(order.amountRub);
@@ -130,6 +135,9 @@ export function buildPaymentParams(order: {
   if (order.email) params.Email = order.email;
   if (receipt) params.Receipt = receipt.raw;
   if (order.isTest) params.IsTest = "1";
+  // Подпись рекуррент не покрывает — Robokassa считает её по тем же
+  // полям, поэтому флаг добавляем после вычисления SignatureValue.
+  if (order.recurring) params.Recurring = "true";
   return params;
 }
 

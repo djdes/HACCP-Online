@@ -10,6 +10,11 @@ import {
 } from "@/lib/hardware-pricing";
 import { ROBOKASSA_IFRAME_SCRIPT_URL } from "@/lib/robokassa-constants";
 import type { Tariff } from "@/lib/tariffs";
+import {
+  RECURRING_CONSENT_TEXT,
+  RECURRING_OFFER_HREF,
+  RECURRING_PERIOD_TEXT,
+} from "@/lib/recurring-consent";
 
 type ReturnParams = {
   outSum: string;
@@ -96,6 +101,9 @@ function Checkout({
   sessionEmail: string;
 }) {
   const [email, setEmail] = useState(sessionEmail);
+  // По умолчанию выключено — этого требует Робокасса: согласие на
+  // автосписание человек даёт сам, а не получает вместе с формой.
+  const [recurringConsent, setRecurringConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scriptReady = useRobokassaScript();
@@ -203,6 +211,7 @@ function Checkout({
           email,
           tariffKey: tariff!.key,
           bundleConfig: bundleConfig ?? undefined,
+          recurringConsent,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -297,10 +306,41 @@ function Checkout({
           </p>
         ) : null}
 
+        {/* Автосписания. Галочка НЕ проставлена по умолчанию: без неё
+            платёж разовый, и это нормальный путь. Текст согласия и
+            периодичность списаний видны здесь же — скрытых платежей быть
+            не должно. */}
+        <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-4 py-3">
+          <input
+            type="checkbox"
+            checked={recurringConsent}
+            onChange={(event) => setRecurringConsent(event.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-[#5566f6]"
+          />
+          <span className="text-[13px] leading-[1.5] text-[#3c4053]">
+            {RECURRING_CONSENT_TEXT} (
+            <Link
+              href={RECURRING_OFFER_HREF}
+              target="_blank"
+              className="text-[#3848c7] underline"
+            >
+              раздел 13 оферты
+            </Link>
+            ).
+            <span className="mt-1 block text-[12px] text-[#6f7282]">
+              {RECURRING_PERIOD_TEXT}
+            </span>
+            <span className="mt-1 block text-[12px] text-[#9b9fb3]">
+              Без галочки оплата пройдёт разовым платежом — автосписаний не
+              будет.
+            </span>
+          </span>
+        </label>
+
         <button
           type="submit"
           disabled={loading}
-          className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? (
             <>
@@ -334,6 +374,14 @@ function Checkout({
           и{" "}
           <Link href="/privacy" className="text-[#3848c7]">
             политики конфиденциальности
+          </Link>
+          , а также{" "}
+          <Link href="/terms" className="text-[#3848c7]">
+            пользовательского соглашения
+          </Link>{" "}
+          и{" "}
+          <Link href="/consent" className="text-[#3848c7]">
+            согласия на обработку персональных данных
           </Link>
           .
         </span>

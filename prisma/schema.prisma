@@ -2214,4 +2214,33 @@ model PaymentOrder {
   @@index([status])
   /// История оплат организации в ROOT-панели читается по этому индексу.
   @@index([organizationId])
+  /// Согласие на автосписания, данное при оформлении этого заказа.
+  /// false — разовый платёж, рекуррент не подключается.
+  recurringConsent Boolean @default(false)
+}
+
+/// История согласий на автоматические списания.
+///
+/// Робокасса требует хранить именно историю, а не текущее состояние:
+/// в споре о списании нужно показать, когда согласие было дано, какой
+/// текст человек видел и когда он его отозвал. Поэтому строки только
+/// добавляются — отзыв это новая запись с granted=false.
+model PaymentConsent {
+  id            String   @id @default(cuid())
+  email         String
+  /// Заказ, при оформлении которого дано согласие. Пусто у отзывов.
+  orderId       Int?
+  organizationId String?
+  /// true — согласие дано, false — отозвано.
+  granted       Boolean
+  /// Дословный текст рядом с галочкой на момент согласия.
+  statementText String
+  /// Редакция оферты, действовавшая в этот момент.
+  offerRevision String?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([organizationId])
 }

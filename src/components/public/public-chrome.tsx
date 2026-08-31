@@ -175,6 +175,20 @@ export function PublicFooter() {
             >
               Политика конфиденциальности
             </Link>
+            {/* Робокасса требует, чтобы все четыре документа были
+                доступны с сайта, а не только со страницы оплаты. */}
+            <Link
+              href="/terms"
+              className="inline-flex min-h-[32px] items-center transition-colors hover:text-[#0b1024]"
+            >
+              Пользовательское соглашение
+            </Link>
+            <Link
+              href="/consent"
+              className="inline-flex min-h-[32px] items-center transition-colors hover:text-[#0b1024]"
+            >
+              Согласие на обработку персональных данных
+            </Link>
           </div>
         </div>
 

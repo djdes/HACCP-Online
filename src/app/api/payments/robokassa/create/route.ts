@@ -14,6 +14,10 @@ import {
   type ReceiptItem,
 } from "@/lib/robokassa";
 import { createRateLimiter } from "@/lib/rate-limit";
+import {
+  OFFER_REVISION,
+  RECURRING_CONSENT_TEXT,
+} from "@/lib/recurring-consent";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +105,12 @@ export async function POST(request: NextRequest) {
     ? `${tariff.title} (подписка на ${tariff.periodDays} дн. + оборудование)`
     : `${tariff.title} на ${tariff.periodDays} дн.`;
 
+  // Галочка автосписаний. Не проставлена — платёж разовый: нажатие
+  // «Оплатить» без галочки обязано просто провести оплату, а не требовать
+  // согласия. Значение приводим строго к boolean: любая правда, кроме
+  // явного true, не должна включать рекуррент.
+  const recurringConsent = body.recurringConsent === true;
+
   const order = await db.paymentOrder.create({
     data: {
       email,
@@ -109,9 +119,27 @@ export async function POST(request: NextRequest) {
       description,
       bundleConfig: bundleConfig ?? undefined,
       isTest: isTestMode(),
+      recurringConsent,
     },
     select: { id: true, amountRub: true, isTest: true },
   });
+
+  if (recurringConsent) {
+    // Историю согласий Робокасса требует хранить отдельно: в споре о
+    // списании нужно показать, когда согласие дано и какой текст человек
+    // видел, а не только текущее состояние флага.
+    await db.paymentConsent.create({
+      data: {
+        email,
+        orderId: order.id,
+        granted: true,
+        statementText: RECURRING_CONSENT_TEXT,
+        offerRevision: OFFER_REVISION,
+        ipAddress: clientIp(request),
+        userAgent: request.headers.get("user-agent")?.slice(0, 500) ?? null,
+      },
+    });
+  }
 
   const receiptItems: ReceiptItem[] | undefined = sendReceipt()
     ? [
@@ -133,6 +161,7 @@ export async function POST(request: NextRequest) {
     email,
     isTest: order.isTest,
     receiptItems,
+    recurring: recurringConsent,
   });
 
   return NextResponse.json({
