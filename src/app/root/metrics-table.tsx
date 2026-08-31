@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { OrgMetrics } from "@/lib/org-metrics";
 import { ActivityDrawer } from "./activity-drawer";
-import { OrgDeleteButton } from "@/app/root/organizations/org-delete-button";
+import { OrgRowActions } from "@/app/root/organizations/org-row-actions";
 
 /**
  * Таблица организаций в метриках платформы.
@@ -320,7 +320,7 @@ export function MetricsTable({
                     {/* Удаление прямо из метрик: мусорные регистрации
                         видно именно здесь — по нулевой активности, — и
                         уходить ради этого в список организаций незачем. */}
-                    <OrgDeleteButton
+                    <OrgRowActions
                       organizationId={m.organizationId}
                       organizationName={m.organizationName}
                       usersCount={m.activeUsers}

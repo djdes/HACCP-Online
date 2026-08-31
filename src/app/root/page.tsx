@@ -1,161 +1,126 @@
 import Link from "next/link";
-import { ArrowRight, Building2, ChartLine } from "lucide-react";
-import { ownershipLabel, sphereLabel } from "@/lib/org-profile";
+import { Building2, ChartLine, Coins } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
-import { db } from "@/lib/db";
-import { SeedDemoButton } from "./seed-demo-button";
-import { OrgRowActions } from "@/app/root/organizations/org-row-actions";
+import { getAllOrgMetrics } from "@/lib/org-metrics";
+import { MetricsTable } from "./metrics-table";
 
 export const dynamic = "force-dynamic";
 
 const PLATFORM_ORG_ID = process.env.PLATFORM_ORG_ID || "platform";
 
-export default async function RootOrganizationsPage() {
+export default async function RootMetricsPage() {
   await requireRoot();
 
-  const organizations = await db.organization.findMany({
-    where: { id: { not: PLATFORM_ORG_ID } },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      ownershipKind: true,
-      locationsCount: true,
-      inn: true,
-      subscriptionPlan: true,
-      subscriptionEnd: true,
-      createdAt: true,
-      _count: {
-        select: {
-          users: true,
-          journalDocuments: true,
-        },
-      },
-    },
-  });
+  // Один момент времени на весь рендер: и окна 7/14/30 дней в метриках,
+  // и относительные подписи «N дн назад» в таблице считаются от него.
+  const refDate = new Date();
+  const metrics = await getAllOrgMetrics(PLATFORM_ORG_ID, refDate);
+
+  // Порядок по умолчанию — тот же, что стартовый в <MetricsTable>
+  // (MRR по убыванию), чтобы первый кадр не прыгал после гидратации.
+  const sorted = [...metrics].sort((a, b) => b.actualMrrRub - a.actualMrrRub);
+
+  const totalActualMrr = sorted.reduce((s, m) => s + m.actualMrrRub, 0);
+  const totalPotentialMrr = sorted.reduce(
+    (s, m) => s + m.potentialMrrRub,
+    0
+  );
+  const totalActiveUsers = sorted.reduce((s, m) => s + m.activeUsers, 0);
+  const totalEntries7d = sorted.reduce((s, m) => s + m.entries7d, 0);
+  const activeOrgs = sorted.filter((m) => m.entries7d > 0).length;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-black">
-            Все организации
-          </h1>
-          <p className="mt-2 text-[15px] text-[#6f7282]">
-            Платформенный уровень. Всего организаций: {organizations.length}.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/root/metrics"
-            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-          >
-            <ChartLine className="size-4 text-[#5566f6]" />
-            Метрики платформы
-          </Link>
-          <SeedDemoButton />
+    <div className="space-y-6">
+      <div>
+        <div className="flex items-start gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#3848c7]">
+            <ChartLine className="size-5" />
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-[clamp(1.625rem,1.5vw+1.2rem,2rem)] font-semibold tracking-[-0.02em] text-[#0b1024]">
+                Метрики платформы
+              </h1>
+              {/* Карточки организаций с ИНН, сферой и числом точек живут
+                  отдельной страницей: в метриках эти поля не нужны, а
+                  выкидывать их нельзя. */}
+              <Link
+                href="/root/organizations"
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                <Building2 className="size-4 text-[#5566f6]" />
+                Карточки организаций
+              </Link>
+            </div>
+            <p className="mt-1.5 max-w-[680px] text-[14px] leading-relaxed text-[#6f7282]">
+              Активность, retention и выручка по всем организациям.
+              Расчётный MRR — `calculatePerEmployeePrice(activeUsers)`,
+              реальный — 0 для trial-org. Trend — % изменения 7-дневной
+              активности vs предыдущая неделя. Email — адрес того, кто
+              зарегистрировал организацию. Заголовки колонок кликабельны,
+              поиск ищет по части адреса или названия. Клик по числу
+              записей раскрывает панель: какие журналы организация
+              реально ведёт и кто их заполняет. IP пишется при
+              входе с 26.08.2026; более ранние адреса подтянуты из
+              журнала действий, поэтому у тех, кто с тех пор не заходил
+              и ничего не администрировал, колонка пустая.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-[#ececf4] bg-white">
-        <table className="w-full min-w-[820px] text-[15px]">
-          <thead className="bg-[#f6f7fb] text-[14px] text-[#6f7282]">
-            <tr>
-              <th className="px-6 py-3 text-left font-medium">Название</th>
-              <th className="px-6 py-3 text-left font-medium">Сфера</th>
-              <th className="px-6 py-3 text-center font-medium">Точек</th>
-              <th className="px-6 py-3 text-left font-medium">ИНН</th>
-              <th className="px-6 py-3 text-left font-medium">Тариф</th>
-              <th className="px-6 py-3 text-center font-medium">Сотрудники</th>
-              <th className="px-6 py-3 text-center font-medium">Документы</th>
-              <th className="w-[56px] px-6 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {organizations.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="px-6 py-12 text-center text-[#6f7282]"
-                >
-                  Пока нет зарегистрированных организаций.
-                </td>
-              </tr>
-            )}
-            {organizations.map((org) => (
-              <tr
-                key={org.id}
-                className="border-t border-[#eef0f6] transition-colors hover:bg-[#fafbff]"
-              >
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
-                      <Building2 className="size-5" />
-                    </div>
-                    <div>
-                      <div className="text-[15px] font-semibold text-black">
-                        {org.name}
-                      </div>
-                      <div className="text-[13px] text-[#8a8ea4]">
-                        {new Date(org.createdAt).toLocaleDateString("ru-RU")}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-[14px] text-black">
-                  {sphereLabel(org.type)}
-                  <div className="text-[13px] text-[#8a8ea4]">
-                    {ownershipLabel(org.ownershipKind)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center text-[14px]">
-                  {org.locationsCount > 1 ? (
-                    // Больше одной точки — владелец ждёт multi-org, которого
-                    // в продукте пока нет. Подсвечиваем, чтобы не забыть.
-                    <span className="inline-flex items-center rounded-full bg-[#fff3ed] px-3 py-1 font-medium text-[#b45309]">
-                      {org.locationsCount}
-                    </span>
-                  ) : (
-                    <span className="text-[#6f7282]">1</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-[14px] text-[#6f7282]">
-                  {org.inn || "—"}
-                </td>
-                <td className="px-6 py-4 text-[14px]">
-                  <span className="inline-flex items-center rounded-full bg-[#eef1ff] px-3 py-1 text-[#5566f6]">
-                    {org.subscriptionPlan}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center text-[14px] text-black">
-                  {org._count.users}
-                </td>
-                <td className="px-6 py-4 text-center text-[14px] text-black">
-                  {org._count.journalDocuments}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <OrgRowActions
-                      organizationId={org.id}
-                      organizationName={org.name}
-                      usersCount={org._count.users}
-                      documentsCount={org._count.journalDocuments}
-                    />
-                    <Link
-                      href={`/root/organizations/${org.id}`}
-                      className="inline-flex size-9 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#eef1ff]"
-                      aria-label="Открыть карточку"
-                    >
-                      <ArrowRight className="size-4" />
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Aggregate stats */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard label="Организаций" value={sorted.length} />
+        <StatCard
+          label="Активных за 7 дней"
+          value={activeOrgs}
+          hint={`из ${sorted.length}`}
+        />
+        <StatCard label="Сотрудников всего" value={totalActiveUsers} />
+        <StatCard label="Записей за 7 дней" value={totalEntries7d} />
+        <StatCard
+          label="MRR"
+          value={`${totalActualMrr.toLocaleString("ru-RU")} ₽`}
+          hint={`потенциал: ${totalPotentialMrr.toLocaleString("ru-RU")} ₽`}
+          accent
+        />
       </div>
+
+      <MetricsTable rows={sorted} now={refDate.getTime()} />
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${
+        accent
+          ? "border-[#5566f6]/30 bg-[#f5f6ff]"
+          : "border-[#ececf4] bg-white"
+      } shadow-[0_0_0_1px_rgba(240,240,250,0.45)]`}
+    >
+      <div className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-wider text-[#6f7282]">
+        {accent ? <Coins className="size-3.5" /> : null}
+        {label}
+      </div>
+      <div className="mt-1 text-[24px] font-semibold tabular-nums text-[#0b1024]">
+        {value}
+      </div>
+      {hint ? (
+        <div className="text-[12px] text-[#9b9fb3]">{hint}</div>
+      ) : null}
     </div>
   );
 }

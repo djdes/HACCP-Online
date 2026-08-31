@@ -20,8 +20,9 @@ export function OrgRowActions({
 }: {
   organizationId: string;
   organizationName: string;
-  usersCount: number;
-  documentsCount: number;
+  /** Показываем в подтверждении, если вызывающий знает цифры. */
+  usersCount?: number;
+  documentsCount?: number;
 }) {
   const [busy, setBusy] = useState<"enter" | null>(null);
 

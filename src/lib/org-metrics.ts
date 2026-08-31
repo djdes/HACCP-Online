@@ -105,6 +105,26 @@ async function lastDocEntryByOrg(): Promise<Map<string, Date>> {
   return new Map(rows.map((r) => [r.organizationId, r.lastAt]));
 }
 
+/**
+ * Последний вход любого сотрудника организации.
+ *
+ * «Last activity» считалась ТОЛЬКО по записям в журналах, и организация,
+ * куда весь день заходили, показывалась как молчащая. Вход — это тоже
+ * активность: человек открыл кабинет, значит организация жива, даже если
+ * в журнал сегодня ничего не писал.
+ */
+async function lastLoginByOrg(): Promise<Map<string, Date>> {
+  const rows = await db.$queryRaw<
+    Array<{ organizationId: string; lastAt: Date }>
+  >`
+    SELECT "organizationId", MAX("lastLoginAt") AS "lastAt"
+    FROM "User"
+    WHERE "lastLoginAt" IS NOT NULL
+    GROUP BY "organizationId"
+  `;
+  return new Map(rows.map((r) => [r.organizationId, r.lastAt]));
+}
+
 export async function getAllOrgMetrics(
   excludeOrgId: string,
   refDate: Date = new Date()
@@ -137,6 +157,7 @@ export async function getAllOrgMetrics(
     docEntries14to7Raw,
     lastFieldByOrg,
     lastDocByOrgRaw,
+    lastLoginByOrgRaw,
     usersForOwner,
   ] = await Promise.all([
     db.user.groupBy({
@@ -172,6 +193,7 @@ export async function getAllOrgMetrics(
       _max: { createdAt: true },
     }),
     lastDocEntryByOrg(),
+    lastLoginByOrg(),
     // Владелец организации: берём самого раннего пользователя. Сортируем
     // по возрастанию, поэтому первый встреченный на организацию — он и есть.
     db.user.findMany({
@@ -201,6 +223,7 @@ export async function getAllOrgMetrics(
   const docEntries7 = docEntries7Raw;
   const docEntries14to7 = docEntries14to7Raw;
   const lastDocByOrg = lastDocByOrgRaw;
+  const lastLoginByOrg_ = lastLoginByOrgRaw;
 
   function entriesFor(
     orgId: string,
@@ -231,12 +254,14 @@ export async function getAllOrgMetrics(
     );
     const lastField = lastFieldRow?._max.createdAt ?? null;
     const lastDoc = lastDocByOrg.get(org.id) ?? null;
-    const lastEntryAt =
-      lastField && lastDoc
-        ? lastField > lastDoc
-          ? lastField
-          : lastDoc
-        : (lastField ?? lastDoc);
+    const lastLogin = lastLoginByOrg_.get(org.id) ?? null;
+    // Самое свежее из трёх: запись-форма, запись в документе, вход.
+    const lastEntryAt = [lastField, lastDoc, lastLogin]
+      .filter((value): value is Date => value instanceof Date)
+      .reduce<Date | null>(
+        (latest, value) => (latest && latest > value ? latest : value),
+        null
+      );
 
     const owner = ownerByOrg.get(org.id);
 
