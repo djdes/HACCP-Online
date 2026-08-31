@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PricingCalculator } from "@/components/public/pricing-calculator";
 import {
+  LARGE_TEAM_NOTE,
   PLAN_CATALOG,
+  TEST_PERIOD_BANNER,
   catalogPlanIdFor,
   type CatalogPlanId,
 } from "@/lib/plan-catalog";
@@ -121,6 +123,12 @@ export function PlanUpgrade({
         </p>
       ) : null}
 
+      {/* Тестовый период. Без этой строки человек либо решит, что деньги
+          уже списывают, либо не поймёт, что бесплатный доступ конечен. */}
+      <p className="mt-4 rounded-2xl border border-[#c7ccea] bg-[#f5f6ff] px-4 py-3 text-[13px] leading-relaxed text-[#3c4053]">
+        {TEST_PERIOD_BANNER}
+      </p>
+
       {/* Три колонки, как на лендинге: две тарифные карточки и железо.
           Было sm:grid-cols-2 — третья карточка молча съезжала на вторую
           строку, и ряд тарифов переставал читаться как ряд. Брейкпоинты
@@ -186,14 +194,25 @@ export function PlanUpgrade({
                 ))}
               </ul>
 
+              {plan.note ? (
+                <p className="mt-3 text-[12px] leading-snug text-[#6f7282]">
+                  {plan.note}
+                </p>
+              ) : null}
+
               <div className="mt-5">
                 {plan.id === "free" ? (
                   <button
                     type="button"
                     disabled
-                    className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#9b9fb3]"
+                    className={cn(
+                      "h-11 w-full rounded-2xl border text-[14px] font-medium",
+                      isCurrent
+                        ? "border-[#c7ccea] bg-[#eef1ff] text-[#3848c7]"
+                        : "border-[#dcdfed] bg-white text-[#9b9fb3]"
+                    )}
                   >
-                    {isCurrent ? "Ваш план" : "Бесплатный тариф"}
+                    {isCurrent ? "Текущий" : "Бесплатный тариф"}
                   </button>
                 ) : isCurrent ? (
                   <button
@@ -293,9 +312,27 @@ export function PlanUpgrade({
               или датчики: снимите галочку, и останется только подписка.
             </p>
           </div>
-          <PricingCalculator subscriptionMonthly={subscriptionMonthly} />
+          <PricingCalculator
+            subscriptionMonthly={subscriptionMonthly}
+            paymentDisabled
+          />
         </div>
       ) : null}
+
+      {/* Команды больше 50 человек считаем индивидуально: тариф с
+          фиксированной ценой на них не рассчитан, а молчать об этом
+          нельзя — человек оплатит и упрётся в лимит. */}
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3">
+        <span className="text-[13px] text-[#3c4053]">{LARGE_TEAM_NOTE}</span>
+        <a
+          href="https://t.me/wesetupbot"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          Связаться с поддержкой
+        </a>
+      </div>
 
       <p className="mt-5 text-center text-[12px] leading-relaxed text-[#6f7282]">
         {billingTestMode

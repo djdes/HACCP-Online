@@ -78,10 +78,14 @@ function encodeConfig(config: Record<string, number>): string {
 
 export function PricingCalculator({
   subscriptionMonthly,
+  paymentDisabled = false,
 }: {
   /// Цена подписки из БД (PlatformTariff.monthly) — приходит с сервера,
   /// чтобы ROOT мог поменять её без деплоя.
   subscriptionMonthly: number;
+  /// Оплата железа выключена: комплект собирается под объект и до
+  /// согласования состава деньги брать нельзя.
+  paymentDisabled?: boolean;
 }) {
   const SUBSCRIPTION_MONTHLY = subscriptionMonthly;
   // Default — Стандарт, как «most-popular anchor». Маркетинг: пользователь
@@ -216,22 +220,46 @@ export function PricingCalculator({
         </div>
       </div>
 
-      <a
-        href={`/order?plan=bundle&cfg=${encodeConfig(quantities)}`}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-      >
-        Оплатить картой
-        <ArrowRight className="size-4" />
-      </a>
+      {/* Оплата железа отключается флагом: комплекты собираются под
+          объект, и до согласования состава списывать деньги нельзя.
+          Кнопку не прячем — цена и состав должны оставаться видимыми. */}
+      {paymentDisabled ? (
+        <div className="flex flex-col items-center gap-2">
+          <span
+            aria-disabled="true"
+            className="inline-flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-[#eef0f6] px-5 text-[14px] font-medium text-[#9b9fb3]"
+          >
+            Оплатить картой
+          </span>
+          <a
+            href="https://t.me/wesetupbot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 text-[12px] font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
+          >
+            Состав комплекта согласуем в Telegram
+          </a>
+        </div>
+      ) : (
+        <>
+          <a
+            href={`/order?plan=bundle&cfg=${encodeConfig(quantities)}`}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+          >
+            Оплатить картой
+            <ArrowRight className="size-4" />
+          </a>
 
-      <a
-        href="https://t.me/wesetupbot"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="-mt-2 inline-flex items-center justify-center gap-1.5 self-center text-[12px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
-      >
-        Или оформить в Telegram
-      </a>
+          <a
+            href="https://t.me/wesetupbot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="-mt-2 inline-flex items-center justify-center gap-1.5 self-center text-[12px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
+          >
+            Или оформить в Telegram
+          </a>
+        </>
+      )}
 
       <button
         type="button"

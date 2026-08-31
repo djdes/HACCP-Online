@@ -1,5 +1,4 @@
 import { FREE_MAX_USERS } from "@/lib/plan-limits";
-import { PRICING_BRACKETS } from "@/lib/per-employee-pricing";
 
 /**
  * Витрина тарифов — единственное место копирайта для `/settings/subscription`.
@@ -24,9 +23,38 @@ export type CatalogPlan = {
   /** Кумулятивная витрина: у платного показываем «Всё из «Бесплатного»» + дельту. */
   inheritsFrom?: string;
   features: string[];
+  /** Мелкая строка под списком — условия тестового периода. */
+  note?: string;
 };
 
-const bracketLadder = PRICING_BRACKETS.map((b) => b.pricePerUserRub).join("/");
+/**
+ * Тестовый период.
+ *
+ * Пока он идёт, платить не обязательно — и это должно быть написано на
+ * каждой витрине, иначе человек либо решит, что с него уже берут деньги,
+ * либо, наоборот, не поймёт, что халява кончится.
+ */
+export const TEST_PERIOD_UNTIL = "1 октября";
+
+export const TEST_PERIOD_BANNER =
+  `Сейчас тестовый режим до ${TEST_PERIOD_UNTIL}: все возможности работают бесплатно, ` +
+  "сотрудников можно добавлять без ограничений.";
+
+export const FREE_PLAN_TEST_NOTE =
+  `Сейчас тестовый режим до ${TEST_PERIOD_UNTIL} — сотрудников можно добавлять ` +
+  "без ограничений.";
+
+export const PAID_PLAN_TEST_NOTE =
+  "В тестовом режиме этот тариф доступен бесплатно. Оплатив до " +
+  `${TEST_PERIOD_UNTIL}, вы поддерживаете проект — за это будут доступны ` +
+  "дополнительные скидки и бонусы, обсуждаемые индивидуально.";
+
+/** Сколько сотрудников покрывает платная подписка. */
+export const SUBSCRIPTION_MAX_USERS = 50;
+
+/** Команды больше `SUBSCRIPTION_MAX_USERS` считаем индивидуально. */
+export const LARGE_TEAM_NOTE =
+  `От ${SUBSCRIPTION_MAX_USERS + 1} сотрудника — стоимость по согласованию.`;
 
 export const PLAN_CATALOG: CatalogPlan[] = [
   {
@@ -36,6 +64,7 @@ export const PLAN_CATALOG: CatalogPlan[] = [
     price: "0 ₽",
     priceHint: "/мес",
     tagline: "Всё нужное для маленькой кухни — без оплаты и навсегда",
+    note: FREE_PLAN_TEST_NOTE,
     features: [
       `До ${FREE_MAX_USERS} сотрудников`,
       "Все 35 журналов СанПиН и ХАССП",
@@ -46,17 +75,17 @@ export const PLAN_CATALOG: CatalogPlan[] = [
   {
     id: "paid",
     matches: ["paid"],
-    nameRu: "Платный",
-    price: `от ${PRICING_BRACKETS[0].pricePerUserRub} ₽`,
-    priceHint: "/сотрудник/мес",
-    tagline: "Для команды больше пяти человек и автоматического заполнения",
+    nameRu: "Подписка",
+    price: "1 990 ₽",
+    priceHint: "/мес",
+    tagline: "Для команды до 50 человек и автоматического заполнения",
     inheritsFrom: "Бесплатного",
     features: [
-      "Без лимита сотрудников",
-      `Лестница цен ${bracketLadder} ₽ — чем больше команда, тем дешевле человек`,
-      "Датчики и автозаполнение температурных журналов",
-      "Приоритетная поддержка",
+      `До ${SUBSCRIPTION_MAX_USERS} сотрудников`,
+      "Свои IoT-датчики и автозаполнение",
+      "Приоритетная поддержка в Telegram",
     ],
+    note: PAID_PLAN_TEST_NOTE,
   },
 ];
 

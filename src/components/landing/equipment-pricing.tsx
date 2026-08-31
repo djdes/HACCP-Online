@@ -101,7 +101,10 @@ export function EquipmentPricing({
               или датчики: снимите галочку, и останется только подписка.
             </p>
           </div>
-          <PricingCalculator subscriptionMonthly={subscriptionMonthly} />
+          <PricingCalculator
+            subscriptionMonthly={subscriptionMonthly}
+            paymentDisabled
+          />
         </div>
       ) : null}
     </>

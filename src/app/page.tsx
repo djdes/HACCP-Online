@@ -35,6 +35,14 @@ import { AutomationScene } from "@/components/landing/automation-scene";
 import { SampleGallery } from "@/components/landing/sample-gallery";
 import { DOCX_SAMPLE_CODES } from "@/lib/document-docx";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
+import {
+  catalogPlanIdFor,
+  FREE_PLAN_TEST_NOTE,
+  LARGE_TEAM_NOTE,
+  PAID_PLAN_TEST_NOTE,
+  SUBSCRIPTION_MAX_USERS,
+  TEST_PERIOD_BANNER,
+} from "@/lib/plan-catalog";
 import { TestimonialsCarousel } from "@/components/landing/testimonials-carousel";
 import { BrandLogo } from "@/components/brand/logo";
 import {
@@ -265,6 +273,21 @@ export default async function LandingPage() {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  // Тариф залогиненного: на бесплатном первую карточку показываем как
+  // «Текущий», а не зовём регистрироваться заново.
+  const viewerOrganizationId = session?.user?.organizationId ?? null;
+  const viewerPlan = viewerOrganizationId
+    ? (
+        await db.organization
+          .findUnique({
+            where: { id: viewerOrganizationId },
+            select: { subscriptionPlan: true },
+          })
+          .catch(() => null)
+      )?.subscriptionPlan ?? null
+    : null;
+  const viewerOnFreePlan = isAuthed && catalogPlanIdFor(viewerPlan) === "free";
 
   const latestArticles = await db.article
     .findMany({
@@ -787,6 +810,10 @@ export default async function LandingPage() {
           </p>
         </div>
 
+        <p className="mb-5 rounded-2xl border border-[#c7ccea] bg-[#f5f6ff] px-4 py-3 text-center text-[13.5px] leading-relaxed text-[#3c4053]">
+          {TEST_PERIOD_BANNER}
+        </p>
+
         {/* Три карточки одной высоты. Длинные описания убраны: в ряду
             тарифов человек сравнивает цену и три отличия, а не читает
             абзацы. Подписка перечисляет только то, чего нет в
@@ -805,8 +832,10 @@ export default async function LandingPage() {
               "Все 35 журналов СанПиН и ХАССП",
               "PDF для проверок, без карты",
             ]}
-            ctaLabel="Начать бесплатно"
+            ctaLabel={viewerOnFreePlan ? "Текущий" : "Начать бесплатно"}
             ctaHref="/register"
+            ctaDisabled={viewerOnFreePlan}
+            note={FREE_PLAN_TEST_NOTE}
           />
 
           <PricingCard
@@ -816,7 +845,7 @@ export default async function LandingPage() {
             period="в месяц"
             pointsIntro="Всё из Бесплатного, плюс:"
             points={[
-              "Без лимита по сотрудникам",
+              `До ${SUBSCRIPTION_MAX_USERS} сотрудников`,
               "Свои IoT-датчики и автозаполнение",
               "Приоритетная поддержка в Telegram",
             ]}
@@ -824,9 +853,23 @@ export default async function LandingPage() {
             ctaHref="/order?plan=monthly"
             highlighted
             badge="Популярный"
-            note="30 дней — вернём деньги"
+            note={PAID_PLAN_TEST_NOTE}
           />
         </EquipmentPricing>
+        {/* Команды больше 50 человек считаем индивидуально: фиксированный
+            тариф на них не рассчитан, а промолчать нельзя — человек
+            оплатит и упрётся в лимит. */}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3">
+          <span className="text-[13.5px] text-[#3c4053]">{LARGE_TEAM_NOTE}</span>
+          <a
+            href="https://t.me/wesetupbot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            Связаться с поддержкой
+          </a>
+        </div>
         <div className="mt-4 text-center text-[13px] text-[#9b9fb3]">
           Годовая оплата подписки — −20%. Железо — один раз.
         </div>
@@ -1467,6 +1510,7 @@ function PricingCard({
   highlighted,
   badge,
   note,
+  ctaDisabled,
 }: {
   kind: "free" | "team" | "network";
   name: string;
@@ -1480,8 +1524,10 @@ function PricingCard({
   ctaHref: string;
   highlighted?: boolean;
   badge?: string;
-  /// Мелкая строка под кнопкой — снятие риска у платного тарифа.
+  /// Мелкая строка под кнопкой — условия тестового периода.
   note?: string;
+  /// Кнопка неактивна: тариф уже действует у этого человека.
+  ctaDisabled?: boolean;
 }) {
   const Icon =
     kind === "free" ? Gift : kind === "network" ? Building2 : Users;
@@ -1564,17 +1610,26 @@ function PricingCard({
             </li>
           ))}
         </ul>
-        <Link
-          href={ctaHref}
-          className={
-            highlighted
-              ? "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
-              : "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-          }
-        >
-          {ctaLabel}
-          <ArrowRight className="size-4" />
-        </Link>
+        {ctaDisabled ? (
+          <span
+            aria-disabled="true"
+            className="mt-auto inline-flex h-11 w-full cursor-default items-center justify-center gap-2 rounded-2xl border border-[#c7ccea] bg-[#eef1ff] text-[15px] font-medium text-[#3848c7]"
+          >
+            {ctaLabel}
+          </span>
+        ) : (
+          <Link
+            href={ctaHref}
+            className={
+              highlighted
+                ? "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
+                : "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            }
+          >
+            {ctaLabel}
+            <ArrowRight className="size-4" />
+          </Link>
+        )}
         {note ? (
           <div
             className={
