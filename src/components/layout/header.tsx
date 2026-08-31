@@ -47,7 +47,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { FeedbackDialog } from "@/components/layout/feedback-dialog";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
 import { useHeaderUndo } from "@/components/journals/journal-undo-slot";
@@ -111,7 +110,6 @@ type HeaderProps = {
   userRole: string;
   positionTitle: string;
   isRoot: boolean;
-  telegramBotUsername: string;
   /** `Organization.subscriptionPlan`: trial | paid | paused | cancelled. */
   subscriptionPlan: string;
   /** Организации аккаунта — для переключателя в меню профиля. */
@@ -136,7 +134,6 @@ export function Header({
   userRole,
   positionTitle,
   isRoot,
-  telegramBotUsername,
   subscriptionPlan,
   organizations,
   activeOrganizationId,
@@ -525,11 +522,13 @@ export function Header({
           </SheetContent>
         </Sheet>
 
-        {/* Right cluster: feedback + settings shortcut + logout + avatar */}
+        {/* Right cluster: settings shortcut + logout + avatar.
+            Обратная связь отсюда убрана: вход в поддержку был в двух
+            местах сразу — здесь и пузырём внизу, — и человек не понимал,
+            чем они отличаются. Остался пузырь: там же и онлайн-чат. */}
         <div className="flex items-center gap-2">
           <OfflineIndicator />
           <NotificationsBell />
-          <FeedbackDialog telegramBotUsername={telegramBotUsername} />
 
           {isRoot ? (
             <Link

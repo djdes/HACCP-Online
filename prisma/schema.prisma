@@ -924,6 +924,47 @@ model FeedbackReport {
   @@index([source])
 }
 
+/// Онлайн-чат с поддержкой: одна ветка на пользователя.
+///
+/// Отдельно от `FeedbackReport`: обращение — это разовое «отправил и жду
+/// ответа», а чат — переписка, где важен порядок реплик и то, что человек
+/// видит всю историю аккаунта, вернувшись через неделю. Складывать реплики
+/// в FeedbackReport пришлось бы через отношение «отчёт к отчёту», и панель
+/// обращений перестала бы читаться.
+model SupportThread {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  userEmail        String?
+  userName         String?
+  phone            String?
+  organizationId   String?
+  organizationName String?
+  /// Последняя реплика — по ней сортируется список в админке.
+  lastMessageAt    DateTime @default(now())
+  /// Непрочитанное оператором: сбрасывается при ответе.
+  unreadForStaff   Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  messages SupportMessage[]
+
+  @@index([lastMessageAt])
+  @@index([organizationId])
+}
+
+model SupportMessage {
+  id       String        @id @default(cuid())
+  threadId String
+  thread   SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  /// "client" | "operator"
+  author   String
+  body     String
+  /// Кто ответил со стороны поддержки — показываем клиенту в чате.
+  operatorName String?
+  createdAt DateTime @default(now())
+
+  @@index([threadId, createdAt])
+}
+
 /// In-app notifications that surface state-drift hints ("add these new
 /// employees to hygiene journal", etc). Each row is scoped to a recipient
 /// user inside an organisation and carries a typed payload in `items`.

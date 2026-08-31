@@ -172,7 +172,6 @@ export default async function DashboardLayout({
             userRole={session.user.role ?? ""}
             positionTitle={profile?.positionTitle ?? ""}
             isRoot={session.user.isRoot === true}
-            telegramBotUsername={process.env.TELEGRAM_BOT_USERNAME ?? ""}
             subscriptionPlan={accountPlan}
             activeUsers={accountUsers}
             freeUserLimit={FREE_MAX_USERS}

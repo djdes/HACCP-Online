@@ -274,3 +274,66 @@ test("buildSupportAdminMessage экранирует пользовательск
   assert.match(text, /Иван &amp; Ко/);
   assert.match(text, /#fb_rep_1/);
 });
+
+test("реплай на сообщение чата дописывает ответ оператора в переписку", async () => {
+  const chatReplies: Array<{ threadId: string; message: string }> = [];
+  const reportReplies: string[] = [];
+
+  const outcome = await handleSupportText(
+    {
+      chatType: "private",
+      chatId: "admin_1",
+      fromId: "admin_1",
+      text: "сейчас посмотрим",
+      replyToText: "💬 Онлайн-чат\nвопрос\n\n#chat_thr_9\nОтветить: свайп",
+    },
+    {
+      isPlatformAdminChat: () => true,
+      replyToChat: async ({ threadId, message }) => {
+        chatReplies.push({ threadId, message });
+      },
+      replyToReport: async ({ reportId }) => {
+        reportReplies.push(reportId);
+        return ["in-app"];
+      },
+    }
+  );
+
+  assert.equal(outcome.action, "admin-chat-reply");
+  assert.equal(outcome.threadId, "thr_9");
+  assert.deepEqual(chatReplies, [
+    { threadId: "thr_9", message: "сейчас посмотрим" },
+  ]);
+  // Ветка чата не должна утечь в обращения: иначе один ответ попал бы и в
+  // переписку, и отдельным письмом как ответ на обращение.
+  assert.deepEqual(reportReplies, []);
+});
+
+test("реплай на обращение по-прежнему идёт в обращения, а не в чат", async () => {
+  const chatReplies: string[] = [];
+  const reportReplies: string[] = [];
+
+  const outcome = await handleSupportText(
+    {
+      chatType: "private",
+      chatId: "admin_1",
+      fromId: "admin_1",
+      text: "ответ",
+      replyToText: "💬 Сообщение боту\nтекст\n\n#fb_rep_5",
+    },
+    {
+      isPlatformAdminChat: () => true,
+      replyToChat: async ({ threadId }) => {
+        chatReplies.push(threadId);
+      },
+      replyToReport: async ({ reportId }) => {
+        reportReplies.push(reportId);
+        return ["email"];
+      },
+    }
+  );
+
+  assert.equal(outcome.action, "admin-reply");
+  assert.deepEqual(reportReplies, ["rep_5"]);
+  assert.deepEqual(chatReplies, []);
+});

@@ -3,7 +3,9 @@ import {
   Bug,
   Lightbulb,
   LifeBuoy,
+  Handshake,
   MessageSquareText,
+  MessagesSquare,
   Phone,
   Send,
   Globe,
@@ -40,6 +42,13 @@ const TYPE_LABELS: Record<string, { label: string; icon: typeof Bug; color: stri
     color: "#5566f6",
     bg: "#eef1ff",
     border: "#c7ccea",
+  },
+  partnership: {
+    label: "Сотрудничество",
+    icon: Handshake,
+    color: "#7a5cff",
+    bg: "#f5f3ff",
+    border: "#ddd6fe",
   },
   // Обращение из Telegram-бота — человек просто написал в поддержку.
   support: {
@@ -123,6 +132,34 @@ export default async function RootFeedbackPage({
 
   const filtered = Boolean(typeFilter || orgFilter || unansweredOnly);
 
+  // Онлайн-чаты: отдельная сущность от обращений, поэтому и грузим
+  // отдельно. Показываем последние ветки целиком — переписка коротка,
+  // а разбирать её без контекста бессмысленно.
+  const chatThreads = await db.supportThread.findMany({
+    orderBy: { lastMessageAt: "desc" },
+    take: 30,
+    select: {
+      id: true,
+      userName: true,
+      userEmail: true,
+      phone: true,
+      organizationName: true,
+      unreadForStaff: true,
+      lastMessageAt: true,
+      messages: {
+        orderBy: { createdAt: "asc" },
+        take: 50,
+        select: {
+          id: true,
+          author: true,
+          body: true,
+          operatorName: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -142,6 +179,79 @@ export default async function RootFeedbackPage({
           emailMasked={adminEmail ? maskEmail(adminEmail) : null}
         />
       </div>
+
+      <section className="rounded-2xl border border-[#ececf4] bg-white p-5">
+        <div className="flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]">
+          <MessagesSquare className="size-4 text-[#5566f6]" />
+          Онлайн-чаты
+          <span className="text-[13px] font-normal text-[#6f7282]">
+            веток: {chatThreads.length}
+          </span>
+        </div>
+        <p className="mt-1 text-[13px] text-[#6f7282]">
+          Отвечать — свайп-реплаем на сообщение чата в Telegram: ответ
+          появится у клиента прямо в переписке.
+        </p>
+
+        {chatThreads.length === 0 ? (
+          <p className="mt-4 text-[13.5px] text-[#9b9fb3]">Переписок пока нет.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {chatThreads.map((thread) => (
+              <details
+                key={thread.id}
+                className="rounded-xl border border-[#ececf4] bg-[#fafbff] px-4 py-3"
+              >
+                <summary className="cursor-pointer list-none">
+                  <span className="flex flex-wrap items-center gap-2 text-[13.5px]">
+                    <span className="font-medium text-[#0b1024]">
+                      {thread.organizationName || "Без организации"}
+                    </span>
+                    <span className="text-[#6f7282]">
+                      {[thread.userName, thread.userEmail, thread.phone]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                    {thread.unreadForStaff > 0 ? (
+                      <span className="rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                        без ответа: {thread.unreadForStaff}
+                      </span>
+                    ) : null}
+                    <span className="ml-auto text-[12px] text-[#9b9fb3]">
+                      {thread.lastMessageAt.toLocaleString("ru-RU")}
+                    </span>
+                  </span>
+                </summary>
+
+                <div className="mt-3 space-y-1.5">
+                  {thread.messages.map((item) => (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "max-w-[80%] rounded-xl px-3 py-2 text-[13px] leading-[1.5]",
+                        item.author === "client"
+                          ? "bg-white text-[#0b1024] ring-1 ring-[#ececf4]"
+                          : "ml-auto bg-[#eef1ff] text-[#0b1024]"
+                      )}
+                    >
+                      <div className="mb-0.5 text-[11px] text-[#6f7282]">
+                        {item.author === "client"
+                          ? "Клиент"
+                          : item.operatorName || "Поддержка"}
+                        {" · "}
+                        {item.createdAt.toLocaleString("ru-RU")}
+                      </div>
+                      <div className="whitespace-pre-wrap break-words">
+                        {item.body}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="rounded-2xl border border-[#ececf4] bg-white p-5">
         <div className="flex items-center gap-2 text-[13px] font-medium text-[#6f7282]">

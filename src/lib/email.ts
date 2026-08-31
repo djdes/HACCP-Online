@@ -341,7 +341,11 @@ export async function sendPaymentReceiptEmail(params: {
   return sendEmail(to, subject, layout(subject, body));
 }
 
-export type FeedbackType = "bug" | "suggestion" | "support";
+export type FeedbackType =
+  | "bug"
+  | "suggestion"
+  | "partnership"
+  | "support";
 
 const FEEDBACK_TYPE_THEME: Record<
   FeedbackType,
@@ -349,10 +353,19 @@ const FEEDBACK_TYPE_THEME: Record<
 > = {
   bug: { label: "Ошибка", color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
   suggestion: {
-    label: "Предложение",
+    label: "Улучшение",
     color: "#5566f6",
     bg: "#eef1ff",
     border: "#c7ccea",
+  },
+  // Предложение о партнёрстве — не баг и не пожелание по продукту, и
+  // разбирает его не поддержка. Отдельная метка нужна, чтобы такие письма
+  // не терялись среди «не работает кнопка».
+  partnership: {
+    label: "Сотрудничество",
+    color: "#7a5cff",
+    bg: "#f5f3ff",
+    border: "#ddd6fe",
   },
   // Обращение из Telegram-бота: человек просто написал в поддержку.
   support: {

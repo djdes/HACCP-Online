@@ -11,6 +11,7 @@ import {
   notifyPlatformAdmin,
 } from "@/lib/platform-admin";
 import { botSupportRateLimiter } from "@/lib/rate-limit";
+import { extractSupportThreadId } from "@/lib/support-chat";
 import { escapeTelegramHtml } from "@/lib/telegram";
 
 /**
@@ -120,12 +121,14 @@ export type SupportOutcome = {
     | "rate-limited"
     | "unknown-command"
     | "admin-reply"
+    | "admin-chat-reply"
     | "admin-reply-no-tag"
     | "created"
     | "error";
   /** Что ответить в чат. null — молча выйти. */
   reply: string | null;
   reportId?: string;
+  threadId?: string;
 };
 
 type SupportUser = {
@@ -166,6 +169,12 @@ export type SupportDeps = {
     reportId: string;
     message: string;
   }) => Promise<string[]>;
+  /** Ответ в онлайн-чат: дописывает реплику оператора в ветку переписки. */
+  replyToChat: (args: {
+    threadId: string;
+    message: string;
+    operatorName: string;
+  }) => Promise<void>;
 };
 
 function defaultDeps(): SupportDeps {
@@ -244,6 +253,17 @@ function defaultDeps(): SupportDeps {
         },
       });
     },
+    async replyToChat({ threadId, message, operatorName }) {
+      await db.supportMessage.create({
+        data: { threadId, author: "operator", body: message, operatorName },
+      });
+      // Счётчик непрочитанного гасим здесь же: оператор ответил, значит
+      // ветку он разобрал, и в админке она не должна висеть как новая.
+      await db.supportThread.update({
+        where: { id: threadId },
+        data: { lastMessageAt: new Date(), unreadForStaff: 0 },
+      });
+    },
     async replyToReport({ reportId, message }) {
       const result = await applyFeedbackReply({
         reportId,
@@ -279,12 +299,35 @@ export async function handleSupportText(
 
   // Владелец отвечает свайп-реплаем прямо из своего чата с ботом.
   if (deps.isPlatformAdminChat(input.chatId) && input.replyToText) {
+    // Онлайн-чат проверяем первым: у него свой тег, и реплика должна
+    // попасть в переписку, а не завестись отдельным обращением.
+    const threadId = extractSupportThreadId(input.replyToText);
+    if (threadId) {
+      try {
+        await deps.replyToChat({
+          threadId,
+          message: text,
+          operatorName: "Поддержка WeSetup",
+        });
+        return {
+          action: "admin-chat-reply",
+          threadId,
+          reply: "✓ Отправлено в онлайн-чат",
+        };
+      } catch {
+        return {
+          action: "error",
+          reply: "⚠ Не удалось дописать ответ в чат — откройте админку",
+        };
+      }
+    }
+
     const reportId = extractFeedbackReportId(input.replyToText);
     if (!reportId) {
       return {
         action: "admin-reply-no-tag",
         reply:
-          "Не нашёл обращение: отвечайте реплаем на сообщение с тегом #fb_…",
+          "Не нашёл обращение: отвечайте реплаем на сообщение с тегом #fb_… или #chat_…",
       };
     }
     try {

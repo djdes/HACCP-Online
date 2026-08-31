@@ -7,7 +7,9 @@ import { getPlatformAdminEmail, notifyPlatformAdmin } from "@/lib/platform-admin
 import { escapeHtml } from "@/lib/html-escape";
 
 const feedbackSchema = z.object({
-  type: z.enum(["bug", "suggestion"], { message: "Выберите тип обращения" }),
+  type: z.enum(["bug", "suggestion", "partnership"], {
+    message: "Выберите тип обращения",
+  }),
   message: z
     .string()
     .trim()
@@ -23,8 +25,14 @@ const feedbackSchema = z.object({
 
 const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
+const TYPE_LABELS: Record<string, string> = {
+  bug: "🐞 Ошибка",
+  suggestion: "💡 Улучшение",
+  partnership: "🤝 Сотрудничество",
+};
+
 function composeTelegramMessage(params: {
-  type: "bug" | "suggestion";
+  type: "bug" | "suggestion" | "partnership";
   message: string;
   reportId: string;
   userName?: string | null;
@@ -32,7 +40,7 @@ function composeTelegramMessage(params: {
   organizationName?: string | null;
   phone?: string | null;
 }): string {
-  const typeLabel = params.type === "bug" ? "🐞 Ошибка" : "💡 Предложение";
+  const typeLabel = TYPE_LABELS[params.type] ?? params.type;
   const lines: string[] = [];
   lines.push(`<b>${typeLabel}</b>`);
   lines.push("");

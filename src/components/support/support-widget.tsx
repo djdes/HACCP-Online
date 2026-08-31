@@ -1,48 +1,159 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, MessageCircle, Send, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  Loader2,
+  MessageCircle,
+  MessagesSquare,
+  Send,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 /**
- * Floating-виджет поддержки в углу dashboard'а. Менеджер пишет
- * сообщение → POST /api/support → команда WeSetup получает в
- * Telegram-канал и отвечает в течение 4 ч в рабочее время.
+ * Поддержка одной кнопкой в углу кабинета.
  *
- * Дизайн: компактный FAB слева внизу (чтобы не конфликтовать с AI
- * виджетом справа). Открывается в небольшую sheet'у с textarea.
+ * Раньше вход в поддержку был в двух местах: кнопка «Обратная связь» в
+ * шапке и этот пузырь внизу. Человек не понимал, чем они отличаются, а
+ * отличались они только тем, куда падало сообщение. Теперь вход один, а
+ * внутри — выбор: разовое обращение или живая переписка.
+ *
+ * Шапка показывает, под кем человек авторизован: поддержка видит ровно
+ * эти данные, и расхождений «я писал не с того аккаунта» не возникает.
  */
+
+type Screen = "menu" | "feedback" | "chat";
+
+type FeedbackType = "bug" | "suggestion" | "partnership";
+
+const FEEDBACK_TYPES: Array<{ value: FeedbackType; label: string }> = [
+  { value: "bug", label: "Ошибка" },
+  { value: "suggestion", label: "Улучшение" },
+  { value: "partnership", label: "Сотрудничество" },
+];
+
+type Identity = {
+  organizationName: string | null;
+  email: string | null;
+  phone: string | null;
+  name: string | null;
+};
+
+type ChatMessage = {
+  id: string;
+  author: string;
+  body: string;
+  operatorName: string | null;
+  createdAt: string;
+};
+
+/** Пока чат открыт, тянем новые реплики — ответ оператора должен появиться сам. */
+const CHAT_POLL_MS = 10_000;
+
 export function SupportWidget() {
   const [open, setOpen] = useState(false);
+  const [screen, setScreen] = useState<Screen>("menu");
+  const [identity, setIdentity] = useState<Identity | null>(null);
+
+  const [type, setType] = useState<FeedbackType | "">("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  async function send() {
-    const trimmed = message.trim();
-    if (trimmed.length < 5) {
-      toast.error("Сообщение слишком короткое");
+  const [messages, setMessages] = useState<ChatMessage[] | null>(null);
+  const [draft, setDraft] = useState("");
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const loadChat = useCallback(async () => {
+    const response = await fetch("/api/support/chat").catch(() => null);
+    if (!response?.ok) {
+      setMessages([]);
+      return;
+    }
+    const data = await response.json();
+    setIdentity(data.identity ?? null);
+    setMessages(data.messages ?? []);
+  }, []);
+
+  // Данные шапки нужны сразу при открытии, ещё до выбора экрана.
+  useEffect(() => {
+    if (!open || identity) return;
+    void loadChat();
+  }, [open, identity, loadChat]);
+
+  useEffect(() => {
+    if (!open || screen !== "chat") return;
+    const timer = setInterval(() => void loadChat(), CHAT_POLL_MS);
+    return () => clearInterval(timer);
+  }, [open, screen, loadChat]);
+
+  useEffect(() => {
+    if (screen === "chat") {
+      bottomRef.current?.scrollIntoView({ block: "end" });
+    }
+  }, [screen, messages]);
+
+  function close() {
+    setOpen(false);
+    setScreen("menu");
+    setSent(false);
+    setType("");
+    setMessage("");
+  }
+
+  async function sendFeedback() {
+    if (!type) {
+      toast.error("Выберите тип обращения");
+      return;
+    }
+    if (message.trim().length < 3) {
+      toast.error("Напишите, в чём дело");
       return;
     }
     setBusy(true);
     try {
-      const url =
-        typeof window !== "undefined" ? window.location.href : undefined;
-      const response = await fetch("/api/support", {
+      const response = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, url }),
+        body: JSON.stringify({ type, message: message.trim() }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(data?.error ?? "Ошибка");
+        throw new Error(data?.error ?? "Не удалось отправить обращение");
       }
-      toast.success(
-        "Сообщение получено. Команда WeSetup ответит в течение 4 часов в рабочее время."
-      );
+      setSent(true);
       setMessage("");
-      setOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Ошибка");
+      setType("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendChat() {
+    const body = draft.trim();
+    if (body.length < 2) return;
+    setBusy(true);
+    // Поле очищаем сразу: ждать сеть, глядя в собственный текст, — худшее,
+    // что может делать чат. При ошибке текст вернём обратно.
+    setDraft("");
+    try {
+      const response = await fetch("/api/support/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: body }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.message) {
+        throw new Error(data?.error ?? "Не удалось отправить сообщение");
+      }
+      setMessages((current) => [...(current ?? []), data.message]);
+    } catch (error) {
+      setDraft(body);
+      toast.error(error instanceof Error ? error.message : "Ошибка");
     } finally {
       setBusy(false);
     }
@@ -63,55 +174,230 @@ export function SupportWidget() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 w-[calc(100vw-2.5rem)] max-w-sm rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+    <div className="fixed bottom-5 right-5 z-40 flex max-h-[min(640px,calc(100vh-2.5rem))] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef0f6] px-5 py-4">
+        <div className="min-w-0">
+          {screen !== "menu" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setScreen("menu");
+                setSent(false);
+              }}
+              className="mb-1 inline-flex items-center gap-1 text-[12.5px] text-[#6f7282] transition-colors hover:text-[#3848c7]"
+            >
+              <ArrowLeft className="size-3.5" />
+              Назад
+            </button>
+          ) : null}
           <div className="text-[15px] font-semibold text-[#0b1024]">
-            Связаться с поддержкой
+            {screen === "feedback"
+              ? "Обратная связь"
+              : screen === "chat"
+                ? "Онлайн-чат"
+                : "Поддержка"}
           </div>
-          <p className="mt-1 text-[12px] text-[#6f7282]">
-            Команда WeSetup отвечает в Telegram в течение 4 часов в
-            рабочее время.
-          </p>
+          {/* Под кем авторизован: поддержка видит ровно эти данные. */}
+          <div className="mt-1 space-y-0.5 text-[12px] leading-snug text-[#6f7282]">
+            {identity?.organizationName ? (
+              <div className="truncate">{identity.organizationName}</div>
+            ) : null}
+            {identity?.email ? (
+              <div className="truncate">{identity.email}</div>
+            ) : null}
+            {identity?.phone ? (
+              <div className="truncate">{identity.phone}</div>
+            ) : null}
+          </div>
         </div>
         <button
           type="button"
-          onClick={() => setOpen(false)}
-          className="rounded-lg p-1.5 text-[#9b9fb3] hover:bg-[#fafbff]"
+          onClick={close}
+          className="rounded-lg p-1 text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
           aria-label="Закрыть"
         >
           <X className="size-4" />
         </button>
       </div>
 
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Опишите проблему или вопрос..."
-        rows={5}
-        maxLength={2000}
-        disabled={busy}
-        className="mt-4 w-full rounded-2xl border border-[#dcdfed] bg-[#fafbff] px-3 py-2 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-      />
+      {screen === "menu" ? (
+        <div className="space-y-2 p-5">
+          <button
+            type="button"
+            onClick={() => setScreen("feedback")}
+            className="flex w-full items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-left transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+              <MessagesSquare className="size-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[14px] font-medium text-[#0b1024]">
+                Обратная связь
+              </span>
+              <span className="block text-[12px] text-[#6f7282]">
+                Ошибка, идея или предложение о сотрудничестве
+              </span>
+            </span>
+          </button>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="text-[11px] text-[#9b9fb3]">
-          {message.length}/2000
-        </span>
-        <button
-          type="button"
-          onClick={send}
-          disabled={busy || message.trim().length < 5}
-          className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white hover:bg-[#4a5bf0] disabled:opacity-50"
-        >
-          {busy ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-          Отправить
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setScreen("chat")}
+            className="flex w-full items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-left transition-colors hover:border-[#0f7a5a]/40 hover:bg-[#ecfdf5]"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ecfdf5] text-[#0f7a5a]">
+              <MessageCircle className="size-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[14px] font-medium text-[#0b1024]">
+                Онлайн-чат
+              </span>
+              <span className="block text-[12px] text-[#6f7282]">
+                Переписка с оператором, история сохраняется
+              </span>
+            </span>
+          </button>
+        </div>
+      ) : null}
+
+      {screen === "feedback" ? (
+        sent ? (
+          <div className="px-5 py-8 text-center">
+            <p className="text-[14px] leading-[1.55] text-[#0b1024]">
+              Спасибо, обязательно ответим в течение 5 рабочих дней.
+            </p>
+            <button
+              type="button"
+              onClick={close}
+              className="mt-4 inline-flex h-10 items-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+            >
+              Закрыть
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4 overflow-y-auto px-5 py-4">
+            <div className="space-y-2">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Тип обращения
+              </div>
+              <div className="space-y-1.5">
+                {FEEDBACK_TYPES.map((item) => (
+                  <label
+                    key={item.value}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-[14px] transition-colors",
+                      type === item.value
+                        ? "border-[#5566f6] bg-[#f5f6ff] text-[#0b1024]"
+                        : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#fafbff]"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="support-feedback-type"
+                      value={item.value}
+                      checked={type === item.value}
+                      onChange={() => setType(item.value)}
+                      className="size-4 accent-[#5566f6]"
+                    />
+                    {item.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              rows={6}
+              placeholder="Опишите подробнее — что произошло или что предлагаете"
+              className="w-full resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[14px] leading-[1.55] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+
+            <button
+              type="button"
+              onClick={() => void sendFeedback()}
+              disabled={busy}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+              Отправить
+            </button>
+          </div>
+        )
+      ) : null}
+
+      {screen === "chat" ? (
+        <>
+          <div className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
+            {messages === null ? (
+              <div className="flex items-center gap-2 text-[13px] text-[#9b9fb3]">
+                <Loader2 className="size-4 animate-spin" />
+                Загружаем переписку
+              </div>
+            ) : messages.length === 0 ? (
+              <p className="py-6 text-center text-[13px] leading-snug text-[#6f7282]">
+                Напишите вопрос — ответим здесь же. Переписка сохраняется,
+                можно вернуться к ней позже.
+              </p>
+            ) : (
+              messages.map((item) => (
+                <div
+                  key={item.id}
+                  className={cn(
+                    "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-[1.5]",
+                    item.author === "client"
+                      ? "ml-auto bg-[#5566f6] text-white"
+                      : "bg-[#f5f6ff] text-[#0b1024]"
+                  )}
+                >
+                  {item.author === "operator" && item.operatorName ? (
+                    <div className="mb-0.5 text-[11px] font-medium text-[#3848c7]">
+                      {item.operatorName}
+                    </div>
+                  ) : null}
+                  <div className="whitespace-pre-wrap break-words">
+                    {item.body}
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          <div className="shrink-0 border-t border-[#eef0f6] p-3">
+            <div className="flex items-end gap-2">
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  // Enter отправляет, Shift+Enter — перенос строки: так
+                  // ведут себя все мессенджеры, и переучивать незачем.
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void sendChat();
+                  }
+                }}
+                rows={1}
+                placeholder="Сообщение"
+                className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+              <button
+                type="button"
+                onClick={() => void sendChat()}
+                disabled={busy || draft.trim().length < 2}
+                className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
+                aria-label="Отправить"
+              >
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
