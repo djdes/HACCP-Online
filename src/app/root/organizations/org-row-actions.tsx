@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2, Trash2, UserCog } from "lucide-react";
+import { Loader2, UserCog } from "lucide-react";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { OrgDeleteButton } from "@/app/root/organizations/org-delete-button";
 
 /**
  * Действия над организацией прямо в списке.
@@ -24,9 +23,7 @@ export function OrgRowActions({
   usersCount: number;
   documentsCount: number;
 }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState<"enter" | "delete" | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [busy, setBusy] = useState<"enter" | null>(null);
 
   async function enter() {
     setBusy("enter");
@@ -48,27 +45,6 @@ export function OrgRowActions({
     }
   }
 
-  async function remove() {
-    setBusy("delete");
-    try {
-      const response = await fetch(
-        `/api/root/organizations/${organizationId}`,
-        { method: "DELETE" }
-      );
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.error || "Не удалось удалить организацию");
-      }
-      toast.success(`Организация «${organizationName}» удалена`);
-      setConfirmOpen(false);
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка");
-    } finally {
-      setBusy(null);
-    }
-  }
-
   return (
     <>
       <div className="flex items-center justify-end gap-1.5">
@@ -85,31 +61,15 @@ export function OrgRowActions({
           )}
           Войти
         </button>
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
+        <OrgDeleteButton
+          organizationId={organizationId}
+          organizationName={organizationName}
+          usersCount={usersCount}
+          documentsCount={documentsCount}
           disabled={busy !== null}
-          aria-label={`Удалить ${organizationName}`}
-          className="inline-flex size-9 items-center justify-center rounded-xl text-[#9b9fb3] transition-colors hover:bg-[#fff4f2] hover:text-[#a13a32] disabled:opacity-50"
-        >
-          <Trash2 className="size-4" />
-        </button>
+        />
       </div>
 
-      <ConfirmDialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={remove}
-        variant="danger"
-        title={`Удалить «${organizationName}»?`}
-        description="Организация и все её данные будут удалены безвозвратно."
-        bullets={[
-          { label: `Сотрудников: ${usersCount}`, tone: "warn" },
-          { label: `Документов журналов: ${documentsCount}`, tone: "warn" },
-          { label: "Записи, логи и настройки удалятся вместе с организацией" },
-        ]}
-        confirmLabel="Удалить"
-      />
     </>
   );
 }
