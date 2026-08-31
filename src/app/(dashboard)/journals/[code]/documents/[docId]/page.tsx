@@ -171,11 +171,6 @@ import {
 import { ComplaintDocumentClient } from "@/components/journals/complaint-document-client";
 import { COMPLAINT_REGISTER_TEMPLATE_CODE, normalizeComplaintConfig } from "@/lib/complaint-document";
 import { isIntegrationCryptoConfigured } from "@/lib/integration-crypto";
-import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
-import {
-  getDocumentCrumbMenu,
-  getJournalCrumbMenu,
-} from "@/lib/journal-crumb-menu";
 
 import { orgTodayKey } from "@/lib/timezone";
 export const dynamic = "force-dynamic";
@@ -213,64 +208,10 @@ export default async function JournalDocumentPage(props: {
     return <JournalDocumentBody {...props} />;
   }
 
-  const { code, docId } = await props.params;
-  const session = await requireAuth();
-  const activeOrgId = getActiveOrgId(session);
-
-  const [crumbDocument, crumbOrganization] = await Promise.all([
-    db.journalDocument.findUnique({
-      where: { id: docId },
-      select: {
-        title: true,
-        organizationId: true,
-        template: { select: { name: true } },
-      },
-    }),
-    db.organization.findUnique({
-      where: { id: activeOrgId },
-      select: { name: true },
-    }),
-  ]);
-
-  const showCrumbs =
-    Boolean(crumbDocument) && crumbDocument?.organizationId === activeOrgId;
-
-  // Оба списка нужны прямо здесь: из бланка уходят и в соседний журнал,
-  // и в соседний документ этого же журнала.
-  const [crumbJournalMenu, crumbDocumentMenu] = showCrumbs
-    ? await Promise.all([
-        getJournalCrumbMenu(session, code),
-        getDocumentCrumbMenu(activeOrgId, code, docId),
-      ])
-    : [undefined, undefined];
-
+  // Крошки и маркер печати переехали в layout.tsx: они обязаны быть ВНЕ
+  // зоны горизонтальной прокрутки бланка, иначе уезжают вместе с ним.
   return (
     <>
-      {/* A1 аудита: маркер альбомной ориентации печати. `@page` нельзя
-          навесить селектором, поэтому globals.css ловит этот узел через
-          `body:has([data-journal-print-root])` и переводит лист на
-          именованный `@page journal-landscape`. Узел `hidden` — нулевое
-          влияние на разметку экрана. */}
-      <span data-journal-print-root hidden aria-hidden="true" />
-      {showCrumbs ? (
-        <JournalPageCrumbs
-          // Страница документа на мобильном едет вбок целиком, а крошки
-          // должны остаться на месте: `sticky left-0` прикалывает их к
-          // левому краю экрана внутри горизонтального скроллера.
-          className="max-sm:sticky max-sm:left-0 max-sm:z-10 max-sm:w-fit max-sm:bg-white"
-          organizationName={crumbOrganization?.name || ORG_NAME_FALLBACK}
-          journalName={crumbDocument?.template.name ?? ""}
-          journalCode={code}
-          journalMenu={crumbJournalMenu}
-          tail={[
-            {
-              label: crumbDocument?.title ?? "",
-              menu: crumbDocumentMenu,
-              menuTitle: "Документы журнала",
-            },
-          ]}
-        />
-      ) : null}
       <JournalDocumentBody {...props} />
     </>
   );

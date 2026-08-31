@@ -465,21 +465,65 @@
    поэтому НЕ меняем display table. Вместо этого родители, которые
    содержат wide table, получают overflow-x: auto. */
 @media (max-width: 767px) {
-  /* Любой div-ancestor wide-table получает overflow + max-width */
-  .app-shell main div:has(table[class*="min-w-"]) {
+  /* Любой div-ancestor wide-table получает overflow + max-width.
+     ИСКЛЮЧЕНИЕ — страница документа журнала (`[data-journal-doc-pan]`).
+     Селектор матчит КАЖДОГО предка таблицы, и с `!important` его не
+     перебить utility-классом: каждый div вокруг бланка становился своим
+     скроллером, жест ловил самый внутренний, а `max-width: 100%`
+     гасил full-bleed. Там за прокрутку отвечает ровно один элемент —
+     pan-зона, поэтому blanket-правило на этой странице запрещено. */
+  .app-shell main:not(:has([data-journal-doc-pan])) div:has(table[class*="min-w-"]) {
     overflow-x: auto !important;
     max-width: 100% !important;
     -webkit-overflow-scrolling: touch;
   }
   /* Fallback: если таблицы нет min-w-class но всё равно широкая —
      даём ей block-display и собственный scroll. */
-  .app-shell main table:not(.ds-no-scroll):not([class*="min-w-"]) {
+  .app-shell main:not(:has([data-journal-doc-pan])) table:not(.ds-no-scroll):not([class*="min-w-"]) {
     display: block;
     overflow-x: auto;
     max-width: 100%;
     -webkit-overflow-scrolling: touch;
   }
 
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * Страница документа журнала на мобильном: один горизонтальный скроллер
+ *
+ * Бланк шире экрана, и вбок он едет ЦЕЛИКОМ — заголовок, кнопки, шапка,
+ * таблицы и легенда одним листом. Для этого у таблиц внутри не должно
+ * быть СВОЕГО горизонтального скролла: иначе жест над таблицей съедает
+ * внутренний скроллер, и остальная страница стоит на месте.
+ *
+ * Правило написано зоной, а не правкой токенов, потому что ~25 клиентов
+ * документов не используют общий `JOURNAL_TABLE_VIEWPORT_CLASS` — у них
+ * захардкожены собственные обёртки `-mx-4 overflow-x-auto px-4` и
+ * `overflow-x-auto`. Одна зона накрывает и токен, и хардкод.
+ *
+ * `margin-inline: -1rem` выводит таблицу в край экрана, гася `px-4`
+ * pan-зоны: по требованию владельца таблицы идут без боковых отступов.
+ * Текст (заголовок, кнопки, легенда) отступы сохраняет — прижатый к
+ * стеклу, он читается хуже и выглядит ошибкой вёрстки.
+ * ════════════════════════════════════════════════════════════════════ */
+@media screen and (max-width: 639px) {
+  [data-journal-doc-pan] div.overflow-x-auto:has(table) {
+    overflow-x: visible;
+    padding-inline: 0;
+    margin-inline: -1rem;
+    border-radius: 0;
+    max-width: none;
+  }
+
+  /* `sticky left-0` внутри pan-зоны прикалывал бы элемент к краю экрана
+     при панорамировании — а ехать должно всё. Крошки, которым закрепление
+     нужно, лежат вне зоны. */
+  [data-journal-doc-pan] .sticky.left-0 {
+    position: static;
+  }
+}
+
+@media (max-width: 767px) {
   /* Hero-блоки с большим padding (p-8 / p-10 md:p-10) занимают почти
      весь экран на mobile. Сжимаем padding до 5 для блоков с rounded-3xl. */
   .app-shell main .rounded-3xl.p-8,
