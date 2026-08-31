@@ -647,13 +647,16 @@ export function StaffAddFlowDialog(props: {
                 </select>
               ),
             })}
-            <Input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Введите ФИО сотрудника"
-              className="h-12 rounded-xl border-[#dcdfed] bg-white text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
-            />
-            <div>
+            {/* ФИО и телефон в одну строку: два коротких поля друг под
+                другом растягивали шаг на лишний экран. На узких телефонах
+                всё равно переносим — вдвоём они там не помещаются. */}
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Введите ФИО сотрудника"
+                className="h-12 rounded-xl border-[#dcdfed] bg-white text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              />
               <Input
                 type="tel"
                 value={phone}
@@ -662,11 +665,11 @@ export function StaffAddFlowDialog(props: {
                 autoComplete="tel"
                 className="h-12 rounded-xl border-[#dcdfed] bg-white text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />
-              <TasksFlowPromoHint
-                campaign="staff_add"
-                hasIntegration={props.hasTasksflowIntegration}
-              />
             </div>
+            <TasksFlowPromoHint
+              campaign="staff_add"
+              hasIntegration={props.hasTasksflowIntegration}
+            />
             <div className="space-y-1.5">
               <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9fb3]">
                 Выходные
@@ -677,9 +680,8 @@ export function StaffAddFlowDialog(props: {
                 ariaLabel="Выходные дни нового сотрудника"
               />
               <p className="text-[11px] leading-snug text-[#6f7282]">
-                В эти дни журналы заполнятся отметкой «В», а задачи в
-                TasksFlow не придут. Отдельный день всегда можно поправить
-                в графике.
+                Нужно для журналов и задач: в выходные ставится «В», задачи
+                не приходят. День правится в графике.
               </p>
             </div>
           </div>,

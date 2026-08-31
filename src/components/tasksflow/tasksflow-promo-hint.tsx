@@ -19,7 +19,7 @@ import {
 export function TasksFlowPromoHint({
   campaign,
   hasIntegration = false,
-  autolinkNote = "Если у сотрудника уже есть TasksFlow с этим номером — свяжем аккаунты автоматически.",
+  autolinkNote = "Аккаунт TasksFlow с этим номером свяжется автоматически.",
   compact = false,
   className = "",
 }: {
@@ -92,41 +92,40 @@ export function TasksFlowPromoHint({
     );
   }
 
+  // Развёрнутый вариант. Раньше здесь было пять строк: заголовок,
+  // описание, промокод, ссылка и объяснение про автосвязку. Блок стоит
+  // в форме, ради которой человек и пришёл, и каждая строка отодвигала
+  // кнопку «Добавить». Осталось то, что нельзя выбросить: что это,
+  // промокод со скидкой и куда идти.
   return (
-    <div className="mt-2 rounded-xl bg-[#f5f6ff] p-3 text-[12px] leading-[1.5] text-[#3c4053]">
+    <div className="mt-2 rounded-xl bg-[#f5f6ff] px-3 py-2.5 text-[12px] leading-[1.45] text-[#3c4053]">
       <div className="flex items-start gap-2">
-        <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
-          <Zap className="size-3.5" />
+        <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
+          <Zap className="size-3" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-[#0b1024]">
-            Подключите сервис TasksFlow.ru
-          </p>
-          <p className="mt-0.5">
-            Чтобы ставить производственные задачи и связывать их с журналами.
-          </p>
-          <p className="mt-1.5">
-            Промокод{" "}
+          <p>
+            <span className="font-semibold text-[#0b1024]">TasksFlow.ru</span>
+            {" — задачи сотрудникам со ссылкой на журналы. Промокод "}
             <button
               type="button"
               onClick={copyPromo}
               title="Скопировать промокод"
-              className="rounded-full bg-white px-2 py-0.5 font-semibold tracking-[0.04em] text-[#3848c7] ring-1 ring-[#dcdfed] transition-colors hover:bg-[#eef1ff] hover:ring-[#5566f6]/40"
+              className="rounded-full bg-white px-1.5 py-0.5 font-semibold tracking-[0.04em] text-[#3848c7] ring-1 ring-[#dcdfed] transition-colors hover:bg-[#eef1ff] hover:ring-[#5566f6]/40"
             >
               {TASKSFLOW_PROMO_CODE}
-            </button>{" "}
-            даёт {TASKSFLOW_PROMO_BENEFIT}
+            </button>
+            {` — ${TASKSFLOW_PROMO_BENEFIT}. `}
+            <a
+              href={tasksflowPromoUrl(campaign)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
+            >
+              Перейти
+              <ExternalLink className="size-3" />
+            </a>
           </p>
-          <a
-            href={tasksflowPromoUrl(campaign)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
-          >
-            Перейти с промокодом
-            <ExternalLink className="size-3" />
-          </a>
-          <p className="mt-2 text-[#6f7282]">{autolinkNote}</p>
         </div>
       </div>
     </div>
