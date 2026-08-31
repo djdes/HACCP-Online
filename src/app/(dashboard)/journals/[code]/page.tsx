@@ -255,6 +255,7 @@ import {
   pickPrimaryManager,
   toCanonicalUserRole,
 } from "@/lib/user-roles";
+import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -1400,6 +1401,11 @@ export default async function JournalDocumentsPage({
           journalCode={resolvedCode}
           journalMenu={journalMenu}
         />
+        {/* Автосоздание — настройка ЖУРНАЛА, а не отдельного документа:
+            решение «пусть заводится сам» принимают один раз для журнала
+            целиком. На странице документа тумблер и повторялся у каждого
+            документа, и лез поверх бланка. */}
+        <JournalAutoCreateToggle templateCode={resolvedCode} />
         {children}
       </div>
     );

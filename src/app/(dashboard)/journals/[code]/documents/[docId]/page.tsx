@@ -254,6 +254,10 @@ export default async function JournalDocumentPage(props: {
       <span data-journal-print-root hidden aria-hidden="true" />
       {showCrumbs ? (
         <JournalPageCrumbs
+          // Страница документа на мобильном едет вбок целиком, а крошки
+          // должны остаться на месте: `sticky left-0` прикалывает их к
+          // левому краю экрана внутри горизонтального скроллера.
+          className="max-sm:sticky max-sm:left-0 max-sm:z-10 max-sm:w-fit max-sm:bg-white"
           organizationName={crumbOrganization?.name || ORG_NAME_FALLBACK}
           journalName={crumbDocument?.template.name ?? ""}
           journalCode={code}
