@@ -36,7 +36,18 @@ export default async function JournalDocumentLayout({
   const templateCode = document?.template?.code ?? null;
 
   return (
-    <>
+    // На мобильном страница документа едет вбок ЦЕЛИКОМ: крошки, заголовок,
+    // кнопки, шапка бланка, таблицы и легенда — одним листом. Тянешь в
+    // любом месте, и всё двигается вместе.
+    //
+    // Скроллер обязан быть во всю ширину экрана: `-mx-4` гасит `px-4`
+    // родителя, `w-screen` растягивает до краёв, внутренний `px-4`
+    // возвращает поля. Без этого он оказывался узким окном внутри
+    // отступов — таблица уезжала за его край и выглядела обрезанной.
+    //
+    // Сама страница вбок не скроллится: у `body` стоит overflow-x: clip
+    // ради full-bleed белой подложки раздела.
+    <div className="max-sm:-mx-4 max-sm:w-screen max-sm:overflow-x-auto max-sm:px-4">
       {templateCode ? (
         <div className="mb-3 print:hidden">
           <JournalAutoCreateToggle
@@ -46,6 +57,6 @@ export default async function JournalDocumentLayout({
         </div>
       ) : null}
       {children}
-    </>
+    </div>
   );
 }
