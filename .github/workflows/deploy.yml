@@ -445,7 +445,17 @@ jobs:
             if [ -f .env ]; then
               set -a; . ./.env; set +a
             fi
-            npx prisma db push 2>&1 | tail -5
+            # Статус берём у самого push, а не у tail: пайп возвращает
+            # код последней команды, и упавший push проходил незамеченным.
+            # Дальше на нём падали сиды (клиент ждёт колонок, которых нет),
+            # и до перезапуска PM2 деплой не доходил — без внятной причины
+            # в логе.
+            set -o pipefail
+            if ! npx prisma db push 2>&1 | tail -15; then
+              echo "[FATAL] prisma db push не применился — деплой остановлен"
+              exit 1
+            fi
+            set +o pipefail
 
             echo "=== Seeding journal templates ==="
             if [ -f .env ]; then
