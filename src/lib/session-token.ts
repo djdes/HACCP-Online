@@ -17,15 +17,39 @@ import { decode, encode } from "next-auth/jwt";
 
 const MAX_AGE_SEC = 30 * 24 * 60 * 60;
 
+/**
+ * Оба имени, под которыми может лежать наш session-cookie.
+ *
+ * `src/lib/auth.ts` выбирает имя по `NODE_ENV`, а здесь раньше выбиралось
+ * по `NEXTAUTH_URL`. Условия разные, и стоило им разойтись — production
+ * build за http, dev с https в NEXTAUTH_URL, — как перезапись claim'ов
+ * падала на «Cookie сессии не найден», то есть «Войти как» переставало
+ * работать без единой ошибки в логах. Поэтому имя не вычисляем, а ищем
+ * то, что реально пришло в запросе.
+ */
+const SESSION_COOKIE_NAMES = [
+  "__Secure-haccp-online.session-token",
+  "haccp-online.session-token",
+] as const;
+
+/** Имя, которым записываем cookie обратно. Должно совпадать с auth.ts. */
 export function sessionCookieName(): string {
-  const isHttps =
-    process.env.NEXTAUTH_URL?.startsWith("https://") ||
-    process.env.VERCEL === "1";
-  // Имя задано в src/lib/auth.ts. Дефолтное next-auth.session-token здесь
-  // не подходит: с ним impersonate когда-то падал на «Cookie не найден».
-  return isHttps
-    ? "__Secure-haccp-online.session-token"
-    : "haccp-online.session-token";
+  return process.env.NODE_ENV === "production"
+    ? SESSION_COOKIE_NAMES[0]
+    : SESSION_COOKIE_NAMES[1];
+}
+
+/**
+ * Имя cookie, которое реально есть в запросе.
+ *
+ * Возвращаем именно найденное, а не вычисленное: переписать нужно тот
+ * cookie, которым браузер пользуется, иначе рядом ляжет второй и старый
+ * перебьёт новый.
+ */
+export function findSessionCookieName(
+  has: (name: string) => boolean
+): string | null {
+  return SESSION_COOKIE_NAMES.find((name) => has(name)) ?? null;
 }
 
 export type RewriteResult = { ok: true } | { ok: false; reason: string };
@@ -38,10 +62,12 @@ export async function rewriteSessionClaims(
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) return { ok: false, reason: "NEXTAUTH_SECRET не задан" };
 
-  const cookieName = sessionCookieName();
   const cookieStore = await cookies();
-  const current = cookieStore.get(cookieName)?.value;
-  if (!current) return { ok: false, reason: "Cookie сессии не найден" };
+  const cookieName = findSessionCookieName((name) =>
+    Boolean(cookieStore.get(name)?.value)
+  );
+  if (!cookieName) return { ok: false, reason: "Cookie сессии не найден" };
+  const current = cookieStore.get(cookieName)?.value as string;
 
   let decoded: Record<string, unknown> | null = null;
   try {
@@ -67,9 +93,9 @@ export async function rewriteSessionClaims(
 
   cookieStore.set(cookieName, fresh, {
     httpOnly: true,
-    secure:
-      process.env.NEXTAUTH_URL?.startsWith("https://") === true ||
-      process.env.VERCEL === "1",
+    // Имя с префиксом `__Secure-` браузер принимает только с secure:true,
+    // поэтому флаг выводим из самого имени, а не из окружения.
+    secure: cookieName.startsWith("__Secure-"),
     sameSite: "lax",
     path: "/",
     maxAge: MAX_AGE_SEC,

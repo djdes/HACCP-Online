@@ -50,7 +50,7 @@ export const PAID_PLAN_TEST_NOTE =
   "дополнительные скидки и бонусы, обсуждаемые индивидуально.";
 
 /** Сколько сотрудников покрывает платная подписка. */
-export const SUBSCRIPTION_MAX_USERS = 50;
+export const SUBSCRIPTION_MAX_USERS = 30;
 
 /** Команды больше `SUBSCRIPTION_MAX_USERS` считаем индивидуально. */
 export const LARGE_TEAM_NOTE =
@@ -78,7 +78,7 @@ export const PLAN_CATALOG: CatalogPlan[] = [
     nameRu: "Подписка",
     price: "1 990 ₽",
     priceHint: "/мес",
-    tagline: "Для команды до 50 человек и автоматического заполнения",
+    tagline: "Для команды до 30 человек и автоматического заполнения",
     inheritsFrom: "Бесплатного",
     features: [
       `До ${SUBSCRIPTION_MAX_USERS} сотрудников`,

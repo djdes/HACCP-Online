@@ -19,6 +19,118 @@ export const dynamic = "force-dynamic";
  *   - Защита от удаления platform-org (id из PLATFORM_ORG_ID).
  *   - Запись в AuditLog (organizationId платформы).
  */
+/**
+ * PATCH /api/root/organizations/[id]
+ *
+ * ROOT правит карточку организации: название, тариф и срок подписки.
+ * Раньше всё это менялось только руками в базе — на поддержку клиента
+ * («продлите нам месяц») уходил заход на сервер.
+ *
+ * Меняем только переданные поля: пустой PATCH — не сброс, а no-op.
+ */
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const session = await requireRoot();
+  const { id } = await context.params;
+
+  const org = await db.organization.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      subscriptionPlan: true,
+      subscriptionEnd: true,
+    },
+  });
+  if (!org) {
+    return NextResponse.json({ error: "Организация не найдена" }, { status: 404 });
+  }
+
+  const body = (await request.json().catch(() => null)) as {
+    name?: unknown;
+    subscriptionPlan?: unknown;
+    subscriptionEnd?: unknown;
+  } | null;
+
+  const data: {
+    name?: string;
+    subscriptionPlan?: string;
+    subscriptionEnd?: Date | null;
+  } = {};
+
+  if (typeof body?.name === "string") {
+    const name = body.name.trim();
+    if (name.length < 2) {
+      return NextResponse.json({ error: "Слишком короткое название" }, { status: 400 });
+    }
+    data.name = name;
+  }
+
+  if (typeof body?.subscriptionPlan === "string") {
+    const plan = body.subscriptionPlan.trim();
+    // Список закрыт намеренно: опечатка в тарифе тихо ломает и витрину,
+    // и лимиты — значение сравнивается строкой в десятке мест.
+    if (!["trial", "free", "paid", "paused"].includes(plan)) {
+      return NextResponse.json({ error: "Неизвестный тариф" }, { status: 400 });
+    }
+    data.subscriptionPlan = plan;
+  }
+
+  if (body?.subscriptionEnd !== undefined) {
+    if (body.subscriptionEnd === null || body.subscriptionEnd === "") {
+      data.subscriptionEnd = null;
+    } else if (typeof body.subscriptionEnd === "string") {
+      const parsed = new Date(body.subscriptionEnd);
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: "Некорректная дата" }, { status: 400 });
+      }
+      data.subscriptionEnd = parsed;
+    }
+  }
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ ok: true, organization: org });
+  }
+
+  const updated = await db.organization.update({
+    where: { id },
+    data,
+    select: {
+      id: true,
+      name: true,
+      subscriptionPlan: true,
+      subscriptionEnd: true,
+    },
+  });
+
+  await recordAuditLog({
+    request,
+    session,
+    organizationId: id,
+    action: "organization.update",
+    entity: "Organization",
+    entityId: id,
+    // Пишем «было → стало»: без этого по логу не понять, что именно
+    // правили и к чему возвращаться, если клиент оспорит срок.
+    details: {
+      before: {
+        name: org.name,
+        subscriptionPlan: org.subscriptionPlan,
+        subscriptionEnd: org.subscriptionEnd?.toISOString() ?? null,
+      },
+      after: {
+        name: updated.name,
+        subscriptionPlan: updated.subscriptionPlan,
+        subscriptionEnd: updated.subscriptionEnd?.toISOString() ?? null,
+      },
+    },
+  });
+
+  return NextResponse.json({ ok: true, organization: updated });
+}
+
 export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> }

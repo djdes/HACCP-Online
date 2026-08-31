@@ -1,18 +1,16 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Check,
   ChevronDown,
   CircleArrowUp,
-  Loader2,
   Users,
   Wrench,
 } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PricingCalculator } from "@/components/public/pricing-calculator";
 import {
   LARGE_TEAM_NOTE,
@@ -59,37 +57,10 @@ export function PlanUpgrade({
   hardwareFromRub,
   subscriptionMonthly,
 }: Props) {
-  const router = useRouter();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [hardwareOpen, setHardwareOpen] = useState(false);
-  const [pending, setPending] = useState(false);
 
   const currentId: CatalogPlanId = catalogPlanIdFor(currentPlan);
   const seatsLeft = Math.max(0, freeUserLimit - activeUsers);
-
-  async function upgrade() {
-    setPending(true);
-    try {
-      const res = await fetch("/api/settings/subscription/upgrade", {
-        method: "POST",
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Не удалось сменить тариф");
-      toast.success("Тариф изменён на «Платный»", {
-        description: billingTestMode
-          ? "Сайт в тестовом режиме — оплата не требуется."
-          : undefined,
-      });
-      setConfirmOpen(false);
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Не удалось сменить тариф"
-      );
-    } finally {
-      setPending(false);
-    }
-  }
 
   return (
     <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
@@ -223,19 +194,16 @@ export function PlanUpgrade({
                     Уже улучшено
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmOpen(true)}
-                    disabled={pending}
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-200 hover:bg-[#4a5bf0] disabled:opacity-60"
+                  // Сразу на оплату, без промежуточного «вы уверены?»:
+                  // подтверждать нечего — деньги спишутся только на
+                  // странице оплаты, где всё видно и можно уйти.
+                  <Link
+                    href="/order?plan=monthly"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-200 hover:bg-[#4a5bf0]"
                   >
-                    {pending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <CircleArrowUp className="size-4" />
-                    )}
+                    <CircleArrowUp className="size-4" />
                     Улучшить
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>
@@ -340,29 +308,6 @@ export function PlanUpgrade({
           : "Тариф можно изменить в любой момент."}
       </p>
 
-      <ConfirmDialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={upgrade}
-        variant="info"
-        title="Перейти на платный тариф?"
-        description={
-          billingTestMode
-            ? "Сайт в тестовом режиме — оплата не требуется, отключить можно в любой момент."
-            : "Тариф изменится сразу, отключить можно в любой момент."
-        }
-        bullets={[
-          { label: "Сотрудников — без лимита", tone: "info" },
-          { label: "Датчики и автозаполнение журналов", tone: "info" },
-          {
-            label: billingTestMode
-              ? "Деньги не списываются — тестовый режим"
-              : "Стоимость считается по числу активных сотрудников",
-            tone: "default",
-          },
-        ]}
-        confirmLabel="Улучшить тариф"
-      />
     </section>
   );
 }

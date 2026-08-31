@@ -4,6 +4,7 @@ import { ownershipLabel, sphereLabel } from "@/lib/org-profile";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { SeedDemoButton } from "./seed-demo-button";
+import { OrgRowActions } from "@/app/root/organizations/org-row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -134,13 +135,21 @@ export default async function RootOrganizationsPage() {
                   {org._count.journalDocuments}
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <Link
-                    href={`/root/organizations/${org.id}`}
-                    className="inline-flex size-9 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#eef1ff]"
-                    aria-label="Открыть"
-                  >
-                    <ArrowRight className="size-4" />
-                  </Link>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <OrgRowActions
+                      organizationId={org.id}
+                      organizationName={org.name}
+                      usersCount={org._count.users}
+                      documentsCount={org._count.journalDocuments}
+                    />
+                    <Link
+                      href={`/root/organizations/${org.id}`}
+                      className="inline-flex size-9 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#eef1ff]"
+                      aria-label="Открыть карточку"
+                    >
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

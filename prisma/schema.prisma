@@ -2212,4 +2212,6 @@ model PaymentOrder {
 
   @@index([email])
   @@index([status])
+  /// История оплат организации в ROOT-панели читается по этому индексу.
+  @@index([organizationId])
 }

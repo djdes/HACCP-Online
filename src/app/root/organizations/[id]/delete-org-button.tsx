@@ -5,27 +5,23 @@ import { useRouter } from "next/navigation";
 import { Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Props = { organizationId: string; organizationName: string };
 
 /**
- * ROOT-only удаление организации со всеми зависимостями. Двойное
- * подтверждение через `prompt`-ввод названия — защита от случайного
- * клика. После успеха редирект на /root.
+ * ROOT-only удаление организации со всеми зависимостями.
+ *
+ * Подтверждение — `ConfirmDialog`, а не `window.prompt`: нативная
+ * промптилка выглядит чужеродно и на телефоне обрезает текст, из-за чего
+ * человек не дочитывает, что именно удаляется.
  */
 export function DeleteOrgButton({ organizationId, organizationName }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function remove() {
-    const confirmName = window.prompt(
-      `Удалить организацию «${organizationName}» вместе со всеми сотрудниками, журналами, документами и логами?\n\nЭто необратимо. Введите название организации для подтверждения:`
-    );
-    if (confirmName === null) return; // пользователь нажал «отмена»
-    if (confirmName.trim() !== organizationName.trim()) {
-      toast.error("Название не совпало — отменено.");
-      return;
-    }
     setBusy(true);
     try {
       const res = await fetch(`/api/root/organizations/${organizationId}`, {
@@ -36,6 +32,7 @@ export function DeleteOrgButton({ organizationId, organizationName }: Props) {
         throw new Error(body?.error || "Не удалось удалить организацию");
       }
       toast.success(`Организация «${organizationName}» удалена.`);
+      setConfirmOpen(false);
       router.push("/root");
       router.refresh();
     } catch (err) {
@@ -46,9 +43,10 @@ export function DeleteOrgButton({ organizationId, organizationName }: Props) {
   }
 
   return (
+    <>
     <Button
       type="button"
-      onClick={remove}
+      onClick={() => setConfirmOpen(true)}
       disabled={busy}
       variant="outline"
       className="h-11 rounded-2xl border-[#fecaca] bg-white px-4 text-[14px] text-[#dc2626] hover:bg-[#fef2f2] hover:text-[#b91c1c]"
@@ -56,5 +54,20 @@ export function DeleteOrgButton({ organizationId, organizationName }: Props) {
       {busy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
       Удалить организацию
     </Button>
+
+    <ConfirmDialog
+      open={confirmOpen}
+      onClose={() => setConfirmOpen(false)}
+      onConfirm={remove}
+      variant="danger"
+      title={`Удалить «${organizationName}»?`}
+      description="Организация и все её данные будут удалены безвозвратно."
+      bullets={[
+        { label: "Сотрудники, журналы, документы и логи — вместе с ней", tone: "warn" },
+        { label: "Восстановить не получится" },
+      ]}
+      confirmLabel="Удалить"
+    />
+    </>
   );
 }

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getUserRoleLabel } from "@/lib/user-roles";
 import { ImpersonateButton } from "./impersonate-button";
 import { DeleteOrgButton } from "./delete-org-button";
+import { OrgSettingsForm } from "./org-settings-form";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,26 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
   const activeDocs = await db.journalDocument.count({
     where: { organizationId: id, status: "active" },
   });
+
+  // История оплат и сумма за всё время. Считаем только проведённые
+  // платежи: pending-заказ денег не принёс, и складывать его в «оплачено»
+  // значит показывать выручку, которой нет.
+  const payments = await db.paymentOrder.findMany({
+    where: { organizationId: id },
+    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+    take: 100,
+    select: {
+      id: true,
+      tariffKey: true,
+      amountRub: true,
+      status: true,
+      paidAt: true,
+      createdAt: true,
+    },
+  });
+  const paidTotalRub = payments
+    .filter((payment) => payment.status === "paid")
+    .reduce((sum, payment) => sum + Number(payment.amountRub), 0);
 
   return (
     <div className="space-y-8">
@@ -101,7 +122,74 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
               {org.externalApiToken ? "выдан" : "не выдан"}
             </dd>
           </div>
+          <div>
+            <dt className="text-[#8a8ea4]">Оплачено за всё время</dt>
+            <dd className="mt-1 font-semibold text-black tabular-nums">
+              {paidTotalRub.toLocaleString("ru-RU")} ₽
+            </dd>
+          </div>
         </dl>
+
+        <div className="mt-6 border-t border-[#eef0f6] pt-5">
+          <OrgSettingsForm
+            organizationId={org.id}
+            initialName={org.name}
+            initialPlan={org.subscriptionPlan}
+            initialSubscriptionEnd={org.subscriptionEnd?.toISOString() ?? null}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="mb-4 flex items-baseline gap-3">
+          <span className="text-[18px] font-semibold">История оплат</span>
+          <span className="text-[14px] text-[#8a8ea4]">
+            {payments.length === 0
+              ? "платежей нет"
+              : `платежей: ${payments.length}`}
+          </span>
+        </div>
+
+        {payments.length === 0 ? (
+          <p className="text-[14px] text-[#9b9fb3]">
+            Организация ещё ничего не оплачивала.
+          </p>
+        ) : (
+          <table className="w-full text-[14px]">
+            <thead>
+              <tr className="text-left text-[12px] uppercase tracking-[0.14em] text-[#8a8ea4]">
+                <th className="pb-2 font-medium">Дата и время</th>
+                <th className="pb-2 font-medium">Тариф</th>
+                <th className="pb-2 font-medium">Статус</th>
+                <th className="pb-2 text-right font-medium">Сумма</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((payment) => (
+                <tr key={payment.id} className="border-t border-[#f2f3f8]">
+                  <td className="py-2.5 text-[#0b1024]">
+                    {(payment.paidAt ?? payment.createdAt).toLocaleString("ru-RU")}
+                  </td>
+                  <td className="py-2.5 text-[#6f7282]">{payment.tariffKey}</td>
+                  <td className="py-2.5">
+                    <span
+                      className={
+                        payment.status === "paid"
+                          ? "rounded-full bg-[#ecfdf5] px-2.5 py-0.5 text-[12px] text-[#116b2a]"
+                          : "rounded-full bg-[#f5f6ff] px-2.5 py-0.5 text-[12px] text-[#6f7282]"
+                      }
+                    >
+                      {payment.status}
+                    </span>
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums text-[#0b1024]">
+                    {Number(payment.amountRub).toLocaleString("ru-RU")} ₽
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">

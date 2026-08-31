@@ -35,6 +35,7 @@ import { AutomationScene } from "@/components/landing/automation-scene";
 import { SampleGallery } from "@/components/landing/sample-gallery";
 import { DOCX_SAMPLE_CODES } from "@/lib/document-docx";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
+import { FREE_MAX_USERS } from "@/lib/plan-limits";
 import {
   catalogPlanIdFor,
   FREE_PLAN_TEST_NOTE,
@@ -157,7 +158,7 @@ const JOURNAL_PREVIEW: Array<{ code: string; name: string }> = [
 const STEPS = [
   {
     title: "Бесплатный тариф",
-    text: "Регистрируетесь и сразу ведёте настоящие журналы — без пробного периода и карты. До 5 сотрудников бесплатно навсегда.",
+    text: "Регистрируетесь и сразу ведёте настоящие журналы — без пробного периода и карты. До 3 сотрудников бесплатно навсегда.",
   },
   {
     title: "Ведение журналов",
@@ -396,7 +397,7 @@ export default async function LandingPage() {
             name: "Бесплатный",
             price: "0",
             priceCurrency: "RUB",
-            description: "До 5 сотрудников, все 35 журналов, бессрочно",
+            description: "До 3 сотрудников, все 35 журналов, бессрочно",
             availability: "https://schema.org/InStock",
           },
           {
@@ -828,7 +829,7 @@ export default async function LandingPage() {
             from="0 ₽"
             period="навсегда"
             points={[
-              "До 5 сотрудников",
+              `До ${FREE_MAX_USERS} сотрудников`,
               "Все 35 журналов СанПиН и ХАССП",
               "PDF для проверок, без карты",
             ]}
