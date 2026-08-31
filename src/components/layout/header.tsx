@@ -462,7 +462,21 @@ export function Header({
                 Меню
               </span>
             </div>
-            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-3">
+            {/*
+              Закрываем шторку по клику на любой ссылке. Один обработчик на
+              всю навигацию, а не onClick у каждой: список разделов растёт,
+              и у новой ссылки его забыли бы поставить — как забыли сейчас.
+              Навигация клиентская, хедер не перемонтируется, поэтому меню
+              оставалось открытым поверх только что открытого раздела.
+            */}
+            <nav
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("a")) {
+                  setMobileNavOpen(false);
+                }
+              }}
+              className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-3"
+            >
               {navItems.map((item) => {
                 const isActive =
                   pathname === item.href || pathname.startsWith(item.href + "/");
