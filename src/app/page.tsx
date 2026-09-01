@@ -533,12 +533,21 @@ export default async function LandingPage() {
         </div>
 
         <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6 pt-8 text-center sm:pt-16">
-          {/* Registry badge */}
-          <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium italic text-[#3848c7] backdrop-blur">
-            <ShieldCheck className="size-3.5" />
-            В реестре отечественного ПО
-            <span className="text-[#9b9fb3]">·</span>
-            <span className="text-[#6f7282]">заявка №27419</span>
+          {/* Отметка о реестре — рукописной заметкой со стрелкой на
+              заголовок, а не пилюлей: пилюля на первом экране читалась
+              как ещё одна кнопка и конкурировала с призывом к действию.
+              Буквы запечены в контуры SVG, потому что прод не ходит в
+              Google Fonts (см. layout.tsx) — держать ради одной строки
+              ещё один self-hosted шрифт дороже, чем статика с кешем. */}
+          <div className="hero-mark mx-auto w-[240px] max-w-[72vw] sm:w-[340px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/registry-mark.svg"
+              alt="В реестре отечественного ПО, заявка №27419"
+              width={340}
+              height={93}
+              className="h-auto w-full"
+            />
           </div>
 
           {/* Headline — fluid scale: 32 px on phones → 72 px on desktop,

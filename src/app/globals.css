@@ -785,6 +785,7 @@ html, body {
 }
 
 .hero-badge,
+.hero-mark,
 .hero-title,
 .hero-copy,
 .hero-point,
@@ -1300,6 +1301,24 @@ html, body {
     landing-badge-breath 3.6s var(--ease-in-out-cubic) 1.5s infinite;
 }
 
+/* Рукописная отметка о реестре: лёгкое покачивание, будто листок с
+   заметкой лежит поверх страницы. Наклон держим в тех же кадрах, что и
+   сдвиг, — иначе float перезапишет transform и наклон пропадёт. */
+@keyframes landing-mark-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.6deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(-0.8deg);
+  }
+}
+.hero-mark {
+  animation:
+    landing-rise 0.72s var(--ease-out-expo) 60ms both,
+    landing-mark-float 6s var(--ease-in-out-cubic) 1.2s infinite;
+}
+
 /* ---- 10. Tilt-phones в fan: bottom-rotate чуть-чуть качаются ---- */
 @keyframes landing-tilt-sway {
   0%,
@@ -1342,6 +1361,7 @@ html, body {
   .landing-nav,
   .public-header,
   .hero-badge,
+  .hero-mark,
   .hero-title,
   .hero-copy,
   .hero-point,

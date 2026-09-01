@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { EmailHint, useEmailField } from "@/components/ui/email-field";
 
 /**
@@ -109,29 +109,42 @@ export function HeroEmailStart({
         <label htmlFor="hero-email" className="sr-only">
           Электронная почта
         </label>
-        <input
-          id="hero-email"
-          type="email"
-          value={field.value}
-          onChange={(e) => field.setValue(e.target.value)}
-          placeholder="Ваш e-mail"
-          autoComplete="email"
-          inputMode="email"
-          className={
-            // 16px, а не 15: iOS Safari автоматически зумит страницу при
-            // фокусе в поле со шрифтом меньше 16px и обратно уже не
-            // отъезжает — это и был «непонятный zoom in» на лендинге.
-            "h-12 w-full flex-1 rounded-2xl border px-4 text-[16px] outline-none transition-colors focus:ring-4 sm:h-[56px] " +
-            (dark
-              ? "border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-white/40 focus:ring-white/10"
-              : "border-[#dcdfed] bg-white text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:ring-[#5566f6]/15")
-          }
-        />
+        {/* Поле в обёртке с иконкой: голая рамка на светлом фоне первого
+            экрана читалась как декоративная плашка, а не как место для
+            ввода. Конверт слева и заметная высота возвращают ему вид
+            обычного поля. */}
+        <div className="relative w-full flex-1">
+          <Mail
+            aria-hidden="true"
+            className={
+              "pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 " +
+              (dark ? "text-white/50" : "text-[#9b9fb3]")
+            }
+          />
+          <input
+            id="hero-email"
+            type="email"
+            value={field.value}
+            onChange={(e) => field.setValue(e.target.value)}
+            placeholder="Ваш e-mail"
+            autoComplete="email"
+            inputMode="email"
+            className={
+              // 16px, а не 15: iOS Safari автоматически зумит страницу при
+              // фокусе в поле со шрифтом меньше 16px и обратно уже не
+              // отъезжает — это и был «непонятный zoom in» на лендинге.
+              "h-[56px] w-full rounded-2xl border pl-11 pr-4 text-[16px] outline-none transition-colors focus:ring-4 sm:h-[60px] " +
+              (dark
+                ? "border-white/25 bg-white/10 text-white placeholder:text-white/55 focus:border-white/45 focus:ring-white/10"
+                : "border-[#dcdfed] bg-white text-[#0b1024] shadow-[0_1px_2px_rgba(11,16,36,0.05)] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:ring-[#5566f6]/15")
+            }
+          />
+        </div>
         <button
           type="submit"
           disabled={loading || !field.valid}
           className={
-            "group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-[15px] font-semibold transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 sm:h-[56px] sm:px-7 sm:text-[16px] " +
+            "group inline-flex h-[56px] shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-[15px] font-semibold transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 sm:h-[60px] sm:px-7 sm:text-[16px] " +
             (layout === "stack" ? "w-full " : "") +
             (dark
               ? "bg-white text-[#0b1024] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] hover:bg-white/90"
@@ -159,6 +172,22 @@ export function HeroEmailStart({
         onApply={field.applySuggestion}
         tone={tone}
       />
+
+      {/* Что произойдёт после нажатия — прямо под полем. Форма создаёт
+          аккаунт сразу и пускает в кабинет, а не «отправляет заявку»;
+          без этой строки человек не знает, на что подписывается, и
+          вводить почту незнакомому сайту не хочет. */}
+      {!field.touched && !error ? (
+        <p
+          className={
+            "mt-2.5 text-[12.5px] leading-[1.5] " +
+            (dark ? "text-white/60" : "text-[#6f7282]")
+          }
+        >
+          Аккаунт создадим сразу — пароль пришлём на эту почту. Карта не
+          нужна.
+        </p>
+      ) : null}
 
       {error ? (
         <p
