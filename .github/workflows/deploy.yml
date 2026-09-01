@@ -111,7 +111,16 @@ jobs:
             --exclude='./animations*.png' \
             --exclude='./screenshot-*.png' \
             --exclude=test.txt \
+            --exclude=cloudflared.exe \
+            --exclude=pg.zip \
+            --exclude=./pgdata \
+            --exclude=./docs \
+            --exclude='*.exe' \
+            --exclude='*.zip' \
             .
+
+      - name: Report tarball size
+        run: echo "deploy.tar — $(du -h deploy.tar | cut -f1)"
 
       - name: Prepare app directory
         uses: appleboy/ssh-action@v1
