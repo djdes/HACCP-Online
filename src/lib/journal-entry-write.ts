@@ -8,6 +8,7 @@ import {
   type AutomationLockContext,
 } from "@/lib/closed-day";
 import { isJournalAutomationEnabled } from "@/lib/journal-automation";
+import { isManagementRole } from "@/lib/user-roles";
 
 /**
  * Общие проверки записи в сетку журнала (`JournalDocumentEntry`).
@@ -76,6 +77,68 @@ export async function loadEntryWriteContext(
         }
       : null,
   };
+}
+
+/**
+ * Кто в этом документе имеет полный доступ.
+ *
+ * Руководство и ответственный за журнал правят любые строки и любые дни
+ * — им положено исправлять чужие ошибки, в том числе вчерашние. Рядовой
+ * сотрудник заполняет только свою строку и только сегодня: журнал
+ * санитарного контроля — это подтверждение, что проверка была проведена
+ * в тот день, а запись задним числом такого подтверждения не даёт.
+ */
+export function hasFullDocumentAccess(args: {
+  actor: { id: string; role: string; isRoot: boolean };
+  responsibleUserId?: string | null;
+}): boolean {
+  if (args.actor.isRoot) return true;
+  if (isManagementRole(args.actor.role)) return true;
+  return Boolean(
+    args.responsibleUserId && args.responsibleUserId === args.actor.id
+  );
+}
+
+export type EntryScopeDecision =
+  | { allowed: true }
+  | { allowed: false; error: string; code: "foreign_row" | "not_today" };
+
+/**
+ * Чья строка и за какой день — проверка ДО правил закрытого дня.
+ *
+ * Отдельно от `checkEntryWrite`, потому что отвечает на другой вопрос:
+ * тот решает «не поздно ли править», этот — «твоё ли это вообще».
+ */
+export function checkEntryScope(args: {
+  actor: { id: string; role: string; isRoot: boolean };
+  responsibleUserId?: string | null;
+  /** Чья строка правится. */
+  employeeId: string;
+  /** День строки, `YYYY-MM-DD`. */
+  entryDayKey: string;
+  /** Сегодня в часовом поясе организации, `YYYY-MM-DD`. */
+  todayKey: string;
+}): EntryScopeDecision {
+  if (hasFullDocumentAccess(args)) return { allowed: true };
+
+  if (args.employeeId !== args.actor.id) {
+    return {
+      allowed: false,
+      error: "Можно заполнять только свою строку",
+      code: "foreign_row",
+    };
+  }
+
+  if (args.entryDayKey !== args.todayKey) {
+    return {
+      allowed: false,
+      error:
+        "Заполнять можно только сегодняшний день. За прошлые дни правки вносит ответственный за журнал.",
+      code: "not_today",
+    };
+  }
+
+  return { allowed: true };
 }
 
 export type EntryWriteDecision =

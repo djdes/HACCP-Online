@@ -58,7 +58,6 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionSelectItems } from "@/components/shared/position-select";
-import { JournalAutomationCard } from "@/components/journals/journal-automation-card";
 import { PageGuide } from "@/components/ui/page-guide";
 import { AUTOMATION_ENABLE_BULLETS } from "@/lib/journal-automation";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
@@ -315,12 +314,6 @@ export function HygieneDocumentsClient(props: Props) {
 
         {props.automation ? (
           <>
-            <JournalAutomationCard
-              code={props.automation.code}
-              enabled={props.automation.enabled}
-              canManage={props.automation.canManage}
-              noticeSeen={props.automation.noticeSeen}
-            />
             <PageGuide
               title="Как журнал ведётся сам"
               storageKey="journal-automation-staff-v1"
@@ -336,7 +329,7 @@ export function HygieneDocumentsClient(props: Props) {
                 },
                 {
                   q: "Как выключить?",
-                  a: "Тумблер вверху журнала. Уже заполненное останется на месте.",
+                  a: "Автосоздание — тумблер на этой странице, ежедневное заполнение — в самом документе. Уже заполненное останется на месте.",
                 },
               ]}
             />

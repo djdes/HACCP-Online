@@ -28,6 +28,7 @@
     "test:watch": "node --import tsx --watch --test \"src/**/*.test.ts\"",
     "test:ci": "node --import tsx --test --test-reporter=tap \"src/**/*.test.ts\"",
     "test:gate": "bash scripts/test-with-baseline.sh",
+    "verify": "bash scripts/verify-before-push.sh",
     "qa:smoke:prod": "bash .agent/smoke-prod.sh",
     "qa:complete-tasks": "bash .agent/complete-all.sh",
     "qa:fill-remaining": "bash .agent/fill-remaining.sh",

@@ -59,7 +59,10 @@ export function JournalAutoCreateToggle({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: [{ code: templateCode, autoCreate: next, autoFill: false }],
+          // `autoFill` НЕ передаём: у ежедневного автозаполнения свой
+          // тумблер в самом документе, и переключение автосоздания не
+          // должно его гасить.
+          items: [{ code: templateCode, autoCreate: next }],
         }),
       });
       if (!res.ok) {

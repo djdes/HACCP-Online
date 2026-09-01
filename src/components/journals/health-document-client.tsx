@@ -388,7 +388,6 @@ export function HealthDocumentClient(props: Props) {
             routeCode="health_check"
             organizationName={organizationLabel}
             showHeaderActions
-            hideAutoFill
             useV2={useV2}
             onSettingsClick={() => {
               setSettingsDocTitle(documentTitle);

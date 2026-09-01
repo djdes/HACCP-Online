@@ -118,9 +118,6 @@ async function runForOrganization(
       if (employeeIds.length === 0) continue;
       if (!current.documentId) continue;
 
-      // Документ мог существовать ДО автоматики с autoFill=false —
-      // поднимаем флаг, иначе старый cron 05:00 и UI показывают
-      // «автозаполнение выключено», хотя журнал ведётся сам.
       const document = await db.journalDocument.findFirst({
         where: {
           id: current.documentId,
@@ -132,12 +129,14 @@ async function runForOrganization(
         select: { id: true, autoFill: true },
       });
       if (!document) continue;
-      if (!document.autoFill) {
-        await db.journalDocument.update({
-          where: { id: document.id },
-          data: { autoFill: true },
-        });
-      }
+
+      // Выключенный в документе тумблер — это решение человека, и крон
+      // его уважает. Раньше здесь стоял принудительный подъём флага:
+      // выключил вечером — утром снова включилось, и выключатель
+      // выглядел сломанным. Документы, которые крон создаёт сам,
+      // получают autoFill=true при создании, так что «журнал ведётся
+      // сам» продолжает работать без этой правки.
+      if (!document.autoFill) continue;
 
       const entries = await db.journalDocumentEntry.findMany({
         where: { documentId: document.id, date: todayDate },

@@ -34,7 +34,14 @@ const bodySchema = z.object({
       z.object({
         code: z.string().min(1),
         autoCreate: z.boolean(),
-        autoFill: z.boolean(),
+        /**
+         * Необязателен НАМЕРЕННО. Тумблер «создавать журнал на новый
+         * период» на странице журнала шлёт только `autoCreate`; передавай
+         * он `autoFill: false` — любое его переключение молча выключало бы
+         * ежедневное автозаполнение, у которого свой тумблер в документе.
+         * Не передан — сохраняем то, что было.
+         */
+        autoFill: z.boolean().optional(),
       })
     )
     .optional(),
@@ -102,7 +109,10 @@ export async function PUT(request: Request) {
       org?.journalAutomationJson
     );
     for (const item of parsed.items) {
-      map[item.code] = { autoCreate: item.autoCreate, autoFill: item.autoFill };
+      map[item.code] = {
+        autoCreate: item.autoCreate,
+        autoFill: item.autoFill ?? map[item.code]?.autoFill ?? false,
+      };
     }
     const codes = Object.entries(map)
       .filter(([, value]) => value.autoCreate)

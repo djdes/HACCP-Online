@@ -31,7 +31,6 @@ import {
   JournalTopBar,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
-import { JournalAutomationCard } from "@/components/journals/journal-automation-card";
 import { PageGuide } from "@/components/ui/page-guide";
 import { AUTOMATION_ENABLE_BULLETS } from "@/lib/journal-automation";
 import {
@@ -248,12 +247,6 @@ export function HealthDocumentsClient(props: Props) {
 
         {props.automation ? (
           <>
-            <JournalAutomationCard
-              code={props.automation.code}
-              enabled={props.automation.enabled}
-              canManage={props.automation.canManage}
-              noticeSeen={props.automation.noticeSeen}
-            />
             <PageGuide
               title="Как журнал ведётся сам"
               storageKey="journal-automation-staff-v1"
@@ -269,7 +262,7 @@ export function HealthDocumentsClient(props: Props) {
                 },
                 {
                   q: "Как выключить?",
-                  a: "Тумблер вверху журнала. Уже заполненное останется на месте.",
+                  a: "Автосоздание — тумблер на этой странице, ежедневное заполнение — в самом документе. Уже заполненное останется на месте.",
                 },
               ]}
             />
