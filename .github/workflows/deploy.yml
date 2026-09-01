@@ -197,14 +197,26 @@ jobs:
             # npm ci падает с ENOTEMPTY когда прошлый build оставил файлы
             # в node_modules/*/lib-vendor — стараемся вычистить жёстко.
             # Второй rm-rf покрывает race если первый упал посередине.
-            rm -rf node_modules .next node_modules/.cache 2>/dev/null || true
-            sleep 1
-            rm -rf node_modules .next 2>/dev/null || true
-            npm ci --no-audit --no-fund 2>&1 | tail -5 || (
-              echo "npm ci failed, retrying after deeper clean" && \
-              rm -rf node_modules ~/.npm/_cacache && \
-              npm ci --no-audit --no-fund 2>&1 | tail -5
-            )
+            rm -rf .next 2>/dev/null || true
+
+            # Зависимости переустанавливаем, только если менялся
+            # package-lock. Раньше node_modules сносились и ставились
+            # заново КАЖДЫЙ деплой — минута работы ради случая, который
+            # наступает раз в несколько дней. Отпечаток лежит рядом и
+            # сверяется: не совпал или отсутствует — ставим начисто.
+            LOCK_STAMP=".npm-lock-installed"
+            if [ -d node_modules ] && cmp -s package-lock.json "$LOCK_STAMP"; then
+              echo "[npm] package-lock не менялся — переустановка не нужна"
+            else
+              echo "[npm] package-lock изменился (или первый деплой) — ставим начисто"
+              rm -rf node_modules node_modules/.cache 2>/dev/null || true
+              sleep 1
+              rm -rf node_modules 2>/dev/null || true
+              npm ci --no-audit --no-fund 2>&1 | tail -5 || (
+                echo "npm ci failed, retrying after deeper clean" &&                 rm -rf node_modules ~/.npm/_cacache &&                 npm ci --no-audit --no-fund 2>&1 | tail -5
+              )
+              cp package-lock.json "$LOCK_STAMP"
+            fi
 
             echo "=== Generating Prisma client ==="
             npx prisma generate 2>&1 | tail -5
@@ -232,6 +244,19 @@ jobs:
 
             echo "=== Запись .build-sha (на случай если step 1 не записал) ==="
             echo "$GITHUB_SHA" > .build-sha
+
+            echo "=== Restoring .next/cache (инкрементальная сборка) ==="
+            # Без кеша Next собирает всё заново: 2.7 минуты вместо
+            # примерно минуты. Кеш адресуется по содержимому — устаревшие
+            # записи Next выбрасывает сам, поэтому перенос между сборками
+            # безопасен и не даёт склеить старый код с новым.
+            if [ -d .next.cache-backup ]; then
+              mkdir -p .next
+              mv .next.cache-backup .next/cache
+              echo "[cache] восстановлен ($(du -sh .next/cache | cut -f1))"
+            else
+              echo "[cache] бэкапа нет — сборка холодная"
+            fi
 
             echo "=== Building Next.js on prod ==="
             # Build на том же хосте, где устанавливались node_modules,
