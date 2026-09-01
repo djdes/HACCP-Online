@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ScrollToTop } from "@/components/layout/scroll-to-top";
 import localFont from "next/font/local";
 import { ServiceWorkerRegister } from "@/components/layout/sw-register";
 import { BuildVersionWatcher } from "@/components/layout/build-version-watcher";
@@ -124,6 +125,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="WeSetup" />
       </head>
       <body className={`${manrope.variable} antialiased overflow-x-clip`}>
+        <ScrollToTop />
         {children}
         <ServiceWorkerRegister />
         <BuildVersionWatcher />
