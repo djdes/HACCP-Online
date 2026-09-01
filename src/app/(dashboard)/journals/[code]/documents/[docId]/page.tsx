@@ -369,6 +369,11 @@ async function JournalDocumentBody({
         useV2={organization?.experimentalUiV2 ?? true}
         pastDaysLocked={automationLocked}
         todayKey={todayKey}
+        viewer={{
+          id: session.user.id,
+          role: session.user.role,
+          isRoot: session.user.isRoot === true,
+        }}
       />
     );
   }

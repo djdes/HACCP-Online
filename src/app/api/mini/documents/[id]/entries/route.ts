@@ -9,7 +9,10 @@ import {
   PAST_DAY_LOCKED_MESSAGE,
 } from "@/lib/closed-day";
 import { isJournalAutomationEnabled } from "@/lib/journal-automation";
-import { checkEntryScope } from "@/lib/journal-entry-write";
+import {
+  checkEntryScope,
+  hasFullDocumentAccess,
+} from "@/lib/journal-entry-write";
 import { orgTodayKey } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +46,19 @@ export async function GET(
   );
   if (!access) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  // Ровно те же данные, по которым POST принимает решение: без них
+  // Mini App рисует редактируемые карточки чужих сотрудников, и человек
+  // узнаёт об отказе только при сохранении.
+  const org = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { timezone: true },
+  });
+  const actor = {
+    id: session.user.id,
+    role: session.user.role,
+    isRoot: session.user.isRoot === true,
+  };
+
   return NextResponse.json({
     document: {
       id: doc.id,
@@ -50,7 +66,16 @@ export async function GET(
       dateFrom: doc.dateFrom,
       dateTo: doc.dateTo,
       status: doc.status,
+      responsibleUserId: doc.responsibleUserId,
     },
+    viewer: {
+      userId: actor.id,
+      fullAccess: hasFullDocumentAccess({
+        actor,
+        responsibleUserId: doc.responsibleUserId,
+      }),
+    },
+    todayKey: orgTodayKey(org?.timezone ?? undefined),
     template: doc.template,
     entries: doc.entries.map((e) => ({
       id: e.id,

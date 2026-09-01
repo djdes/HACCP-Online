@@ -48,6 +48,11 @@ import {
 
 import { toast } from "sonner";
 import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
+import {
+  FOREIGN_ROW_MESSAGE,
+  NOT_TODAY_MESSAGE,
+  hasFullDocumentAccess,
+} from "@/lib/journal-entry-scope";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { useCellPaint } from "@/lib/journal-cell-paint";
 import {
@@ -91,6 +96,13 @@ type Props = {
    * честнее, чем часы на планшете кухни.
    */
   todayKey?: string;
+  /**
+   * Кто смотрит. Нужен, чтобы гасить чужие строки и прошлые дни ПРЯМО В
+   * СЕТКЕ: сервер такие правки и так отклоняет, но человек до этой
+   * правки успевает потыкать в таблицу и получить отказ уже на
+   * сохранении. Не передан — ведём себя как раньше (полный доступ).
+   */
+  viewer?: { id: string; role: string; isRoot: boolean };
 };
 
 /**
@@ -283,6 +295,7 @@ export function HygieneDocumentClient({
   useV2 = false,
   pastDaysLocked = false,
   todayKey = "",
+  viewer,
 }: Props) {
   const router = useRouter();
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
@@ -363,8 +376,8 @@ export function HygieneDocumentClient({
       printableEmployees.filter((employee) => employee.name).map((employee) => employee.id),
     colKeys: () => dateKeys,
     cellKey: (employeeId, dateKey) => makeCellKey(employeeId, dateKey),
-    isLocked: (_employeeId, dateKey) => isDayLocked(dateKey),
-    onLocked: () => refusePastDay(),
+    isLocked: (employeeId, dateKey) => isCellLocked(employeeId, dateKey),
+    onLocked: (employeeId, dateKey) => refuseCell(employeeId, dateKey),
     beginStroke: (employeeId, dateKey, kind) => {
       const current = normalizeHygieneEntryData(
         entryMap[makeCellKey(employeeId, dateKey)]
@@ -606,14 +619,42 @@ export function HygieneDocumentClient({
     return pastDaysLocked && todayKey !== "" && dateKey < todayKey;
   }
 
+  /**
+   * Полный доступ к документу: руководство и ответственный правят любые
+   * строки и любые дни, рядовой сотрудник — только свою строку и только
+   * сегодня. Правило то же самое, что на сервере (общий чистый модуль),
+   * поэтому сетка и API не могут разойтись в трактовке.
+   */
+  const viewerHasFullAccess = viewer
+    ? hasFullDocumentAccess({ actor: viewer, responsibleUserId })
+    : true;
+
+  /** Причина, по которой ячейка закрыта, или null. */
+  function cellLockReason(employeeId: string, dateKey: string): string | null {
+    if (isDayLocked(dateKey)) return PAST_DAY_LOCKED_MESSAGE;
+    if (viewerHasFullAccess || !viewer) return null;
+    if (employeeId !== viewer.id) return FOREIGN_ROW_MESSAGE;
+    if (todayKey !== "" && dateKey !== todayKey) return NOT_TODAY_MESSAGE;
+    return null;
+  }
+
+  function isCellLocked(employeeId: string, dateKey: string) {
+    return cellLockReason(employeeId, dateKey) !== null;
+  }
+
+  function refuseCell(employeeId: string, dateKey: string) {
+    const reason = cellLockReason(employeeId, dateKey);
+    if (reason) toast.error(reason);
+  }
+
   function refusePastDay() {
     toast.error(PAST_DAY_LOCKED_MESSAGE);
   }
 
   async function handleStatusClick(employeeId: string, dateKey: string) {
     if (!isActive) return;
-    if (isDayLocked(dateKey)) {
-      refusePastDay();
+    if (isCellLocked(employeeId, dateKey)) {
+      refuseCell(employeeId, dateKey);
       return;
     }
 
@@ -627,8 +668,8 @@ export function HygieneDocumentClient({
 
   async function handleTemperatureClick(employeeId: string, dateKey: string) {
     if (!isActive) return;
-    if (isDayLocked(dateKey)) {
-      refusePastDay();
+    if (isCellLocked(employeeId, dateKey)) {
+      refuseCell(employeeId, dateKey);
       return;
     }
 
@@ -691,7 +732,7 @@ export function HygieneDocumentClient({
     if (!isActive || !interactive) return;
     // Прошлый день автодокумента: контекстное меню не открываем — иначе
     // человек выберет статус и получит 403 от сервера.
-    if (isDayLocked(dateKey)) return;
+    if (isCellLocked(employeeId, dateKey)) return;
     event.preventDefault();
     event.stopPropagation();
     // Координаты кладём «как есть»: прижатие к краям вьюпорта делает
@@ -1044,7 +1085,8 @@ export function HygieneDocumentClient({
                         const tempLabel = getTemperatureLabel(entry);
                         const isSaving = savingCellKey === key;
                         const dayNum = getDayNumber(dateKey);
-                        const locked = isDayLocked(dateKey);
+                        const lockReason = cellLockReason(employee.id, dateKey);
+                        const locked = lockReason !== null;
 
                         return (
                           <div
@@ -1059,7 +1101,7 @@ export function HygieneDocumentClient({
                             {locked ? (
                               <Lock
                                 className="size-3.5 shrink-0 text-[#9b9fb3]"
-                                aria-label={PAST_DAY_LOCKED_MESSAGE}
+                                aria-label={lockReason ?? PAST_DAY_LOCKED_MESSAGE}
                               />
                             ) : null}
                             <button
@@ -1072,7 +1114,7 @@ export function HygieneDocumentClient({
                                 ).catch(() => {});
                               }}
                               disabled={!isActive || locked}
-                              title={locked ? PAST_DAY_LOCKED_MESSAGE : undefined}
+                              title={lockReason ?? undefined}
                               className="min-w-0 flex-1 rounded-lg border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-left text-[12px] font-medium text-[#0b1024] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {statusMeta?.code ? (
@@ -1098,7 +1140,7 @@ export function HygieneDocumentClient({
                                 ).catch(() => {});
                               }}
                               disabled={!isActive || locked}
-                              title={locked ? PAST_DAY_LOCKED_MESSAGE : "Температура >37°C"}
+                              title={lockReason ?? "Температура >37°C"}
                               className="shrink-0 rounded-lg border border-[#ececf4] bg-[#fafbff] px-2 py-2 text-[12px] text-[#6f7282] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               T°: {tempLabel || "—"}
@@ -1266,13 +1308,14 @@ export function HygieneDocumentClient({
                         const entry = normalizeHygieneEntryData(entryMap[key]);
                         const statusMeta = getStatusMeta(entry.status);
                         const isSaving = savingCellKey === key;
-                        const locked = isDayLocked(dateKey);
+                        const lockReason = cellLockReason(employee.id, dateKey);
+                        const locked = lockReason !== null;
 
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
                             data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
-                            title={locked ? PAST_DAY_LOCKED_MESSAGE : undefined}
+                            title={lockReason ?? undefined}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
                               dateKey
                             )} ${
@@ -1311,13 +1354,14 @@ export function HygieneDocumentClient({
                         const key = makeCellKey(employee.id, dateKey);
                         const entry = normalizeHygieneEntryData(entryMap[key]);
                         const isSaving = savingCellKey === key;
-                        const locked = isDayLocked(dateKey);
+                        const lockReason = cellLockReason(employee.id, dateKey);
+                        const locked = lockReason !== null;
 
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
                             data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
-                            title={locked ? PAST_DAY_LOCKED_MESSAGE : undefined}
+                            title={lockReason ?? undefined}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
                               dateKey
                             )} ${
