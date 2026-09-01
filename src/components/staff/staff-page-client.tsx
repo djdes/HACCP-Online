@@ -913,15 +913,6 @@ export function StaffPageClient(props: StaffPageProps) {
           // Должность создана — список обновляем, но диалог остаётся
           // открытым: он сам уводит менеджера на шаг «сотрудник».
           onPositionCreated={() => startTransition(() => router.refresh())}
-          // Мастер закрывается, окно доступа открывается на его месте —
-          // сотрудник уже создан, и id у нас есть.
-          onOpenAccess={(userId) => {
-            startTransition(() => router.refresh());
-            setDlg({
-              kind: "access",
-              employee: { id: userId } as StaffEmployee,
-            });
-          }}
           onCreated={(result) => {
             // Раскрываем должность, в которую только что добавили
             // человека, и подсвечиваем её — иначе новая фамилия

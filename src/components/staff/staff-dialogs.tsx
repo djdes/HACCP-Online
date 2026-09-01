@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { ChevronLeft, Copy, ExternalLink, KeyRound, Send } from "lucide-react";
+import { ChevronLeft, Copy, ExternalLink, KeyRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -221,12 +221,7 @@ type TgInvitePayload = {
 
 type AddStep =
   | { kind: "form" }
-  | { kind: "created"; userId: string; userName: string }
-  | {
-      kind: "tg-ready";
-      userName: string;
-      invite: TgInvitePayload;
-    };
+  | { kind: "created"; userId: string; userName: string };
 
 /**
  * Единый двухшаговый диалог «должность → сотрудник».
@@ -257,8 +252,6 @@ export function StaffAddFlowDialog(props: {
    * чтобы раскрыть и подсветить нужную должность в аккордеоне.
    */
   onCreated: (result?: { positionId: string }) => void;
-  /** Открыть окно выдачи доступа для только что созданного сотрудника. */
-  onOpenAccess?: (userId: string) => void;
 } & Close) {
   const [step, setStep] = useState<1 | 2>(props.initialStep);
 
@@ -287,7 +280,6 @@ export function StaffAddFlowDialog(props: {
   );
   const [pending, setPending] = useState(false);
   const [subStep, setSubStep] = useState<AddStep>({ kind: "form" });
-  const [copied, setCopied] = useState(false);
   // Выходные нового сотрудника: по умолчанию Сб+Вс, чтобы график не
   // пришлось прокликивать руками сразу после найма.
   const [weeklyDaysOff, setWeeklyDaysOff] = useState<number[]>([
@@ -364,7 +356,7 @@ export function StaffAddFlowDialog(props: {
     }
   }
 
-  async function submitEmployee(then: "created" | "access" = "created") {
+  async function submitEmployee() {
     if (!positionId) {
       toast.error("Сначала создайте должность");
       setStep(1);
@@ -398,13 +390,6 @@ export function StaffAddFlowDialog(props: {
       // Список обновляем сразу, но диалог держим открытым: менеджер
       // может тут же выдать доступ или приглашение в Telegram.
       props.onCreated({ positionId });
-      if (then === "access") {
-        // «Добавить доступ» на шаге 2 сначала создаёт сотрудника: доступ
-        // выдаётся по его id, а до создания id не существует. Для
-        // человека это одно действие — он нажал кнопку и попал в выдачу.
-        props.onOpenAccess?.(data.user.id);
-        return;
-      }
       setSubStep({
         kind: "created",
         userId: data.user.id,
@@ -413,92 +398,6 @@ export function StaffAddFlowDialog(props: {
     } finally {
       setPending(false);
     }
-  }
-
-  async function issueTgInvite(userId: string, userName: string) {
-    setPending(true);
-    try {
-      const res = await fetch(`/api/staff/${userId}/invite-tg`, {
-        method: "POST",
-      });
-      const data = (await res.json().catch(() => null)) as
-        | (TgInvitePayload & { error?: string })
-        | null;
-      if (!res.ok || !data?.inviteUrl) {
-        toast.error(data?.error ?? "Не удалось создать приглашение");
-        return;
-      }
-      setSubStep({
-        kind: "tg-ready",
-        userName,
-        invite: {
-          inviteUrl: data.inviteUrl,
-          qrPngDataUrl: data.qrPngDataUrl,
-          expiresAt: data.expiresAt,
-        },
-      });
-    } finally {
-      setPending(false);
-    }
-  }
-
-  async function copyInviteUrl(url: string) {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Не удалось скопировать — выделите ссылку вручную");
-    }
-  }
-
-  if (subStep.kind === "tg-ready") {
-    const invite = subStep.invite;
-    return (
-      <Dialog open={props.open} onOpenChange={(v) => !v && closeAll()}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
-          {shell(
-            `Приглашение для ${subStep.userName}`,
-            <div className="space-y-4">
-              <div className="rounded-lg border border-[#eef0fb] bg-[#f8f9ff] p-3 text-[13px] leading-5 text-[#5464ff]">
-                Отправьте ссылку сотруднику любым способом или покажите QR.
-                При первом открытии в Telegram кабинет активируется
-                автоматически. Ссылка действительна 7 дней.
-              </div>
-              <div className="flex justify-center">
-                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/5">
-                  <Image
-                    src={invite.qrPngDataUrl}
-                    alt="QR-код приглашения"
-                    width={220}
-                    height={220}
-                    unoptimized
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={invite.inviteUrl}
-                  className="h-11 rounded-xl border-[#dcdfed] bg-white text-[13px] text-[#0b1024]"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => copyInviteUrl(invite.inviteUrl)}
-                  className="h-11 rounded-xl px-3"
-                  aria-label="Скопировать ссылку"
-                >
-                  <Copy className="size-4" />
-                  {copied ? "Скопировано" : "Копировать"}
-                </Button>
-              </div>
-            </div>,
-            primaryBtn("Готово", closeAll)
-          )}
-        </DialogContent>
-      </Dialog>
-    );
   }
 
   if (subStep.kind === "created") {
@@ -510,13 +409,12 @@ export function StaffAddFlowDialog(props: {
             "Сотрудник добавлен",
             <div className="space-y-3 text-[14px] leading-5 text-[#0b1024]">
               <p>
-                <b>{created.userName}</b> добавлен в штат. Осталось выдать
-                доступ: логин с паролем для браузера, вход через Telegram и
-                журналы, которые он будет вести.
+                <b>{created.userName}</b> добавлен в штат.
               </p>
               <p className="text-[#6f7282]">
-                Можно нажать «Готово» — доступ выдаётся и позже, из карточки
-                сотрудника.
+                Логин с паролем, вход через Telegram и доступ к журналам
+                выдаются в карточке сотрудника — кнопка «Добавить доступ» в
+                окне редактирования.
               </p>
             </div>,
             <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -528,20 +426,6 @@ export function StaffAddFlowDialog(props: {
                 className="h-11 rounded-xl"
               >
                 Готово
-              </Button>
-              {/* Доступ выдаём ПОСЛЕ создания: все три операции — логин,
-                  Telegram-приглашение и журналы — привязаны к id сотрудника
-                  и до его появления физически невозможны. Собирать их в
-                  состоянии значило бы завести второй склад правды рядом с
-                  тремя эндпоинтами. */}
-              <Button
-                type="button"
-                onClick={() => props.onOpenAccess?.(created.userId)}
-                disabled={pending}
-                className="h-11 min-w-[180px] rounded-xl bg-[#5566f6] text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0] disabled:opacity-70"
-              >
-                <KeyRound className="mr-1.5 size-4" />
-                Добавить доступ
               </Button>
             </div>
           )}
@@ -702,19 +586,7 @@ export function StaffAddFlowDialog(props: {
               </p>
             </div>
           </div>,
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void submitEmployee("access")}
-              disabled={pending}
-              className="w-full border-[#dcdfed] text-[#3848c7] hover:bg-[#f5f6ff] sm:w-auto"
-            >
-              <KeyRound className="size-4" />
-              Добавить доступ
-            </Button>
-            {primaryBtn("Добавить", () => void submitEmployee("created"), pending)}
-          </>,
+          primaryBtn("Добавить", () => void submitEmployee(), pending),
           {
             eyebrow: "Шаг 2 из 2",
             leading: (
