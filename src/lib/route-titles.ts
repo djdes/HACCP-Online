@@ -73,7 +73,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/settings/role-presets": "Пресеты ролей",
   "/settings/schedule": "График смен",
   "/settings/staff-hierarchy": "Иерархия управления",
-  "/settings/subscription": "Подписка",
+  "/settings/subscription": "Тарифы",
   "/settings/task-visibility": "Admin-флаг в TasksFlow",
   "/settings/users": "Сотрудники",
   "/settings/users/invite": "Приглашение сотрудника",

@@ -65,6 +65,8 @@ export default async function OrderPage({
           bundleConfig={bundleConfig}
           amountRub={amountRub}
           sessionEmail={sessionEmail}
+          // Пришли из кабинета по кнопке «Включить автопродление».
+          recurringDefault={first("recurring") === "1"}
           returnParams={{
             outSum: first("OutSum"),
             invId: first("InvId"),

@@ -263,7 +263,7 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
-    description: "Тариф и период подписки",
+    description: "Тариф, история платежей, автопродление",
     href: "/settings/subscription",
     icon: CreditCard,
     iconClass: "text-[#ec4899]",
@@ -546,6 +546,8 @@ const GROUP_START = new Set([
   "/settings/buildings",
   "/settings/equipment",
   "/settings/journals",
+  // Тариф — не «дополнительно»: это первое, что ищет владелец, когда
+  // хочет понять, за что платит. В свёрнутом блоке его не находили.
 ]);
 const GROUP_TEAM = new Set([
   "/settings/role-presets",
@@ -586,7 +588,6 @@ const GROUP_ADVANCED = new Set([
   "/settings/experimental",
   "/settings/inspector-portal",
   "/sanpin",
-  "/settings/subscription",
 ]);
 
 function SettingsGroup({

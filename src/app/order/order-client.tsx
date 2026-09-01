@@ -63,6 +63,7 @@ export function OrderClient({
   amountRub,
   returnParams,
   sessionEmail = "",
+  recurringDefault = false,
 }: {
   tariff: Tariff | null;
   bundleConfig: Record<string, number> | null;
@@ -71,6 +72,10 @@ export function OrderClient({
   /// Почта вошедшего пользователя — подставляем, чтобы не спрашивать её
   /// второй раз сразу после регистрации.
   sessionEmail?: string;
+  /// Пришли по кнопке «Включить автопродление» — галочка уже отмечена.
+  /// Это не нарушает требование Робокассы «не проставлено по умолчанию»:
+  /// человек сам нажал кнопку с этим смыслом, а снять отметку он может.
+  recurringDefault?: boolean;
 }) {
   const isReturn = Boolean(
     (returnParams.invId && returnParams.signature) || returnParams.completeToken,
@@ -83,6 +88,7 @@ export function OrderClient({
       bundleConfig={bundleConfig}
       amountRub={amountRub}
       sessionEmail={sessionEmail}
+      recurringDefault={recurringDefault}
     />
   );
 }
@@ -94,16 +100,18 @@ function Checkout({
   bundleConfig,
   amountRub,
   sessionEmail,
+  recurringDefault = false,
 }: {
   tariff: Tariff | null;
   bundleConfig: Record<string, number> | null;
   amountRub: number;
   sessionEmail: string;
+  recurringDefault?: boolean;
 }) {
   const [email, setEmail] = useState(sessionEmail);
   // По умолчанию выключено — этого требует Робокасса: согласие на
   // автосписание человек даёт сам, а не получает вместе с формой.
-  const [recurringConsent, setRecurringConsent] = useState(false);
+  const [recurringConsent, setRecurringConsent] = useState(recurringDefault);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scriptReady = useRobokassaScript();

@@ -63,6 +63,10 @@ export async function fulfillPaidOrder(order: {
   description: string;
   bundleConfig: unknown;
   amountRub: unknown;
+  /** Человек отметил согласие на автосписания при оплате. */
+  recurringConsent?: boolean;
+  /** Заполнено у автосписаний серии — родительский заказ. */
+  recurringChargeOf?: number | null;
 }): Promise<FulfillmentResult> {
   const periodDays = await readPeriodDays(order.tariffKey);
   const existing = await db.user.findUnique({
@@ -78,7 +82,25 @@ export async function fulfillPaidOrder(order: {
     const subscriptionEnd = extendFrom(org?.subscriptionEnd ?? null, periodDays);
     await db.organization.update({
       where: { id: existing.organizationId },
-      data: { subscriptionPlan: "paid", subscriptionEnd },
+      data: {
+        subscriptionPlan: "paid",
+        subscriptionEnd,
+        ...(order.recurringConsent
+          ? { recurringActive: true, recurringParentOrderId: order.id }
+          : {}),
+        // Автопродление включает только платёж-РОДИТЕЛЬ серии: у него
+        // касса и запоминает карту. Списание внутри серии (`chargeOf`)
+        // ничего не переключает — иначе оно бы каждый месяц заново
+        // «включало» то, что человек мог отключить.
+        ...(order.recurringConsent && !order.recurringChargeOf
+          ? {
+              recurringActive: true,
+              recurringParentOrderId: order.id,
+              recurringDisabledAt: null,
+              recurringFailedAttempts: 0,
+            }
+          : {}),
+      },
     });
     await db.paymentOrder.update({
       where: { id: order.id },
