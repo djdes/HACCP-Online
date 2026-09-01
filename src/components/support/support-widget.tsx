@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Bot,
   Loader2,
   MessageCircle,
   MessagesSquare,
@@ -24,7 +25,7 @@ import { cn } from "@/lib/utils";
  * эти данные, и расхождений «я писал не с того аккаунта» не возникает.
  */
 
-type Screen = "menu" | "feedback" | "chat";
+type Screen = "menu" | "feedback" | "chat" | "assistant";
 
 type FeedbackType = "bug" | "suggestion" | "partnership";
 
@@ -41,6 +42,15 @@ type Identity = {
   name: string | null;
 };
 
+type AssistantMessage = {
+  id: string;
+  role: string;
+  content: string;
+  status: string;
+  error: string | null;
+  createdAt: string;
+};
+
 type ChatMessage = {
   id: string;
   author: string;
@@ -51,6 +61,12 @@ type ChatMessage = {
 
 /** Пока чат открыт, тянем новые реплики — ответ оператора должен появиться сам. */
 const CHAT_POLL_MS = 10_000;
+/**
+ * Ассистент отвечает за секунды, а не за часы, — опрашиваем чаще. Пока
+ * ответа нет, ход висит в статусе pending, и это единственный признак,
+ * по которому виджет понимает, что пора спросить ещё раз.
+ */
+const ASSISTANT_POLL_MS = 3_000;
 
 export function SupportWidget() {
   const [open, setOpen] = useState(false);
@@ -65,6 +81,11 @@ export function SupportWidget() {
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [draft, setDraft] = useState("");
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const [aiMessages, setAiMessages] = useState<AssistantMessage[] | null>(null);
+  const [aiDraft, setAiDraft] = useState("");
+  const [aiAvailable, setAiAvailable] = useState(true);
+  const aiBottomRef = useRef<HTMLDivElement | null>(null);
 
   const loadChat = useCallback(async () => {
     const response = await fetch("/api/support/chat").catch(() => null);
@@ -88,6 +109,41 @@ export function SupportWidget() {
     const timer = setInterval(() => void loadChat(), CHAT_POLL_MS);
     return () => clearInterval(timer);
   }, [open, screen, loadChat]);
+
+  const loadAssistant = useCallback(async () => {
+    const response = await fetch("/api/assistant/messages").catch(() => null);
+    if (!response?.ok) {
+      setAiMessages((current) => current ?? []);
+      return;
+    }
+    const data = await response.json().catch(() => null);
+    setAiMessages(data?.messages ?? []);
+    setAiAvailable(data?.available !== false);
+  }, []);
+
+  useEffect(() => {
+    if (!open || screen !== "assistant") return;
+    void loadAssistant();
+  }, [open, screen, loadAssistant]);
+
+  /**
+   * Опрашиваем, только пока есть незакрытый ход. Ассистент отвечает
+   * асинхронно, и других способов узнать про ответ у виджета нет; но
+   * когда отвечать нечего, дёргать сервер каждые три секунды незачем.
+   */
+  useEffect(() => {
+    if (!open || screen !== "assistant") return;
+    const waiting = (aiMessages ?? []).some((item) => item.status === "pending");
+    if (!waiting) return;
+    const timer = setInterval(() => void loadAssistant(), ASSISTANT_POLL_MS);
+    return () => clearInterval(timer);
+  }, [open, screen, aiMessages, loadAssistant]);
+
+  useEffect(() => {
+    if (screen === "assistant") {
+      aiBottomRef.current?.scrollIntoView({ block: "end" });
+    }
+  }, [aiMessages, screen]);
 
   useEffect(() => {
     if (screen === "chat") {
@@ -127,6 +183,30 @@ export function SupportWidget() {
       setMessage("");
       setType("");
     } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendAssistant() {
+    const body = aiDraft.trim();
+    if (body.length < 2) return;
+    setBusy(true);
+    setAiDraft("");
+    try {
+      const response = await fetch("/api/assistant/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: body }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error ?? "Не удалось отправить");
+      // Сервер возвращает переписку целиком вместе с заготовкой ответа —
+      // «печатает» появляется сразу, без лишнего запроса.
+      setAiMessages(data?.messages ?? []);
+    } catch (error) {
+      setAiDraft(body);
       toast.error(error instanceof Error ? error.message : "Ошибка");
     } finally {
       setBusy(false);
@@ -195,7 +275,9 @@ export function SupportWidget() {
               ? "Обратная связь"
               : screen === "chat"
                 ? "Онлайн-чат"
-                : "Поддержка"}
+                : screen === "assistant"
+                  ? "Ассистент"
+                  : "Поддержка"}
           </div>
           {/* Под кем авторизован: поддержка видит ровно эти данные. */}
           <div className="mt-1 space-y-0.5 text-[12px] leading-snug text-[#6f7282]">
@@ -222,6 +304,26 @@ export function SupportWidget() {
 
       {screen === "menu" ? (
         <div className="space-y-2 p-5">
+          {/* Ассистент первым: на «как заполнить» и «где найти» он
+              отвечает за секунды, и человеку не нужно ждать оператора. */}
+          <button
+            type="button"
+            onClick={() => setScreen("assistant")}
+            className="flex w-full items-center gap-3 rounded-2xl border border-[#5566f6]/30 bg-[#f5f6ff] px-4 py-3 text-left transition-colors hover:border-[#5566f6]/60 hover:bg-[#eef1ff]"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#5566f6] text-white">
+              <Bot className="size-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[14px] font-medium text-[#0b1024]">
+                Ассистент
+              </span>
+              <span className="block text-[12px] text-[#6f7282]">
+                Ответит сразу по вашим журналам и настройкам
+              </span>
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => setScreen("feedback")}
@@ -324,6 +426,112 @@ export function SupportWidget() {
             </button>
           </div>
         )
+      ) : null}
+
+      {screen === "assistant" ? (
+        <>
+          {!aiAvailable ? (
+            <div className="shrink-0 border-b border-[#eef0f6] bg-[#fff4f2] px-5 py-3 text-[12.5px] leading-snug text-[#a13a32]">
+              Ассистент сейчас выключен. Напишите в обратную связь или в
+              онлайн-чат — ответит человек.
+            </div>
+          ) : null}
+
+          <div className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
+            {aiMessages === null ? (
+              <div className="flex items-center gap-2 text-[13px] text-[#9b9fb3]">
+                <Loader2 className="size-4 animate-spin" />
+                Загружаем переписку
+              </div>
+            ) : aiMessages.length === 0 ? (
+              <div className="py-4 text-center">
+                <p className="text-[13px] leading-snug text-[#6f7282]">
+                  Спросите про журналы, доступы сотрудников, печать бланков
+                  или что показывать проверяющему.
+                </p>
+                <p className="mt-2 text-[12px] leading-snug text-[#9b9fb3]">
+                  Ассистент видит только вашу организацию и ничего в ней не
+                  меняет — он отвечает, а не выполняет.
+                </p>
+              </div>
+            ) : (
+              aiMessages.map((item) => {
+                if (item.role === "user") {
+                  return (
+                    <div
+                      key={item.id}
+                      className="ml-auto max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-[#5566f6] px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-white"
+                    >
+                      {item.content}
+                    </div>
+                  );
+                }
+                if (item.status === "pending") {
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex max-w-[85%] items-center gap-2 rounded-2xl bg-[#f5f6ff] px-3.5 py-2.5 text-[13px] text-[#6f7282]"
+                    >
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Думает…
+                    </div>
+                  );
+                }
+                if (item.status === "error") {
+                  return (
+                    <div
+                      key={item.id}
+                      className="max-w-[85%] rounded-2xl bg-[#fff4f2] px-3.5 py-2.5 text-[13px] leading-[1.5] text-[#a13a32]"
+                    >
+                      {item.error || "Ассистент не ответил"}
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    key={item.id}
+                    className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-[#f5f6ff] px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-[#0b1024]"
+                  >
+                    {item.content}
+                  </div>
+                );
+              })
+            )}
+            <div ref={aiBottomRef} />
+          </div>
+
+          <div className="shrink-0 border-t border-[#eef0f6] p-3">
+            <div className="flex items-end gap-2">
+              <textarea
+                value={aiDraft}
+                onChange={(event) => setAiDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void sendAssistant();
+                  }
+                }}
+                rows={1}
+                placeholder="Спросите про журналы"
+                disabled={!aiAvailable}
+                className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15 disabled:opacity-60"
+              />
+              <button
+                type="button"
+                onClick={() => void sendAssistant()}
+                disabled={busy || !aiAvailable || aiDraft.trim().length < 2}
+                className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
+                aria-label="Спросить"
+              >
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+              </button>
+            </div>
+          </div>
+        </>
       ) : null}
 
       {screen === "chat" ? (

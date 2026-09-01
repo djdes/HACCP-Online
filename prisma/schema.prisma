@@ -48,26 +48,26 @@ model OrganizationMember {
 }
 
 model Organization {
-  id                       String                     @id @default(cuid())
+  id                            String                     @id @default(cuid())
   /// Автопродление подписки включено.
   ///
   /// Робокасса подключает рекуррент ТОЛЬКО на первом платеже серии, и
   /// «включить» его на уже оплаченный период технически нельзя — нужен
   /// новый платёж. Поэтому флаг ставится при оплате с согласием, а не
   /// отдельной кнопкой.
-  recurringActive          Boolean        @default(false)
+  recurringActive               Boolean                    @default(false)
   /// InvId первого платежа серии — по нему касса списывает следующие.
-  recurringParentOrderId   Int?
+  recurringParentOrderId        Int?
   /// Когда автопродление отключили. Отключение доступно всегда и
   /// действует сразу; оплаченный период при этом сохраняется.
-  recurringDisabledAt      DateTime?
+  recurringDisabledAt           DateTime?
   /// За какой `subscriptionEnd` уже отправлено предупреждение о
   /// списании. Оферта обещает уведомить за 3 дня, и слать его повторно
   /// каждый прогон крона нельзя.
-  recurringNotifiedForEnd  DateTime?
+  recurringNotifiedForEnd       DateTime?
   /// Сколько подряд не удалось списать. После трёх суток автопродление
   /// выключается — так написано в оферте.
-  recurringFailedAttempts  Int            @default(0)
+  recurringFailedAttempts       Int                        @default(0)
   /// Короткий номер организации для префикса логинов сотрудников
   /// (`u12_`). Автоинкремент, а не срез cuid или ИНН: он стабилен
   /// при переименовании и смене реквизитов, короток настолько, что
@@ -78,64 +78,64 @@ model Organization {
   /// существующую таблицу («могут быть дубли») и обрывает весь шаг —
   /// вместе с сидами и перезапуском PM2. Уникальность и так даёт
   /// SERIAL: последовательность не выдаёт одно значение дважды.
-  orgNo              Int            @default(autoincrement())
-  name                     String
+  orgNo                         Int                        @default(autoincrement())
+  name                          String
   /// Сфера заведения: restaurant | cafe | education | bakery | fastfood |
   /// production | other. Колонка переиспользована — раньше здесь лежал
   /// «тип производства» (meat/dairy/…), старые значения переводит
   /// LEGACY_SPHERE_MAP в src/lib/org-profile.ts.
-  type                     String
+  type                          String
   /// Форма собственности: private | chain | state | other.
-  ownershipKind            String                     @default("private")
+  ownershipKind                 String                     @default("private")
   /// Сколько точек назвали при регистрации. Отдельных организаций под
   /// них пока не создаётся — это счётчик обещанного и материал для
   /// аналитики.
-  locationsCount           Int                        @default(1)
-  inn                      String?
-  address                  String?
-  phone                    String?
+  locationsCount                Int                        @default(1)
+  inn                           String?
+  address                       String?
+  phone                         String?
   /// Аккаунт-владелец. Nullable только на время миграции существующих
   /// организаций — после прогона scripts/migrate-multi-org.ts пустых нет.
-  accountId                String?
-  account                  Account?                   @relation(fields: [accountId], references: [id])
-  members                  OrganizationMember[]       @relation("OrganizationMembers")
+  accountId                     String?
+  account                       Account?                   @relation(fields: [accountId], references: [id])
+  members                       OrganizationMember[]       @relation("OrganizationMembers")
   /// Legacy-зеркало тарифа. Правда живёт в Account; поля остаются на один
   /// релиз, чтобы не ломать читателей, которые ещё не переведены.
-  subscriptionPlan         String                     @default("trial")
-  subscriptionEnd          DateTime?
+  subscriptionPlan              String                     @default("trial")
+  subscriptionEnd               DateTime?
   /// Когда организацию автоматически перевели с бесплатного тарифа на
   /// платный из-за превышения лимита в 5 сотрудников. Нужен, чтобы
   /// отличать авто-переход (оплата не требовалась — тестовый режим) от
   /// осознанной покупки и чтобы не переводить повторно.
-  planAutoUpgradedAt       DateTime?
-  locale                   String                     @default("ru")
-  brandColor               String?
-  logoUrl                  String?
-  yookassaShopId           String?
-  createdAt                DateTime                   @default(now())
-  updatedAt                DateTime                   @updatedAt
+  planAutoUpgradedAt            DateTime?
+  locale                        String                     @default("ru")
+  brandColor                    String?
+  logoUrl                       String?
+  yookassaShopId                String?
+  createdAt                     DateTime                   @default(now())
+  updatedAt                     DateTime                   @updatedAt
   /// Per-organisation bearer token for POST /api/external/entries. When set,
   /// overrides the shared EXTERNAL_API_TOKEN env and resolves the caller's
   /// organizationId automatically. Keep unique across orgs.
-  externalApiToken         String?                    @unique
+  externalApiToken              String?                    @unique
   /// Journal template codes the organization has chosen NOT to keep. Empty
   /// by default (= all 35 journals enabled). Toggled from /settings/journals
   /// so different production profiles (кафе, мясокомбинат, пекарня…) can
   /// hide the journals that don't apply. Disabled journals are muted in
   /// the browser and excluded from dashboard compliance counts.
-  disabledJournalCodes     Json                       @default("[]")
+  disabledJournalCodes          Json                       @default("[]")
   /// Ids бумажных бланков (PAPER_JOURNALS), которые организация скрыла.
   /// Пусто = все бумажные журналы сферы показываются — хранение
   /// негативное, как у disabledJournalCodes: новый бланк в каталоге
   /// автоматически включён у всех, а не «забыт». Выключение — только
   /// презентация: карточка уходит с дашборда, но бланк и страница
   /// заполнения остаются доступны по прямой ссылке. /settings/journals.
-  disabledPaperJournalIds  Json                       @default("[]")
+  disabledPaperJournalIds       Json                       @default("[]")
   /// Journal template codes enabled for auto document creation. Every
   /// day a cron checks for codes in this list and ensures there is an
   /// active JournalDocument covering today; creates a month-long doc if
   /// missing. Manages via /settings/auto-journals.
-  autoJournalCodes         Json                       @default("[]")
+  autoJournalCodes              Json                       @default("[]")
   /// Шаблон по умолчанию для журнала уборки и дезинфекции. Когда
   /// менеджер нажимает «Сохранить как шаблон» в журнале — текущий
   /// config (rooms, ответственные, scope-шаги, дни уборки)
@@ -149,14 +149,14 @@ model Organization {
   /// (manager/head_chef/owner/technologist) or ROOT. Default false —
   /// any user who originally filled a task is allowed to re-open and
   /// correct it. Toggled from /settings/compliance.
-  requireAdminForJournalEdit Boolean                  @default(false)
+  requireAdminForJournalEdit    Boolean                    @default(false)
   /// Compliance toggle: «фото-доказательство на каждом шаге pipeline'а».
   /// Когда true, в task-fill wizard'е каждый шаг подтверждается ТОЛЬКО
   /// после загрузки фотографии (камера телефона / выбор файла). Без
   /// фото кнопка «Сделал» заблокирована. Это превращает заполнение
   /// журнала из «галочки» в реальный evidence trail для проверок РПН.
   /// По умолчанию false — каждая орга включает по необходимости.
-  requirePhotoOnTaskFillStep Boolean                  @default(false)
+  requirePhotoOnTaskFillStep    Boolean                    @default(false)
   /// Experimental: Design v2 для журнальных интерфейсов. Когда true,
   /// journal-document-client'ы рендерят унифицированный V2Layout с
   /// общими компонентами (JournalToolbar, JournalSettingsModal, etc.)
@@ -166,12 +166,12 @@ model Organization {
   /// Орга может откатиться через toggle в /settings/experimental
   /// (legacy-код жив в каждом journal-document-client как fallback).
   /// См. docs/PIPELINE-VISION.md раздел P3.
-  experimentalUiV2           Boolean                  @default(true)
+  experimentalUiV2              Boolean                    @default(true)
   /// Час суток (0-23 по локальному часовому поясу организации) когда
   /// смена заканчивается и cron auto-close срабатывает на shared-задачах
   /// без записей. По умолчанию 0 = полночь (23:59:59). Для ночных смен
   /// можно поставить, например, 6 — тогда «сегодня» длится до 06:00.
-  shiftEndHour       Int                        @default(0)
+  shiftEndHour                  Int                        @default(0)
   /// Compliance toggle: «закрытый день». Когда true — после `shiftEndHour`
   /// рядовые сотрудники не могут редактировать записи прошедших дней
   /// (PUT/PATCH/DELETE на JournalDocumentEntry). Только management
@@ -179,59 +179,59 @@ model Organization {
   /// прошлый день — каждое такое редактирование пишется в AuditLog с
   /// reason. Для ХАССП — гарантирует, что официант не «допишет»
   /// вчерашний контроль t° задним числом.
-  lockPastDayEdits   Boolean                    @default(false)
+  lockPastDayEdits              Boolean                    @default(false)
   /// Сколько сообщений к AI-чату осталось в этом месяце. Декремент
   /// в /api/ai/sanpin-chat и /api/ai/period-report. Сброс — cron
   /// /api/cron/reset-ai-quota 1-го числа. Default 20 — trial-tier.
   /// Pro тарифы могут установить большое значение (10000) или −1
   /// (трактуем как unlimited).
-  aiMonthlyMessagesLeft Int                     @default(20)
+  aiMonthlyMessagesLeft         Int                        @default(20)
   /// Базовый месячный лимит — куда возвращаемся после reset cron'а.
   /// Тариф Pro меняет это поле, не aiMonthlyMessagesLeft.
-  aiMonthlyQuota     Int                        @default(20)
+  aiMonthlyQuota                Int                        @default(20)
   /// OAuth-токен Yandex.Disk REST API (получается через /authorize). Если
   /// заполнен — еженедельный cron /api/cron/yandex-backup сохраняет туда
   /// JSON-дамп всех журналов за последние 7 дней. Хранится в открытом
   /// виде, потому что ресторатор сам выпускает app-token для нашего
   /// приложения и может его отозвать в любой момент через
   /// https://oauth.yandex.ru/client/applications.
-  yandexDiskToken          String?
+  yandexDiskToken               String?
   /// Папка на Я.Диске куда писать бэкапы. По умолчанию /WeSetup.
-  yandexDiskFolder         String                     @default("/WeSetup")
+  yandexDiskFolder              String                     @default("/WeSetup")
   /// Когда последний раз cron успешно загрузил дамп. Используем чтобы
   /// показать в /settings/backup карточке «последний бэкап: …» и в
   /// /dashboard health-check'е сигналить если бэкап старше 14 дней.
-  yandexDiskLastBackupAt   DateTime?
+  yandexDiskLastBackupAt        DateTime?
   /// Email бухгалтера для еженедельной выгрузки списаний (LossRecord)
   /// в формате CSV под импорт в 1С:Бухгалтерия. Дёргается cron
   /// `/api/cron/losses-export-1c` по понедельникам. Если null —
   /// org не получает рассылку.
-  accountantEmail          String?
+  accountantEmail               String?
   /// IANA timezone для отображения дат и расчётов compliance.
   /// Default "Europe/Moscow" (UTC+3) — большинство клиентов в РФ.
   /// Используется для перевода дашборд/отчётов из UTC в локаль.
   /// Не путать с `shiftEndHour` — тот про границу смены, а это
   /// про общую локализацию интерфейса.
-  timezone                 String                     @default("Europe/Moscow")
+  timezone                      String                     @default("Europe/Moscow")
   /// K10 — outbound webhooks (Zapier-style). Каждый URL получает
   /// POST { event, organizationId, timestamp, payload } при
   /// significant событиях (capa.created, journal.rejected,
   /// equipment.expired etc.). Org сама может построить интеграцию
   /// с Zapier / Make / N8N не дожидаясь нашей разработки.
-  webhookUrls              String[]
+  webhookUrls                   String[]
   /// Per-template переопределение периода ведения журнала. Shape:
   /// { [templateCode]: { kind: "monthly"|"yearly"|"days"|"perpetual"|"single-day", days?: number } }.
   /// Если для template есть запись — она побеждает дефолтный
   /// resolveJournalPeriodKind. Days-режим режет окна от начала
   /// месяца: N=10 → 1-10 / 11-20 / 21-end. Управляется через
   /// /settings/journals (period column).
-  journalPeriods           Json                       @default("{}")
+  journalPeriods                Json                       @default("{}")
   /// Race-claim mode: "race" (default) — задачи блокируются после
   /// claim, остальные видят «занято». "shared" — все могут заполнять
   /// задачу одновременно, без one-active-task rule. "manual" —
   /// задачи назначаются админом точечно (force-assign).
   /// Управляется в /settings/role-presets или /settings/journal-flow.
-  taskFlowMode             String                     @default("race")
+  taskFlowMode                  String                     @default("race")
   /// Org-level overrides матрицы пресетов ролей (/settings/role-presets).
   /// Структура: `Partial<Record<PermissionPreset, Capability[]>>`. Если
   /// для пресета override отсутствует — применяются hardcoded defaults
@@ -239,20 +239,20 @@ model Organization {
   /// (всегда полный набор) — менять его в JSON бессмысленно, hasCapability
   /// игнорирует override на admin'е. По умолчанию `null` — все компании
   /// стартуют с дефолтов и при желании кастомизируют под свою команду.
-  presetCapabilitiesJson   Json?
+  presetCapabilitiesJson        Json?
   /// Если `true`, «Отправить всем в TasksFlow» учитывает график смен
   /// (WorkShift) и пропускает журналы, ответственные которых не на
   /// смене сегодня. По умолчанию `false` — большинство org'ов не
   /// держат график смен в актуальном виде, и фильтр приводит к тому
   /// что админ нажимает «отправить всем», а ничего не отправляется.
-  bulkAssignRespectShifts  Boolean                    @default(false)
+  bulkAssignRespectShifts       Boolean                    @default(false)
   /// Pipeline-конфиги per-journal — JSON c шагами (название, средства,
   /// зона, что делать). Загружается в Mini App при открытии задачи и
   /// рендерится как вертикальный pipeline вместо свободной формы.
   /// Структура: { "<journalCode>": { "pipeline": [ { id, label,
   /// instruction?, checklist?: string[] } ] } }.
   /// Управляется в /settings/journal-pipelines.
-  journalPipelinesJson     Json                       @default("{}")
+  journalPipelinesJson          Json                       @default("{}")
   /// Per-journal responsible USERS (поверх per-position eligibility
   /// в `JobPositionJournalAccess`). Структура:
   /// { [journalCode]: { [slotId]: userId } }. У разных журналов
@@ -261,7 +261,7 @@ model Organization {
   /// controller), у большинства один (main). Схема описана в
   /// src/lib/journal-responsible-schemas.ts. Управляется в
   /// /settings/journal-responsibles.
-  journalResponsibleUsersJson Json                     @default("{}")
+  journalResponsibleUsersJson   Json                       @default("{}")
   /// Phase D: per-journal task-режимы. Per-org карта вида
   ///   { [journalCode]: { distribution: "...", verification: "...",
   ///     siblingVisibility: boolean, ... } }
@@ -270,7 +270,7 @@ model Organization {
   /// Verification — режим проверки (summary-task / per-cell / none).
   /// Управляется в /settings/journal-task-mode. Если код не задан —
   /// дефолт из getDefaultTaskMode(journalCode).
-  journalTaskModesJson     Json                       @default("{}")
+  journalTaskModesJson          Json                       @default("{}")
   /// Per-org override сложности журналов (1-5). Используется для
   /// расчёта workload-balance — если в компании нет шеф-повара,
   /// задачи распределяются между поварами равномерно по
@@ -278,7 +278,7 @@ model Organization {
   /// DEFAULT_DIFFICULTY в src/lib/journal-workload.ts. Управляется
   /// в /settings/journal-difficulty.
   /// Структура: { [journalCode]: 1 | 2 | 3 | 4 | 5 }
-  journalDifficultyJson    Json                       @default("{}")
+  journalDifficultyJson         Json                       @default("{}")
   /// Автоматизация журналов: автосоздание документов + ежедневное
   /// автозаполнение сегодняшнего дня (cron 06:00,
   /// /api/cron/journal-automation). Структура:
@@ -288,42 +288,42 @@ model Organization {
   /// падает обратно на легаси-список `autoJournalCodes`, autoFill = false.
   /// Для новых организаций hygiene включён по умолчанию (см.
   /// defaultJournalAutomationJson в src/lib/journal-automation.ts).
-  journalAutomationJson    Json                       @default("{}")
-  users                    User[]
-  areas                    Area[]
-  journalEntries           JournalEntry[]
-  products                 Product[]
-  auditLogs                AuditLog[]
-  journalChecklistItems    JournalChecklistItem[]
-  journalChecklistChecks   JournalChecklistCheck[]
-  managerScopes            ManagerScope[]
-  batches                  Batch[]
-  capaTickets              CapaTicket[]
-  lossRecords              LossRecord[]
-  productionPlans          ProductionPlan[]
-  changeRequests           ChangeRequest[]
-  staffCompetencies        StaffCompetency[]
-  journalDocuments         JournalDocument[]
-  jobPositions             JobPosition[]
-  notifications            Notification[]
-  botInviteTokens          BotInviteToken[]
-  journalObligations       JournalObligation[]
-  workShifts               WorkShift[]
-  jobPositionJournalAccess JobPositionJournalAccess[]
-  bonusEntries             BonusEntry[]
-  inspectorTokens          InspectorToken[]
-  journalCloseEvents       JournalCloseEvent[]
-  formFillTimings          FormFillTiming[]
-  employeeJoinTokens       EmployeeJoinToken[]
-  buildings                Building[]
-  journalTaskClaims        JournalTaskClaim[]
-  tasksFlowIntegration     TasksFlowIntegration?
-  tasksFlowOutbox          TasksFlowOutbox[]
-  paperJournalDocuments    PaperJournalDocument[]
-  printAgents              PrintAgent[]
-  printJobs                PrintJob[]
-  journalGuideTemplates    JournalGuideTemplate[]
-  journalPipelineTemplates JournalPipelineTemplate[]
+  journalAutomationJson         Json                       @default("{}")
+  users                         User[]
+  areas                         Area[]
+  journalEntries                JournalEntry[]
+  products                      Product[]
+  auditLogs                     AuditLog[]
+  journalChecklistItems         JournalChecklistItem[]
+  journalChecklistChecks        JournalChecklistCheck[]
+  managerScopes                 ManagerScope[]
+  batches                       Batch[]
+  capaTickets                   CapaTicket[]
+  lossRecords                   LossRecord[]
+  productionPlans               ProductionPlan[]
+  changeRequests                ChangeRequest[]
+  staffCompetencies             StaffCompetency[]
+  journalDocuments              JournalDocument[]
+  jobPositions                  JobPosition[]
+  notifications                 Notification[]
+  botInviteTokens               BotInviteToken[]
+  journalObligations            JournalObligation[]
+  workShifts                    WorkShift[]
+  jobPositionJournalAccess      JobPositionJournalAccess[]
+  bonusEntries                  BonusEntry[]
+  inspectorTokens               InspectorToken[]
+  journalCloseEvents            JournalCloseEvent[]
+  formFillTimings               FormFillTiming[]
+  employeeJoinTokens            EmployeeJoinToken[]
+  buildings                     Building[]
+  journalTaskClaims             JournalTaskClaim[]
+  tasksFlowIntegration          TasksFlowIntegration?
+  tasksFlowOutbox               TasksFlowOutbox[]
+  paperJournalDocuments         PaperJournalDocument[]
+  printAgents                   PrintAgent[]
+  printJobs                     PrintJob[]
+  journalGuideTemplates         JournalGuideTemplate[]
+  journalPipelineTemplates      JournalPipelineTemplate[]
 }
 
 /// Корпус/точка бизнеса организации. У сети может быть несколько
@@ -350,12 +350,12 @@ model Building {
 /// свободный текст; `kind` — слабая типизация для иконок и pre-fill
 /// (guest/kitchen/wash/bar/storage/other).
 model Room {
-  id         String   @id @default(cuid())
-  buildingId String
-  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
-  name       String
-  kind       String   @default("other")
-  sortOrder  Int      @default(0)
+  id                  String   @id @default(cuid())
+  buildingId          String
+  building            Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  name                String
+  kind                String   @default("other")
+  sortOrder           Int      @default(0)
   /// Cleaning unification (2026-05-08): Room — единственный источник
   /// правды о уборке. Эти поля раньше дублировались в
   /// JournalDocument.config.rooms[i] (CleaningRoomItem) для каждого
@@ -369,30 +369,30 @@ model Room {
   /// JSON для scope (а не String[]) — гибче, позже можно расширить
   /// до { label, hint, requirePhoto } без миграции.
   /// См. docs/superpowers/specs/2026-05-08-cleaning-unification.md
-  detergent     String?  @default("")
-  currentScope  Json     @default("[]")
-  generalScope  Json     @default("[]")
-  currentDays   Int      @default(127)
-  generalDays   Int      @default(0)
+  detergent           String?  @default("")
+  currentScope        Json     @default("[]")
+  generalScope        Json     @default("[]")
+  currentDays         Int      @default(127)
+  generalDays         Int      @default(0)
   /// 2026-05-08+: тип расписания per-scope. "weekly" — currentDays/
   /// generalDays bitmask повторяется каждую неделю. "monthly" —
   /// currentMonthDays/generalMonthDays массив конкретных дней месяца
   /// (включая special-токен "last" = последний день месяца). Это даёт
   /// гибкость для генеральной уборки «раз в месяц последнего числа»
   /// или «1 и 15». Дефолт "weekly" для совместимости.
-  currentScheduleType String @default("weekly")
-  generalScheduleType String @default("weekly")
+  currentScheduleType String   @default("weekly")
+  generalScheduleType String   @default("weekly")
   /// Json string[]: ["1", "15", "last"] и т.п. Применяется когда
   /// currentScheduleType / generalScheduleType == "monthly".
-  currentMonthDays    Json   @default("[]")
-  generalMonthDays    Json   @default("[]")
+  currentMonthDays    Json     @default("[]")
+  generalMonthDays    Json     @default("[]")
   /// 2026-05-08+: если true, в pipeline-шагах TasksFlow на каждом
   /// шаге включается photoMode='required'. Уборщица не может нажать
   /// «Сделал» без загрузки фото. Per-Room — все scope-шаги этой
   /// комнаты обязательно требуют фото.
-  requirePhoto  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  requirePhoto        Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@unique([buildingId, name])
   @@index([buildingId, sortOrder])
@@ -412,25 +412,25 @@ model Room {
 /// claimedUserId, повторное использование возвращает 410 Gone. По
 /// истечении expiresAt токен молча отклоняется (404).
 model EmployeeJoinToken {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id                     String       @id @default(cuid())
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// SHA-256 hash от raw токена. Raw показывается админу один раз при
   /// создании и больше нигде не хранится — как InviteToken/InspectorToken.
-  tokenHash      String       @unique
+  tokenHash              String       @unique
   /// Подсказка: какую должность админ имел в виду. Юзер всё равно
   /// выбирает сам из dropdown'а, но если поле выставлено — оно
   /// preselected'ит вариант.
   suggestedJobPositionId String?
   /// User-кто-выписал. Помогает аудиту «кто впустил сотрудника».
-  createdById    String
-  expiresAt      DateTime
-  claimedAt      DateTime?
-  claimedUserId  String?
+  createdById            String
+  expiresAt              DateTime
+  claimedAt              DateTime?
+  claimedUserId          String?
   /// Свободный лейбл для админа («Иванов И.И. цех №2») — UI показывает
   /// в списке выписанных QR.
-  label          String?
-  createdAt      DateTime     @default(now())
+  label                  String?
+  createdAt              DateTime     @default(now())
 
   @@index([organizationId])
   @@index([expiresAt])
@@ -442,7 +442,7 @@ model User {
   /// логином (или синтетикой вида staff-…@org.local.haccp) и
   /// уникален на всю платформу, а личный адрес может быть общим
   /// или отсутствовать вовсе.
-  contactEmail       String?
+  contactEmail                String?
   email                       String                   @unique
   name                        String
   phone                       String?
@@ -590,7 +590,7 @@ model JobPosition {
   /// не задано (нет ManagerScope per-user тоже) — fallback на
   /// «видит всех» (back-compat). Редактируется через
   /// /settings/position-staff-visibility.
-  visibleUserIds  String[]                   @default([])
+  visibleUserIds String[] @default([])
 
   /// «Видит ВСЕ задачи всех сотрудников в TasksFlow» — флаг для
   /// руководящих должностей. Когда true — sync ставит isAdmin=true
@@ -604,7 +604,7 @@ model JobPosition {
   /// fallback на legacy behavior (первый management-юзер = isAdmin).
   /// Это back-compat для старых орг'ов которые ничего не
   /// настраивали.
-  seesAllTasks    Boolean                    @default(false)
+  seesAllTasks Boolean @default(false)
 
   @@unique([organizationId, categoryKey, name])
   @@index([organizationId, sortOrder])
@@ -734,10 +734,10 @@ model InviteToken {
 /// Like InviteToken — only sha256 digest is persisted, raw token is shown
 /// once on creation.
 model InspectorToken {
-  id             String       @id @default(cuid())
+  id             String           @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  tokenHash      String       @unique
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tokenHash      String           @unique
   /// Free-form description set by admin (visible only in their list).
   label          String?
   /// Period the inspector is allowed to view (UTC midnight).
@@ -747,11 +747,11 @@ model InspectorToken {
   /// Bumped on every successful resolve — UI shows last-access stamp.
   lastAccessedAt DateTime?
   /// Total resolve count for usage stats.
-  accessCount    Int          @default(0)
+  accessCount    Int              @default(0)
   /// Once admin clicks «Отозвать», token stops working without removing
   /// the row (audit trail of who/when/why).
   revokedAt      DateTime?
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime         @default(now())
   /// Who issued the token (admin's userId). Helps audits and "кто впустил
   /// инспектора" forensics. Nullable for legacy and ROOT-issued tokens.
   createdById    String?
@@ -768,14 +768,14 @@ model InspectorToken {
 /// 2026-04-30 14:30». Compliance-проверка постфактум: видно кто и
 /// когда смотрел журналы.
 model InspectorVisit {
-  id           String         @id @default(cuid())
-  tokenId      String
-  token        InspectorToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
-  signedAt     DateTime       @default(now())
-  ipAddress    String?
-  userAgent    String?
+  id              String         @id @default(cuid())
+  tokenId         String
+  token           InspectorToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  signedAt        DateTime       @default(now())
+  ipAddress       String?
+  userAgent       String?
   /// ФИО / должность которое инспектор сам указал в форме «Подтверждаю».
-  inspectorName String?
+  inspectorName   String?
   /// Список templateCodes которые он просмотрел в эту сессию.
   templatesViewed Json?
 
@@ -928,31 +928,31 @@ model Article {
 /// email / name / org at submission time so reports stay readable after a
 /// user or organisation is later deleted.
 model FeedbackReport {
-  id               String   @id @default(cuid())
-  userId           String?
-  userEmail        String?
-  userName         String?
-  organizationId   String?
-  organizationName String?
+  id                String    @id @default(cuid())
+  userId            String?
+  userEmail         String?
+  userName          String?
+  organizationId    String?
+  organizationName  String?
   /// "bug" | "suggestion" | "support"
-  type             String
-  message          String
-  phone            String?
+  type              String
+  message           String
+  phone             String?
   /// "site" | "telegram" — откуда пришло обращение. Форма на сайте и в
   /// Mini App даёт "site", произвольное сообщение боту — "telegram".
-  source           String   @default("site")
+  source            String    @default("site")
   /// Для source="telegram" — chat id автора: единственный адрес, по
   /// которому ответ поддержки может до него дойти (аккаунта может не быть).
-  telegramChatId   String?
+  telegramChatId    String?
   /// Когда админ-уведомление реально ушло. null = канал промолчал, и это
   /// видно в /root/feedback, а не только в console.error.
   adminTgNotifiedAt DateTime?
   adminEmailedAt    DateTime?
-  responseMessage  String?
-  respondedAt      DateTime?
-  respondedById    String?
-  respondedByName  String?
-  createdAt        DateTime @default(now())
+  responseMessage   String?
+  respondedAt       DateTime?
+  respondedById     String?
+  respondedByName   String?
+  createdAt         DateTime  @default(now())
 
   @@index([createdAt])
   @@index([type])
@@ -987,15 +987,15 @@ model SupportThread {
 }
 
 model SupportMessage {
-  id       String        @id @default(cuid())
-  threadId String
-  thread   SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid())
+  threadId     String
+  thread       SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   /// "client" | "operator"
-  author   String
-  body     String
+  author       String
+  body         String
   /// Кто ответил со стороны поддержки — показываем клиенту в чате.
   operatorName String?
-  createdAt DateTime @default(now())
+  createdAt    DateTime      @default(now())
 
   @@index([threadId, createdAt])
 }
@@ -1009,32 +1009,32 @@ model SupportMessage {
 /// small objects that the client renders as a checkbox list — the shape
 /// is typed in src/lib/notifications.ts.
 model Notification {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Domain tag — e.g. "staff.added.journal". Used to dedupe with `key`.
-  kind           String
+  kind             String
   /// Stable dedupe key (e.g. "staff.added.journal:<journalCode>") so
   /// repeated triggers merge items into the existing open notification
   /// instead of piling up duplicates.
-  dedupeKey      String
-  title          String
+  dedupeKey        String
+  title            String
   /// Optional inline link target, e.g. "/journals/hygiene".
-  linkHref       String?
-  linkLabel      String?
-  items          Json         @default("[]")
+  linkHref         String?
+  linkLabel        String?
+  items            Json         @default("[]")
   /// Подзадачи (items.id), которые юзер уже отметил как прочитанные.
   /// При выдаче GET /api/notifications эти id фильтруются из items;
   /// если после фильтра items пустой — readAt автоматически выставится
   /// и нотификация перейдёт в «Прочитанные». Это даёт UX «прочитать
   /// одну подзадачу из десяти, не закрывая всю задачу».
-  dismissedItemIds Json       @default("[]")
-  readAt         DateTime?
-  dismissedAt    DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  dismissedItemIds Json         @default("[]")
+  readAt           DateTime?
+  dismissedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   @@unique([userId, dedupeKey])
   @@index([userId, dismissedAt, readAt])
@@ -1077,15 +1077,15 @@ model JournalObligation {
 }
 
 model JournalTemplate {
-  id                 String                     @id @default(cuid())
-  code               String                     @unique
-  name               String
-  description        String?
-  fields             Json
-  isActive           Boolean                    @default(true)
-  sortOrder          Int                        @default(0)
-  isMandatorySanpin  Boolean                    @default(false)
-  isMandatoryHaccp   Boolean                    @default(false)
+  id                  String                     @id @default(cuid())
+  code                String                     @unique
+  name                String
+  description         String?
+  fields              Json
+  isActive            Boolean                    @default(true)
+  sortOrder           Int                        @default(0)
+  isMandatorySanpin   Boolean                    @default(false)
+  isMandatoryHaccp    Boolean                    @default(false)
   /// Распределение задач из этого журнала между сотрудниками:
   ///   "per-employee" — обязательство каждому подходящему сотруднику
   ///                    (гигиена, журнал здоровья — каждый за себя)
@@ -1094,16 +1094,16 @@ model JournalTemplate {
   ///                    подходящими сотрудниками
   ///   "sensor"       — заполняет IoT-датчик, людям не приходит
   ///                    (Фаза 2, пока заглушка)
-  fillMode           String                     @default("per-employee")
+  fillMode            String                     @default("per-employee")
   /// Используется только при `fillMode == "single"`. Если не null —
   /// обязательство всегда идёт этому пользователю; null → round-robin.
-  defaultAssigneeId  String?
-  defaultAssignee    User?                      @relation("DefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
+  defaultAssigneeId   String?
+  defaultAssignee     User?                      @relation("DefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
   /// Премиальная сумма (в копейках, чтобы не возиться с float-ами)
   /// за выполнение этого журнала. 0 — обычное обязательство без
   /// бонуса. Менеджер активирует через `/settings/journals` → у
   /// обязательств появляется кнопка «Взять с бонусом» (Фаза 3).
-  bonusAmountKopecks Int                        @default(0)
+  bonusAmountKopecks  Int                        @default(0)
   /// Тип задачи в TasksFlow:
   ///   "personal" — закреплено за одним сотрудником, закрывается один
   ///                раз за смену (hygiene, health_check, cleaning).
@@ -1113,25 +1113,25 @@ model JournalTemplate {
   /// Default "personal" для back-compat. Settings UI в /settings/journals/[code]
   /// позволяет менеджеру переопределить для своей организации (см.
   /// OrgJournalScopeOverride если потребуется per-org override).
-  taskScope          String                     @default("personal")
+  taskScope           String                     @default("personal")
   /// Можно ли в TasksFlow нажать «Не требуется сегодня» вместо
   /// заполнения. False для критичных журналов (health_check —
   /// нельзя отказаться от проверки здоровья).
-  allowNoEvents      Boolean                    @default(true)
+  allowNoEvents       Boolean                    @default(true)
   /// Список стандартных причин для closure без событий. JSON-массив
   /// строк. Менеджер редактирует в /settings/journals/[code].
-  noEventsReasons    Json                       @default("[\"Поставок/событий нет\",\"Заведение закрыто\",\"Оборудование не в работе\",\"Выходной/праздничный день\"]")
+  noEventsReasons     Json                       @default("[\"Поставок/событий нет\",\"Заведение закрыто\",\"Оборудование не в работе\",\"Выходной/праздничный день\"]")
   /// Можно ли вводить свободный текст причины в дополнение к списку.
   /// False — только из готового списка (стандартизация для отчётов).
-  allowFreeTextReason Boolean                   @default(false)
-  entries            JournalEntry[]
-  documents          JournalDocument[]
-  journalObligations JournalObligation[]
-  positionAccess     JobPositionJournalAccess[]
-  sensorMappings     EquipmentSensorMapping[]
-  bonusEntries       BonusEntry[]
-  closeEvents        JournalCloseEvent[]
-  formFillTimings    FormFillTiming[]
+  allowFreeTextReason Boolean                    @default(false)
+  entries             JournalEntry[]
+  documents           JournalDocument[]
+  journalObligations  JournalObligation[]
+  positionAccess      JobPositionJournalAccess[]
+  sensorMappings      EquipmentSensorMapping[]
+  bonusEntries        BonusEntry[]
+  closeEvents         JournalCloseEvent[]
+  formFillTimings     FormFillTiming[]
 
   @@index([defaultAssigneeId])
 }
@@ -1156,47 +1156,47 @@ model JournalTemplate {
 ///   "expired"   — auto-cleanup cron'ом если active более N часов без
 ///                 завершения (см. /api/cron/journal-claim-expire)
 model JournalTaskClaim {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  journalCode    String
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  journalCode        String
   /// Уникальный ключ задачи внутри (organizationId, journalCode).
   /// Включает date-component для дневного scope (см. doc выше).
-  scopeKey       String
+  scopeKey           String
   /// Human-readable label для UI ("Зона 2 — Холодный цех", "Холодильник 1 утро").
-  scopeLabel     String
+  scopeLabel         String
   /// Дата задачи (UTC midnight) — для фильтрации в списках per-date.
   /// Дублирует часть scopeKey, но дешевле для индекса.
-  dateKey        DateTime
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status         String       @default("active")
-  claimedAt      DateTime     @default(now())
-  completedAt    DateTime?
-  releasedAt     DateTime?
+  dateKey            DateTime
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status             String       @default("active")
+  claimedAt          DateTime     @default(now())
+  completedAt        DateTime?
+  releasedAt         DateTime?
   /// Свободный hint для UI — какой это был журнал/документ ("Уборка
   /// 28.04 — Холодный цех"). Используется в one-active-task tooltip.
-  parentHint     String?
+  parentHint         String?
   /// FK на JournalDocumentEntry или JournalEntry, созданный при completion.
   /// Может быть null если completion ещё не написало entry.
-  entryId        String?
+  entryId            String?
   /// Для TasksFlow mirror — id задачи в TF, если она была создана.
   /// Если zero — claim только в WeSetup.
-  tasksFlowTaskId String?
+  tasksFlowTaskId    String?
   /// Verification от заведующей. После того как сотрудник завершил
   /// задачу (status=completed), заведующая получает её на проверку.
   /// pending — ждёт; approved — заведующая подтвердила; rejected —
   /// отклонила (сотрудник должен переделать).
   verificationStatus String?
   verifiedById       String?
-  verifiedBy         User?    @relation("ClaimVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedBy         User?        @relation("ClaimVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
   verifiedAt         DateTime?
   verifierComment    String?
   /// Снимок form-data на момент complete'а — для verification UI
   /// (чтобы заведующая видела, что именно ввёл сотрудник).
   completionData     Json?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   /// Ключ к race-resolution: `INSERT ON CONFLICT DO NOTHING` через unique.
   /// Допускается несколько записей с тем же scopeKey разных статусов
@@ -1619,63 +1619,63 @@ model StaffCompetency {
 // ============================================================
 
 model JournalDocument {
-  id                String                 @id @default(cuid())
-  templateId        String
-  template          JournalTemplate        @relation(fields: [templateId], references: [id])
-  organizationId    String
-  organization      Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  title             String // e.g. "Гигиенический журнал"
-  config            Json?
-  dateFrom          DateTime
-  dateTo            DateTime
-  responsibleUserId String?
-  responsibleTitle  String? // e.g. "Управляющий"
+  id                       String                 @id @default(cuid())
+  templateId               String
+  template                 JournalTemplate        @relation(fields: [templateId], references: [id])
+  organizationId           String
+  organization             Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title                    String // e.g. "Гигиенический журнал"
+  config                   Json?
+  dateFrom                 DateTime
+  dateTo                   DateTime
+  responsibleUserId        String?
+  responsibleTitle         String? // e.g. "Управляющий"
   /// Phase C двухступенчатой проверки. Кто принимает результат (verifier).
   /// Обычно management-роль (заведующая) — отдельная от заполнителей.
   /// Если null — fallback на responsibleUserId (back-compat для документов
   /// созданных до разделения filler/verifier).
-  verifierUserId    String?
+  verifierUserId           String?
   /// Phase D пометка верификации сводной задачи. Сотрудник заполнил все
   /// слоты, задача-сводка ушла verifier'у — сюда пишем когда verifier
   /// одобрил/отклонил весь документ. Per-cell verifications живут в
   /// JournalDocumentEntry.verificationStatus (см. дальше).
-  verificationStatus String? // "pending" | "submitted" | "approved" | "rejected"
-  verificationDecidedById String?
-  verificationDecidedAt DateTime?
+  verificationStatus       String? // "pending" | "submitted" | "approved" | "rejected"
+  verificationDecidedById  String?
+  verificationDecidedAt    DateTime?
   verificationRejectReason String?
-  status            String                 @default("active") // active | closed
-  autoFill          Boolean                @default(false)
-  createdById       String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  entries           JournalDocumentEntry[]
-  closeEvents       JournalCloseEvent[]
-  printJobs         PrintJob[]
+  status                   String                 @default("active") // active | closed
+  autoFill                 Boolean                @default(false)
+  createdById              String?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  entries                  JournalDocumentEntry[]
+  closeEvents              JournalCloseEvent[]
+  printJobs                PrintJob[]
 
   @@index([organizationId, templateId, status])
   @@index([organizationId, dateFrom])
 }
 
 model JournalDocumentEntry {
-  id         String          @id @default(cuid())
-  documentId String
-  document   JournalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  employeeId String
-  employee   User            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  date       DateTime // the specific day (date-only, truncated to midnight)
-  data       Json // template-specific: { healthStatus: "healthy"|"day_off"|..., temperatureAbove37: false }
+  id                       String          @id @default(cuid())
+  documentId               String
+  document                 JournalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  employeeId               String
+  employee                 User            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date                     DateTime // the specific day (date-only, truncated to midnight)
+  data                     Json // template-specific: { healthStatus: "healthy"|"day_off"|..., temperatureAbove37: false }
   /// Phase E — per-cell verification.
   ///   • null/"pending" — ячейка не прошла проверку.
   ///   • "approved"     — verifier одобрил эту ячейку.
   ///   • "rejected"     — verifier отклонил с rejectReason; сотруднику
   ///                       приходит push «у вас отклонили запись», поле
   ///                       помечается красной рамкой в UI и ждёт правки.
-  verificationStatus String?
+  verificationStatus       String?
   verificationRejectReason String?
   verificationDecidedById  String?
   verificationDecidedAt    DateTime?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
 
   @@unique([documentId, employeeId, date])
   @@index([documentId, date])
@@ -1938,25 +1938,25 @@ enum TasksFlowOutboxStatus {
 ///   • completeTask (manager закрыл ячейку в Wesetup, П-10): payload={taskId}
 ///   • verifyTask (manager подписал в Wesetup, П-14): payload={taskId}
 model TasksFlowOutbox {
-  id              String                @id @default(cuid())
-  integrationId   String
-  integration     TasksFlowIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  organizationId  String
-  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String                @id @default(cuid())
+  integrationId  String
+  integration    TasksFlowIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// UUID-v4 для дедупа при retry. TasksFlow со временем должен принимать
   /// header Idempotency-Key (Фаза 2.8). Сейчас он только для нашей записи.
-  idempotencyKey  String                @unique
+  idempotencyKey String                @unique
   /// "markClaimedByOther" | "deleteTask" | "completeTask" | "verifyTask"
-  action          String
+  action         String
   /// JSON: { taskId: number, ...action-specific fields }
-  payload         Json
-  status          TasksFlowOutboxStatus @default(pending)
-  attempts        Int                   @default(0)
-  lastAttemptAt   DateTime?
-  lastError       String?
-  deliveredAt     DateTime?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  payload        Json
+  status         TasksFlowOutboxStatus @default(pending)
+  attempts       Int                   @default(0)
+  lastAttemptAt  DateTime?
+  lastError      String?
+  deliveredAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 
   @@index([status, createdAt])
   @@index([integrationId, status])
@@ -1974,12 +1974,12 @@ model TasksFlowOutbox {
 /// Архивируется soft-delete (archivedAt) — старые чеки сохраняют
 /// referential integrity, новые задачи не видят архивный пункт.
 model JournalChecklistItem {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id              String                  @id @default(cuid())
+  organizationId  String
+  organization    Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// Один из ACTIVE_JOURNAL_CATALOG codes. Не FK на JournalTemplate
   /// чтобы пункты переживали изменения шаблона.
-  journalCode    String
+  journalCode     String
   /// Опциональная привязка к конкретной комнате (Room.id из Building).
   /// Используется для cleaning-журналов где разные комнаты имеют разные
   /// чек-листы:
@@ -1989,28 +1989,28 @@ model JournalChecklistItem {
   /// Не FK на Room чтобы переживало удаление комнаты (soft-delete via
   /// archivedAt). При полном удалении комнаты пункт остаётся в БД но
   /// никогда не показывается.
-  roomId         String?
+  roomId          String?
   /// Текст пункта (видит сотрудник).
-  label          String
+  label           String
   /// Сортировка (0, 1, 2, ...). Меньшее число = выше в списке.
-  sortOrder      Int          @default(0)
+  sortOrder       Int                     @default(0)
   /// Если true — submit формы блокируется пока не отмечено.
-  required       Boolean      @default(true)
+  required        Boolean                 @default(true)
   /// Опциональная подсказка/уточнение под пунктом.
-  hint           String?
+  hint            String?
   /// Частота выполнения. По умолчанию `daily` — пункт показывается
   /// каждый день. Другие варианты:
   ///   • "weekly"  — только в дни weekDays (см. ниже)
   ///   • "monthly" — только в день monthDay месяца
   /// Если frequency не подходит к сегодняшней дате, пункт не
   /// показывается в TaskFill этого дня (но и не блокирует submit).
-  frequency      String       @default("daily")
+  frequency       String                  @default("daily")
   /// Дни недели для frequency=weekly. ISO-формат: 1=Пн, 7=Вс.
   /// Пример: [1,3,5] — пункт показывается Пн, Ср, Пт.
-  weekDays       Int[]        @default([])
+  weekDays        Int[]                   @default([])
   /// День месяца (1-31) для frequency=monthly. Если месяц короче,
   /// клиппим (день 31 в феврале → последний день февраля).
-  monthDay       Int?
+  monthDay        Int?
   /// Категория для cleaning-журнала. Авто-синхронизируется из
   /// `CleaningRoomItem.currentScope[]` / `generalScope[]` при сохранении
   /// помещения в /journals/cleaning/documents/[id] room-edit dialog.
@@ -2019,13 +2019,13 @@ model JournalChecklistItem {
   ///   • "general"  — пункт генеральной уборки (auto-managed)
   /// На таких items HARM-edit запрещён через UI чек-листов (back-channel
   /// синхронизация перезаписывает).
-  category       String?
-  archivedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  category        String?
+  archivedAt      DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
   createdByUserId String?
   /// Galочки по этому пункту (audit-trail кто-когда отметил).
-  checks         JournalChecklistCheck[]
+  checks          JournalChecklistCheck[]
 
   @@index([organizationId, journalCode, archivedAt])
   @@index([organizationId, journalCode, sortOrder])
@@ -2087,18 +2087,18 @@ model JournalGuideTemplate {
 /// drag-drop работал без reindexing — берём (prev + next) / 2.
 /// `photoUrl` — illustrative картинка («вот так выглядит грязный фильтр»).
 model JournalGuideNode {
-  id         String                @id @default(cuid())
+  id         String               @id @default(cuid())
   templateId String
-  template   JournalGuideTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template   JournalGuideTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   parentId   String?
-  parent     JournalGuideNode?     @relation("guide_children", fields: [parentId], references: [id], onDelete: Cascade)
-  children   JournalGuideNode[]    @relation("guide_children")
+  parent     JournalGuideNode?    @relation("guide_children", fields: [parentId], references: [id], onDelete: Cascade)
+  children   JournalGuideNode[]   @relation("guide_children")
   title      String
-  detail     String?               @db.Text
+  detail     String?              @db.Text
   ordering   Float
   photoUrl   String?
-  createdAt  DateTime              @default(now())
-  updatedAt  DateTime              @updatedAt
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
 
   @@index([templateId, parentId, ordering])
 }
@@ -2168,22 +2168,22 @@ model JournalPipelineNode {
 /// Глобальная таблица (без organizationId): календарь РФ единый.
 model ProductionCalendarDay {
   /// Дата в ISO-формате `YYYY-MM-DD` — primary key, никаких дубликатов.
-  date       String   @id
+  date      String   @id
   /// Год для query-фильтрации без парсинга string.
-  year       Int
+  year      Int
   /// Тип дня:
   ///   • "workday"   — обычный рабочий
   ///   • "weekend"   — Сб/Вс
   ///   • "holiday"   — праздник (1 января, 9 мая и т.п.) → красный пастель
   ///   • "short"     — сокращённый рабочий (предпраздничный) → жёлтый пастель
-  kind       String
+  kind      String
   /// Опциональное название праздника («Новый год», «День Победы»).
   /// Показывается в tooltip на ячейке.
-  name       String?
+  name      String?
   /// Источник: "hh.ru", "consultant.ru", "manual", "seed".
-  source     String   @default("seed")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  source    String   @default("seed")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([year, kind])
 }
@@ -2244,18 +2244,17 @@ model PaymentOrder {
   createdAt              DateTime  @default(now())
   paidAt                 DateTime?
   completedAt            DateTime?
+  /// Согласие на автосписания, данное при оформлении этого заказа.
+  /// false — разовый платёж, рекуррент не подключается.
+  recurringConsent       Boolean   @default(false)
+  /// Для автосписаний серии — id родительского заказа, по которому
+  /// касса списывает. У обычного платежа пусто.
+  recurringChargeOf      Int?
 
   @@index([email])
   @@index([status])
   /// История оплат организации в ROOT-панели читается по этому индексу.
   @@index([organizationId])
-  /// Согласие на автосписания, данное при оформлении этого заказа.
-  /// false — разовый платёж, рекуррент не подключается.
-  recurringConsent Boolean @default(false)
-  /// Для автосписаний серии — id родительского заказа, по которому
-  /// касса списывает. У обычного платежа пусто.
-  recurringChargeOf Int?
-
   @@index([recurringChargeOf])
 }
 
@@ -2266,21 +2265,83 @@ model PaymentOrder {
 /// текст человек видел и когда он его отозвал. Поэтому строки только
 /// добавляются — отзыв это новая запись с granted=false.
 model PaymentConsent {
-  id            String   @id @default(cuid())
-  email         String
+  id             String   @id @default(cuid())
+  email          String
   /// Заказ, при оформлении которого дано согласие. Пусто у отзывов.
-  orderId       Int?
+  orderId        Int?
   organizationId String?
   /// true — согласие дано, false — отозвано.
-  granted       Boolean
+  granted        Boolean
   /// Дословный текст рядом с галочкой на момент согласия.
-  statementText String
+  statementText  String
   /// Редакция оферты, действовавшая в этот момент.
-  offerRevision String?
-  ipAddress     String?
-  userAgent     String?
-  createdAt     DateTime @default(now())
+  offerRevision  String?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
 
   @@index([email, createdAt])
   @@index([organizationId])
+}
+
+// ==================== АССИСТЕНТ ====================
+
+/// Настройки платформы, которые меняются без передеплоя.
+///
+/// Интеграция с ProjectsFlow настраивается управляющим платформы в
+/// интерфейсе, а не переменными окружения: токен и проект меняются чаще,
+/// чем выходит релиз, и держать их только в .env значит каждый раз
+/// ходить на сервер.
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// Диалог с ассистентом. Один на пользователя в организации — человек,
+/// вернувшийся через неделю, видит, о чём спрашивал, и не пересказывает
+/// контекст заново.
+model AssistantConversation {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String   @unique
+  title          String   @default("Новый диалог")
+  createdAt      DateTime @default(now())
+  lastMessageAt  DateTime @default(now())
+
+  messages AssistantMessage[]
+
+  @@index([organizationId])
+  @@index([lastMessageAt])
+}
+
+/// Реплика диалога.
+///
+/// Ход ассистента заводится сразу в статусе pending с одноразовым
+/// токеном: отвечает не сайт, а внешний исполнитель, и до его прихода
+/// строка уже должна существовать — иначе ответ некуда положить.
+model AssistantMessage {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  /// "user" | "assistant"
+  role           String
+  content        String
+  /// "pending" | "done" | "error"
+  status         String                @default("done")
+  /// id задания в очереди ProjectsFlow. Карточек задач не заводим.
+  pfJobId        String?
+  /// sha256 одноразового токена хода: сам токен не хранится нигде.
+  tokenHash      String?
+  tokenExpiresAt DateTime?
+  /// Когда исполнитель забрал контекст. Отличает «очередь пуста, никто
+  /// не подхватил» от «работает, но долго».
+  fetchedAt      DateTime?
+  error          String?
+  createdAt      DateTime              @default(now())
+
+  @@index([conversationId])
+  @@index([conversationId, status])
+  @@index([status])
+  @@index([createdAt])
 }

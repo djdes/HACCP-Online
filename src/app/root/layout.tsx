@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Bot,
   LayoutDashboard,
   MessageSquareText,
   NotebookText,
@@ -81,6 +82,13 @@ export default async function RootAreaLayout({
             >
               <MessageSquareText className="size-4" />
               Обратная связь
+            </Link>
+            <Link
+              href="/root/assistant"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Bot className="size-4" />
+              Ассистент
             </Link>
             <Link
               href="/root/blog"
