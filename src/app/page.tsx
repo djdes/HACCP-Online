@@ -591,7 +591,14 @@ export default async function LandingPage() {
               «сколько это стоит» человек спрашивает раньше, чем «как это
               работает». Числа из констант, чтобы витрина не разошлась с
               тарифом. */}
-          <div className="mx-auto mt-6 max-w-[480px] rounded-2xl border border-[#dcdfed] bg-white/80 px-5 py-4 text-left backdrop-blur">
+          {/* Кликается целиком и уводит к разделу с тарифами: человек,
+              который вчитался в цены на первом экране, хочет подробностей
+              именно здесь, а не идёт искать их в меню. */}
+          <a
+            href="#pricing"
+            aria-label="Перейти к тарифам"
+            className="group mx-auto mt-6 block max-w-[480px] rounded-2xl border border-[#dcdfed] bg-white/80 px-5 py-4 text-left backdrop-blur transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/45 hover:bg-white hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.45)]"
+          >
             <dl className="space-y-2 text-[14px]">
               <div className="flex items-baseline justify-between gap-3">
                 <dt className="text-[#6f7282]">До {FREE_MAX_USERS} сотрудников</dt>
@@ -612,7 +619,11 @@ export default async function LandingPage() {
                 <dd className="font-medium text-[#3c4053]">по согласованию</dd>
               </div>
             </dl>
-          </div>
+            <div className="mt-2.5 flex items-center gap-1 border-t border-[#eef0f6] pt-2.5 text-[12.5px] font-medium text-[#3848c7]">
+              Что входит в тарифы
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </div>
+          </a>
 
           {/* Single big CTA — для залогиненного «Открыть кабинет»,
               для анонимного — «Начать бесплатно» (регистрация) */}

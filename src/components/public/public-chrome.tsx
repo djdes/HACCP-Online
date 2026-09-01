@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PublicSupportWidget } from "@/components/public/public-support-widget";
 import { BrandLogo } from "@/components/brand/logo";
 import { ArrowRight, LogIn, Smartphone } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
@@ -127,6 +128,10 @@ function getInitials(name: string): string {
 export function PublicFooter() {
   return (
     <footer className="public-footer border-t border-[#ececf4]">
+      {/* Пузырь поддержки живёт в подвале, а не в корневом layout'е:
+          так он есть на всех публичных страницах и нигде не пересекается
+          с виджетом кабинета — там свой, с авторизацией. */}
+      <PublicSupportWidget />
       <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 sm:px-6 sm:py-12 md:gap-10 md:grid-cols-[1.4fr_auto_auto]">
         <div>
           <div className="text-[#0b1024]">
