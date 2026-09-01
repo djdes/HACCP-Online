@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PublicSupportWidget } from "@/components/public/public-support-widget";
+import { AppStoresTeaser } from "@/components/public/app-stores-teaser";
 import { BrandLogo } from "@/components/brand/logo";
-import { ArrowRight, LogIn, Smartphone } from "lucide-react";
+import { ArrowRight, LogIn } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getWebHomeHref } from "@/lib/role-access";
@@ -196,32 +197,7 @@ export function PublicFooter() {
             </Link>
           </div>
 
-          {/* Приложение — заглушка. Дата названа намеренно: «скоро» без
-              срока читается как «никогда», а конкретное число сообщает,
-              что работа идёт. */}
-          <div className="mt-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
-              Приложение
-            </div>
-            <p className="mt-1.5 max-w-[280px] text-[12.5px] leading-snug text-[#6f7282]">
-              Сотрудники будут вести журналы и получать push-уведомления с
-              телефона. Запуск — 1 ноября.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {["App Store", "Google Play"].map((store) => (
-                <span
-                  key={store}
-                  className="inline-flex h-9 cursor-default items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[12.5px] font-medium text-[#9b9fb3]"
-                >
-                  <Smartphone className="size-3.5" />
-                  {store}
-                  <span className="rounded-full bg-[#f5f6ff] px-1.5 py-0.5 text-[10.5px] text-[#3848c7]">
-                    скоро
-                  </span>
-                </span>
-              ))}
-            </div>
-          </div>
+          <AppStoresTeaser />
         </div>
 
         <div className="flex flex-col flex-wrap text-[13px] text-[#6f7282] md:items-end">

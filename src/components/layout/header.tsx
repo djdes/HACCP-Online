@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/brand/logo";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  CreditCard,
   AlertTriangle,
   Building2,
   CalendarRange,
@@ -199,9 +200,12 @@ export function Header({
   ]
     .filter(Boolean)
     .join(" · ");
-  // Апгрейд предлагаем только тем, кому есть куда расти и кто вправе
-  // менять тариф организации.
-  const canUpgradePlan = fullAccess && onFreePlan;
+  // Раздел тарифов виден каждому, кто вправе менять тариф организации.
+  // Раньше пункт показывался только на бесплатном плане — и владелец
+  // платной организации не мог найти ни историю платежей, ни
+  // автопродление: попасть на страницу можно было лишь через хаб
+  // настроек, о котором ещё нужно догадаться.
+  const canManagePlan = fullAccess;
 
   const visibleSecondaryNavItems = fullAccess ? secondaryNavItems : [];
   // Пилюля в шапке показывает название активной точки — значит именно
@@ -630,14 +634,27 @@ export function Header({
                 {organizations.length > 1 || canCreateOrganization ? (
                   <DropdownMenuSeparator className="my-1" />
                 ) : null}
-                {canUpgradePlan ? (
+                {canManagePlan ? (
                   <DropdownMenuItem
                     asChild
-                    className="text-[#5566f6] focus:bg-[#f5f6ff] focus:text-[#5566f6]"
+                    className={
+                      onFreePlan
+                        ? "text-[#5566f6] focus:bg-[#f5f6ff] focus:text-[#5566f6]"
+                        : "focus:bg-[#f5f6ff]"
+                    }
                   >
                     <Link href="/settings/subscription">
-                      <CircleArrowUp className="mr-2 size-4 text-[#5566f6]" />
-                      Улучшить тариф
+                      {onFreePlan ? (
+                        <>
+                          <CircleArrowUp className="mr-2 size-4 text-[#5566f6]" />
+                          Улучшить тариф
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 size-4 text-[#5566f6]" />
+                          Тарифы и оплата
+                        </>
+                      )}
                     </Link>
                   </DropdownMenuItem>
                 ) : null}

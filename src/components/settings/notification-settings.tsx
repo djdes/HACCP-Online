@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Copy,
   ExternalLink,
+  Loader2,
   MessageSquare,
   Send,
   Thermometer,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
+import { AppStoresTeaser } from "@/components/public/app-stores-teaser";
 
 interface NotificationSettingsProps {
   botUsername: string;
@@ -144,6 +146,7 @@ export function NotificationSettings({
       </div>
     );
   }
+
 
   return (
     <div className="space-y-8">
@@ -461,34 +464,7 @@ function ChatPreview({
         )}
       </div>
 
-      {/* SMS — заглушка. Интеграции нет, и притворяться, что она есть,
-          нельзя: тумблер выключен и подписан «в разработке». Показываем
-          заранее, чтобы было видно, куда движется продукт. */}
-      <div className="rounded-3xl border border-[#eceef7] bg-white p-6 md:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
-              <MessageSquare className="size-5" />
-            </span>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[16px] font-semibold text-[#0b1024]">
-                  SMS-уведомления
-                </span>
-                <span className="rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] font-medium text-[#a13a32]">
-                  В разработке
-                </span>
-              </div>
-              <p className="mt-1.5 max-w-[520px] text-[13.5px] leading-[1.55] text-[#6f7282]">
-                Напоминание о незаполненном журнале придёт даже тем, у кого
-                нет Telegram и почты. Для линейного персонала это часто
-                единственный работающий канал.
-              </p>
-            </div>
-          </div>
-          <SwitchToggle checked={false} disabled onChange={() => {}} />
-        </div>
-      </div>
+      <SmsAndAppTeaser />
     </div>
   );
 }
@@ -526,5 +502,101 @@ function Bubble({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * SMS и мобильное приложение — обе заглушки в одном месте.
+ *
+ * Вынесено отдельным компонентом ради состояния кнопки интереса: карточка
+ * жила внутри ChatPreview, у которого своих состояний нет и быть не
+ * должно — это чистая картинка-превью переписки.
+ */
+function SmsAndAppTeaser() {
+  const [interestBusy, setInterestBusy] = useState(false);
+  const [interestSent, setInterestSent] = useState(false);
+
+  /**
+   * Отметка интереса к SMS. Уходит тем же путём, что обратная связь, —
+   * заводить отдельную таблицу ради счётчика «хочу» не за чем.
+   */
+  async function notifyInterest() {
+    setInterestBusy(true);
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "suggestion",
+          message: "Интересуют SMS-уведомления — сообщите о запуске",
+        }),
+      });
+      if (!response.ok) throw new Error("Не удалось отправить");
+      setInterestSent(true);
+      toast.success("Спасибо, сообщим о запуске");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setInterestBusy(false);
+    }
+  }
+
+  return (
+    <>
+      {/* SMS — заглушка. Интеграции нет, и притворяться, что она есть,
+          нельзя: тумблер выключен и подписан «в разработке». Показываем
+          заранее, чтобы было видно, куда движется продукт. */}
+      <div className="rounded-3xl border border-[#eceef7] bg-white p-6 md:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
+              <MessageSquare className="size-5" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[16px] font-semibold text-[#0b1024]">
+                  SMS-уведомления
+                </span>
+                <span className="rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                  В разработке
+                </span>
+              </div>
+              <p className="mt-1.5 max-w-[520px] text-[13.5px] leading-[1.55] text-[#6f7282]">
+                Напоминание о незаполненном журнале придёт даже тем, у кого
+                нет Telegram и почты. Для линейного персонала это часто
+                единственный работающий канал.
+              </p>
+            </div>
+          </div>
+          <SwitchToggle checked={false} disabled onChange={() => {}} />
+        </div>
+
+        {/* Кнопка интереса, а не просто «скоро»: она и человеку даёт
+            что-то сделать вместо разглядывания выключенного тумблера, и
+            нам показывает, сколько организаций этого ждёт. */}
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#f1f2f8] pt-4">
+          <button
+            type="button"
+            onClick={() => void notifyInterest()}
+            disabled={interestSent || interestBusy}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13.5px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+          >
+            {interestBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+            {interestSent ? "Сообщим о запуске" : "Сообщить, когда заработает"}
+          </button>
+          <span className="text-[12.5px] text-[#9b9fb3]">
+            Стоимость объявим при запуске — SMS оплачиваются отдельно от
+            тарифа.
+          </span>
+        </div>
+      </div>
+
+      {/* Мобильное приложение — та же заглушка, что в подвале сайта, и
+          намеренно тот же компонент: разъехавшиеся даты запуска выглядят
+          хуже, чем их отсутствие. */}
+      <div className="rounded-3xl border border-[#eceef7] bg-white p-6 md:p-7">
+        <AppStoresTeaser tone="card" />
+      </div>
+    </>
   );
 }
