@@ -24,7 +24,7 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const HUB_TITLE = "Каталог электронных журналов";
+const HUB_TITLE = "35 электронных журналов СанПиН и ХАССП — каталог";
 const HUB_DESC =
   "Полный каталог из 35 электронных журналов ХАССП и СанПиН, которые ведёт WeSetup: гигиена, температуры, бракераж, уборка, ДДД и многое другое.";
 

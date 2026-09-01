@@ -41,12 +41,15 @@ export async function generateMetadata({
   const seo = JOURNAL_SEO[code];
   const canonical = `https://wesetup.ru/journals-info/${code}`;
   return {
-    title: seo?.title ?? `${info.tagline} — WeSetup`,
+    // Ключевик-первый title; бренд «— WeSetup» добавляет template в
+    // корневом layout. Fallback БЕЗ ручного суффикса — иначе на первом
+    // журнале без записи в JOURNAL_SEO получилось бы «…— WeSetup — WeSetup».
+    title: seo?.title ?? info.tagline,
     description: seo?.description ?? info.why,
     keywords: seo?.keywords,
     alternates: { canonical },
     openGraph: {
-      title: seo?.title ?? `${info.tagline} — WeSetup`,
+      title: seo?.title ?? info.tagline,
       description: seo?.description ?? info.why,
       url: canonical,
       type: "article",
@@ -56,7 +59,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: DEFAULT_TWITTER_CARD,
-      title: seo?.title ?? `${info.tagline} — WeSetup`,
+      title: seo?.title ?? info.tagline,
       description: seo?.description ?? info.why,
       images: DEFAULT_TWITTER_IMAGES,
     },

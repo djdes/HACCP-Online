@@ -68,7 +68,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  // E19 — niche-лендинги (/dlya-kafe и т.д.)
+  // E19 — niche-лендинги (/dlya-kafe, /dlya-bara, /dlya-otelya, /dlya-azs
+  // и т.д.). Итерируем весь словарь NICHES, поэтому новые сферы
+  // (посадочные /dlya-*) попадают в sitemap автоматически при добавлении
+  // записи в NICHES — отдельно перечислять URL не нужно.
   const nichePages: MetadataRoute.Sitemap = Object.keys(NICHES).map((slug) => ({
     url: `${SITE}/${slug}`,
     lastModified: now,

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Блог — электронные журналы ХАССП и СанПиН",
+  title: "Статьи о СанПиН, ХАССП и электронных журналах",
   description:
     "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
   // Canonical всегда без query-string — иначе /blog?q=test и /blog?tag=haccp
@@ -26,14 +26,14 @@ export const metadata = {
     locale: "ru_RU",
     siteName: "WeSetup",
     url: "https://wesetup.ru/blog",
-    title: "Блог — электронные журналы ХАССП и СанПиН",
+    title: "Статьи о СанПиН, ХАССП и электронных журналах",
     description:
       "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
     images: DEFAULT_OG_IMAGES,
   },
   twitter: {
     card: DEFAULT_TWITTER_CARD,
-    title: "Блог — электронные журналы ХАССП и СанПиН",
+    title: "Статьи о СанПиН, ХАССП и электронных журналах",
     description:
       "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
     images: DEFAULT_TWITTER_IMAGES,

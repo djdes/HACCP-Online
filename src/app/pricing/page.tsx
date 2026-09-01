@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title: "Стоимость и ROI калькулятор",
+  title: "Цены на электронные журналы СанПиН и ХАССП",
   description:
     "Сколько стоит WeSetup: бесплатный тариф до 5 сотрудников, подписка без лимитов и пакеты с оборудованием. Калькулятор экономии.",
   alternates: { canonical: "https://wesetup.ru/pricing" },
@@ -28,14 +28,14 @@ export const metadata = {
     locale: "ru_RU",
     siteName: "WeSetup",
     url: "https://wesetup.ru/pricing",
-    title: "Стоимость и ROI калькулятор",
+    title: "Цены на электронные журналы СанПиН и ХАССП",
     description:
       "Сколько стоит WeSetup: бесплатный тариф до 5 сотрудников, подписка без лимитов и пакеты с оборудованием.",
     images: DEFAULT_OG_IMAGES,
   },
   twitter: {
     card: DEFAULT_TWITTER_CARD,
-    title: "Стоимость и ROI калькулятор",
+    title: "Цены на электронные журналы СанПиН и ХАССП",
     images: DEFAULT_TWITTER_IMAGES,
   },
 };

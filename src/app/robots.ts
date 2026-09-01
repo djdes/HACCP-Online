@@ -51,6 +51,10 @@ export default function robots(): MetadataRoute.Robots {
           "/mini",
           // Auth flow и invite-token
           "/invite/",
+          // Токен-страницы (гость-инспектор, приглашение сотрудника) —
+          // доступ по расшаренной ссылке, в индексе им делать нечего.
+          "/inspector/",
+          "/join/",
           // Task fill через QR-код (одноразовые ссылки, незачем в индексе)
           "/task-fill",
           "/equipment-fill",

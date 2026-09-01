@@ -8,6 +8,12 @@ import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Токен-страница инспектора: доступ по расшаренной ссылке, в индекс
+// поисковиков не должна попадать (плюс disallow в robots.ts).
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 /**
  * Public inspector portal — read-only viewer of organization's journals
  * during a planned SES / Роспотребнадзор audit. No NextAuth session;

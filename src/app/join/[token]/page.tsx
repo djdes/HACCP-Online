@@ -6,6 +6,12 @@ import { JoinForm } from "./join-form";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// Токен-страница приглашения сотрудника: одноразовая ссылка, из индекса
+// поисковиков закрыта (плюс disallow в robots.ts).
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 type Props = { params: Promise<{ token: string }> };
 
 export default async function JoinPage({ params }: Props) {

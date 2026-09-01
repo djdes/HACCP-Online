@@ -32,6 +32,7 @@ import {
 import { db } from "@/lib/db";
 import { EquipmentPricing } from "@/components/landing/equipment-pricing";
 import { AudienceCarousel } from "@/components/landing/audience-carousel";
+import { IndustriesGrid } from "@/components/landing/industries-grid";
 import { AutomationScene } from "@/components/landing/automation-scene";
 import { SampleGallery } from "@/components/landing/sample-gallery";
 import { DOCX_SAMPLE_CODES } from "@/lib/document-docx";
@@ -77,10 +78,12 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata = {
-  title:
-    "WeSetup — электронные журналы СанПиН и ХАССП. Бесплатно навсегда",
+  // Ключевик в начале, бренд в конце. Template корневого layout к
+  // root-page.tsx НЕ применяется (проверено на проде — суффикс не
+  // дублируется), поэтому «— WeSetup» пишем в строке вручную.
+  title: "Электронные журналы СанПиН и ХАССП онлайн — WeSetup",
   description:
-    "35 электронных журналов для общепита и пищевых производств. Гигиена, температура, бракераж, уборка, дезинфекция. Автозаполнение, Telegram-бот, PDF для Роспотребнадзора. Бесплатно до 5 сотрудников.",
+    "35 электронных журналов СанПиН и ХАССП для общепита и производств. Автозаполнение, Telegram-бот, PDF для Роспотребнадзора. Бесплатно до 5 сотрудников.",
   alternates: { canonical: "https://wesetup.ru/" },
 };
 
@@ -726,6 +729,11 @@ export default async function LandingPage() {
         </div>
         <AudienceCarousel />
       </section>
+
+      {/* КОМУ ПОДХОДИТ — полный список сфер/типов бизнеса со ссылками на
+          посадочные /dlya-*. Стоит под каруселью «Подходит для»: та
+          показывает «было/стало», а эта — навигацию по всем нишам. */}
+      <IndustriesGrid />
 
       {/* FEATURES */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 py-20">
