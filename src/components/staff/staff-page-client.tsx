@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
 import { useRouter } from "next/navigation";
 import {
+  Users,
   Archive,
   ArrowUpDown,
   BookOpen,
@@ -27,6 +28,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { StaffQrInviteDialog } from "@/components/staff/staff-qr-invite-dialog";
+import { StaffImportExport } from "@/components/staff/staff-import-export";
+import { StaffBulkAddDialog } from "@/components/staff/staff-bulk-add-dialog";
 import {
   StaffAddFlowDialog,
   StaffAddPeriodDialog,
@@ -121,6 +124,7 @@ type StaffSort = { field: StaffSortField; order: SortOrder } | null;
 export function StaffPageClient(props: StaffPageProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [bulkAddOpen, setBulkAddOpen] = useState(false);
 
   // Accordion: all open by default.
   const [categoryOpen, setCategoryOpen] = useState<
@@ -611,6 +615,15 @@ export function StaffPageClient(props: StaffPageProps) {
                 На больничном: {activeSickLeaves}
               </PageHeaderStat>
             ) : null}
+            <StaffImportExport />
+            <button
+              type="button"
+              onClick={() => setBulkAddOpen(true)}
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              <Users className="size-4 text-[#5566f6]" />
+              Несколько сразу
+            </button>
             <button
               type="button"
               onClick={() => setDlg({ kind: "qr-invite" })}
@@ -962,6 +975,17 @@ export function StaffPageClient(props: StaffPageProps) {
           userId={dlg.employee.id}
           onClose={() => setDlg(null)}
           onSaved={() => router.refresh()}
+        />
+      ) : null}
+      {bulkAddOpen ? (
+        <StaffBulkAddDialog
+          positions={props.positions.map((position) => ({
+            id: position.id,
+            name: position.name,
+            categoryKey: position.categoryKey,
+          }))}
+          onClose={() => setBulkAddOpen(false)}
+          onDone={() => router.refresh()}
         />
       ) : null}
       {dlg?.kind === "tg-invite" ? (

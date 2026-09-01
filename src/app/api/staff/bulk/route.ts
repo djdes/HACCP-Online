@@ -5,6 +5,8 @@ import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
 import { normalizePhone } from "@/lib/phone";
+import { DEFAULT_WEEKLY_DAYS_OFF } from "@/lib/staff-days-off";
+import { parseStaffRows } from "@/lib/staff-bulk-parse";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
 import { recordAuditLog } from "@/lib/audit-log";
 import { ensurePlanForHeadcount } from "@/lib/plan-limits.server";
@@ -38,48 +40,30 @@ export const dynamic = "force-dynamic";
 
 const rowSchema = z.object({
   fullName: z.string().trim().min(2),
+  /// Имя должности — путь для вставленного текста и файла.
   positionName: z.string().trim().min(2),
-  phone: z.string().trim().min(5),
+  /// Id должности — путь для таблицы в интерфейсе: там человек выбирает
+  /// из списка, и матчить обратно по имени значит терять выбор на
+  /// омонимах вроде двух «Поваров» в разных категориях.
+  jobPositionId: z.string().trim().optional(),
+  /**
+   * Телефон необязателен: одиночное добавление его не требует, и
+   * расходиться в требованиях между «добавить одного» и «добавить
+   * десятерых» нельзя — это читается как поломка, а не как правило.
+   */
+  phone: z.string().trim().optional(),
+  contactEmail: z.string().trim().max(200).optional(),
+  weeklyDaysOff: z.array(z.number().int().min(0).max(6)).optional(),
+  /// Пусто — доступ наследуется от должности, как при одиночном
+  /// добавлении. Явный список переопределяет наследование.
+  journalCodes: z.array(z.string()).optional(),
+  telegramInvite: z.boolean().optional(),
 });
 
 const bodySchema = z.object({
   rows: z.array(rowSchema).optional(),
   csv: z.string().optional(),
 });
-
-function parseCsv(raw: string): { rows: z.infer<typeof rowSchema>[]; parseErrors: string[] } {
-  const parseErrors: string[] = [];
-  const rows: z.infer<typeof rowSchema>[] = [];
-  const lines = raw
-    .replace(/\r\n/g, "\n")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  // Heuristic: если в первой строке есть «\t», это TSV, иначе CSV (`,` или `;`).
-  const sample = lines[0] ?? "";
-  const sep = sample.includes("\t") ? "\t" : sample.includes(";") ? ";" : ",";
-
-  // Skip header line if it contains «ФИО» / «должность» / «телефон»
-  let startIdx = 0;
-  if (
-    /ФИО|должн|телеф|name|position|phone/i.test(lines[0] ?? "")
-  ) {
-    startIdx = 1;
-  }
-
-  for (let i = startIdx; i < lines.length; i++) {
-    const cells = lines[i].split(sep).map((c) => c.trim());
-    if (cells.length < 3) {
-      parseErrors.push(`Строка ${i + 1}: ожидалось 3 колонки, получено ${cells.length}`);
-      continue;
-    }
-    const [fullName, positionName, phone] = cells;
-    rows.push({ fullName, positionName, phone });
-  }
-
-  return { rows, parseErrors };
-}
 
 function syntheticEmail(orgId: string) {
   const salt = crypto.randomBytes(6).toString("hex");
@@ -102,9 +86,12 @@ export async function POST(request: Request) {
   const errors: Array<{ line: number; message: string; raw?: unknown }> = [];
 
   if (body.data.csv && rows.length === 0) {
-    const parsed = parseCsv(body.data.csv);
+    // Разбор общий с браузером (`staff-bulk-parse`): две реализации
+    // одного формата однажды разойдутся, и получится «на сайте
+    // распозналось, в файле нет».
+    const parsed = parseStaffRows(body.data.csv);
     rows = parsed.rows;
-    parsed.parseErrors.forEach((m, idx) => errors.push({ line: idx, message: m }));
+    errors.push(...parsed.errors);
   }
 
   if (rows.length === 0) {
@@ -155,11 +142,18 @@ export async function POST(request: Request) {
   let created = 0;
   let skipped = 0;
   let autoMatched = 0;
-  const createdUsers: Array<{ id: string; name: string }> = [];
+  const createdUsers: Array<{
+    id: string;
+    name: string;
+    telegramInvite: boolean;
+  }> = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    let pos = posByName.get(row.positionName.toLowerCase()) ?? null;
+    let pos =
+      (row.jobPositionId ? posById.get(row.jobPositionId) : null) ??
+      posByName.get(row.positionName.toLowerCase()) ??
+      null;
 
     // Fallback: fuzzy match если exact не нашёл.
     if (!pos) {
@@ -186,18 +180,31 @@ export async function POST(request: Request) {
       });
       continue;
     }
-    const phone = normalizePhone(row.phone);
-    if (!phone) {
+    // Пустой телефон — норма (одиночное добавление его не требует).
+    // Заполненный, но неразобранный — ошибка: молча сохранить кривой
+    // номер хуже, чем не сохранить никакого.
+    const rawPhone = (row.phone ?? "").trim();
+    const phone = rawPhone ? normalizePhone(rawPhone) : null;
+    if (rawPhone && !phone) {
       errors.push({
         line: i + 1,
-        message: `Не разобрал телефон «${row.phone}»`,
+        message: `Не разобрал телефон «${rawPhone}»`,
         raw: row,
       });
       continue;
     }
 
+    // Дубли: по телефону, если он есть, иначе по паре ФИО + должность.
+    // Без второго условия повторная заливка списка без телефонов
+    // плодила бы копии людей на каждый заход.
     const existing = await db.user.findFirst({
-      where: { organizationId: orgId, phone },
+      where: phone
+        ? { organizationId: orgId, phone }
+        : {
+            organizationId: orgId,
+            name: row.fullName,
+            jobPositionId: pos.id,
+          },
       select: { id: true },
     });
     if (existing) {
@@ -205,8 +212,9 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const codesForPosition = posIdToCodes.get(pos.id) ?? [];
-    const useStrictAcl = codesForPosition.length > 0;
+    const explicitCodes = row.journalCodes ?? null;
+    const codesForPosition = explicitCodes ?? posIdToCodes.get(pos.id) ?? [];
+    const useStrictAcl = explicitCodes !== null || codesForPosition.length > 0;
 
     const user = await db.$transaction(async (tx) => {
       const u = await tx.user.create({
@@ -217,6 +225,8 @@ export async function POST(request: Request) {
           passwordHash: "",
           role: pos.categoryKey === "management" ? "manager" : "cook",
           phone,
+          contactEmail: row.contactEmail?.trim() || null,
+          weeklyDaysOff: row.weeklyDaysOff ?? [...DEFAULT_WEEKLY_DAYS_OFF],
           jobPositionId: pos.id,
           positionTitle: pos.name,
           isActive: true,
@@ -241,15 +251,22 @@ export async function POST(request: Request) {
       }
       return u;
     });
-    createdUsers.push(user);
+    createdUsers.push({
+      ...user,
+      // Кому обещали пригласить в Telegram — интерфейс покажет QR сразу
+      // после импорта, чтобы не искать этих людей заново в списке.
+      telegramInvite: row.telegramInvite === true,
+    });
     created++;
 
-    tryAutolinkTasksflowByPhone({
-      organizationId: orgId,
-      weSetupUserId: user.id,
-      phone,
-      name: user.name,
-    }).catch((err) => console.error("[bulk] autolink failed", err));
+    if (phone) {
+      tryAutolinkTasksflowByPhone({
+        organizationId: orgId,
+        weSetupUserId: user.id,
+        phone,
+        name: user.name,
+      }).catch((err) => console.error("[bulk] autolink failed", err));
+    }
   }
 
   // Импорт может разом перевалить за 5 бесплатных мест — проверяем

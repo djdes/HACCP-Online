@@ -86,6 +86,10 @@ export type ConfirmDialogProps = {
   typeToConfirm?: string;
   /// Кастомная иконка (override variant).
   icon?: typeof Sparkles;
+  /// Дополнительный блок между списком последствий и кнопками: выбор
+  /// режима, поле уточнения и т. п. Иначе такие диалоги приходится
+  /// писать с нуля, и они расходятся с остальными по виду.
+  children?: React.ReactNode;
 };
 
 export function ConfirmDialog({
@@ -100,6 +104,7 @@ export function ConfirmDialog({
   variant = "default",
   typeToConfirm,
   icon: IconOverride,
+  children,
 }: ConfirmDialogProps) {
   const [submitting, setSubmitting] = useState(false);
   const [phrase, setPhrase] = useState("");
@@ -229,6 +234,8 @@ export function ConfirmDialog({
             })}
           </div>
         ) : null}
+
+        {children ? <div className="px-6 pb-1 pt-4">{children}</div> : null}
 
         {/* Type-to-confirm */}
         {typeToConfirm ? (
