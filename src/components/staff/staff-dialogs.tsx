@@ -57,8 +57,11 @@ function shell(
         <DialogDescription className="sr-only">{title}</DialogDescription>
       </DialogHeader>
       <div className="px-4 py-5 sm:px-6 sm:py-6">{body}</div>
+      {/* На узком экране кнопки футера переносятся, а не вылезают за
+          край: три штуки («Добавить доступ», «Отмена», «Сохранить») в
+          один ряд не помещались, и «Сохранить» уезжал за границу. */}
       {footer ? (
-        <DialogFooter className="flex-row justify-end gap-2 border-t px-4 py-4 sm:px-6">
+        <DialogFooter className="flex-wrap justify-end gap-2 border-t px-4 py-4 sm:flex-row sm:px-6">
           {footer}
         </DialogFooter>
       ) : null}
@@ -361,7 +364,7 @@ export function StaffAddFlowDialog(props: {
     }
   }
 
-  async function submitEmployee() {
+  async function submitEmployee(then: "created" | "access" = "created") {
     if (!positionId) {
       toast.error("Сначала создайте должность");
       setStep(1);
@@ -393,8 +396,15 @@ export function StaffAddFlowDialog(props: {
       }
       toast.success("Сотрудник добавлен");
       // Список обновляем сразу, но диалог держим открытым: менеджер
-      // может тут же выдать ссылку-приглашение в Telegram.
+      // может тут же выдать доступ или приглашение в Telegram.
       props.onCreated({ positionId });
+      if (then === "access") {
+        // «Добавить доступ» на шаге 2 сначала создаёт сотрудника: доступ
+        // выдаётся по его id, а до создания id не существует. Для
+        // человека это одно действие — он нажал кнопку и попал в выдачу.
+        props.onOpenAccess?.(data.user.id);
+        return;
+      }
       setSubStep({
         kind: "created",
         userId: data.user.id,
@@ -692,7 +702,19 @@ export function StaffAddFlowDialog(props: {
               </p>
             </div>
           </div>,
-          primaryBtn("Добавить", submitEmployee, pending),
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void submitEmployee("access")}
+              disabled={pending}
+              className="w-full border-[#dcdfed] text-[#3848c7] hover:bg-[#f5f6ff] sm:w-auto"
+            >
+              <KeyRound className="size-4" />
+              Добавить доступ
+            </Button>
+            {primaryBtn("Добавить", () => void submitEmployee("created"), pending)}
+          </>,
           {
             eyebrow: "Шаг 2 из 2",
             leading: (
@@ -823,7 +845,7 @@ export function StaffEditEmployeeDialog(props: {
                 variant="outline"
                 onClick={onOpenAccess}
                 disabled={pending}
-                className="mr-auto border-[#dcdfed] text-[#3848c7] hover:bg-[#f5f6ff]"
+                className="w-full border-[#dcdfed] text-[#3848c7] hover:bg-[#f5f6ff] sm:mr-auto sm:w-auto"
               >
                 <KeyRound className="size-4" />
                 Добавить доступ
