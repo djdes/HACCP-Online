@@ -18,10 +18,18 @@ import { EmailHint, useEmailField } from "@/components/ui/email-field";
 export function HeroEmailStart({
   tone = "light",
   buttonLabel = "Начать бесплатно",
+  layout = "row",
+  showLoginLink = true,
 }: {
   /// "dark" — для размещения на тёмной секции (финальный CTA).
   tone?: "light" | "dark";
   buttonLabel?: string;
+  /// "stack" — поле во всю ширину, кнопка под ним. Так первый экран
+  /// читается сверху вниз одной колонкой, без прыжка глазом вбок.
+  layout?: "row" | "stack";
+  /// Ссылка «Уже есть аккаунт» под формой. На первом экране не нужна —
+  /// «Войти» стоит в шапке, и вторая точка входа только отвлекает.
+  showLoginLink?: boolean;
 }) {
   const router = useRouter();
   const field = useEmailField();
@@ -92,7 +100,11 @@ export function HeroEmailStart({
     <div className="mx-auto w-full max-w-[480px]">
       <form
         onSubmit={submit}
-        className="flex flex-col gap-2.5 sm:flex-row sm:gap-2"
+        className={
+          layout === "stack"
+            ? "flex flex-col gap-2.5"
+            : "flex flex-col gap-2.5 sm:flex-row sm:gap-2"
+        }
       >
         <label htmlFor="hero-email" className="sr-only">
           Электронная почта
@@ -120,6 +132,7 @@ export function HeroEmailStart({
           disabled={loading || !field.valid}
           className={
             "group inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-6 text-[15px] font-semibold transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 sm:h-[56px] sm:px-7 sm:text-[16px] " +
+            (layout === "stack" ? "w-full " : "") +
             (dark
               ? "bg-white text-[#0b1024] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] hover:bg-white/90"
               : "bg-[#5566f6] text-white shadow-[0_20px_50px_-20px_rgba(85,102,246,0.55)] hover:bg-[#4a5bf0] hover:shadow-[0_24px_55px_-18px_rgba(85,102,246,0.65)]")
@@ -159,7 +172,9 @@ export function HeroEmailStart({
 
       <div
         className={
-          "mt-3 text-[12px] " + (dark ? "text-white/60" : "text-[#9b9fb3]")
+          "mt-3 text-[12px] " +
+          (showLoginLink ? "" : "hidden ") +
+          (dark ? "text-white/60" : "text-[#9b9fb3]")
         }
       >
         Уже есть аккаунт?{" "}

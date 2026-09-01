@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LogIn, Smartphone } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getWebHomeHref } from "@/lib/role-access";
@@ -66,17 +66,17 @@ function PublicHeaderAnon() {
   return (
     <>
       <Link
-        href="/login"
-        className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
+        href="/pricing"
+        className="text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
       >
-        Войти
+        Тарифы
       </Link>
       <Link
-        href="/register"
-        className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
+        href="/login"
+        className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3.5 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:px-4"
       >
-        Начать
-        <ArrowRight className="size-4" />
+        Войти
+        <LogIn className="size-4 text-[#5566f6]" />
       </Link>
     </>
   );
@@ -189,6 +189,33 @@ export function PublicFooter() {
             >
               Согласие на обработку персональных данных
             </Link>
+          </div>
+
+          {/* Приложение — заглушка. Дата названа намеренно: «скоро» без
+              срока читается как «никогда», а конкретное число сообщает,
+              что работа идёт. */}
+          <div className="mt-5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
+              Приложение
+            </div>
+            <p className="mt-1.5 max-w-[280px] text-[12.5px] leading-snug text-[#6f7282]">
+              Сотрудники будут вести журналы и получать push-уведомления с
+              телефона. Запуск — 1 ноября.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {["App Store", "Google Play"].map((store) => (
+                <span
+                  key={store}
+                  className="inline-flex h-9 cursor-default items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[12.5px] font-medium text-[#9b9fb3]"
+                >
+                  <Smartphone className="size-3.5" />
+                  {store}
+                  <span className="rounded-full bg-[#f5f6ff] px-1.5 py-0.5 text-[10.5px] text-[#3848c7]">
+                    скоро
+                  </span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 

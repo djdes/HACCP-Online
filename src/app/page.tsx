@@ -5,6 +5,7 @@ import {
   BellRing,
   Building2,
   CheckCircle2,
+  LogIn,
   Clock,
   Cloud,
   Gift,
@@ -256,6 +257,17 @@ const FAQ = [
   },
 ];
 
+/**
+ * Пункты первого экрана. Появляются по очереди — см. `.hero-point`.
+ * Порядок не случайный: сверху то, ради чего сервис и покупают.
+ */
+const HERO_POINTS = [
+  "Автосоздание и автозаполнение журналов",
+  "Автоподбор журналов под вашу компанию",
+  "Бесплатный полный доступ ко всем журналам",
+  "Готовые электронные и бумажные журналы",
+] as const;
+
 export default async function LandingPage() {
   // Auth state — для адаптации nav/CTA. Лендинг остаётся публичным,
   // но залогиненный видит «Открыть кабинет» вместо «Войти/Начать».
@@ -447,6 +459,15 @@ export default async function LandingPage() {
             >
               Блог
             </Link>
+            {/* «Сколько это стоит» спрашивают раньше всего остального —
+                пункт стоит рядом с входом, а не в подвале. Якорь, а не
+                отдельная страница: тарифы тут же, ниже по этой же. */}
+            <Link
+              href="#pricing"
+              className="text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
+            >
+              Тарифы
+            </Link>
             {isAuthed ? (
               <>
                 <Link
@@ -467,18 +488,15 @@ export default async function LandingPage() {
               </>
             ) : (
               <>
+                {/* Кнопка «Начать» из шапки убрана: регистрация теперь
+                    полем почты в самом hero, и вторая точка входа
+                    конкурировала с ней за то же действие. */}
                 <Link
                   href="/login"
-                  className="hidden h-10 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:inline-flex"
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3.5 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:px-4"
                 >
                   Войти
-                </Link>
-                <Link
-                  href="/register"
-                  className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:px-4 sm:text-[14px]"
-                >
-                  Начать
-                  <ArrowRight className="size-4" />
+                  <LogIn className="size-4 text-[#5566f6]" />
                 </Link>
               </>
             )}
@@ -516,7 +534,7 @@ export default async function LandingPage() {
 
         <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6 pt-8 text-center sm:pt-16">
           {/* Registry badge */}
-          <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3848c7] backdrop-blur">
+          <div className="hero-badge inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium italic text-[#3848c7] backdrop-blur">
             <ShieldCheck className="size-3.5" />
             В реестре отечественного ПО
             <span className="text-[#9b9fb3]">·</span>
@@ -541,12 +559,51 @@ export default async function LandingPage() {
               (проверка без штрафов), вероятность (реестр ПО, СанПиН —
               бейджи рядом), время (5 минут), усилия (шаблоны, Telegram,
               PDF в один клик). */}
-          <p className="hero-copy mx-auto mt-7 max-w-[640px] text-[16px] leading-[1.6] text-[#3c4053] sm:text-[18px]">
-            Бумажные журналы отнимают полчаса в день и всё равно подводят
-            на проверке. WeSetup ведёт их за вас: готовые шаблоны под ваш
-            тип заведения, заполнение с телефона или из Telegram, PDF для
-            инспектора — в один клик. Бесплатно навсегда до 5 сотрудников.
-          </p>
+          {/* Вместо абзаца — четыре пункта, появляющиеся по очереди.
+              Абзац читали через строчку: человек на первом экране не
+              читает, а сканирует. Анимация на чистом CSS тем же
+              keyframe'ом, что и остальной hero, — клиентский компонент
+              ради четырёх строк не нужен, и `prefers-reduced-motion`
+              уже обработан общими правилами. */}
+          <ul className="mx-auto mt-7 flex max-w-[520px] flex-col gap-2.5 text-left">
+            {HERO_POINTS.map((point, index) => (
+              <li
+                key={point}
+                className="hero-point flex items-start gap-2.5 text-[15px] leading-snug text-[#3c4053] sm:text-[16px]"
+                style={{ animationDelay: `${250 + index * 150}ms` }}
+              >
+                <CheckCircle2 className="mt-0.5 size-[18px] shrink-0 text-[#5566f6]" />
+                <span>{point}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Цены компактной рамкой — до формы, а не через два экрана:
+              «сколько это стоит» человек спрашивает раньше, чем «как это
+              работает». Числа из констант, чтобы витрина не разошлась с
+              тарифом. */}
+          <div className="mx-auto mt-6 max-w-[480px] rounded-2xl border border-[#dcdfed] bg-white/80 px-5 py-4 text-left backdrop-blur">
+            <dl className="space-y-2 text-[14px]">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-[#6f7282]">До {FREE_MAX_USERS} сотрудников</dt>
+                <dd className="font-semibold text-[#0b1024]">бесплатно</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-[#eef0f6] pt-2">
+                <dt className="text-[#6f7282]">
+                  До {SUBSCRIPTION_MAX_USERS} сотрудников
+                </dt>
+                <dd className="font-semibold tabular-nums text-[#0b1024]">
+                  {monthly.priceRub.toLocaleString("ru-RU")} ₽/мес
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-[#eef0f6] pt-2">
+                <dt className="text-[#6f7282]">
+                  От {SUBSCRIPTION_MAX_USERS + 1} сотрудника
+                </dt>
+                <dd className="font-medium text-[#3c4053]">по согласованию</dd>
+              </div>
+            </dl>
+          </div>
 
           {/* Compliance proof — на видном месте, чтобы менеджер сразу
               видел что электронные журналы законны (D15). */}
@@ -575,20 +632,18 @@ export default async function LandingPage() {
               <>
                 {/* Почта спрашивается прямо здесь: так первый шаг —
                     одно поле, а не переход на отдельную страницу. */}
-                <HeroEmailStart />
+                <HeroEmailStart
+                  layout="stack"
+                  buttonLabel="Попробовать бесплатно"
+                  showLoginLink={false}
+                />
                 {/* Гарантия — прямо в первом экране: снимать риск нужно
                     там же, где просим действие, а не через два экрана. */}
                 {/* Гарантия — прямо в первом экране: снимать риск нужно
                     там же, где просим действие, а не через два экрана. */}
-                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[12px] text-[#9b9fb3]">
-                  <span>Без карты</span>
-                  <span aria-hidden>·</span>
-                  <span>Всё включено на бесплатном тарифе</span>
-                  <span aria-hidden>·</span>
-                  <span className="inline-flex items-center gap-1 font-medium text-[#116b2a]">
-                    <ShieldCheck className="size-3.5" />
-                    30 дней — вернём деньги
-                  </span>
+                <div className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#116b2a]">
+                  <ShieldCheck className="size-3.5" />
+                  Гарантия возврата: 30 дней после оплаты.
                 </div>
               </>
             )}
@@ -794,7 +849,10 @@ export default async function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
+      <section
+        id="pricing"
+        className="mx-auto max-w-[1200px] scroll-mt-24 px-4 pb-20 sm:px-6"
+      >
         <div className="mb-10 max-w-[720px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <Gift className="size-4" />

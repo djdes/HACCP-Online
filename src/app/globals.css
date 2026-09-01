@@ -787,6 +787,7 @@ html, body {
 .hero-badge,
 .hero-title,
 .hero-copy,
+.hero-point,
 .hero-cta,
 .hero-chips,
 .hero-fan {
@@ -811,8 +812,13 @@ html, body {
   animation-delay: 260ms;
 }
 
+/* Пункты первого экрана появляются по очереди. Задержка задаётся
+   инлайном в разметке (250 + 150·i мс) — так порядок виден там же, где
+   пункты, и не разъезжается при добавлении пятого. */
+
 .hero-cta {
-  animation-delay: 350ms;
+  /* После четырёх пунктов: 250 + 3·150 + 150 = 850мс. */
+  animation-delay: 850ms;
 }
 
 .hero-chips {
@@ -1338,6 +1344,7 @@ html, body {
   .hero-badge,
   .hero-title,
   .hero-copy,
+  .hero-point,
   .hero-cta,
   .hero-cta a[href="/register"],
   .hero-cta a[href="/register"]::after,
