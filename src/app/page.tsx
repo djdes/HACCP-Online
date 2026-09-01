@@ -543,9 +543,9 @@ export default async function LandingPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/brand/registry-mark.svg"
-              alt="В реестре отечественного ПО, заявка №27419"
+              alt="В реестре отечественного ПО"
               width={340}
-              height={93}
+              height={73}
               className="h-auto w-full"
             />
           </div>
@@ -612,13 +612,6 @@ export default async function LandingPage() {
                 <dd className="font-medium text-[#3c4053]">по согласованию</dd>
               </div>
             </dl>
-          </div>
-
-          {/* Compliance proof — на видном месте, чтобы менеджер сразу
-              видел что электронные журналы законны (D15). */}
-          <div className="hero-legal mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-white/80 px-3.5 py-1.5 text-[12px] font-medium text-[#3c4053] backdrop-blur">
-            <ShieldCheck className="size-3.5 text-emerald-600" />
-            Законно с 2021 г. — СанПиН 2.3/2.4.3590-20
           </div>
 
           {/* Single big CTA — для залогиненного «Открыть кабинет»,
