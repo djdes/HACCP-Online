@@ -1,0 +1,164 @@
+import Link from "next/link";
+import { ArrowRight, Building2, CheckCircle2, Gift, Users } from "lucide-react";
+
+/**
+ * Карточка тарифа — одна на лендинг и на кабинет.
+ *
+ * Раньше витрин было две: серверная на лендинге и своя, светлая, в
+ * настройках. Они разъезжались при каждой правке — цена на лендинге
+ * бралась из БД, а в кабинете была вшита строкой. Теперь вёрстка одна,
+ * тексты из `plan-catalog.ts`, цена приходит пропсом.
+ *
+ * Компонент намеренно БЕЗ "use client" и без состояния: так он остаётся
+ * серверным на лендинге и просто попадает в клиентский бандл, когда его
+ * импортирует клиентский `PlanUpgrade`. Любой хук здесь сломал бы это.
+ */
+export function PlanCard({
+  kind,
+  name,
+  from,
+  period,
+  pointsIntro,
+  points,
+  ctaLabel,
+  ctaHref,
+  highlighted,
+  badge,
+  note,
+  ctaDisabled,
+}: {
+  kind: "free" | "team" | "network";
+  name: string;
+  from: string;
+  period: string;
+  /// Подводка над списком — «Всё из Бесплатного, плюс:». Нужна, чтобы
+  /// не дублировать в платном тарифе половину бесплатного.
+  pointsIntro?: string;
+  points: string[];
+  ctaLabel: string;
+  ctaHref: string;
+  highlighted?: boolean;
+  badge?: string;
+  /// Мелкая строка под кнопкой — условия тестового периода.
+  note?: string;
+  /// Кнопка неактивна: тариф уже действует у этого человека.
+  ctaDisabled?: boolean;
+}) {
+  const Icon =
+    kind === "free" ? Gift : kind === "network" ? Building2 : Users;
+  return (
+    <div
+      className={
+        highlighted
+          ? "relative flex h-full flex-col overflow-hidden rounded-3xl bg-[#0b1024] p-5 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:p-8"
+          : "relative flex h-full flex-col rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8"
+      }
+    >
+      {highlighted && (
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-16 -top-16 size-[260px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
+          <div className="absolute -left-16 -bottom-10 size-[240px] rounded-full bg-[#7a5cff] opacity-30 blur-[120px]" />
+        </div>
+      )}
+      <div className="relative z-10 flex h-full flex-col">
+        <div className="flex items-center gap-3">
+          <span
+            className={
+              highlighted
+                ? "flex size-11 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/20"
+                : "flex size-11 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]"
+            }
+          >
+            <Icon className="size-5" />
+          </span>
+          <div className="text-[20px] font-semibold tracking-[-0.01em]">
+            {name}
+          </div>
+          {badge && (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#7cf5c0]/20 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-[#7cf5c0]">
+              {badge}
+            </span>
+          )}
+        </div>
+        <div className="mt-6 flex items-baseline gap-2">
+          <span className="text-[34px] font-semibold tracking-[-0.02em]">
+            {from}
+          </span>
+          <span
+            className={
+              highlighted
+                ? "text-[13px] text-white/60"
+                : "text-[13px] text-[#9b9fb3]"
+            }
+          >
+            {period}
+          </span>
+        </div>
+        {pointsIntro ? (
+          <div
+            className={
+              highlighted
+                ? "mt-6 text-[13px] font-medium text-white/60"
+                : "mt-6 text-[13px] font-medium text-[#9b9fb3]"
+            }
+          >
+            {pointsIntro}
+          </div>
+        ) : null}
+        <ul
+          className={
+            highlighted
+              ? "mt-3 flex-1 space-y-2.5 pb-8 text-[14px] text-white/85"
+              : "mt-6 flex-1 space-y-2.5 pb-8 text-[14px] text-[#3c4053]"
+          }
+        >
+          {points.map((p) => (
+            <li key={p} className="flex items-start gap-2">
+              <CheckCircle2
+                className={
+                  highlighted
+                    ? "mt-0.5 size-4 shrink-0 text-[#7cf5c0]"
+                    : "mt-0.5 size-4 shrink-0 text-[#5566f6]"
+                }
+              />
+              <span>{p}</span>
+            </li>
+          ))}
+        </ul>
+        {/* Условие над кнопкой, а не под ней: человек читает его ДО
+            того, как нажать, а не после. */}
+        {note ? (
+          <div
+            className={
+              highlighted
+                ? "mt-auto mb-2.5 text-center text-[12px] leading-snug text-white/70"
+                : "mt-auto mb-2.5 text-center text-[12px] leading-snug text-[#6f7282]"
+            }
+          >
+            {note}
+          </div>
+        ) : null}
+        {ctaDisabled ? (
+          <span
+            aria-disabled="true"
+            className="inline-flex h-11 w-full cursor-default items-center justify-center gap-2 rounded-2xl border border-[#c7ccea] bg-[#eef1ff] text-[15px] font-medium text-[#3848c7]"
+          >
+            {ctaLabel}
+          </span>
+        ) : (
+          <Link
+            href={ctaHref}
+            className={
+              highlighted
+                ? "inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
+                : "inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            }
+          >
+            {ctaLabel}
+            <ArrowRight className="size-4" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}

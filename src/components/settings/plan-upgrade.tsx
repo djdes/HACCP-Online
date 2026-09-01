@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 
 import { useState } from "react";
 import {
   Check,
   ChevronDown,
-  CircleArrowUp,
   Users,
   Wrench,
 } from "lucide-react";
@@ -15,10 +13,10 @@ import { PricingCalculator } from "@/components/public/pricing-calculator";
 import {
   LARGE_TEAM_NOTE,
   PLAN_CATALOG,
-  TEST_PERIOD_BANNER,
   catalogPlanIdFor,
   type CatalogPlanId,
 } from "@/lib/plan-catalog";
+import { PlanCard } from "@/components/pricing/plan-card";
 
 /** Что даёт железо — те же три пункта, что в карточке на лендинге. */
 const HARDWARE_POINTS = [
@@ -94,119 +92,46 @@ export function PlanUpgrade({
         </p>
       ) : null}
 
-      {/* Тестовый период. Без этой строки человек либо решит, что деньги
-          уже списывают, либо не поймёт, что бесплатный доступ конечен. */}
-      <p className="mt-4 rounded-2xl border border-[#c7ccea] bg-[#f5f6ff] px-4 py-3 text-[13px] leading-relaxed text-[#3c4053]">
-        {TEST_PERIOD_BANNER}
-      </p>
-
       {/* Три колонки, как на лендинге: две тарифные карточки и железо.
           Было sm:grid-cols-2 — третья карточка молча съезжала на вторую
           строку, и ряд тарифов переставал читаться как ряд. Брейкпоинты
           те же, что в equipment-pricing, чтобы витрины не разъезжались. */}
       <div className="mt-5 grid items-stretch gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Та же карточка, что на лендинге: тёмная «Подписка» посередине.
+            Раньше в кабинете была своя светлая вёрстка и своя, вшитая
+            строкой цена — витрины расходились при каждой правке. */}
         {PLAN_CATALOG.map((plan) => {
           const isCurrent = plan.id === currentId;
-          // Рекомендуем платный только тому, кто ещё на бесплатном —
-          // иначе «Рекомендуем» висело бы вечно и перестало значить что-либо.
-          const recommended = !isCurrent && plan.id === "paid";
+          const isPaidPlan = plan.id === "paid";
           return (
-            <div
+            <PlanCard
               key={plan.id}
-              className={cn(
-                "flex flex-col rounded-2xl border p-5 transition-colors",
-                isCurrent && "border-[#ececf4] bg-[#fafbff]",
-                recommended &&
-                  "border-[#5566f6] bg-[#f5f6ff] ring-2 ring-[#5566f6]/20",
-                !isCurrent && !recommended && "border-[#ececf4] bg-white"
-              )}
-            >
-              <div className="flex min-h-6 items-center justify-between gap-2">
-                <span className="text-[15px] font-semibold text-[#0b1024]">
-                  {plan.nameRu}
-                </span>
-                {isCurrent ? (
-                  <span className="rounded-full bg-[#eef1ff] px-2.5 py-0.5 text-[11px] font-medium text-[#3848c7]">
-                    Ваш план
-                  </span>
-                ) : null}
-                {recommended ? (
-                  <span className="rounded-full bg-[#5566f6] px-2.5 py-0.5 text-[11px] font-medium text-white">
-                    Рекомендуем
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-1 text-[26px] font-semibold leading-none tabular-nums text-[#0b1024]">
-                {plan.price}
-                <span className="text-[14px] font-normal text-[#6f7282]">
-                  {plan.priceHint}
-                </span>
-              </div>
-              <p className="mt-1.5 text-[12.5px] leading-[1.5] text-[#6f7282]">
-                {plan.tagline}
-              </p>
-
-              <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
-                Что входит
-              </div>
-              <ul className="mt-2 flex-1 space-y-1.5 text-[13px]">
-                {plan.inheritsFrom ? (
-                  <li className="flex gap-2 font-medium text-[#0b1024]">
-                    <Check className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
-                    <span>Всё из «{plan.inheritsFrom}»</span>
-                  </li>
-                ) : null}
-                {plan.features.map((f) => (
-                  <li key={f} className="flex gap-2 text-[#3c4053]">
-                    <Check className="mt-0.5 size-4 shrink-0 text-[#5566f6]/70" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {plan.note ? (
-                <p className="mt-3 text-[12px] leading-snug text-[#6f7282]">
-                  {plan.note}
-                </p>
-              ) : null}
-
-              <div className="mt-5">
-                {plan.id === "free" ? (
-                  <button
-                    type="button"
-                    disabled
-                    className={cn(
-                      "h-11 w-full rounded-2xl border text-[14px] font-medium",
-                      isCurrent
-                        ? "border-[#c7ccea] bg-[#eef1ff] text-[#3848c7]"
-                        : "border-[#dcdfed] bg-white text-[#9b9fb3]"
-                    )}
-                  >
-                    {isCurrent ? "Текущий" : "Бесплатный тариф"}
-                  </button>
-                ) : isCurrent ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="h-11 w-full rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#9b9fb3]"
-                  >
-                    Уже улучшено
-                  </button>
-                ) : (
-                  // Сразу на оплату, без промежуточного «вы уверены?»:
-                  // подтверждать нечего — деньги спишутся только на
-                  // странице оплаты, где всё видно и можно уйти.
-                  <Link
-                    href="/order?plan=monthly"
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-200 hover:bg-[#4a5bf0]"
-                  >
-                    <CircleArrowUp className="size-4" />
-                    Улучшить
-                  </Link>
-                )}
-              </div>
-            </div>
+              kind={isPaidPlan ? "team" : "free"}
+              name={plan.nameRu}
+              from={
+                isPaidPlan
+                  ? `${subscriptionMonthly.toLocaleString("ru-RU")} ₽`
+                  : plan.price
+              }
+              period={plan.priceHint}
+              pointsIntro={
+                plan.inheritsFrom ? `Всё из «${plan.inheritsFrom}», плюс:` : undefined
+              }
+              points={[...plan.features]}
+              note={plan.note}
+              highlighted={isPaidPlan}
+              badge={isPaidPlan && !isCurrent ? "Популярный" : undefined}
+              ctaLabel={
+                isCurrent
+                  ? "Текущий"
+                  : isPaidPlan
+                    ? "Оплатить картой"
+                    : "Бесплатный тариф"
+              }
+              // Бесплатный тариф покупать негде: он и так доступен.
+              ctaDisabled={isCurrent || !isPaidPlan}
+              ctaHref="/order?plan=monthly"
+            />
           );
         })}
 

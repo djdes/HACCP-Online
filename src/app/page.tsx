@@ -39,9 +39,9 @@ import { FREE_MAX_USERS } from "@/lib/plan-limits";
 import {
   catalogPlanIdFor,
   FREE_PLAN_TEST_NOTE,
+  PAID_PLAN_TEST_NOTE,
   LARGE_TEAM_NOTE,
   SUBSCRIPTION_MAX_USERS,
-  TEST_PERIOD_BANNER,
 } from "@/lib/plan-catalog";
 import { TestimonialsCarousel } from "@/components/landing/testimonials-carousel";
 import { BrandLogo } from "@/components/brand/logo";
@@ -70,6 +70,7 @@ import {
   formatRub,
   TARIFF_MONTHLY,
 } from "@/lib/tariffs";
+import { PlanCard } from "@/components/pricing/plan-card";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -810,10 +811,6 @@ export default async function LandingPage() {
           </p>
         </div>
 
-        <p className="mb-5 rounded-2xl border border-[#c7ccea] bg-[#f5f6ff] px-4 py-3 text-center text-[13.5px] leading-relaxed text-[#3c4053]">
-          {TEST_PERIOD_BANNER}
-        </p>
-
         {/* Три карточки одной высоты. Длинные описания убраны: в ряду
             тарифов человек сравнивает цену и три отличия, а не читает
             абзацы. Подписка перечисляет только то, чего нет в
@@ -822,7 +819,7 @@ export default async function LandingPage() {
           subscriptionMonthly={monthly.priceRub}
           hardwareFromRub={hardwareFromRub}
         >
-          <PricingCard
+          <PlanCard
             kind="free"
             name="Бесплатный"
             from="0 ₽"
@@ -838,7 +835,7 @@ export default async function LandingPage() {
             note={FREE_PLAN_TEST_NOTE}
           />
 
-          <PricingCard
+          <PlanCard
             kind="team"
             name={monthly.title}
             from={formatRub(monthly.priceRub)}
@@ -853,6 +850,7 @@ export default async function LandingPage() {
             ctaHref="/order?plan=monthly"
             highlighted
             badge="Популярный"
+            note={PAID_PLAN_TEST_NOTE}
           />
         </EquipmentPricing>
         {/* Команды больше 50 человек считаем индивидуально: фиксированный
@@ -1497,150 +1495,3 @@ export default async function LandingPage() {
   );
 }
 
-function PricingCard({
-  kind,
-  name,
-  from,
-  period,
-  pointsIntro,
-  points,
-  ctaLabel,
-  ctaHref,
-  highlighted,
-  badge,
-  note,
-  ctaDisabled,
-}: {
-  kind: "free" | "team" | "network";
-  name: string;
-  from: string;
-  period: string;
-  /// Подводка над списком — «Всё из Бесплатного, плюс:». Нужна, чтобы
-  /// не дублировать в платном тарифе половину бесплатного.
-  pointsIntro?: string;
-  points: string[];
-  ctaLabel: string;
-  ctaHref: string;
-  highlighted?: boolean;
-  badge?: string;
-  /// Мелкая строка под кнопкой — условия тестового периода.
-  note?: string;
-  /// Кнопка неактивна: тариф уже действует у этого человека.
-  ctaDisabled?: boolean;
-}) {
-  const Icon =
-    kind === "free" ? Gift : kind === "network" ? Building2 : Users;
-  return (
-    <div
-      className={
-        highlighted
-          ? "relative flex h-full flex-col overflow-hidden rounded-3xl bg-[#0b1024] p-5 text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:p-8"
-          : "relative flex h-full flex-col rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-8"
-      }
-    >
-      {highlighted && (
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -right-16 -top-16 size-[260px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
-          <div className="absolute -left-16 -bottom-10 size-[240px] rounded-full bg-[#7a5cff] opacity-30 blur-[120px]" />
-        </div>
-      )}
-      <div className="relative z-10 flex h-full flex-col">
-        <div className="flex items-center gap-3">
-          <span
-            className={
-              highlighted
-                ? "flex size-11 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/20"
-                : "flex size-11 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]"
-            }
-          >
-            <Icon className="size-5" />
-          </span>
-          <div className="text-[20px] font-semibold tracking-[-0.01em]">
-            {name}
-          </div>
-          {badge && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#7cf5c0]/20 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-[#7cf5c0]">
-              {badge}
-            </span>
-          )}
-        </div>
-        <div className="mt-6 flex items-baseline gap-2">
-          <span className="text-[34px] font-semibold tracking-[-0.02em]">
-            {from}
-          </span>
-          <span
-            className={
-              highlighted
-                ? "text-[13px] text-white/60"
-                : "text-[13px] text-[#9b9fb3]"
-            }
-          >
-            {period}
-          </span>
-        </div>
-        {pointsIntro ? (
-          <div
-            className={
-              highlighted
-                ? "mt-6 text-[13px] font-medium text-white/60"
-                : "mt-6 text-[13px] font-medium text-[#9b9fb3]"
-            }
-          >
-            {pointsIntro}
-          </div>
-        ) : null}
-        <ul
-          className={
-            highlighted
-              ? "mt-3 space-y-2.5 pb-8 text-[14px] text-white/85"
-              : "mt-6 space-y-2.5 pb-8 text-[14px] text-[#3c4053]"
-          }
-        >
-          {points.map((p) => (
-            <li key={p} className="flex items-start gap-2">
-              <CheckCircle2
-                className={
-                  highlighted
-                    ? "mt-0.5 size-4 shrink-0 text-[#7cf5c0]"
-                    : "mt-0.5 size-4 shrink-0 text-[#5566f6]"
-                }
-              />
-              <span>{p}</span>
-            </li>
-          ))}
-        </ul>
-        {ctaDisabled ? (
-          <span
-            aria-disabled="true"
-            className="mt-auto inline-flex h-11 w-full cursor-default items-center justify-center gap-2 rounded-2xl border border-[#c7ccea] bg-[#eef1ff] text-[15px] font-medium text-[#3848c7]"
-          >
-            {ctaLabel}
-          </span>
-        ) : (
-          <Link
-            href={ctaHref}
-            className={
-              highlighted
-                ? "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
-                : "mt-auto inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-            }
-          >
-            {ctaLabel}
-            <ArrowRight className="size-4" />
-          </Link>
-        )}
-        {note ? (
-          <div
-            className={
-              highlighted
-                ? "mt-2.5 text-center text-[12px] text-white/60"
-                : "mt-2.5 text-center text-[12px] text-[#9b9fb3]"
-            }
-          >
-            {note}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
