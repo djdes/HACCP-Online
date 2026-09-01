@@ -109,7 +109,7 @@ function layout(title: string, body: string) {
 <tr><td align="center">
 <table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
   <tr><td style="background:#0b1024;padding:22px 32px">
-    <img src="${EMAIL_ASSET_ORIGIN}/brand/logo-email.png" width="116" height="36" alt="WeSetup" style="display:block;border:0;height:36px;width:116px">
+    <img src="${EMAIL_ASSET_ORIGIN}/brand/logo-email.png" width="116" height="31" alt="WeSetup" style="display:block;border:0;height:31px;width:116px">
   </td></tr>
   <tr><td style="padding:32px">
     <h2 style="margin:0 0 16px;font-size:18px;color:#18181b">${title}</h2>

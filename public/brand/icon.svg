@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="WeSetup favicon">
-  <rect width="512" height="512" rx="112" fill="#5566F6"/>
-  <path d="M96 128 L181 374 L256 222 L331 374 L416 128"
-        fill="none"
-        stroke="#FFFFFF"
-        stroke-width="68"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
-</svg>

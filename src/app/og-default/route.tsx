@@ -84,7 +84,7 @@ export async function GET() {
           <img
             src={`${SITE}/brand/wordmark-dark.png`}
             width={280}
-            height={93}
+            height={74}
             alt="WeSetup"
           />
         </div>

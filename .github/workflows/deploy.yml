@@ -198,6 +198,20 @@ jobs:
               echo "[backup] .next/static отсутствует — нечего бэкапить (первый деплой?)"
             fi
 
+            echo "=== Backup .next/cache (переживает rm -rf .next ниже) ==="
+            # Кеш сборки лежит ВНУТРИ .next, который через несколько
+            # строк сносится целиком. Без этого переноса каждая сборка
+            # холодная — 2.7 минуты вместо примерно минуты. Кеш
+            # адресуется по содержимому, устаревшие записи Next
+            # выбрасывает сам, склеить старый код с новым он не может.
+            rm -rf .next.cache-backup 2>/dev/null || true
+            if [ -d .next/cache ]; then
+              mv .next/cache .next.cache-backup
+              echo "[cache] .next/cache → .next.cache-backup ($(du -sh .next.cache-backup | cut -f1))"
+            else
+              echo "[cache] .next/cache отсутствует — следующая сборка холодная"
+            fi
+
             echo "=== Installing server dependencies (clean) ==="
             # Remove stale node_modules + CI-produced .next to prevent
             # "Cannot find module 'next/dist/compiled/cookie'" desync after
