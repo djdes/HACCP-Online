@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Copy,
   ExternalLink,
+  MessageSquare,
   Send,
   Thermometer,
   Unlink,
@@ -458,6 +459,35 @@ function ChatPreview({
             />
           </>
         )}
+      </div>
+
+      {/* SMS — заглушка. Интеграции нет, и притворяться, что она есть,
+          нельзя: тумблер выключен и подписан «в разработке». Показываем
+          заранее, чтобы было видно, куда движется продукт. */}
+      <div className="rounded-3xl border border-[#eceef7] bg-white p-6 md:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
+              <MessageSquare className="size-5" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[16px] font-semibold text-[#0b1024]">
+                  SMS-уведомления
+                </span>
+                <span className="rounded-full bg-[#fff4f2] px-2.5 py-0.5 text-[11px] font-medium text-[#a13a32]">
+                  В разработке
+                </span>
+              </div>
+              <p className="mt-1.5 max-w-[520px] text-[13.5px] leading-[1.55] text-[#6f7282]">
+                Напоминание о незаполненном журнале придёт даже тем, у кого
+                нет Telegram и почты. Для линейного персонала это часто
+                единственный работающий канал.
+              </p>
+            </div>
+          </div>
+          <SwitchToggle checked={false} disabled onChange={() => {}} />
+        </div>
       </div>
     </div>
   );

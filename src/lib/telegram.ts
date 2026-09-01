@@ -191,6 +191,44 @@ function extractRetryAfterSeconds(error: unknown): number | null {
   return Math.min(ra, RETRY_HARD_CAP_SECONDS);
 }
 
+/**
+ * Признак временного сбоя, который стоит повторить.
+ *
+ * Сеть до api.telegram.org рвётся регулярно — grammy отдаёт HttpError
+ * «Network request for 'sendMessage' failed!». Раньше повтор делался
+ * ТОЛЬКО при 429, и такое сообщение терялось с первой попытки: на проде
+ * так пропадало каждое третье админ-уведомление, включая сообщения из
+ * онлайн-чата. 5xx на стороне Telegram — та же история.
+ */
+export function isTransientTelegramError(error: unknown): boolean {
+  const code = extractErrorCode(error);
+  if (typeof code === "number") return code >= 500;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "";
+  return /network|fetch failed|socket|timeout|ECONN|EAI_AGAIN|ETIMEDOUT/i.test(
+    message
+  );
+}
+
+/**
+ * Пауза перед следующей попыткой, мс. `null` — повторять не нужно.
+ *
+ * 429 уважает `retry_after` Telegram'а, временный сбой — экспонента
+ * 1с → 2с → 4с. Дальше `MAX_RETRIES` всё равно оборвёт.
+ */
+export function retryDelayMs(error: unknown, attempt: number): number | null {
+  const retryAfter = extractRetryAfterSeconds(error);
+  if (retryAfter !== null) return retryAfter * 1000;
+  if (isTransientTelegramError(error)) {
+    return Math.min(2 ** (attempt - 1) * 1000, RETRY_HARD_CAP_SECONDS * 1000);
+  }
+  return null;
+}
+
 function extractErrorCode(error: unknown): number | null {
   if (!error || typeof error !== "object") return null;
   const candidate = error as GrammyRetryError;
@@ -263,9 +301,9 @@ async function executeTelegramSend(
       return true;
     } catch (error) {
       lastError = error;
-      const retryAfter = extractRetryAfterSeconds(error);
-      if (retryAfter === null || attempt >= MAX_RETRIES) break;
-      await sleep(retryAfter * 1000);
+      const delay = retryDelayMs(error, attempt);
+      if (delay === null || attempt >= MAX_RETRIES) break;
+      await sleep(delay);
     }
   }
 

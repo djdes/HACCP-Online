@@ -162,13 +162,6 @@ export function listAutomationOwnedCodes(
     .sort();
 }
 
-/** Человеческая подпись тумблера — один текст на UI, tooltip и гайд. */
-export const AUTOMATION_TOGGLE_LABEL =
-  "Автосоздание новых журналов и ежедневное автозаполнение";
-
-export const AUTOMATION_TOGGLE_HINT =
-  "Каждый день в 06:00 · все сотрудники без выходного — «Зд.», t < 37";
-
 /** Буллеты модалки включения — они же в tooltip и в PageGuide журнала. */
 export const AUTOMATION_ENABLE_BULLETS = [
   "Каждый день в 06:00 сайт создаст журнал на текущий период, если его нет, и добавит всех сотрудников, у кого не выходной.",

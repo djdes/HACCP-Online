@@ -16,6 +16,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      // Сверху по центру, а не снизу справа. На телефоне нижний тост
+      // выпрыгивает из-под панели браузера и стопки плавающих кнопок —
+      // человек нажимает «скопировать промокод» и видит, как сообщение
+      // дёргается где-то внизу. Сверху оно рядом с тем, что нажали.
+      position="top-center"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
