@@ -10,6 +10,7 @@ import test from "node:test";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { ALL_JOURNAL_CODES } from "@/lib/onboarding-presets";
 import { ORG_SPHERES, type OrgSphere } from "@/lib/org-profile";
+import { SPHERE_POSITION_SUGGESTIONS } from "@/lib/sphere-positions";
 import {
   PAPER_JOURNALS,
   SPHERE_RULES,
@@ -86,5 +87,59 @@ test("у бумажного бланка есть закон, штраф и ко
     assert.ok(journal.law.url.startsWith("https://"), journal.id);
     assert.ok(journal.fineHint.length > 0, journal.id);
     assert.ok(journal.columns.length >= 3, journal.id);
+  }
+});
+
+test("обязательные и рекомендованные наборы не пересекаются", () => {
+  for (const sphere of spheres) {
+    const rules = SPHERE_RULES[sphere];
+    const required = new Set(rules.electronicRequired.map((rule) => rule.code));
+    for (const code of rules.electronicRecommended) {
+      assert.ok(
+        !required.has(code),
+        `${sphere}: ${code} и в обязательных, и в рекомендованных`,
+      );
+    }
+  }
+});
+
+test("у каждой сферы есть бумажные бланки", () => {
+  for (const sphere of spheres) {
+    assert.ok(
+      SPHERE_RULES[sphere].paperRequired.length > 0,
+      `${sphere}: пустой список бланков`,
+    );
+  }
+});
+
+test("у каждой сферы есть подсказки должностей", () => {
+  for (const sphere of spheres) {
+    const positions = SPHERE_POSITION_SUGGESTIONS[sphere];
+    assert.ok(positions, `${sphere}: нет подсказок должностей`);
+    assert.ok(positions.management.length > 0, `${sphere}: пустое руководство`);
+    assert.ok(positions.staff.length > 0, `${sphere}: пустые сотрудники`);
+  }
+});
+
+test("условный обязательный журнал объясняет условие и имеет основание", () => {
+  for (const sphere of spheres) {
+    for (const rule of SPHERE_RULES[sphere].electronicRequired) {
+      if (!rule.condition) continue;
+      assert.ok(
+        rule.condition.length > 10,
+        `${sphere}: у ${rule.code} условие слишком короткое`,
+      );
+      assert.ok(rule.basis, `${sphere}: у ${rule.code} нет основания`);
+    }
+  }
+});
+
+test("вступление ссылается на действующий СанПиН", () => {
+  for (const sphere of spheres) {
+    assert.match(
+      SPHERE_RULES[sphere].intro,
+      /4282-26/,
+      `${sphere}: во вступлении не действующий СанПиН`,
+    );
   }
 });

@@ -21,24 +21,28 @@ import type { OrgSphere } from "@/lib/org-profile";
  * тех, у кого подписи у персонала нет, а не как единственный законный
  * путь.
  *
- * Второй важный факт: СанПиН 2.3/2.4.3590-20 почти нигде не требует
+ * Второй важный факт: СанПиН 2.3/2.4.4282-26 почти нигде не требует
  * «журнала утверждённой формы» — он требует ФИКСИРОВАТЬ результаты
- * контроля, а образцы называет рекомендуемыми, и для ключевых записей
- * прямо разрешает электронный носитель (пп. 2.22, 3.8, 4.3). Это довод
- * в пользу продукта, а не мелкая деталь.
+ * контроля, формы приложений № 1–5 называет рекомендуемыми и прямо
+ * разрешает вести их на бумажном и (или) электронном носителе. Это
+ * довод в пользу продукта, а не мелкая деталь.
  *
  * Основание у каждого журнала разное, и мешать их в одно «обязателен»
  * нельзя: требование санитарных правил, обязанность вести записи по
  * ХАССП (ТР ТС 021/2011 ст. 10) и «спрашивают при проверках» — три
  * разные вещи для человека, который решает, вести журнал или нет.
  *
- * ВНИМАНИЕ: содержимое таблицы — юридическое. Сверено 2026-08-28 по
- * СанПиН 2.3/2.4.3590-20 (действует до 01.01.2027), ТР ТС 021/2011
- * ст. 10, ТК РФ ст. 22.1 ч. 3 и Правилам обучения по ОТ № 2464,
- * приказу МЧС № 806, ППР № 1479 (до 31.12.2026), приказу Минтруда
- * № 903н. Разбор со ссылками — в
+ * ВНИМАНИЕ: содержимое таблицы — юридическое. Сверено 2026-09-01 по
+ * СанПиН 2.3/2.4.4282-26 (постановление Главного государственного
+ * санитарного врача РФ от 02.06.2026 № 18, действует с 01.09.2026 до
+ * 01.09.2032; заменил 2.3/2.4.3590-20), ТР ТС 021/2011 ст. 10, ТК РФ
+ * ст. 22.1 ч. 3 и Правилам обучения по ОТ № 2464, приказу МЧС № 806,
+ * ППР № 1479 (до 31.12.2026), приказу Минтруда № 903н. Разбор со
+ * ссылками — в
  * `C:/Users/Yaroslav/.claude/plans/wesetup-journals-legal-review.md`.
- * Сроки действия СанПиН и ППР истекают — перепроверить в декабре 2026.
+ * Номера пунктов нового СанПиН подтверждены только для фритюра (п. 44);
+ * остальные подсказки намеренно без номеров — полнотекстовая юр-сверка
+ * 4282-26 ещё требуется. Срок ППР истекает — перепроверить в декабре 2026.
  */
 
 export type LawRef = { label: string; url: string };
@@ -120,10 +124,21 @@ const KOAP_1443: LawRef = {
   url: "https://www.consultant.ru/document/cons_doc_LAW_34661/",
 };
 
-/** Санитарные правила общепита — на них ссылаются подсказки журналов. */
-const SANPIN_3590: LawRef = {
-  label: "СанПиН 2.3/2.4.3590-20",
-  url: "https://base.garant.ru/74891586/",
+/**
+ * Санитарные правила общепита — на них ссылаются подсказки журналов.
+ *
+ * С 01.09.2026 действует СанПиН 2.3/2.4.4282-26 (постановление Главного
+ * государственного санитарного врача РФ от 02.06.2026 № 18, срок — до
+ * 01.09.2032). Он заменил 2.3/2.4.3590-20 досрочно. Существо сохранено:
+ * гигиенический журнал, температура холодильников и складов, фритюр,
+ * бракеражи; электронное ведение по-прежнему разрешено прямо. Изменилась
+ * нумерация пунктов, поэтому в подсказках номера остались только там, где
+ * они подтверждены (фритюр — п. 44); остальное — без номера: выдумывать
+ * ссылку на пункт в юридическом тексте нельзя.
+ */
+const SANPIN_4282: LawRef = {
+  label: "СанПиН 2.3/2.4.4282-26",
+  url: "https://www.consultant.ru/law/hotdocs/94329.html",
 };
 
 /** ТР ТС 021/2011, ст. 10 — процедуры ХАССП и записи по ним. */
@@ -270,7 +285,7 @@ const PAPER_FULL = [...PAPER_BASE, "fire_extinguishers"];
  * поэтому передаются параметром, а не зашиты в текст.
  */
 function intro(sphereLabel: string, penalty: string): string {
-  return `Для сферы «${sphereLabel}» санитарные правила требуют вести эти записи — мы включили их сразу, остальное вы решаете сами. Вести можно в электронном виде: СанПиН 2.3/2.4.3590-20 прямо это разрешает (пп. 2.22, 3.8, 4.3). Отсутствие записей при проверке — нарушение: ${penalty}`;
+  return `Для сферы «${sphereLabel}» санитарные правила требуют вести эти записи — мы включили их сразу, остальное вы решаете сами. Вести можно в электронном виде: СанПиН 2.3/2.4.4282-26 прямо это разрешает — журналы приложений № 1–5 ведутся на бумажном и (или) электронном носителе. Отсутствие записей при проверке — нарушение: ${penalty}`;
 }
 
 /** Общепит: ст. 6.6 КоАП. */
@@ -285,8 +300,19 @@ const PENALTY_CHILD =
 const PENALTY_PRODUCTION =
   "для пищевого производства отсутствие процедур ХАССП и записей по ним — нарушение ТР ТС 021/2011: штраф по ст. 14.43 КоАП РФ до 300 000 ₽, при повторном нарушении или вреде здоровью — до 600 000 ₽ и приостановка деятельности.";
 
-/** Условие у журнала температуры и влажности складов — п. 3.8 СанПиН. */
+/** Условие у журнала температуры и влажности складов (СанПиН, склады). */
 const CLIMATE_CONDITION = "нужен при наличии складских помещений (кладовых)";
+
+/** Фритюр есть не везде — условие одинаковое во всех сферах. */
+const FRYER_CONDITION = "нужен при наличии фритюра";
+
+/**
+ * Бракеражи обязательны для общепита, который кормит медицинские или
+ * социальные организации. Обычной корпоративной столовой они не нужны —
+ * поэтому это условие, а не безусловная обязанность.
+ */
+const CANTEEN_SOCIAL_CONDITION =
+  "нужен, если столовая обслуживает медицинскую или социальную организацию";
 
 export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
   restaurant: {
@@ -294,10 +320,10 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
     intro: intro("Ресторан", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
-      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
-      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
-      { code: "fryer_oil", condition: "нужен при наличии фритюра", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 4.3 — хранить записи не менее 3 месяцев" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+      { code: "fryer_oil", condition: FRYER_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН, п. 44 — хранить записи не менее 3 месяцев" },
     ],
     electronicRecommended: [
       "cleaning",
@@ -306,23 +332,26 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
       "perishable_rejection",
       "incoming_control",
       "med_books",
+      "general_cleaning",
+      "disinfectant_usage",
     ],
     paperRequired: PAPER_FULL,
   },
   cafe: {
     sphere: "cafe",
-    intro: intro("Кафе / Бар / Столовая", PENALTY_FOOD),
+    intro: intro("Кафе / Кофейня", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
-      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
-      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
     ],
     electronicRecommended: [
       "cleaning",
       "health_check",
       "perishable_rejection",
       "incoming_control",
+      "med_books",
     ],
     paperRequired: PAPER_BASE,
   },
@@ -331,10 +360,10 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
     intro: intro("Фастфуд", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
-      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
-      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
-      { code: "fryer_oil", condition: "нужен при наличии фритюра", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 4.3 — хранить записи не менее 3 месяцев" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+      { code: "fryer_oil", condition: FRYER_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН, п. 44 — хранить записи не менее 3 месяцев" },
     ],
     // Бракеражи ушли из обязательных: СанПиН требует их только от
     // медицинских и социальных учреждений и общепита, который их
@@ -348,17 +377,18 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
       "incoming_control",
       "disinfectant_usage",
       "uv_lamp_runtime",
+      "product_writeoff",
     ],
     paperRequired: PAPER_FULL,
   },
   education: {
     sphere: "education",
-    intro: intro("Школа / Детсад / Институт", PENALTY_CHILD),
+    intro: intro("Школа / Детсад / Лагерь", PENALTY_CHILD),
     introLaw: KOAP_67,
     electronicRequired: [
-      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
-      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
-      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
       // Бракеражи в детских организациях СанПиН не требует (в главе VIII
       // их нет вовсе), но их рекомендуют МР 2.4.0179-20 и спрашивают
       // почти на каждой проверке — оставляем включёнными, честно называя
@@ -375,6 +405,8 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
       "general_cleaning",
       "med_books",
       "uv_lamp_runtime",
+      "cleaning_ventilation_checklist",
+      "disinfectant_usage",
     ],
     paperRequired: PAPER_FULL,
   },
@@ -383,9 +415,9 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
     intro: intro("Пекарня", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
-      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
-      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
       { code: "incoming_raw_materials_control", basis: "haccp", law: TR_TS_021 },
     ],
     electronicRecommended: [
@@ -393,6 +425,9 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
       "health_check",
       "pest_control",
       "metal_impurity",
+      "fryer_oil",
+      "finished_product",
+      "general_cleaning",
     ],
     paperRequired: PAPER_FULL,
   },
@@ -401,9 +436,9 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
     intro: intro("Производство", PENALTY_PRODUCTION),
     introLaw: KOAP_1443,
     electronicRequired: [
-      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
-      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
-      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
       { code: "incoming_raw_materials_control", basis: "haccp", law: TR_TS_021 },
       // Металлопримеси — только если контроль есть в плане ХАССП:
       // требовать журнал от производства без металлодетектора нелепо.
@@ -423,19 +458,201 @@ export const SPHERE_RULES: Record<OrgSphere, SphereRules> = {
       "equipment_cleaning",
       "pest_control",
       "audit_plan",
+      "audit_protocol",
+      "audit_report",
+      "equipment_calibration",
+      "glass_items_list",
+      "glass_control",
     ],
     paperRequired: PAPER_FULL,
+  },
+  bar: {
+    sphere: "bar",
+    intro: intro("Бар / Паб", PENALTY_FOOD),
+    introLaw: KOAP_66,
+    // У бара нет горячего цеха и бракеражей: персонал контактирует с
+    // продукцией (гигиенический журнал) и хранит скоропорт в холоде.
+    // Фритюр для закусок — опция, поэтому он в рекомендациях.
+    electronicRequired: [
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+    ],
+    electronicRecommended: [
+      "cleaning",
+      "health_check",
+      "fryer_oil",
+      "perishable_rejection",
+      "med_books",
+    ],
+    paperRequired: PAPER_BASE,
+  },
+  canteen: {
+    sphere: "canteen",
+    intro: intro("Столовая", PENALTY_FOOD),
+    introLaw: KOAP_66,
+    // Столовая — полный цикл. Бракеражи здесь не «на всякий случай»:
+    // они обязательны, когда столовая кормит медицинскую или социальную
+    // организацию (в 3590-20 это пп. 7.1.13–7.1.14; в 4282-26 — раздел
+    // про мед/соц организации, номер пункта требует юр-сверки). Для
+    // корпоративной столовой условие просто не выполняется, и журнал
+    // выключается без предупреждения.
+    electronicRequired: [
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+      { code: "fryer_oil", condition: FRYER_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН, п. 44 — хранить записи не менее 3 месяцев" },
+      { code: "finished_product", condition: CANTEEN_SOCIAL_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН — требует юр-сверки по полному тексту 4282-26" },
+      { code: "perishable_rejection", condition: CANTEEN_SOCIAL_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН — требует юр-сверки по полному тексту 4282-26" },
+    ],
+    electronicRecommended: [
+      "cleaning",
+      "health_check",
+      "incoming_control",
+      "intensive_cooling",
+      "med_books",
+    ],
+    paperRequired: PAPER_FULL,
+  },
+  hotel: {
+    sphere: "hotel",
+    intro: intro("Отель / Гостиница", PENALTY_FOOD),
+    introLaw: KOAP_66,
+    // Пищеблок отеля (завтраки, ресторан) — обычный общепит по СанПиН.
+    // Журналов бассейна и номерного фонда в каталоге нет — не обещаем.
+    electronicRequired: [
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+      { code: "fryer_oil", condition: FRYER_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН, п. 44 — хранить записи не менее 3 месяцев" },
+    ],
+    electronicRecommended: [
+      "cleaning",
+      "general_cleaning",
+      "health_check",
+      "finished_product",
+      "perishable_rejection",
+      "incoming_control",
+      "med_books",
+    ],
+    paperRequired: PAPER_FULL,
+  },
+  medical: {
+    sphere: "medical",
+    intro: intro("Медцентр / Больница / Санаторий", PENALTY_FOOD),
+    introLaw: KOAP_66,
+    // Единственная сфера, где бракеражи обязательны по санитарным
+    // правилам без оговорок: выдача пищи только после снятия пробы.
+    // Точный номер пункта в 4282-26 требует юр-сверки — в подсказке
+    // пишем существо требования, а не выдуманный номер.
+    electronicRequired: [
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+      { code: "finished_product", basis: "sanpin", law: SANPIN_4282, note: "Обязателен для медицинских и социальных организаций — требует юр-сверки по полному тексту 4282-26" },
+      { code: "perishable_rejection", basis: "sanpin", law: SANPIN_4282, note: "Обязателен для медицинских и социальных организаций — требует юр-сверки по полному тексту 4282-26" },
+    ],
+    electronicRecommended: [
+      "health_check",
+      "incoming_control",
+      "cleaning",
+      "general_cleaning",
+      "uv_lamp_runtime",
+      "disinfectant_usage",
+      "med_books",
+    ],
+    paperRequired: PAPER_FULL,
+  },
+  gas_station: {
+    sphere: "gas_station",
+    intro: intro("АЗС / Придорожное кафе", PENALTY_FOOD),
+    introLaw: KOAP_66,
+    // Специальных санитарных норм для кафе-зоны АЗС нет — это обычный
+    // общепит. Хот-доги и фри делают фритюр типичным, а магазин при
+    // АЗС — списания просрочки (в рекомендациях).
+    electronicRequired: [
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+      { code: "fryer_oil", condition: FRYER_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН, п. 44 — хранить записи не менее 3 месяцев" },
+    ],
+    electronicRecommended: [
+      "perishable_rejection",
+      "incoming_control",
+      "product_writeoff",
+      "cleaning",
+      "health_check",
+      "disinfectant_usage",
+      "med_books",
+    ],
+    paperRequired: PAPER_FULL,
+  },
+  catering: {
+    sphere: "catering",
+    intro: intro("Кейтеринг / Доставка", PENALTY_FOOD),
+    introLaw: KOAP_66,
+    // Дарк-китчен и выездное обслуживание — обычный общепит плюс
+    // перевозка. Журнала температуры при транспортировке в каталоге
+    // пока нет; ключевой доступный контроль риска — интенсивное
+    // охлаждение перед упаковкой, оно в рекомендациях.
+    electronicRequired: [
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
+      { code: "fryer_oil", condition: FRYER_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН, п. 44 — хранить записи не менее 3 месяцев" },
+    ],
+    electronicRecommended: [
+      "intensive_cooling",
+      "finished_product",
+      "perishable_rejection",
+      "incoming_control",
+      "cleaning",
+      "health_check",
+      "med_books",
+    ],
+    paperRequired: PAPER_FULL,
+  },
+  retail: {
+    sphere: "retail",
+    intro: intro("Продуктовый магазин", PENALTY_FOOD),
+    introLaw: KOAP_66,
+    // Кулинария и развес при магазине — общепит по СанПиН 4282-26,
+    // чистая торговля живёт по СП 2.3.6.3668-20. Применимость
+    // гигиенического журнала к чистой торговле спорна и ТРЕБУЕТ
+    // ЮР-СВЕРКИ; включаем как безопасный дефолт — выключить можно в
+    // один клик. У температуры хранения law не ставим: корректную
+    // ссылку на СП 2.3.6.3668-20 подставлять вслепую нельзя.
+    electronicRequired: [
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", note: "СП для торговых объектов — соблюдение условий хранения производителя; требует юр-сверки" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", note: "Температура и влажность складов — требует юр-сверки" },
+    ],
+    electronicRecommended: [
+      "perishable_rejection",
+      "incoming_control",
+      "product_writeoff",
+      "cleaning",
+      "health_check",
+      "disinfectant_usage",
+      "med_books",
+    ],
+    paperRequired: PAPER_BASE,
   },
   other: {
     sphere: "other",
     intro: intro("Другое", PENALTY_FOOD),
     introLaw: KOAP_66,
     electronicRequired: [
-      { code: "hygiene", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 2.22" },
-      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8 — ежедневно" },
-      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_3590, note: "СанПиН, п. 3.8" },
+      { code: "hygiene", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — осмотр персонала ежедневно перед сменой" },
+      { code: "cold_equipment_control", basis: "sanpin", law: SANPIN_4282, note: "СанПиН — ежедневно" },
+      { code: "climate_control", condition: CLIMATE_CONDITION, basis: "sanpin", law: SANPIN_4282, note: "СанПиН 2.3/2.4.4282-26" },
     ],
-    electronicRecommended: ["cleaning", "health_check"],
+    electronicRecommended: [
+      "cleaning",
+      "health_check",
+      "perishable_rejection",
+      "incoming_control",
+    ],
     paperRequired: PAPER_BASE,
   },
 };

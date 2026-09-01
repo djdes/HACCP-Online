@@ -16,16 +16,29 @@ import type { OrgType } from "@/lib/onboarding-presets";
 /** Название организации по умолчанию при мгновенной регистрации. */
 export const DEFAULT_ORG_NAME = "Моя организация";
 
+/**
+ * Порядок — по частотности обращений, чтобы человек нашёл свою сферу в
+ * начале списка. Бар, столовая, отель, медицина, АЗС, кейтеринг и
+ * магазин раньше сваливались в «Кафе» и «Другое» — набор журналов у них
+ * заметно разный, поэтому у каждой теперь своя строка правил.
+ */
 export const ORG_SPHERES = [
   { value: "restaurant", label: "Ресторан", preset: "restaurant" },
-  { value: "cafe", label: "Кафе / Бар / Столовая", preset: "restaurant" },
+  { value: "cafe", label: "Кафе / Кофейня", preset: "restaurant" },
+  { value: "bar", label: "Бар / Паб", preset: "restaurant" },
+  { value: "canteen", label: "Столовая", preset: "restaurant" },
+  { value: "fastfood", label: "Фастфуд", preset: "restaurant" },
+  { value: "bakery", label: "Пекарня", preset: "bakery" },
+  { value: "catering", label: "Кейтеринг / Доставка", preset: "restaurant" },
+  { value: "hotel", label: "Отель / Гостиница", preset: "restaurant" },
+  { value: "retail", label: "Продуктовый магазин", preset: "other" },
+  { value: "gas_station", label: "АЗС / Придорожное кафе", preset: "restaurant" },
+  { value: "education", label: "Школа / Детсад / Лагерь", preset: "other" },
   {
-    value: "education",
-    label: "Институт / Школа / Детский сад",
+    value: "medical",
+    label: "Медцентр / Больница / Санаторий",
     preset: "other",
   },
-  { value: "bakery", label: "Пекарня", preset: "bakery" },
-  { value: "fastfood", label: "Фастфуд", preset: "restaurant" },
   { value: "production", label: "Производство", preset: "meat" },
   { value: "other", label: "Другое", preset: "other" },
 ] as const satisfies readonly {
@@ -54,11 +67,14 @@ export const LEGACY_SPHERE_MAP: Record<string, OrgSphere> = {
   meat: "production",
   dairy: "production",
   confectionery: "bakery",
-  catering: "cafe",
   school: "education",
-  hospital: "other",
-  retail: "other",
+  // «hospital» — старое значение внешнего API; теперь у медицины своя
+  // сфера с обязательными бракеражами, а не общая «Другое».
+  hospital: "medical",
 };
+// `catering` и `retail` из карты убраны намеренно: это теперь живые
+// значения сфер, а `normalizeSphere` проверяет SPHERE_VALUES раньше
+// legacy-карты — строки стали бы мёртвым кодом.
 
 const SPHERE_VALUES = new Set<string>(ORG_SPHERES.map((s) => s.value));
 const OWNERSHIP_VALUES = new Set<string>(ORG_OWNERSHIP.map((o) => o.value));
@@ -94,7 +110,7 @@ export function normalizeLocationsCount(value: unknown): number {
 
 /**
  * Сфера → пресет онбординга. Пресеты не переписываем: их шесть, они
- * про производственный профиль, а сфер семь и они про язык клиента.
+ * про производственный профиль, а сфер четырнадцать и они про язык клиента.
  */
 export function sphereToPreset(value: unknown): OrgType {
   const sphere = normalizeSphere(value);
