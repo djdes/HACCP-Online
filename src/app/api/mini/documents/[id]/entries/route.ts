@@ -9,6 +9,8 @@ import {
   PAST_DAY_LOCKED_MESSAGE,
 } from "@/lib/closed-day";
 import { isJournalAutomationEnabled } from "@/lib/journal-automation";
+import { checkEntryScope } from "@/lib/journal-entry-write";
+import { orgTodayKey } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +112,34 @@ export async function POST(
   });
   if (!employee) {
     return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
+  }
+
+  // Тот же запрет, что в веб-роутах: рядовой сотрудник заполняет свою
+  // строку и только сегодня. Здесь его не было вовсе — роут проверял
+  // лишь принадлежность организации, и через прямой вызов можно было
+  // записать что угодно в чужую строку за любой день.
+  {
+    const scopeOrg = await db.organization.findUnique({
+      where: { id: orgId },
+      select: { timezone: true },
+    });
+    const scope = checkEntryScope({
+      actor: {
+        id: session.user.id,
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      },
+      responsibleUserId: doc.responsibleUserId,
+      employeeId: body.employeeId,
+      entryDayKey: String(body.date).slice(0, 10),
+      todayKey: orgTodayKey(scopeOrg?.timezone ?? undefined),
+    });
+    if (!scope.allowed) {
+      return NextResponse.json(
+        { error: scope.error, code: scope.code },
+        { status: 403 }
+      );
+    }
   }
 
   // Date validation — раньше new Date("garbage") = InvalidDate

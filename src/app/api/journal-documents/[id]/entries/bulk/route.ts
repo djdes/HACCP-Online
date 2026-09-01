@@ -5,7 +5,6 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { reconcileEntryStaffFields } from "@/lib/journal-staff-binding";
-import { isManagementRole } from "@/lib/user-roles";
 import { canWriteJournal } from "@/lib/journal-acl";
 import {
   checkEntryWrite,
@@ -16,6 +15,8 @@ import {
   toPrismaJsonValue,
   type EntryWriteActor,
 } from "@/lib/journal-entry-write";
+import { checkEntryScope } from "@/lib/journal-entry-write";
+import { orgTodayKey } from "@/lib/timezone";
 
 /**
  * POST /api/journal-documents/[id]/entries/bulk
@@ -103,13 +104,29 @@ export async function POST(
     );
   }
 
-  // Аккаунтабилити: рядовой сотрудник красит только свою строку.
-  const isManagement = isManagementRole(actor.role) || actor.isRoot;
-  if (parsed.items.some((item) => !isManagement && item.employeeId !== actor.id)) {
-    return NextResponse.json(
-      { error: "Можно редактировать только свою строку" },
-      { status: 403 }
-    );
+  // Аккаунтабилити: рядовой сотрудник красит только свою строку и только
+  // сегодняшний день. Покраска мышью шлёт весь штрих одним запросом,
+  // поэтому проверяем каждую ячейку: иначе достаточно было бы захватить
+  // штрихом чужую строку или вчерашнюю колонку.
+  const scopeOrg = await db.organization.findUnique({
+    where: { id: getActiveOrgId(session) },
+    select: { timezone: true },
+  });
+  const todayKey = orgTodayKey(scopeOrg?.timezone ?? undefined);
+  for (const item of parsed.items) {
+    const scope = checkEntryScope({
+      actor: { id: actor.id, role: actor.role, isRoot: actor.isRoot },
+      responsibleUserId: doc.responsibleUserId,
+      employeeId: item.employeeId,
+      entryDayKey: String(item.date).slice(0, 10),
+      todayKey,
+    });
+    if (!scope.allowed) {
+      return NextResponse.json(
+        { error: scope.error, code: scope.code },
+        { status: 403 }
+      );
+    }
   }
 
   const employeeIds = [...new Set(parsed.items.map((item) => item.employeeId))];

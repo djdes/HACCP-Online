@@ -21,6 +21,8 @@ import {
   type EntryWriteActor,
   type EntryWriteDoc,
 } from "@/lib/journal-entry-write";
+import { checkEntryScope } from "@/lib/journal-entry-write";
+import { orgTodayKey } from "@/lib/timezone";
 
 /**
  * Контекст автоматического запрета «день в день» — для PATCH/DELETE,
@@ -75,19 +77,36 @@ export async function PUT(
     return NextResponse.json({ error: "employeeId, date, data обязательны" }, { status: 400 });
   }
 
-  // Аккаунтабилити: рядовой сотрудник может править только СВОЮ строку.
-  // Раньше принимался произвольный employeeId из body — Алёна могла
-  // через прямой fetch записать «выполнено» на строку коллеги Бори,
-  // подделать его подпись в журнале гигиены и т.п.
-  if (
-    !isManagementRole(session.user.role) &&
-    !session.user.isRoot &&
-    employeeId !== session.user.id
-  ) {
-    return NextResponse.json(
-      { error: "Можно редактировать только свою строку" },
-      { status: 403 }
-    );
+  // Аккаунтабилити: рядовой сотрудник заполняет только СВОЮ строку и
+  // только сегодняшний день. Раньше принимался произвольный employeeId —
+  // Алёна могла прямым fetch'ем записать «выполнено» на строку коллеги
+  // Бори и подделать его подпись. День проверяем потому, что журнал
+  // санитарного контроля подтверждает: проверка была В ТОТ день.
+  //
+  // Руководство и ответственный за журнал этим правилом не связаны — им
+  // положено исправлять чужие ошибки, в том числе вчерашние.
+  {
+    const scopeOrg = await db.organization.findUnique({
+      where: { id: getActiveOrgId(session) },
+      select: { timezone: true },
+    });
+    const scope = checkEntryScope({
+      actor: {
+        id: session.user.id,
+        role: session.user.role,
+        isRoot: session.user.isRoot === true,
+      },
+      responsibleUserId: doc.responsibleUserId,
+      employeeId,
+      entryDayKey: String(date).slice(0, 10),
+      todayKey: orgTodayKey(scopeOrg?.timezone ?? undefined),
+    });
+    if (!scope.allowed) {
+      return NextResponse.json(
+        { error: scope.error, code: scope.code },
+        { status: 403 }
+      );
+    }
   }
 
   // Verify employee belongs to org
