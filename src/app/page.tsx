@@ -4,6 +4,7 @@ import {
   Bell,
   BellRing,
   Building2,
+  Check,
   CheckCircle2,
   LogIn,
   Clock,
@@ -42,6 +43,7 @@ import {
   catalogPlanIdFor,
   FREE_PLAN_TEST_NOTE,
   PAID_PLAN_TEST_NOTE,
+  EXTRA_USER_PRICE_RUB,
   LARGE_TEAM_NOTE,
   SUBSCRIPTION_MAX_USERS,
 } from "@/lib/plan-catalog";
@@ -263,13 +265,33 @@ const FAQ = [
 /**
  * Пункты первого экрана. Появляются по очереди — см. `.hero-point`.
  * Порядок не случайный: сверху то, ради чего сервис и покупают.
+ * Длина строк — не длиннее «Автосоздание и автозаполнение журналов»:
+ * на телефоне (360–390 px) каждая должна умещаться в одну строку, иначе
+ * гарантия под кнопкой уезжает за сгиб экрана.
  */
 const HERO_POINTS = [
-  "Автосоздание и автозаполнение журналов",
-  "Автоподбор журналов под вашу компанию",
-  "Бесплатный полный доступ ко всем журналам",
-  "Готовые электронные и бумажные журналы",
+  "**Автосоздание** и **автозаполнение** журналов",
+  "**Автоподбор** журналов под вашу компанию",
+  "**Бесплатный** доступ ко всем журналам",
+  "**Электронные и бумажные** журналы",
 ] as const;
+
+/**
+ * `**слово**` → <strong>. На первом экране читают не строки, а ключевые
+ * слова, поэтому суть выделена жирным. Markdown ради четырёх строк не
+ * тащим.
+ */
+function emphasize(text: string) {
+  return text.split("**").map((part, index) =>
+    index % 2 ? (
+      <strong key={index} className="font-semibold text-[#0b1024]">
+        {part}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+}
 
 export default async function LandingPage() {
   // Auth state — для адаптации nav/CTA. Лендинг остаётся публичным,
@@ -445,9 +467,9 @@ export default async function LandingPage() {
       />
       {/* NAV — solid white, sticky so hero blobs don't bleed through on scroll */}
       <div className="landing-nav sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
+        <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-2.5 sm:px-6 sm:py-5">
           <Link href="/" className="text-[#0b1024]" aria-label="WeSetup — на главную">
-            <BrandLogo height={24} className="sm:h-[26px]" title="" />
+            <BrandLogo height={30} className="sm:[--logo-h:26px]" title="" />
           </Link>
           <div className="flex items-center gap-3 sm:gap-6">
             <Link
@@ -535,14 +557,14 @@ export default async function LandingPage() {
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-white" />
         </div>
 
-        <div className="relative mx-auto max-w-[1100px] px-4 sm:px-6 pt-8 text-center sm:pt-16">
+        <div className="relative mx-auto max-w-[1100px] px-4 pt-6 text-center sm:px-6 sm:pt-16">
           {/* Отметка о реестре — рукописной заметкой со стрелкой на
               заголовок, а не пилюлей: пилюля на первом экране читалась
               как ещё одна кнопка и конкурировала с призывом к действию.
               Буквы запечены в контуры SVG, потому что прод не ходит в
               Google Fonts (см. layout.tsx) — держать ради одной строки
               ещё один self-hosted шрифт дороже, чем статика с кешем. */}
-          <div className="hero-mark mx-auto w-[240px] max-w-[72vw] sm:w-[340px]">
+          <div className="hero-mark mx-auto w-[220px] max-w-[72vw] sm:w-[340px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/brand/registry-mark.svg"
@@ -553,10 +575,13 @@ export default async function LandingPage() {
             />
           </div>
 
-          {/* Headline — fluid scale: 32 px on phones → 72 px on desktop,
-              linear in between via clamp() so the headline reads well on
-              every viewport width without breakpoint jumps. */}
-          <h1 className="hero-title mx-auto mt-8 max-w-[920px] text-[clamp(2rem,6.5vw+0.25rem,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024]">
+          {/* Headline — fluid scale: ~22 px at 320 → 72 px on desktop.
+              7vw подобран так, чтобы «Журналы СанПиН и ХАССП» на телефоне
+              помещались в одну строку (≈12.5em в Segoe UI при tracking
+              -0.02em: 360px → 25px → 315px из 328); нижняя граница 22px —
+              ради 320px. nowrap не ставим — при более широком системном
+              шрифте перенос лучше обрезки. */}
+          <h1 className="hero-title mx-auto mt-3 max-w-[920px] text-[clamp(1.375rem,7vw,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024] sm:mt-8">
             Журналы{" "}
             <span className="relative inline-block">
               <span className="relative z-10">СанПиН и ХАССП</span>
@@ -577,15 +602,23 @@ export default async function LandingPage() {
               keyframe'ом, что и остальной hero, — клиентский компонент
               ради четырёх строк не нужен, и `prefers-reduced-motion`
               уже обработан общими правилами. */}
-          <ul className="mx-auto mt-7 flex max-w-[520px] flex-col gap-2.5 text-left">
+          {/* Список по центру как блок (`w-fit`), а строки внутри — от
+              левого края: так галочки стоят в одну колонку, а не
+              «лесенкой», как при центрировании каждой строки. */}
+          <ul className="mx-auto mt-5 flex w-fit max-w-full flex-col items-start gap-1.5 text-left sm:mt-7 sm:gap-2">
             {HERO_POINTS.map((point, index) => (
               <li
                 key={point}
-                className="hero-point flex items-start gap-2.5 text-[15px] leading-snug text-[#3c4053] sm:text-[16px]"
+                // 14px на телефоне: самая длинная строка с жирными
+                // словами — 282px, а на 360px под текст остаётся 296.
+                // При 15px она уже не влезала и уходила на две строки.
+                className="hero-point flex items-center gap-2.5 text-[14px] leading-snug text-[#3c4053] sm:text-[16px]"
                 style={{ animationDelay: `${250 + index * 150}ms` }}
               >
-                <CheckCircle2 className="mt-0.5 size-[18px] shrink-0 text-[#5566f6]" />
-                <span>{point}</span>
+                <span className="inline-flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#eef1ff] text-[#5566f6]">
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+                <span>{emphasize(point)}</span>
               </li>
             ))}
           </ul>
@@ -600,7 +633,7 @@ export default async function LandingPage() {
           <a
             href="#pricing"
             aria-label="Перейти к тарифам"
-            className="group mx-auto mt-6 block max-w-[480px] rounded-2xl border border-[#dcdfed] bg-white/80 px-5 py-4 text-left backdrop-blur transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/45 hover:bg-white hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.45)]"
+            className="group mx-auto mt-5 block max-w-[480px] rounded-2xl border border-[#dcdfed] sm:mt-6 bg-white/80 px-5 py-4 text-left backdrop-blur transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/45 hover:bg-white hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.45)]"
           >
             <dl className="space-y-2 text-[14px]">
               <div className="flex items-baseline justify-between gap-3">
@@ -616,10 +649,10 @@ export default async function LandingPage() {
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-3 border-t border-[#eef0f6] pt-2">
-                <dt className="text-[#6f7282]">
-                  От {SUBSCRIPTION_MAX_USERS + 1} сотрудника
-                </dt>
-                <dd className="font-medium text-[#3c4053]">по согласованию</dd>
+                <dt className="text-[#6f7282]">Далее 1 сотрудник</dt>
+                <dd className="font-semibold tabular-nums text-[#0b1024]">
+                  {EXTRA_USER_PRICE_RUB} ₽/мес
+                </dd>
               </div>
             </dl>
             <div className="mt-2.5 flex items-center gap-1 border-t border-[#eef0f6] pt-2.5 text-[12.5px] font-medium text-[#3848c7]">
@@ -630,7 +663,7 @@ export default async function LandingPage() {
 
           {/* Single big CTA — для залогиненного «Открыть кабинет»,
               для анонимного — «Начать бесплатно» (регистрация) */}
-          <div className="hero-cta mt-10 flex flex-col items-center gap-3">
+          <div className="hero-cta mt-6 flex flex-col items-center gap-3 sm:mt-10">
             {isAuthed ? (
               <>
                 <Link
@@ -653,8 +686,6 @@ export default async function LandingPage() {
                   buttonLabel="Попробовать бесплатно"
                   showLoginLink={false}
                 />
-                {/* Гарантия — прямо в первом экране: снимать риск нужно
-                    там же, где просим действие, а не через два экрана. */}
                 {/* Гарантия — прямо в первом экране: снимать риск нужно
                     там же, где просим действие, а не через два экрана. */}
                 <div className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#116b2a]">
@@ -932,9 +963,10 @@ export default async function LandingPage() {
             note={PAID_PLAN_TEST_NOTE}
           />
         </EquipmentPricing>
-        {/* Команды больше 50 человек считаем индивидуально: фиксированный
-            тариф на них не рассчитан, а промолчать нельзя — человек
-            оплатит и упрётся в лимит. */}
+        {/* Сверх лимита тарифа — фиксированная доплата за сотрудника;
+            места сверх лимита оформляются через поддержку, поэтому рядом
+            кнопка связи. Промолчать нельзя — человек оплатит и упрётся
+            в лимит. */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3">
           <span className="text-[13.5px] text-[#3c4053]">{LARGE_TEAM_NOTE}</span>
           <a

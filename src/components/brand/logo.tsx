@@ -9,7 +9,12 @@
  * девяти мест, где стоит знак. С маской он темнеет на лендинге,
  * белеет на экране входа и подхватывается тёмной темой кабинета сам.
  *
- * Ширина считается от высоты по пропорции файла.
+ * Ширина считается от высоты по пропорции файла. Проп `height` — это
+ * запасное значение для CSS-переменной `--logo-h`, а не inline-высота,
+ * поэтому на брейкпоинте размер можно переопределить классом:
+ * `className="sm:[--logo-h:26px]"`. Голый `sm:h-[26px]` не сработает —
+ * inline-стиль класс не перебивает; и саму переменную inline не задаём
+ * по той же причине.
  */
 const WORDMARK_SRC = "/brand/wordmark.png";
 /**
@@ -40,8 +45,8 @@ export function BrandLogo({
         // block, а не inline-block: у строчного элемента бокс садится
         // на базовую линию, и знак вставал выше центра строки.
         display: "block",
-        height,
-        width: height * WORDMARK_RATIO,
+        height: `var(--logo-h, ${height}px)`,
+        width: `calc(var(--logo-h, ${height}px) * ${WORDMARK_RATIO})`,
         backgroundColor: "currentColor",
         WebkitMaskImage: `url(${WORDMARK_SRC})`,
         maskImage: `url(${WORDMARK_SRC})`,

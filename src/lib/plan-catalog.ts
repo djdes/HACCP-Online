@@ -54,9 +54,12 @@ export const FREE_PLAN_TEST_NOTE =
 /** Сколько сотрудников покрывает платная подписка. */
 export const SUBSCRIPTION_MAX_USERS = 30;
 
-/** Команды больше `SUBSCRIPTION_MAX_USERS` считаем индивидуально. */
+/** Каждый сотрудник сверх `SUBSCRIPTION_MAX_USERS` — фиксированная доплата в месяц. */
+export const EXTRA_USER_PRICE_RUB = 100;
+
+/** Одна фраза для витрины, блока тарифов и кабинета — чтобы цена не разошлась. */
 export const LARGE_TEAM_NOTE =
-  `От ${SUBSCRIPTION_MAX_USERS + 1} сотрудника — стоимость по согласованию.`;
+  `Каждый сотрудник сверх ${SUBSCRIPTION_MAX_USERS} — ${EXTRA_USER_PRICE_RUB} ₽/мес.`;
 
 export const PLAN_CATALOG: CatalogPlan[] = [
   {

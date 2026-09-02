@@ -42,9 +42,9 @@ export async function PublicHeader({
 
   return (
     <div className="public-header sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
+      <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-2.5 sm:px-6 sm:py-5">
         <Link href="/" className="text-[#0b1024]" aria-label="WeSetup — на главную">
-          <BrandLogo height={24} className="sm:h-[26px]" title="" />
+          <BrandLogo height={30} className="sm:[--logo-h:26px]" title="" />
         </Link>
         <div className="flex items-center gap-3 sm:gap-5">
           {link("journals-info", "Журналы", "/journals-info")}
