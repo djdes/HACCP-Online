@@ -779,6 +779,16 @@ html, body {
   contain-intrinsic-size: auto 720px;
 }
 
+/* Пока летим по якорю — заставляем секции разложиться по-настоящему.
+   Иначе цель считается по заглушке в 720px, секции дорисовываются на
+   лету, и якорь уезжает из-под курсора. Класс снимается после скролла:
+   `contain-intrinsic-size: auto` запоминает измеренную высоту, поэтому
+   повторного сдвига уже не будет. См. anchor-scroll-link.tsx. */
+.landing-page.anchor-measuring > section:not(.landing-hero),
+.landing-page.anchor-measuring footer {
+  content-visibility: visible;
+}
+
 .landing-nav,
 .public-header {
   animation: landing-nav-drop 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;

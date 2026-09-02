@@ -22,6 +22,14 @@ import type { OrgSphere } from "@/lib/org-profile";
 
 export type PositionCategoryKey = "management" | "staff";
 
+/**
+ * Должность, которую анкета предлагает владельцу аккаунта. Она же —
+ * категория, в которую он попадает: тот, кто завёл организацию,
+ * подтверждает журналы, а не заполняет их.
+ */
+export const DEFAULT_OWNER_POSITION = "Директор";
+export const OWNER_POSITION_CATEGORY: PositionCategoryKey = "management";
+
 type SpherePositions = Record<PositionCategoryKey, string[]>;
 
 export const SPHERE_POSITION_SUGGESTIONS: Record<OrgSphere, SpherePositions> = {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, Loader2, Send, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { SANPIN_CHAT_OPEN_EVENT } from "@/lib/sanpin-chat-bus";
 
 type Message = {
   role: "user" | "assistant";
@@ -35,6 +36,13 @@ export function SanpinChatWidget() {
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Поддержка открывает этот же чат своим пунктом меню — см. sanpin-chat-bus.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(SANPIN_CHAT_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(SANPIN_CHAT_OPEN_EVENT, onOpen);
+  }, []);
 
   // Restore chat history on mount.
   useEffect(() => {

@@ -116,4 +116,14 @@ export const completeProfileSchema = z.object({
   inn: z.string().trim().max(20).optional().or(z.literal("")),
   name: z.string().trim().max(100).optional().or(z.literal("")),
   newPassword: z.string().min(6, "Пароль — минимум 6 символов").max(200).optional().or(z.literal("")),
+  // Оформить владельца сотрудником: должность из каталога организации,
+  // чтобы он не висел в списке команды без роли.
+  asEmployee: z.boolean().default(true),
+  positionName: z
+    .string()
+    .trim()
+    .min(2, "Должность — минимум 2 символа")
+    .max(120)
+    .optional()
+    .or(z.literal("")),
 });

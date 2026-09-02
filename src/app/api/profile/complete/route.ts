@@ -6,6 +6,10 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
+import {
+  DEFAULT_OWNER_POSITION,
+  OWNER_POSITION_CATEGORY,
+} from "@/lib/sphere-positions";
 import { completeProfileSchema } from "@/lib/validators";
 
 export const runtime = "nodejs";
@@ -81,7 +85,47 @@ export async function POST(request: Request) {
     !Array.isArray(current?.disabledJournalCodes) ||
     current.disabledJournalCodes.length === 0;
 
+  // «Оформить меня сотрудником»: владелец уже есть в команде, но без
+  // должности — он висит в /settings/users безымянной строкой. Ставим ему
+  // должность из управленческого каталога, заводя её при необходимости.
+  const positionName = data.asEmployee
+    ? data.positionName?.trim() || DEFAULT_OWNER_POSITION
+    : null;
+
   await db.$transaction(async (tx) => {
+    let jobPositionId: string | null = null;
+    if (positionName) {
+      const existing = await tx.jobPosition.findUnique({
+        where: {
+          organizationId_categoryKey_name: {
+            organizationId,
+            categoryKey: OWNER_POSITION_CATEGORY,
+            name: positionName,
+          },
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        jobPositionId = existing.id;
+      } else {
+        const last = await tx.jobPosition.findFirst({
+          where: { organizationId },
+          orderBy: { sortOrder: "desc" },
+          select: { sortOrder: true },
+        });
+        const created = await tx.jobPosition.create({
+          data: {
+            organizationId,
+            categoryKey: OWNER_POSITION_CATEGORY,
+            name: positionName,
+            sortOrder: (last?.sortOrder ?? 0) + 1,
+          },
+          select: { id: true },
+        });
+        jobPositionId = created.id;
+      }
+    }
+
     await tx.organization.update({
       where: { id: organizationId },
       data: {
@@ -101,6 +145,10 @@ export async function POST(request: Request) {
         name: displayName,
         phone,
         ...(passwordHash ? { passwordHash } : {}),
+        // positionTitle дублируем: легаси-экраны читают его, а не связь.
+        ...(jobPositionId && positionName
+          ? { jobPositionId, positionTitle: positionName }
+          : {}),
       },
     });
   });

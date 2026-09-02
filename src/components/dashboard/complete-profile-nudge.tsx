@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2, ChevronDown, Loader2, Sparkles, X } from "lucide-react";
@@ -10,7 +10,13 @@ import {
   MAX_LOCATIONS,
   ORG_OWNERSHIP,
   ORG_SPHERES,
+  normalizeSphere,
 } from "@/lib/org-profile";
+import {
+  DEFAULT_OWNER_POSITION,
+  OWNER_POSITION_CATEGORY,
+  positionSuggestionsFor,
+} from "@/lib/sphere-positions";
 
 const DISMISS_KEY = "wesetup.complete-profile-dismissed";
 
@@ -136,6 +142,19 @@ function CompleteProfileModal({
   const [inn, setInn] = useState("");
   const [name, setName] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [asEmployee, setAsEmployee] = useState(true);
+  const [positionName, setPositionName] = useState(DEFAULT_OWNER_POSITION);
+
+  // Подсказки идут за сферой: у производства и столовой свой «директор».
+  const positionOptions = useMemo(
+    () =>
+      positionSuggestionsFor(
+        normalizeSphere(sphere),
+        OWNER_POSITION_CATEGORY,
+        [],
+      ),
+    [sphere],
+  );
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -173,6 +192,8 @@ function CompleteProfileModal({
           inn: inn.trim(),
           name: name.trim(),
           newPassword: newPassword.trim(),
+          asEmployee,
+          positionName: asEmployee ? positionName.trim() : "",
         }),
       });
       const data = await res.json().catch(() => null);
@@ -316,6 +337,51 @@ function CompleteProfileModal({
               compact
               className="min-w-0 flex-1"
             />
+          </div>
+
+          {/* Тот, кто завёл организацию, — тоже сотрудник, и без должности
+              он висит в команде безымянной строкой. Спрашиваем здесь, пока
+              человек и так вводит свой телефон, а не отдельным шагом
+              потом. По умолчанию — да, «Директор»: это верно для
+              большинства, и снять галочку дешевле, чем искать экран. */}
+          <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-3">
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={asEmployee}
+                onChange={(e) => setAsEmployee(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[#5566f6]"
+              />
+              <span className="min-w-0">
+                <span className="block text-[14px] font-medium text-[#0b1024]">
+                  Оформить меня сотрудником
+                </span>
+                <span className="block text-[12.5px] leading-snug text-[#6f7282]">
+                  Появитесь в списке команды с должностью — сможете
+                  подтверждать заполненные журналы
+                </span>
+              </span>
+            </label>
+
+            {asEmployee ? (
+              <div className="mt-3 pl-[26px]">
+                <Field label="Должность">
+                  <input
+                    value={positionName}
+                    onChange={(e) => setPositionName(e.target.value)}
+                    list="owner-position-suggestions"
+                    maxLength={120}
+                    placeholder={DEFAULT_OWNER_POSITION}
+                    className={CONTROL_CLASS}
+                  />
+                  <datalist id="owner-position-suggestions">
+                    {positionOptions.map((option) => (
+                      <option key={option} value={option} />
+                    ))}
+                  </datalist>
+                </Field>
+              </div>
+            ) : null}
           </div>
 
           {/* Остальное необязательно и живёт одной сеткой: подписи в

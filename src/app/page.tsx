@@ -57,6 +57,7 @@ import { PublicFooter } from "@/components/public/public-chrome";
 import { ProductShowcase } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
+import { AnchorScrollLink } from "@/components/public/anchor-scroll-link";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { DemoJournalWidget } from "@/components/landing/demo-journal-widget";
 import { HeroEmailStart } from "@/components/landing/hero-email-start";
@@ -483,12 +484,12 @@ export default async function LandingPage() {
             {/* «Сколько это стоит» спрашивают раньше всего остального —
                 пункт стоит рядом с входом, а не в подвале. Якорь, а не
                 отдельная страница: тарифы тут же, ниже по этой же. */}
-            <Link
+            <AnchorScrollLink
               href="#pricing"
               className="text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
             >
               Тарифы
-            </Link>
+            </AnchorScrollLink>
             {isAuthed ? (
               <>
                 <Link
@@ -626,9 +627,9 @@ export default async function LandingPage() {
           {/* Кликается целиком и уводит к разделу с тарифами: человек,
               который вчитался в цены на первом экране, хочет подробностей
               именно здесь, а не идёт искать их в меню. */}
-          <a
+          <AnchorScrollLink
             href="#pricing"
-            aria-label="Перейти к тарифам"
+            ariaLabel="Перейти к тарифам"
             className="group mx-auto mt-5 block max-w-[480px] rounded-2xl border border-[#dcdfed] sm:mt-6 bg-white/80 px-5 py-4 text-left backdrop-blur transition-all hover:-translate-y-0.5 hover:border-[#5566f6]/45 hover:bg-white hover:shadow-[0_16px_40px_-24px_rgba(85,102,246,0.45)]"
           >
             <dl className="space-y-2 text-[14px]">
@@ -655,7 +656,7 @@ export default async function LandingPage() {
               Что входит в тарифы
               <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
             </div>
-          </a>
+          </AnchorScrollLink>
 
           {/* Single big CTA — для залогиненного «Открыть кабинет»,
               для анонимного — «Начать бесплатно» (регистрация) */}
@@ -888,7 +889,7 @@ export default async function LandingPage() {
       {/* PRICING */}
       <section
         id="pricing"
-        className="mx-auto max-w-[1200px] scroll-mt-24 px-4 pb-20 sm:px-6"
+        className="mx-auto max-w-[1200px] scroll-mt-[72px] px-4 pb-20 sm:scroll-mt-24 sm:px-6"
       >
         <div className="mb-10 max-w-[720px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
