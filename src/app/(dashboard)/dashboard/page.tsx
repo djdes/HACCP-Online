@@ -55,6 +55,9 @@ import { paperJournalsFor } from "@/lib/sphere-journal-rules";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { cn } from "@/lib/utils";
 import { orgDisplayName } from "@/lib/org-display-name";
+import { ConsultantCard } from "@/components/dashboard/consultant-card";
+import { getVisibleOrgBranding } from "@/lib/partners/branding";
+import { toConsultantContact } from "@/lib/partners/consultant-contact";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -242,6 +245,10 @@ export default async function DashboardPage() {
   }));
   const unfilledCount = complianceItems.filter((c) => !c.filled).length;
   const filledCount = complianceItems.length - unfilledCount;
+  // Партнёр-консультант (white-label): блок «Ваш консультант» показываем
+  // после стартовой карточки. null — партнёра нет или клиент выбрал
+  // стандартный интерфейс WeSetup.
+  const consultant = toConsultantContact(await getVisibleOrgBranding(organizationId));
   return (
     <div className="space-y-5">
       {/* Persist для DashboardSection (collapsible-блоки): inline-script
@@ -262,6 +269,8 @@ export default async function DashboardPage() {
       {hasFullWorkspaceAccess(session.user) ? (
         <QuickStartCard organizationId={getActiveOrgId(session)} />
       ) : null}
+
+      {consultant ? <ConsultantCard consultant={consultant} /> : null}
 
       {/* Action-first: what the user needs to do TODAY.
           Карточка получает мягкий gradient-фон в зависимости от

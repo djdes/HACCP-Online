@@ -2,6 +2,8 @@ import type { NextAuthOptions, Session } from "next-auth";
 import { decode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { CUSTOM_SESSION_COOKIE, LEGACY_SESSION_COOKIES } from "@/lib/auth-cookies";
+import { evaluatePartnerRequest } from "@/lib/partners/access-guard";
+import { PARTNER_HEADER_METHOD, PARTNER_HEADER_PATH } from "@/lib/partners/request-context";
 
 export async function getServerSession(
   options?: NextAuthOptions
@@ -60,11 +62,39 @@ export async function getServerSession(
   };
 
   if (options?.callbacks?.session) {
-    return (options.callbacks.session as (...args: unknown[]) => unknown)({
-      session,
-      token,
-    }) as Promise<Session> | Session;
+    const callback = options.callbacks.session as (
+      ...args: unknown[]
+    ) => Promise<Session> | Session;
+    const resolved = await callback({ session, token });
+    return enforcePartnerWriteGuard(resolved);
   }
 
   return session;
+}
+
+/**
+ * Второй рубеж для партнёра в кабинете клиента (первый — middleware по
+ * claim'у из cookie). Здесь уровень уже перечитан из БД в session-callback:
+ * если клиент только что понизил доступ до «просмотр», мутирующий запрос
+ * не получит сессию вовсе — обработчик ответит 401/403.
+ */
+async function enforcePartnerWriteGuard(session: Session | null): Promise<Session | null> {
+  const access = session?.user?.partnerAccess;
+  if (!session || !access) return session;
+  const { headers } = await import("next/headers");
+  const requestHeaders = await headers().catch(() => null);
+  if (!requestHeaders) return session;
+  const method = requestHeaders.get(PARTNER_HEADER_METHOD);
+  const pathname = requestHeaders.get(PARTNER_HEADER_PATH);
+  if (!method || !pathname) return session;
+  const verdict = evaluatePartnerRequest({
+    method,
+    pathname,
+    claim: {
+      partnerId: access.partnerId,
+      organizationId: access.organizationId,
+      level: access.level,
+    },
+  });
+  return verdict.allow ? session : null;
 }

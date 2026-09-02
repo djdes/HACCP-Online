@@ -208,6 +208,7 @@ export function PublicFooter() {
           <Link href="/journals-info" className="py-2.5 transition-colors hover:text-[#0b1024]">Журналы</Link>
           <Link href="/login" className="py-2.5 transition-colors hover:text-[#0b1024]">Войти</Link>
           <Link href="/register" className="py-2.5 transition-colors hover:text-[#0b1024]">Регистрация</Link>
+          <Link href="/partners" className="py-2.5 transition-colors hover:text-[#0b1024]">Партнёрам</Link>
           <Link href="/oferta" className="py-2.5 transition-colors hover:text-[#0b1024]">Оферта</Link>
           <Link href="/privacy" className="py-2.5 transition-colors hover:text-[#0b1024]">Конфиденциальность</Link>
           <a

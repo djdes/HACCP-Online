@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
+import { PLATFORM_BADGE_TEXT } from "@/lib/partners/branding";
 
 /**
  * Компактный футер дашборда — одна строка вместо трёхколоночного
@@ -9,8 +10,12 @@ import { BrandLogo } from "@/components/brand/logo";
  * Фон прозрачный — чтобы тёмная тема (`app-theme.css`) не требовала
  * отдельного override'а: подложка приходит от `.app-shell`.
  * Mini App (`/mini/*`) живёт в своём layout'е и этот футер не получает.
+ *
+ * `partnerBrandName` — кабинет под брендом партнёра: логотип WeSetup
+ * остаётся, к нему добавляется неубираемая подпись «Работает на
+ * платформе WeSetup» (условие white-label).
  */
-export function DashboardFooter() {
+export function DashboardFooter({ partnerBrandName = null }: { partnerBrandName?: string | null }) {
   const linkClass = "transition-colors hover:text-[#5566f6]";
 
   return (
@@ -20,6 +25,12 @@ export function DashboardFooter() {
           <span className="text-[#6f7282]">
             <BrandLogo height={18} title="WeSetup" />
           </span>
+          {partnerBrandName ? (
+            <span className="text-[#6f7282]" data-platform-badge>
+              {PLATFORM_BADGE_TEXT}
+              <span className="text-[#9b9fb3]"> · сопровождает {partnerBrandName}</span>
+            </span>
+          ) : null}
           <span>© 2026</span>
         </div>
 

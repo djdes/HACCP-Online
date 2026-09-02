@@ -5,6 +5,46 @@ import {
   LEGACY_SESSION_COOKIES,
 } from "@/lib/auth-cookies";
 import { canAccessWebPath, hasFullWorkspaceAccess } from "@/lib/role-access";
+import {
+  evaluatePartnerRequest,
+  parsePartnerAccessClaim,
+  type PartnerAccessClaim,
+} from "@/lib/partners/access-guard";
+import {
+  PARTNER_HEADER_METHOD,
+  PARTNER_HEADER_PARTNER_ID,
+  PARTNER_HEADER_PATH,
+  PARTNER_REQUEST_HEADERS,
+} from "@/lib/partners/request-context";
+
+/**
+ * Прокидываем в обработчики метод/путь запроса и id партнёра. Клиентские
+ * значения этих заголовков всегда затираются — им доверяет getServerSession.
+ */
+function withRequestContext(
+  req: NextRequest,
+  claim: PartnerAccessClaim | null,
+): NextResponse {
+  const headers = new Headers(req.headers);
+  for (const name of PARTNER_REQUEST_HEADERS) headers.delete(name);
+  headers.set(PARTNER_HEADER_METHOD, req.method);
+  headers.set(PARTNER_HEADER_PATH, req.nextUrl.pathname);
+  if (claim) headers.set(PARTNER_HEADER_PARTNER_ID, claim.partnerId);
+  return NextResponse.next({ request: { headers } });
+}
+
+function partnerDenied(req: NextRequest, reason: string): NextResponse {
+  if (req.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json(
+      { error: reason, code: "partner_access_denied" },
+      { status: 403 },
+    );
+  }
+  const url = new URL("/partner/denied", req.url);
+  url.searchParams.set("reason", reason);
+  url.searchParams.set("from", req.nextUrl.pathname);
+  return NextResponse.redirect(url);
+}
 
 const STAFF_RESTRICTED_WEB_PREFIXES = [
   "/dashboard",
@@ -78,7 +118,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith("/root") || pathname.startsWith("/api/root")) {
       return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
     }
-    return NextResponse.next();
+    return withRequestContext(req, null);
   }
 
   const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
@@ -86,7 +126,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith("/root") || pathname.startsWith("/api/root")) {
       return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
     }
-    return NextResponse.next();
+    return withRequestContext(req, null);
   }
 
   const token = await decode({ token: rawToken, secret }).catch(() => null);
@@ -94,19 +134,41 @@ export async function middleware(req: NextRequest) {
     if (!token || token.isRoot !== true) {
       return NextResponse.rewrite(new URL("/404", req.url), { status: 404 });
     }
-    return NextResponse.next();
+    return withRequestContext(req, null);
+  }
+
+  // Партнёр в кабинете клиента: claim действует, только пока активная
+  // организация совпадает с организацией из claim'а. Уровень «просмотр»
+  // режет мутации здесь (первый слой) и в getServerSession (второй —
+  // с живым уровнем из БД).
+  const rawClaim = token ? parsePartnerAccessClaim(token.partnerAccess) : null;
+  const claim =
+    rawClaim &&
+    typeof token?.activeOrganizationId === "string" &&
+    token.activeOrganizationId === rawClaim.organizationId
+      ? rawClaim
+      : null;
+  if (claim) {
+    const verdict = evaluatePartnerRequest({
+      method: req.method,
+      pathname,
+      claim,
+    });
+    if (!verdict.allow) return partnerDenied(req, verdict.reason);
   }
 
   if (!token || !isStaffRestrictedWebPath(pathname)) {
-    return NextResponse.next();
+    return withRequestContext(req, claim);
   }
 
   const actor = {
-    role: typeof token.role === "string" ? token.role : null,
+    // В кабинете клиента партнёр работает как руководство независимо
+    // от своей роли в домашней организации.
+    role: claim ? "owner" : typeof token.role === "string" ? token.role : null,
     isRoot: token.isRoot === true,
   };
   if (hasFullWorkspaceAccess(actor) || canAccessWebPath(actor, pathname)) {
-    return NextResponse.next();
+    return withRequestContext(req, claim);
   }
 
   return NextResponse.redirect(new URL("/journals", req.url));

@@ -3,6 +3,7 @@ import path from "node:path";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { PaperJournal } from "@/lib/sphere-journal-rules";
+import { stampPartnerPdfFooter, type PdfFooterBrand } from "@/lib/pdf-page-labels";
 
 /**
  * Бланк бумажного журнала для печати.
@@ -49,8 +50,10 @@ export function renderPaperJournalPdf(params: {
   rows?: string[][];
   /** Сколько пустых строк добавить под рукописное заполнение. */
   blankRows?: number;
+  /** White-label партнёра — подпись в подвале каждой страницы. */
+  branding?: PdfFooterBrand | null;
 }): Buffer {
-  const { journal, organization, rows = [], blankRows = 18 } = params;
+  const { journal, organization, rows = [], blankRows = 18, branding = null } = params;
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const font = loadUnicodeFont(doc);
@@ -126,6 +129,8 @@ export function renderPaperJournalPdf(params: {
     columnStyles: { 0: { cellWidth: 10, halign: "center" } },
     margin: { left: 10, right: 10 },
   });
+
+  stampPartnerPdfFooter(doc, branding, font);
 
   return Buffer.from(doc.output("arraybuffer"));
 }

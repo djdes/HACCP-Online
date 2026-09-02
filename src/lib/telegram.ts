@@ -688,11 +688,17 @@ export async function notifyOrganization(
 ): Promise<void> {
   // Import db here to avoid circular deps
   const { db } = await import("./db");
+  const { telegramConsultantFooter } = await import("./partners/branding");
 
   const dbRoles =
     roles[0] === "owner" || roles[0] === "manager"
       ? getDbRoleValuesWithLegacy(MANAGEMENT_ROLES)
       : roles;
+
+  // White-label: у клиентов партнёра под уведомлением руководству стоит
+  // подпись «Ваш консультант: <бренд>, <контакт>». Пустая строка, если
+  // партнёра нет или клиент скрыл брендинг.
+  const consultantFooter = await telegramConsultantFooter(organizationId);
 
   const users = await db.user.findMany({
     where: {
@@ -733,7 +739,7 @@ export async function notifyOrganization(
       // не страдают.
       sendTelegramMessage(
         u.telegramChatId!,
-        personalizeMessage(message, { name: u.name }),
+        personalizeMessage(message, { name: u.name }) + consultantFooter,
         {
           userId: u.id ?? null,
           reply_markup: replyMarkup,

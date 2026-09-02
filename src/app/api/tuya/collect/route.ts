@@ -180,6 +180,7 @@ export async function POST(request: Request) {
                   tempMax: equip.tempMax,
                   areaName: equip.area.name,
                   filledBy: "IoT-датчик (авто)",
+                  organizationId: equip.area.organizationId,
                 });
               }
             })

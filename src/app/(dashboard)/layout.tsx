@@ -22,6 +22,13 @@ import { listAccessibleOrganizations } from "@/lib/organization-access";
 import { BILLING_TEST_MODE, FREE_MAX_USERS } from "@/lib/plan-limits";
 import { PageNav, PageNavProvider } from "@/components/layout/page-nav";
 import { JournalUndoProvider } from "@/components/journals/journal-undo-slot";
+import { PartnerAccessBanner } from "@/components/dashboard/partner-access-banner";
+import {
+  getPartnerBrandById,
+  getVisibleOrgBranding,
+} from "@/lib/partners/branding";
+import { toConsultantContact } from "@/lib/partners/consultant-contact";
+import { getPartnerMembership } from "@/lib/partners/service";
 import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
@@ -46,8 +53,18 @@ export default async function DashboardLayout({
       ? session.user.actingAsOrganizationId
       : getActiveOrgId(session);
 
-  const [impersonatedOrg, profile, brandedOrg, organizations, ownedAccount] =
-    await Promise.all([
+  const partnerAccess = session.user.partnerAccess ?? null;
+
+  const [
+    impersonatedOrg,
+    profile,
+    brandedOrg,
+    organizations,
+    ownedAccount,
+    partnerBranding,
+    partnerMembership,
+    partnerAccessBrand,
+  ] = await Promise.all([
     isImpersonating(session) && session.user.actingAsOrganizationId
       ? db.organization.findUnique({
           where: { id: session.user.actingAsOrganizationId },
@@ -88,6 +105,17 @@ export default async function DashboardLayout({
         where: { ownerUserId: session.user.id },
         select: { id: true },
       }),
+      // White-label партнёра: бренд, акцент и контакты консультанта для
+      // кабинета клиента. null — если партнёра нет или клиент выбрал
+      // стандартный интерфейс WeSetup.
+      getVisibleOrgBranding(activeOrgId),
+      // Переключатель контекста «Моя организация / Партнёрский кабинет»
+      // нужен только участнику партнёра в своей организации; внутри
+      // кабинета клиента (partnerAccess) он и так видит баннер партнёра.
+      partnerAccess ? Promise.resolve(null) : getPartnerMembership(session.user.id),
+      // Имя партнёра для баннера «вы здесь как партнёр» — независимо от
+      // того, скрыл клиент брендинг или нет.
+      partnerAccess ? getPartnerBrandById(partnerAccess.partnerId) : Promise.resolve(null),
     ]);
 
   // Тариф и лимит мест живут на аккаунте: у сети из трёх кафе один
@@ -133,6 +161,25 @@ export default async function DashboardLayout({
       ? brandedOrg.brandColor
       : null;
 
+  // Партнёрский брендинг. Собственные настройки организации (цвет,
+  // логотип) старше партнёрских: если клиент задал свой цвет — акцент
+  // партнёра не трогаем. Акцент уже проверен на формат и контраст при
+  // сохранении (`checkAccent`), но hex-формат перепроверяем перед
+  // вставкой в <style>.
+  const consultant = toConsultantContact(partnerBranding);
+  const partnerAccent =
+    !brandColor &&
+    consultant?.accentColor &&
+    /^#[0-9a-fA-F]{6}$/.test(consultant.accentColor) &&
+    consultant.accentHover &&
+    /^#[0-9a-fA-F]{6}$/.test(consultant.accentHover)
+      ? { color: consultant.accentColor, hover: consultant.accentHover }
+      : null;
+  const partnerCabinet =
+    partnerMembership && partnerMembership.partner.status === "active"
+      ? { brandName: partnerMembership.partner.brandName }
+      : null;
+
   return (
     <AuthSessionProvider session={session}>
       <SiteThemeProvider initialTheme={initialTheme}>
@@ -146,13 +193,31 @@ export default async function DashboardLayout({
             }}
           />
         ) : null}
+        {/* Акцент партнёра: переменные подхватывают правила
+            `.app-shell[data-partner-accent]` в app-theme.css — кнопки и
+            активные элементы перекрашиваются без правки компонентов. */}
+        {partnerAccent ? (
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `.app-shell { --brand-accent: ${partnerAccent.color}; --brand-accent-hover: ${partnerAccent.hover}; }`,
+            }}
+          />
+        ) : null}
         <div
           className="app-shell flex min-h-screen flex-col bg-gray-50"
           data-app-theme={initialTheme}
+          data-partner-accent={partnerAccent ? "" : undefined}
           suppressHydrationWarning
         >
           {impersonatedName ? (
             <ImpersonationBanner organizationName={impersonatedName} />
+          ) : null}
+          {partnerAccess ? (
+            <PartnerAccessBanner
+              organizationName={brandedOrg?.name ?? "Организация"}
+              brandName={partnerAccessBrand?.brandName ?? "партнёр"}
+              level={partnerAccess.level}
+            />
           ) : null}
           {needsProfileCompletion ? (
             // Suspense — компонент читает `?welcome=1` через useSearchParams.
@@ -168,7 +233,7 @@ export default async function DashboardLayout({
             userName={session.user.name ?? "Пользователь"}
             userEmail={session.user.email ?? ""}
             organizationName={impersonatedName ?? session.user.organizationName ?? ""}
-            organizationLogoUrl={brandedOrg?.logoUrl ?? null}
+            organizationLogoUrl={brandedOrg?.logoUrl ?? consultant?.logoUrl ?? null}
             userRole={session.user.role ?? ""}
             positionTitle={profile?.positionTitle ?? ""}
             isRoot={session.user.isRoot === true}
@@ -180,6 +245,7 @@ export default async function DashboardLayout({
             activeOrganizationId={activeOrgId}
             canCreateOrganization={Boolean(ownedAccount)}
             organizationSphere={brandedOrg?.type ?? "restaurant"}
+            partnerCabinet={partnerCabinet}
           />
           {/* Быстрый старт только что созданной точки. Живёт в layout'е,
               а не на странице дашборда: баннер сам решает показываться
@@ -218,14 +284,16 @@ export default async function DashboardLayout({
           {/* Футер дашборда — виден на каждой странице (требование
               владельца: «наш футер на каждой странице»). `mt-auto`
               прижимает его к низу на коротких экранах. */}
-          <DashboardFooter />
+          <DashboardFooter partnerBrandName={consultant?.brandName ?? null} />
           {/* AI SanPiN/HACCP помощник — доступен management+ из любого
               экрана дашборда. Сотрудникам без полного доступа не
               нужен — они выполняют конкретные задачи, а не настраивают
               нормативы. */}
           {hasFullWorkspaceAccess(session.user) ? <SanpinChatWidget /> : null}
           {/* Поддержка — доступна management+ из любого экрана. */}
-          {hasFullWorkspaceAccess(session.user) ? <SupportWidget /> : null}
+          {hasFullWorkspaceAccess(session.user) ? (
+            <SupportWidget consultant={consultant} />
+          ) : null}
           {/* «Что нового» отключено: заметки писались вручную и отставали
               от кода — менялся SHA сборки, а текст оставался прежним, и
               модалка после каждого входа показывала старое как новое.

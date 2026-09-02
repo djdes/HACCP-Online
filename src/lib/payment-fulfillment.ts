@@ -216,6 +216,7 @@ export async function notifyAboutPayment(args: {
     actionUrl: completeUrl,
     isNewClient: result.isNewClient,
     subscriptionEnd: result.subscriptionEnd,
+    organizationId: result.organizationId,
   }).catch((err) => console.error("sendPaymentReceiptEmail failed", err));
 
   const hardware = describeHardwareConfig(

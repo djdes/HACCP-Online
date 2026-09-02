@@ -102,6 +102,7 @@ async function handle(request: Request) {
           to: user.email,
           missingJournals: products.map((p) => `${p.product} — срок до ${new Date(p.expiryDate).toLocaleDateString("ru-RU")}`),
           organizationName: org?.name || "",
+          organizationId: orgId,
         }).catch((err) => console.error("Email expiry alert error:", err));
       }
     }

@@ -1,5 +1,7 @@
 import type { jsPDF } from "jspdf";
 
+import { PLATFORM_BADGE_TEXT } from "@/lib/partners/validation";
+
 /**
  * Единая нумерация страниц печатных бланков — «СТР. X ИЗ N».
  *
@@ -85,5 +87,50 @@ export function stampJournalPageNumbers(doc: jsPDF, fontName = "JournalUnicode")
   }
 
   doc.setFont(fontName, "normal");
+  doc.setFontSize(10);
+}
+
+/**
+ * Подвал white-label: подпись партнёра из брендинга (≤120 символов) и
+ * обязательная плашка «Работает на платформе WeSetup». Печатается на
+ * КАЖДОЙ странице бланка слева внизу, не пересекаясь с «СТР. X ИЗ N»
+ * справа. Для организаций без партнёра (или скрывших брендинг) подвал
+ * не печатается — бланк выглядит как раньше.
+ */
+export type PdfFooterBrand = {
+  brandName: string;
+  pdfSignature: string | null;
+};
+
+export function partnerPdfFooterText(brand: PdfFooterBrand): string {
+  const signature = brand.pdfSignature?.trim() || `Сопровождение: ${brand.brandName}`;
+  return `${signature} · ${PLATFORM_BADGE_TEXT}`;
+}
+
+export function stampPartnerPdfFooter(
+  doc: jsPDF,
+  brand: PdfFooterBrand | null | undefined,
+  fontName = "JournalUnicode"
+) {
+  if (!brand) return;
+  const totalPages = doc.getNumberOfPages();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  // Справа оставляем место под «СТР. X ИЗ N» на страницах без шапки.
+  const maxWidth = pageWidth - 14 - 48;
+  const text = partnerPdfFooterText(brand);
+
+  doc.setFont(fontName, "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(111, 114, 130);
+  const lines = (doc.splitTextToSize(text, maxWidth) as string[]).slice(0, 2);
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+    doc.setPage(pageNumber);
+    lines.forEach((line, index) => {
+      const y = pageHeight - 8 - (lines.length - 1 - index) * 3.4;
+      doc.text(line, 14, y);
+    });
+  }
+  doc.setTextColor(0, 0, 0);
   doc.setFontSize(10);
 }

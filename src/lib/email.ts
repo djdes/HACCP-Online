@@ -100,7 +100,69 @@ const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
  */
 const EMAIL_ASSET_ORIGIN = "https://wesetup.ru";
 
-function layout(title: string, body: string) {
+/**
+ * Партнёрский бренд в письме клиенту: отправитель остаётся
+ * `WeSetup <noreply@wesetup.ru>`, в теле — логотип партнёра и строка
+ * «при сопровождении <бренд>» (ТЗ по white-label, п. 4.2).
+ */
+export type EmailBrand = {
+  brandName: string;
+  /** Абсолютный URL светлого логотипа партнёра или null. */
+  logoUrl: string | null;
+};
+
+/**
+ * Бренд активного партнёра организации для письма. Лениво импортируем
+ * модуль партнёрки, чтобы письма не тянули Prisma там, где он не нужен.
+ * Любая ошибка → письмо уходит в стандартном оформлении.
+ */
+export async function emailBrandForOrganization(
+  organizationId: string | null | undefined,
+): Promise<EmailBrand | null> {
+  if (!organizationId) return null;
+  try {
+    const { getVisibleOrgBranding, logoUrlFor } = await import("@/lib/partners/branding");
+    const branding = await getVisibleOrgBranding(organizationId);
+    if (!branding) return null;
+    return {
+      brandName: branding.brandName,
+      logoUrl: branding.hasLogoLight ? `${EMAIL_ASSET_ORIGIN}${logoUrlFor(branding, "light")}` : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function emailBrandForPartnerSlug(
+  slug: string | null | undefined,
+): Promise<EmailBrand | null> {
+  if (!slug) return null;
+  try {
+    const { getPartnerBrandBySlug, logoUrlFor } = await import("@/lib/partners/branding");
+    const brand = await getPartnerBrandBySlug(slug);
+    if (!brand) return null;
+    return {
+      brandName: brand.brandName,
+      logoUrl: brand.hasLogoLight ? `${EMAIL_ASSET_ORIGIN}${logoUrlFor(brand, "light")}` : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function brandBlock(brand: EmailBrand | null | undefined): string {
+  if (!brand) return "";
+  const logo = brand.logoUrl
+    ? `<img src="${brand.logoUrl}" height="32" alt="${escapeHtml(brand.brandName)}" style="display:block;border:0;height:32px;max-width:160px;width:auto;margin:0 0 6px">`
+    : "";
+  return `
+  <tr><td style="padding:14px 32px;background:#f5f6ff;border-bottom:1px solid #e4e4e7">
+    ${logo}
+    <p style="margin:0;font-size:12px;color:#3c4053">при сопровождении <strong style="color:#0b1024">${escapeHtml(brand.brandName)}</strong></p>
+  </td></tr>`;
+}
+
+function layout(title: string, body: string, brand?: EmailBrand | null) {
   return `<!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -110,19 +172,29 @@ function layout(title: string, body: string) {
 <table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
   <tr><td style="background:#0b1024;padding:22px 32px">
     <img src="${EMAIL_ASSET_ORIGIN}/brand/logo-email.png" width="116" height="31" alt="WeSetup" style="display:block;border:0;height:31px;width:116px">
-  </td></tr>
+  </td></tr>${brandBlock(brand)}
   <tr><td style="padding:32px">
     <h2 style="margin:0 0 16px;font-size:18px;color:#18181b">${title}</h2>
     ${body}
   </td></tr>
   <tr><td style="padding:16px 32px;background:#fafafa;border-top:1px solid #e4e4e7">
-    <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">&copy; 2026 WeSetup. Электронные журналы СанПиН и ХАССП.</p>
+    <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center">&copy; 2026 WeSetup. Электронные журналы СанПиН и ХАССП.${
+      brand ? " Работает на платформе WeSetup." : ""
+    }</p>
   </td></tr>
 </table>
 </td></tr>
 </table>
 </body>
 </html>`;
+}
+
+/** Для писем партнёрки (src/lib/partners/emails.ts) — тот же шаблон и транспорт. */
+export function renderEmailLayout(title: string, body: string, brand?: EmailBrand | null) {
+  return layout(title, body, brand);
+}
+export async function sendRawEmail(to: string, subject: string, html: string): Promise<boolean> {
+  return sendEmail(to, subject, html);
 }
 
 /**
@@ -191,15 +263,17 @@ export async function sendInviteTokenEmail(params: {
   name: string;
   organizationName: string;
   inviteUrl: string;
+  organizationId?: string | null;
 }) {
-  const { to, name, organizationName, inviteUrl } = params;
+  const { to, name, organizationName, inviteUrl, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = `Вас пригласили в ${organizationName} — WeSetup`;
   const body = `
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте, <strong>${escapeHtml(name)}</strong>!</p>
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Вас пригласили в организацию <strong>${escapeHtml(organizationName)}</strong>. Нажмите кнопку ниже, чтобы установить пароль и войти.</p>
     <a href="${inviteUrl}" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Установить пароль</a>
     <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa">Ссылка действительна 7 дней. После установки пароля приглашение станет недействительным.</p>`;
-  return sendEmail(to, subject, layout(subject, body));
+  return sendEmail(to, subject, layout(subject, body, brand));
 }
 
 export async function sendInviteEmail(params: {
@@ -207,8 +281,10 @@ export async function sendInviteEmail(params: {
   name: string;
   password: string;
   organizationName: string;
+  organizationId?: string | null;
 }) {
-  const { to, name, password, organizationName } = params;
+  const { to, name, password, organizationName, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = `Вас пригласили в ${organizationName} — WeSetup`;
 
   const body = `
@@ -222,7 +298,7 @@ export async function sendInviteEmail(params: {
     <a href="${APP_URL}/login" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Войти в систему</a>
     <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa">Рекомендуем сменить пароль после первого входа.</p>`;
 
-  return sendEmail(to, subject, layout("Приглашение в систему", body));
+  return sendEmail(to, subject, layout("Приглашение в систему", body, brand));
 }
 
 /**
@@ -236,8 +312,10 @@ export async function sendInviteEmail(params: {
 export async function sendAccountPasswordEmail(params: {
   to: string;
   password: string;
+  organizationId?: string | null;
 }) {
-  const { to, password } = params;
+  const { to, password, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = "Ваш аккаунт WeSetup создан — пароль внутри";
 
   const body = `
@@ -250,7 +328,7 @@ export async function sendAccountPasswordEmail(params: {
     <a href="${APP_URL}/dashboard" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть кабинет</a>
     <p style="margin:24px 0 0;color:#71717a;font-size:13px">Пароль можно сменить в настройках профиля. В кабинете осталось заполнить данные организации — они попадают в шапку журналов и PDF для проверок.</p>`;
 
-  return sendEmail(to, subject, layout("Аккаунт создан", body));
+  return sendEmail(to, subject, layout("Аккаунт создан", body, brand));
 }
 
 /**
@@ -278,8 +356,10 @@ export async function sendWelcomeEmail(params: {
   to: string;
   name: string;
   organizationName: string;
+  organizationId?: string | null;
 }) {
-  const { to, name, organizationName } = params;
+  const { to, name, organizationName, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = "Добро пожаловать в WeSetup!";
 
   const body = `
@@ -294,7 +374,7 @@ export async function sendWelcomeEmail(params: {
     </div>
     <a href="${APP_URL}/dashboard" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Перейти в панель</a>`;
 
-  return sendEmail(to, subject, layout("Добро пожаловать!", body));
+  return sendEmail(to, subject, layout("Добро пожаловать!", body, brand));
 }
 
 /**
@@ -311,9 +391,11 @@ export async function sendPaymentReceiptEmail(params: {
   actionUrl: string;
   isNewClient: boolean;
   subscriptionEnd: Date;
+  organizationId?: string | null;
 }) {
-  const { to, amountRub, description, actionUrl, isNewClient, subscriptionEnd } =
+  const { to, amountRub, description, actionUrl, isNewClient, subscriptionEnd, organizationId } =
     params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = isNewClient
     ? "Оплата получена — завершите настройку"
     : "Оплата получена — подписка продлена";
@@ -338,7 +420,7 @@ export async function sendPaymentReceiptEmail(params: {
     }</a>
     <p style="margin:24px 0 0;color:#71717a;font-size:13px">Вопросы по оплате и возврату — support@wesetup.ru.</p>`;
 
-  return sendEmail(to, subject, layout(subject, body));
+  return sendEmail(to, subject, layout(subject, body, brand));
 }
 
 export type FeedbackType =
@@ -494,8 +576,10 @@ export async function sendDeviationAlertEmail(params: {
   deviationType: string;
   details: string;
   filledBy: string;
+  organizationId?: string | null;
 }) {
-  const { to, journalName, journalCode, deviationType, details, filledBy } = params;
+  const { to, journalName, journalCode, deviationType, details, filledBy, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = `⚠ ${deviationType} — ${journalName}`;
 
   const body = `
@@ -510,15 +594,17 @@ export async function sendDeviationAlertEmail(params: {
     </table>
     <a href="${APP_URL}/journals/${encodeURIComponent(journalCode)}" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть журнал</a>`;
 
-  return sendEmail(to, subject, layout("Отклонение зафиксировано", body));
+  return sendEmail(to, subject, layout("Отклонение зафиксировано", body, brand));
 }
 
 export async function sendComplianceReminderEmail(params: {
   to: string;
   missingJournals: string[];
   organizationName: string;
+  organizationId?: string | null;
 }) {
-  const { to, missingJournals, organizationName } = params;
+  const { to, missingJournals, organizationName, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = `📋 Незаполненные журналы — ${organizationName}`;
 
   const listHtml = missingJournals
@@ -532,7 +618,7 @@ export async function sendComplianceReminderEmail(params: {
     </div>
     <a href="${APP_URL}/journals" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Заполнить журналы</a>`;
 
-  return sendEmail(to, subject, layout("Напоминание о журналах", body));
+  return sendEmail(to, subject, layout("Напоминание о журналах", body, brand));
 }
 
 export async function sendTemperatureAlertEmail(params: {
@@ -543,8 +629,10 @@ export async function sendTemperatureAlertEmail(params: {
   tempMax: number | null;
   areaName?: string;
   filledBy: string;
+  organizationId?: string | null;
 }) {
-  const { to, equipmentName, temperature, tempMin, tempMax, areaName, filledBy } = params;
+  const { to, equipmentName, temperature, tempMin, tempMax, areaName, filledBy, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
   const subject = `⚠ Нарушение температуры: ${equipmentName}`;
 
   const limitsText = tempMin != null && tempMax != null
@@ -565,5 +653,5 @@ export async function sendTemperatureAlertEmail(params: {
     </table>
     <a href="${APP_URL}/journals/temp_control" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть журнал</a>`;
 
-  return sendEmail(to, subject, layout("Температурный алерт", body));
+  return sendEmail(to, subject, layout("Температурный алерт", body, brand));
 }

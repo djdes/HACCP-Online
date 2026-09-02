@@ -29,6 +29,8 @@ import {
   Users,
   Wrench,
   Network,
+  Handshake,
+  Award,
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { PageGuide } from "@/components/ui/page-guide";
@@ -332,6 +334,20 @@ const settingsCards = [
     iconClass: "text-[#3848c7]",
     bgClass: "bg-[#eef1ff]",
   },
+  {
+    description: "Кто сопровождает вас: доступ, контакты, отключение",
+    href: "/settings/consultant",
+    icon: Handshake,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
+  },
+  {
+    description: "Подключайте своих клиентов под своим брендом и получайте вознаграждение",
+    href: "/settings/partner",
+    icon: Award,
+    iconClass: "text-[#9a4a06]",
+    bgClass: "bg-[#fff7ed]",
+  },
 ];
 
 export default async function SettingsPage() {
@@ -515,7 +531,7 @@ export default async function SettingsPage() {
       />
       <SettingsGroup
         title="Интеграции"
-        subtitle="TasksFlow, Telegram, бухгалтерия"
+        subtitle="TasksFlow, Telegram, бухгалтерия, консультант"
         items={settingsCards.filter((c) =>
           GROUP_INTEGRATIONS.has(c.href as string)
         )}
@@ -579,8 +595,10 @@ const GROUP_INTEGRATIONS = new Set([
   "/settings/integrations/tasksflow",
   "/settings/notifications",
   "/settings/accounting",
+  "/settings/consultant",
 ]);
 const GROUP_ADVANCED = new Set([
+  "/settings/partner",
   "/settings/api",
   "/settings/backup",
   "/settings/audit",

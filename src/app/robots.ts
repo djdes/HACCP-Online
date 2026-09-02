@@ -31,6 +31,12 @@ export default function robots(): MetadataRoute.Robots {
           "/journals-progress",
           // Настройки + invite-token wizard
           "/settings",
+          // Кабинет партнёра и брендированные страницы входа партнёров
+          // (/partners — публичная страница программы — остаётся открытой,
+          // поэтому без "$" нельзя: Disallow работает по префиксу)
+          "/partner/",
+          "/partner$",
+          "/p/",
           // Все остальные dashboard routes
           "/batches",
           "/bonuses",

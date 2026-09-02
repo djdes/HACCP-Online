@@ -749,6 +749,63 @@ body:has(.app-shell[data-app-theme="dark"]) {
  * скрываем интерактивные элементы (FAB-кнопки, header, modals,
  * navigation) и форсируем светлую тему.
  * ================================================================== */
+/* --- PARTNER ACCENT (white-label) -----------------------------------
+ * Кабинет клиента под брендом партнёра: (dashboard)/layout.tsx ставит
+ * `data-partner-accent` и переменные `--brand-accent` /
+ * `--brand-accent-hover` (HEX уже проверен на формат и контраст AA с
+ * белым текстом). Перекрашиваем те же служебные классы, что и тёмная
+ * тема выше — кнопки, активные элементы, тонированные подложки, тумблеры.
+ * Собственный `brandColor` организации приоритетнее: при нём атрибут не
+ * ставится вовсе. Внутри тёмной темы акцент партнёра тоже действует —
+ * правила ниже стоят позже и специфичнее по атрибуту. */
+.app-shell[data-partner-accent] .bg-\[\#5566f6\] {
+  background-color: var(--brand-accent);
+}
+.app-shell[data-partner-accent] .hover\:bg-\[\#4a5bf0\]:hover,
+.app-shell[data-partner-accent] .hover\:bg-\[\#5566f6\]:hover {
+  background-color: var(--brand-accent-hover);
+}
+.app-shell[data-partner-accent] .text-\[\#5566f6\],
+.app-shell[data-partner-accent] .text-\[\#3848c7\],
+.app-shell[data-partner-accent] .hover\:text-\[\#5566f6\]:hover {
+  color: var(--brand-accent);
+}
+.app-shell[data-partner-accent] .border-\[\#5566f6\],
+.app-shell[data-partner-accent] .focus\:border-\[\#5566f6\]:focus,
+.app-shell[data-partner-accent] .focus-within\:border-\[\#5566f6\]:focus-within {
+  border-color: var(--brand-accent);
+}
+/* Тонированные подложки — акцент с прозрачностью через color-mix, чтобы
+   не плодить rgba-константы под каждый HEX. */
+.app-shell[data-partner-accent] .bg-\[\#5566f6\]\/\[0\.04\] {
+  background-color: color-mix(in srgb, var(--brand-accent) 6%, transparent);
+}
+.app-shell[data-partner-accent] .hover\:bg-\[\#5566f6\]\/\[0\.09\]:hover,
+.app-shell[data-partner-accent] .group-hover\/nav\:bg-\[\#5566f6\]\/\[0\.09\],
+.app-shell[data-partner-accent] .group-focus-within\/nav\:bg-\[\#5566f6\]\/\[0\.09\],
+.app-shell[data-partner-accent] .bg-\[\#5566f6\]\/\[0\.09\] {
+  background-color: color-mix(in srgb, var(--brand-accent) 12%, transparent);
+}
+.app-shell[data-partner-accent] .bg-\[\#eef1ff\] {
+  background-color: color-mix(in srgb, var(--brand-accent) 10%, white);
+}
+.app-shell[data-partner-accent] .bg-\[\#f5f6ff\] {
+  background-color: color-mix(in srgb, var(--brand-accent) 5%, white);
+}
+.app-shell[data-partner-accent]
+  .data-\[state\=checked\]\:bg-\[\#5566f6\][data-state="checked"] {
+  background-color: var(--brand-accent);
+}
+.app-shell[data-partner-accent] .focus\:ring-\[\#5566f6\]\/15:focus,
+.app-shell[data-partner-accent] .focus-visible\:ring-\[\#5566f6\]\/15:focus-visible {
+  --tw-ring-color: color-mix(in srgb, var(--brand-accent) 15%, transparent);
+}
+/* Баннер «вы здесь как партнёр» и футерный бейдж платформы остаются в
+   фирменном индиго WeSetup — это служебные элементы платформы. */
+.app-shell[data-partner-accent] [data-platform-badge] {
+  color: var(--app-text-muted, #6f7282);
+}
+
 @media print {
   /* ── Q2-1. ТОТАЛЬНЫЙ СВЕТЛЫЙ СБРОС ────────────────────────────────
    * Тёмная тема кабинета живёт на `.app-shell[data-app-theme="dark"]`

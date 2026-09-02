@@ -140,6 +140,7 @@ async function handle(request: Request) {
             to: user.email,
             missingJournals: missingNames,
             organizationName: org.name,
+            organizationId: org.id,
           }).catch((err) =>
             console.error(`Compliance email error:`, err)
           );

@@ -18,6 +18,7 @@ import {
   OFFER_REVISION,
   RECURRING_CONSENT_TEXT,
 } from "@/lib/recurring-consent";
+import { encodePartnerRef, readPartnerRefFromRequest } from "@/lib/partners/referral";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,11 @@ export async function POST(request: NextRequest) {
   // явного true, не должна включать рекуррент.
   const recurringConsent = body.recurringConsent === true;
 
+  // Метка партнёра (cookie с /p/<slug>) едет в заказ: после оплаты
+  // организация нового клиента привяжется к партнёру, а начисление
+  // посчитается от этого платежа. Уровень доступа хранится в той же метке.
+  const partnerRef = readPartnerRefFromRequest(request);
+
   const order = await db.paymentOrder.create({
     data: {
       email,
@@ -120,6 +126,7 @@ export async function POST(request: NextRequest) {
       bundleConfig: bundleConfig ?? undefined,
       isTest: isTestMode(),
       recurringConsent,
+      partnerSlug: partnerRef ? encodePartnerRef(partnerRef) : undefined,
     },
     select: { id: true, amountRub: true, isTest: true },
   });

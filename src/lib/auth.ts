@@ -198,6 +198,12 @@ export const authOptions: NextAuthOptions = {
           token.activeOrganizationId =
             typeof next === "string" && next.length > 0 ? next : null;
         }
+        if ("partnerAccess" in session) {
+          const { parsePartnerAccessClaim } = await import(
+            "@/lib/partners/access-guard"
+          );
+          token.partnerAccess = parsePartnerAccessClaim(session.partnerAccess);
+        }
       }
       // Impersonation: root clicks "View as <org>" or "Stop" and the
       // client calls `update({ actingAsOrganizationId: ... })`. NextAuth v4
@@ -228,6 +234,7 @@ export const authOptions: NextAuthOptions = {
           typeof token.activeOrganizationId === "string"
             ? token.activeOrganizationId
             : null;
+        session.user.partnerAccess = null;
         session.user.orgPresetOverrides = null;
 
         // Live-refresh organizationName + permissionPreset из БД. JWT
@@ -254,7 +261,26 @@ export const authOptions: NextAuthOptions = {
               select: { role: true },
             });
             if (!membership) {
-              session.user.activeOrganizationId = null;
+              // Не член — возможно, это партнёр, открывший кабинет
+              // клиента. Привязку и уровень перечитываем из БД на каждый
+              // запрос: клиент мог отвязать консультанта минуту назад.
+              const { parsePartnerAccessClaim } = await import(
+                "@/lib/partners/access-guard"
+              );
+              const { resolvePartnerSessionAccess } = await import(
+                "@/lib/partners/session-access"
+              );
+              const claim = parsePartnerAccessClaim(token.partnerAccess);
+              const partnerAccess =
+                claim && claim.organizationId === session.user.activeOrganizationId
+                  ? await resolvePartnerSessionAccess(session.user.id, claim)
+                  : null;
+              if (partnerAccess) {
+                session.user.partnerAccess = partnerAccess;
+                session.user.role = "owner";
+              } else {
+                session.user.activeOrganizationId = null;
+              }
             } else {
               // Права в чужой организации берём из членства, а не из
               // домашней роли: и владелец сети, и приглашённый
@@ -296,6 +322,11 @@ export const authOptions: NextAuthOptions = {
             if (freshUser) {
               session.user.permissionPreset = freshUser.permissionPreset ?? null;
             }
+          }
+          // В кабинете клиента партнёр видит всё как руководитель;
+          // запись при level=view режут middleware и getServerSession.
+          if (session.user.partnerAccess) {
+            session.user.permissionPreset = "admin";
           }
         } catch {
           /* fall back to cached token values */

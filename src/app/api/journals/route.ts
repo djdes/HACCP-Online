@@ -312,6 +312,7 @@ export async function POST(request: Request) {
                     tempMin: equipment.tempMin,
                     tempMax: equipment.tempMax,
                     filledBy: filledByName,
+                    organizationId,
                   });
                 }
               })
@@ -361,6 +362,7 @@ export async function POST(request: Request) {
                   deviationType: deviation.alertType,
                   details: deviation.details.replace(/<\/?b>/g, ""),
                   filledBy: filledByName,
+                  organizationId,
                 });
               }
             }

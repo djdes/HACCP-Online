@@ -16,6 +16,7 @@ import {
   FileText,
   GitBranch,
   GraduationCap,
+  Handshake,
   LogOut,
   Menu,
   Package,
@@ -125,6 +126,12 @@ type HeaderProps = {
   freeUserLimit: number;
   /** Тестовый режим биллинга — тариф меняется, деньги не списываются. */
   billingTestMode: boolean;
+  /**
+   * Пользователь состоит в активном партнёре — в шапке появляется вход
+   * в партнёрский кабинет и переключатель контекста «Моя организация /
+   * Партнёрский кабинет» в меню профиля.
+   */
+  partnerCabinet?: { brandName: string } | null;
 };
 
 export function Header({
@@ -143,6 +150,7 @@ export function Header({
   activeUsers,
   freeUserLimit,
   billingTestMode,
+  partnerCabinet = null,
 }: HeaderProps) {
   const pathname = usePathname();
   const headerUndo = useHeaderUndo();
@@ -548,6 +556,18 @@ export function Header({
           <OfflineIndicator />
           <NotificationsBell />
 
+          {partnerCabinet ? (
+            <Link
+              href="/partner"
+              aria-label="Партнёрский кабинет"
+              title={`Партнёрский кабинет · ${partnerCabinet.brandName}`}
+              className="hidden h-10 shrink-0 items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3 text-[14px] font-semibold text-[#5566f6] transition-colors duration-200 md:inline-flex hover:bg-[#5566f6]/[0.09]"
+            >
+              <Handshake className="size-5" />
+              Партнёрский кабинет
+            </Link>
+          ) : null}
+
           {isRoot ? (
             <Link
               href="/root"
@@ -633,6 +653,33 @@ export function Header({
                 />
                 {organizations.length > 1 || canCreateOrganization ? (
                   <DropdownMenuSeparator className="my-1" />
+                ) : null}
+                {partnerCabinet ? (
+                  <>
+                    {/* Контекст: «Моя организация» — текущий кабинет,
+                        «Партнёрский кабинет» — /partner. Активный пункт
+                        подсвечен, чтобы было видно, где человек сейчас. */}
+                    <div className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]">
+                      Контекст
+                    </div>
+                    <DropdownMenuItem asChild className="bg-[#f5f6ff] focus:bg-[#eef1ff]">
+                      <Link href="/dashboard">
+                        <Building2 className="mr-2 size-4 text-[#5566f6]" />
+                        <span className="flex-1 truncate">Моя организация</span>
+                        <span className="text-[11px] text-[#3848c7]">сейчас</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="focus:bg-[#f5f6ff]">
+                      <Link href="/partner">
+                        <Handshake className="mr-2 size-4 text-[#5566f6]" />
+                        <span className="flex-1 truncate">Партнёрский кабинет</span>
+                        <span className="max-w-[120px] truncate text-[11px] text-[#6f7282]">
+                          {partnerCabinet.brandName}
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-1" />
+                  </>
                 ) : null}
                 {canManagePlan ? (
                   <DropdownMenuItem

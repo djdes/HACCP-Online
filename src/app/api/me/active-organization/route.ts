@@ -54,8 +54,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Организация не найдена" }, { status: 404 });
   }
 
+  // Переход в свою организацию всегда закрывает кабинет клиента,
+  // открытый как партнёр: claim не должен «переехать» в другой контекст.
   const rewrite = await rewriteSessionClaims({
     activeOrganizationId: organization.id,
+    partnerAccess: null,
   });
   if (!rewrite.ok) {
     return NextResponse.json({ error: rewrite.reason }, { status: 500 });

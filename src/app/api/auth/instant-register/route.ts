@@ -12,6 +12,10 @@ import { domainAcceptsMail } from "@/lib/mail-domain";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
 import { defaultDisabledCodesFor } from "@/lib/sphere-journal-rules";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
+import {
+  attachOrganizationByRef,
+  readPartnerRefFromRequest,
+} from "@/lib/partners/referral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -168,12 +172,23 @@ export async function POST(request: Request) {
 
   // Письмо и уведомление — не блокируют вход: пользователь уже в кабинете,
   // упавшая почта не должна оборачиваться ошибкой регистрации.
-  sendAccountPasswordEmail({ to: email, password }).catch((err) =>
+  sendAccountPasswordEmail({
+    to: email,
+    password,
+    organizationId: created.organization.id,
+  }).catch((err) =>
     console.error("sendAccountPasswordEmail failed", err),
   );
   notifyOwner(email).catch((err) =>
     console.error("instant-register telegram notify failed", err),
   );
+  // Пришёл по ссылке партнёра (/p/<slug>) — организация сразу под его
+  // сопровождением. Ошибки внутри не роняют регистрацию.
+  await attachOrganizationByRef({
+    ref: readPartnerRefFromRequest(request),
+    organizationId: created.organization.id,
+    actorUserId: created.user.id,
+  });
 
   return issueSession(
     NextResponse.json({ ok: true, created: true }),

@@ -14,6 +14,12 @@ function LoginForm() {
   // Пришли с лендинга, где почта уже занята: подставляем её и объясняем,
   // почему вместо регистрации показан вход.
   const alreadyExists = searchParams.get("exists") === "1";
+  // Куда вести после входа. Только внутренний путь — чужие адреса
+  // (open redirect) отбрасываем и идём в кабинет.
+  const nextPath = (() => {
+    const raw = searchParams.get("next") ?? "";
+    return raw.startsWith("/") && !raw.startsWith("//") && raw.length <= 500 ? raw : "/dashboard";
+  })();
   const prefilledEmail = (() => {
     const raw = searchParams.get("email")?.trim().toLowerCase() ?? "";
     return raw.includes("@") && raw.length <= 200 ? raw : "";
@@ -75,7 +81,7 @@ function LoginForm() {
         setError(data?.error || "Неверный email или пароль");
         return;
       }
-      router.push("/dashboard");
+      router.push(nextPath);
       router.refresh();
     } catch {
       setError("Ошибка соединения с сервером");

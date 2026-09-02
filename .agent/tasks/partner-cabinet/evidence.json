@@ -1,0 +1,24 @@
+{
+  "taskId": "partner-cabinet",
+  "verifiedAt": "2026-09-02",
+  "verdict": "PASS",
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck | grep \"^src\"", "result": "no output (0 errors in src)" },
+    { "cmd": "npm test", "result": "tests 377, pass 377, fail 0" },
+    { "cmd": "npm run lint", "result": "0 errors in task files; 24 pre-existing errors in untouched files (resources/print-agent/*.js, src/components/cleaning/scope-and-schedule-editors.tsx, src/components/task-fill/task-fill-field.tsx)" },
+    { "cmd": "npm run build", "result": "EXIT=0, all partner routes present in route manifest" }
+  ],
+  "acceptance": [
+    { "id": "AC1", "status": "PASS", "note": "application → ROOT review → /partner onboarding (3 steps), email + Telegram" },
+    { "id": "AC2", "status": "PASS", "note": "/p/<slug> + referral cookie, 6-char code, own-organization refusal (INN/owner/team member)" },
+    { "id": "AC3", "status": "PASS", "note": "branding on dashboard/header/footer/consultant card/PDF/email/bot, platform badge, client toggle" },
+    { "id": "AC4", "status": "PASS", "note": "middleware + server-session guard → 403 for view; audit marker for edit" },
+    { "id": "AC5", "status": "PASS", "note": "20% subscription, 3000 bonus on 2nd payment, 15% hardware after shipped, refund reversal; rewards.test.ts" },
+    { "id": "AC6", "status": "PASS", "note": "month close cron + manual, paid mark with date/document, 1000 ₽ minimum with carry-over" },
+    { "id": "AC7", "status": "PASS", "note": "CSV UTF-8 BOM, ';' separator; validation.test.ts" },
+    { "id": "AC8", "status": "PASS", "note": "overview: 5 batched queries independent of client count; overview.test.ts" },
+    { "id": "AC9", "status": "PASS", "note": "detach by client/partner/ROOT, access re-resolved per request, history kept, partner emailed" },
+    { "id": "AC10", "status": "PASS", "note": "typecheck/lint/test/build green; unit tests per spec list" },
+    { "id": "AC11", "status": "PASS", "note": "docs/partners-guide.md, docs/partners-client-guide.md, docs/partners-open-questions.md" }
+  ]
+}

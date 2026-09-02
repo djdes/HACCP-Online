@@ -139,6 +139,7 @@ export async function POST(request: Request) {
       name: user.name,
       organizationName: session.user.organizationName,
       inviteUrl,
+      organizationId,
     }).catch((err) => console.error("sendInviteTokenEmail failed", err));
 
     // Auto-link с TasksFlow по номеру (П-8 спека 2026-05-09).

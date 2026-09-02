@@ -5,6 +5,7 @@ import {
   ChevronDown,
   FileText,
   Gauge,
+  Handshake,
   ListChecks,
   Plug,
   Settings2,
@@ -55,6 +56,7 @@ function isCategoryNote(
  * нельзя (server→client serialization), поэтому держим mapping здесь.
  */
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Партнёры: Handshake,
   "Распределение задач": Gauge,
   "Умные пресеты": Wand2,
   Интерфейс: Settings2,

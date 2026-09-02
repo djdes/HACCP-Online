@@ -246,7 +246,10 @@ import {
   registerPageLabelSlot,
   resetPageLabelSlots,
   stampJournalPageNumbers,
+  stampPartnerPdfFooter,
+  type PdfFooterBrand,
 } from "@/lib/pdf-page-labels";
+import { getVisibleOrgBranding } from "@/lib/partners/branding";
 import {
   EQUIPMENT_CLEANING_DOCUMENT_TITLE,
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
@@ -5905,6 +5908,10 @@ export type JournalDocumentPdfInput = {
     currentScope?: unknown;
     generalScope?: unknown;
   }[];
+  /// White-label партнёра: подпись в подвале каждой страницы + плашка
+  /// «Работает на платформе WeSetup». `null`/undefined — организация без
+  /// партнёра или скрыла брендинг, подвал не печатается.
+  branding?: PdfFooterBrand | null;
 };
 
 /**
@@ -6002,7 +6009,12 @@ export async function loadJournalDocumentPdfInput(params: {
         })
       : [];
 
-  return { document, users, equipment, rooms };
+  const orgBranding = await getVisibleOrgBranding(organizationId);
+  const branding: PdfFooterBrand | null = orgBranding
+    ? { brandName: orgBranding.brandName, pdfSignature: orgBranding.pdfSignature }
+    : null;
+
+  return { document, users, equipment, rooms, branding };
 }
 
 /** Совместимость: загрузка + рендер одним вызовом, как было раньше. */
@@ -6020,8 +6032,7 @@ export async function generateJournalDocumentPdf(params: {
 export function renderJournalDocumentPdf(
   input: JournalDocumentPdfInput
 ): { buffer: Buffer; fileName: string } {
-  const { document, users, equipment, rooms } = input;
-
+  const { document, users, equipment, rooms, branding } = input;
 
   const doc = new jsPDF({
     orientation: "landscape",
@@ -6528,6 +6539,9 @@ export function renderJournalDocumentPdf(
   // Единый проход по готовому документу: «СТР. i ИЗ N» с честным N в
   // шапке каждой страницы (или в подвале, если шапки на странице нет).
   stampJournalPageNumbers(doc);
+  // Подвал партнёра (white-label) — после нумерации, чтобы не спорить
+  // за нижний край страницы.
+  stampPartnerPdfFooter(doc, branding);
 
   activeControlPeriodicity = "";
   activeDocumentStatus = "";

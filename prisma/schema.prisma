@@ -324,6 +324,7 @@ model Organization {
   printJobs                     PrintJob[]
   journalGuideTemplates         JournalGuideTemplate[]
   journalPipelineTemplates      JournalPipelineTemplate[]
+  partnerClients                PartnerClient[]            @relation("PartnerClients")
 }
 
 /// Корпус/точка бизнеса организации. У сети может быть несколько
@@ -553,6 +554,8 @@ model User {
   /// Когда человек подтвердил почту кодом. null — не подтверждал.
   /// Ничего не блокирует: это отметка для настроек и быстрого старта.
   emailVerifiedAt             DateTime?
+  partnerApplications         Partner[]                @relation("PartnerApplicant")
+  partnerMembership           PartnerUser?             @relation("PartnerMemberships")
 
   @@index([organizationId, archivedAt])
   @@index([jobPositionId])
@@ -2250,6 +2253,15 @@ model PaymentOrder {
   /// Для автосписаний серии — id родительского заказа, по которому
   /// касса списывает. У обычного платежа пусто.
   recurringChargeOf      Int?
+  /// Slug партнёра из cookie `wesetup.partner-ref` на момент оформления:
+  /// после оплаты новая организация привязывается к нему.
+  partnerSlug            String?
+  /// Оборудование из bundle отгружено — ROOT отмечает вручную, после
+  /// этого партнёру начисляется вознаграждение за железо (П. 5.2 ТЗ).
+  shippedAt              DateTime?
+  /// Возврат платежа — ROOT отмечает вручную; начисления сторнируются.
+  refundedAt             DateTime?
+  partnerAccruals        PartnerAccrual[]
 
   @@index([email])
   @@index([status])
@@ -2344,4 +2356,218 @@ model AssistantMessage {
   @@index([conversationId, status])
   @@index([status])
   @@index([createdAt])
+}
+
+// ==================== ПАРТНЁРЫ И WHITE-LABEL (B8) ====================
+
+/// Партнёр — консультант / интегратор / сервис оборудования, который
+/// приводит клиентов и сопровождает их. Спецификация задачи:
+/// `.agent/tasks/partner-cabinet/spec.md`.
+///
+/// Жизненный цикл status:
+///   pending   — заявка подана, ждёт ROOT
+///   active    — одобрен, кабинет /partner открыт
+///   rejected  — отклонён с комментарием (можно подать заново)
+///   suspended — приостановлен ROOT: кабинет закрыт, начисления стоят
+model Partner {
+  id                      String              @id @default(cuid())
+  /// Латинский slug из ссылки `wesetup.ru/p/<slug>`; резерв под
+  /// `<slug>.wesetup.ru`. Выбирает партнёр при подаче заявки.
+  slug                    String              @unique
+  /// 6-символьный код для ввода клиентом в настройках.
+  code                    String              @unique
+  status                  String              @default("pending")
+  /// consultant | integrator | equipment_service | other
+  type                    String
+  companyName             String
+  inn                     String
+  city                    String
+  phone                   String
+  telegram                String?
+  contactEmail            String
+  venuesCount             Int                 @default(0)
+  termsAcceptedAt         DateTime
+  /// Кто подал заявку и из какой организации — своя организация
+  /// партнёра не может стать его клиентом.
+  applicantUserId         String
+  applicant               User                @relation("PartnerApplicant", fields: [applicantUserId], references: [id], onDelete: Cascade)
+  applicantOrganizationId String?
+  reviewComment           String?
+  reviewedAt              DateTime?
+  reviewedByUserId        String?
+  onboardingDoneAt        DateTime?
+  /// ip | self_employed | company — реквизиты для выплат.
+  payoutType              String?
+  /// { fullName, inn, bank, bik, account, ... } — структура под тип,
+  /// валидируется в API.
+  payoutDetails           Json?
+  agreementSignedAt       DateTime?
+  agreementNumber         String?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  members                 PartnerUser[]
+  branding                PartnerBranding?
+  clients                 PartnerClient[]
+  invites                 PartnerInvite[]
+  accruals                PartnerAccrual[]
+  notes                   PartnerClientNote[]
+
+  @@index([status])
+  @@index([inn])
+}
+
+/// Люди партнёра. `owner` — подал заявку и управляет командой,
+/// `member` — сотрудник партнёра с доступом к кабинету. Один человек —
+/// не больше одного партнёра.
+model PartnerUser {
+  id        String   @id @default(cuid())
+  partnerId String
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  user      User     @relation("PartnerMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  /// owner | member
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+
+  @@index([partnerId])
+}
+
+/// Брендинг партнёра, применяется у всех его активных клиентов.
+/// Логотипы лежат в БД (Bytes) и отдаются через
+/// /api/partner-assets/<partnerId>/logo — один источник для сайта,
+/// писем и PDF без файлового хранилища.
+model PartnerBranding {
+  partnerId       String   @id
+  partner         Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  brandName       String
+  logoLight       Bytes?
+  logoLightMime   String?
+  logoDark        Bytes?
+  logoDarkMime    String?
+  /// Введённый HEX. Применяется только если проходит WCAG AA
+  /// (см. checkAccent); иначе кабинет остаётся на стандартном индиго.
+  accentColor     String?
+  supportPhone    String?
+  supportTelegram String?
+  supportEmail    String?
+  pdfSignature    String?
+  loginGreeting   String?
+  /// Растёт при каждой правке — cache-busting ссылок на лого.
+  version         Int      @default(1)
+  updatedAt       DateTime @updatedAt
+}
+
+/// Привязка клиента к партнёру. Одна активная (detachedAt IS NULL) на
+/// организацию — частичный уникальный индекс создаётся в
+/// ensurePartnerSchemaExtras(), Prisma такие не описывает. История
+/// привязок остаётся навсегда.
+model PartnerClient {
+  id                  String              @id @default(cuid())
+  partnerId           String
+  partner             Partner             @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  organizationId      String
+  organization        Organization        @relation("PartnerClients", fields: [organizationId], references: [id], onDelete: Cascade)
+  /// view | edit — выбирает клиент.
+  accessLevel         String              @default("view")
+  /// link | code | invite | manual
+  source              String              @default("link")
+  attachedAt          DateTime            @default(now())
+  detachedAt          DateTime?
+  /// client | partner | admin
+  detachedBy          String?
+  /// «Показывать стандартный интерфейс WeSetup» — брендинг скрыт,
+  /// привязка и начисления остаются.
+  clientHidesBranding Boolean             @default(false)
+  /// Первый оплаченный платёж клиента после привязки — от него
+  /// считается окно 12 месяцев подписочного вознаграждения.
+  firstPaymentAt      DateTime?
+  createdAt           DateTime            @default(now())
+  accruals            PartnerAccrual[]
+  notes               PartnerClientNote[]
+
+  @@index([organizationId, detachedAt])
+  @@index([partnerId, detachedAt])
+}
+
+/// Заметки партнёра о клиенте — видны только партнёру.
+model PartnerClientNote {
+  id              String        @id @default(cuid())
+  partnerId       String
+  partner         Partner       @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerClientId String
+  partnerClient   PartnerClient @relation(fields: [partnerClientId], references: [id], onDelete: Cascade)
+  authorUserId    String
+  authorName      String
+  text            String
+  createdAt       DateTime      @default(now())
+
+  @@index([partnerClientId, createdAt])
+}
+
+/// Email-приглашение клиента. status: sent | registered | declined.
+model PartnerInvite {
+  id                       String    @id @default(cuid())
+  partnerId                String
+  partner                  Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  email                    String
+  /// sha256 токена из ссылки «Не интересно».
+  tokenHash                String    @unique
+  status                   String    @default("sent")
+  sentAt                   DateTime  @default(now())
+  registeredAt             DateTime?
+  registeredOrganizationId String?
+  declinedAt               DateTime?
+
+  @@unique([partnerId, email])
+  @@index([partnerId, status])
+}
+
+/// Правила вознаграждения — версионируются, старые начисления хранят
+/// свою версию. Новая версия применяется только к новым начислениям.
+model PartnerRewardRule {
+  id                  String   @id @default(cuid())
+  version             Int      @unique
+  subscriptionPercent Decimal  @db.Decimal(5, 2)
+  subscriptionMonths  Int
+  hardwarePercent     Decimal  @db.Decimal(5, 2)
+  bonusAmountRub      Decimal  @db.Decimal(10, 2)
+  bonusAfterPayments  Int
+  minPayoutRub        Decimal  @db.Decimal(10, 2)
+  effectiveFrom       DateTime @default(now())
+  createdByUserId     String?
+  comment             String?
+  createdAt           DateTime @default(now())
+}
+
+/// Начисление партнёру. kind: subscription | hardware | bonus |
+/// subscription_reversal | hardware_reversal | bonus_reversal.
+/// status: accrued → payable (закрытие месяца 1-го числа) → paid.
+/// Уникальность (paymentOrderId, kind) — повторная обработка платежа
+/// не создаёт дубль.
+model PartnerAccrual {
+  id              String        @id @default(cuid())
+  partnerId       String
+  partner         Partner       @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerClientId String
+  partnerClient   PartnerClient @relation(fields: [partnerClientId], references: [id], onDelete: Cascade)
+  organizationId  String
+  paymentOrderId  Int?
+  paymentOrder    PaymentOrder? @relation(fields: [paymentOrderId], references: [id], onDelete: SetNull)
+  kind            String
+  baseAmountRub   Decimal       @db.Decimal(10, 2)
+  ratePercent     Decimal?      @db.Decimal(5, 2)
+  amountRub       Decimal       @db.Decimal(10, 2)
+  status          String        @default("accrued")
+  ruleVersion     Int
+  /// "YYYY-MM" по Москве — месяц начисления для ведомости.
+  periodMonth     String
+  paidAt          DateTime?
+  paidDocumentNo  String?
+  reversalOfId    String?
+  createdAt       DateTime      @default(now())
+
+  @@unique([paymentOrderId, kind])
+  @@index([partnerId, status])
+  @@index([partnerId, periodMonth])
+  @@index([organizationId])
 }

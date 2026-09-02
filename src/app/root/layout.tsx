@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Bot,
+  Handshake,
   LayoutDashboard,
   MessageSquareText,
   NotebookText,
@@ -103,6 +104,13 @@ export default async function RootAreaLayout({
             >
               <Wallet className="size-4" />
               Тарифы
+            </Link>
+            <Link
+              href="/root/partners"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Handshake className="size-4" />
+              Партнёры
             </Link>
             <Link
               href="/root/telegram-logs"

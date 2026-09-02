@@ -12,6 +12,10 @@ import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
 import { attachAccountForNewOrganization } from "@/lib/create-organization";
+import {
+  attachOrganizationByRef,
+  readPartnerRefFromRequest,
+} from "@/lib/partners/referral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -204,6 +208,7 @@ export async function POST(request: Request) {
     to: result.user.email,
     name: result.user.name,
     organizationName: result.organization.name,
+    organizationId: result.organization.id,
   }).catch((err) => console.error("sendWelcomeEmail failed", err));
 
   // Регистрации через /register раньше не уведомляли никого: новые
@@ -217,6 +222,14 @@ export async function POST(request: Request) {
     ].join("\n"),
     { kind: "registration" }
   ).catch((err) => console.error("register notify admin failed", err));
+
+  // Регистрация по партнёрской ссылке (/p/<slug>) — организация сразу
+  // под сопровождением партнёра. Best-effort, регистрацию не ломает.
+  await attachOrganizationByRef({
+    ref: readPartnerRefFromRequest(request),
+    organizationId: result.organization.id,
+    actorUserId: result.user.id,
+  });
 
   return NextResponse.json(
     {

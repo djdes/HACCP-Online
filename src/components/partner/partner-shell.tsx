@@ -1,0 +1,212 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Building2,
+  ChevronDown,
+  Coins,
+  Handshake,
+  LayoutDashboard,
+  LogOut,
+  Mail,
+  Palette,
+  Users,
+} from "lucide-react";
+import { signOut } from "next-auth/react";
+import { BrandLogo } from "@/components/brand/logo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+
+const NAV = [
+  { href: "/partner", label: "Обзор", icon: LayoutDashboard, exact: true },
+  { href: "/partner/invites", label: "Приглашения", icon: Mail },
+  { href: "/partner/branding", label: "Брендинг", icon: Palette },
+  { href: "/partner/rewards", label: "Вознаграждение", icon: Coins },
+  { href: "/partner/team", label: "Команда", icon: Users },
+] as const;
+
+export type PartnerShellProps = {
+  brandName: string;
+  logoUrl: string | null;
+  userName: string;
+  userEmail: string;
+  /** Есть ли у пользователя своя организация (куда ведёт «Моя организация»). */
+  hasOwnOrganization: boolean;
+  ownOrganizationName: string | null;
+  children: React.ReactNode;
+};
+
+/**
+ * Оболочка партнёрского кабинета: шапка с брендом партнёра,
+ * переключатель контекста «Моя организация / Партнёрский кабинет»,
+ * горизонтальная навигация по разделам. Кабинет живёт отдельно от
+ * (dashboard)/layout — у него другой контекст (партнёр, а не
+ * организация) и другие пункты меню.
+ */
+export function PartnerShell({
+  brandName,
+  logoUrl,
+  userName,
+  userEmail,
+  hasOwnOrganization,
+  ownOrganizationName,
+  children,
+}: PartnerShellProps) {
+  const pathname = usePathname() ?? "/partner";
+  const initials = (userName || userEmail || "?").trim().slice(0, 1).toUpperCase();
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-30 border-b border-[#ececf4] bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-3 px-4 md:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/partner" className="flex min-w-0 items-center gap-3" aria-label="Партнёрский кабинет">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt={brandName} className="h-8 max-w-[140px] object-contain" />
+              ) : (
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+                  <Handshake className="size-5" />
+                </span>
+              )}
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-semibold text-[#0b1024]">{brandName}</span>
+                <span className="block text-[11px] font-medium uppercase tracking-[0.14em] text-[#6f7282]">
+                  Партнёрский кабинет
+                </span>
+              </span>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Переключатель контекста. Кабинет клиента открывается
+                отдельной кнопкой из карточки клиента, здесь — только
+                «своя организация ↔ партнёрский кабинет». */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <Handshake className="size-4 text-[#5566f6]" />
+                  <span className="hidden sm:inline">Партнёрский кабинет</span>
+                  <ChevronDown className="size-4 text-[#9b9fb3]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[280px] rounded-2xl p-1.5">
+                <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6f7282]">
+                  Контекст
+                </DropdownMenuLabel>
+                <DropdownMenuItem asChild className="rounded-xl bg-[#f5f6ff]">
+                  <Link href="/partner" className="flex items-center gap-2.5 px-2 py-2">
+                    <Handshake className="size-4 text-[#5566f6]" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium text-[#0b1024]">Партнёрский кабинет</span>
+                      <span className="block truncate text-[12px] text-[#6f7282]">{brandName}</span>
+                    </span>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#3848c7]">
+                      сейчас
+                    </span>
+                  </Link>
+                </DropdownMenuItem>
+                {hasOwnOrganization ? (
+                  <DropdownMenuItem asChild className="rounded-xl">
+                    <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-2">
+                      <Building2 className="size-4 text-[#5566f6]" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium text-[#0b1024]">Моя организация</span>
+                        <span className="block truncate text-[12px] text-[#6f7282]">
+                          {ownOrganizationName ?? "Кабинет заведения"}
+                        </span>
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Профиль"
+                  className="flex size-10 items-center justify-center rounded-full bg-[#eef1ff] text-[14px] font-semibold text-[#3848c7] transition-colors hover:bg-[#e2e6ff]"
+                >
+                  {initials}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[240px] rounded-2xl p-1.5">
+                <div className="px-2 py-2">
+                  <div className="truncate text-[14px] font-medium text-[#0b1024]">{userName}</div>
+                  <div className="truncate text-[12px] text-[#6f7282]">{userEmail}</div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="rounded-xl px-2 py-2 text-[14px]"
+                  onSelect={() => void signOut({ callbackUrl: "/login" })}
+                >
+                  <LogOut className="size-4 text-[#6f7282]" />
+                  Выйти
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        <nav className="mx-auto w-full max-w-[1400px] px-4 md:px-8" aria-label="Разделы кабинета">
+          <ul className="-mb-px flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {NAV.map((item) => {
+              const active = "exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              return (
+                <li key={item.href} className="shrink-0">
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "inline-flex h-11 items-center gap-2 border-b-2 px-3 text-[14px] font-medium transition-colors duration-150",
+                      active
+                        ? "border-[#5566f6] text-[#5566f6]"
+                        : "border-transparent text-[#6f7282] hover:border-[#dcdfed] hover:text-[#0b1024]",
+                    )}
+                  >
+                    <item.icon className="size-4" />
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </header>
+
+      <main className="flex-1 py-6 md:py-8">
+        <div className="mx-auto w-full max-w-[1400px] px-4 md:px-8">{children}</div>
+      </main>
+
+      <footer className="border-t border-[#ececf4] bg-white">
+        <div className="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-3 px-4 py-4 text-[12px] text-[#6f7282] md:px-8">
+          <span className="inline-flex items-center gap-2">
+            <BrandLogo height={16} title="WeSetup" />
+            Партнёрская программа WeSetup
+          </span>
+          <span className="flex flex-wrap gap-4">
+            <Link href="/partners" className="transition-colors hover:text-[#5566f6]">
+              Условия программы
+            </Link>
+            <a href="mailto:partners@wesetup.ru" className="transition-colors hover:text-[#5566f6]">
+              partners@wesetup.ru
+            </a>
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}

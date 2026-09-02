@@ -51,6 +51,19 @@ export const TELEGRAM_COMMANDS = [
 
 export function buildTelegramLinkedStartReply(
   state: TelegramLinkedStartState,
+  buttonUrl: string | null,
+  /**
+   * White-label: готовый HTML-хвост «🤝 Ваш консультант: …» для клиентов
+   * партнёра (см. `telegramConsultantFooter`). Пустая строка — без подписи.
+   */
+  consultantFooter = ""
+): TelegramStartReply {
+  const reply = buildLinkedStartReplyBody(state, buttonUrl);
+  return consultantFooter ? { ...reply, text: reply.text + consultantFooter } : reply;
+}
+
+function buildLinkedStartReplyBody(
+  state: TelegramLinkedStartState,
   buttonUrl: string | null
 ): TelegramStartReply {
   if (!buttonUrl) {

@@ -10,6 +10,7 @@ import {
   type TelegramLinkedStartState,
 } from "@/lib/bot/start-response";
 import { db } from "@/lib/db";
+import { telegramConsultantFooter } from "@/lib/partners/branding";
 import { parseLinkToken } from "@/lib/telegram";
 import { getMiniAppBaseUrlFromEnv } from "@/lib/journal-obligation-links";
 import { buildTelegramWebAppKeyboard } from "@/lib/telegram-web-app";
@@ -23,9 +24,10 @@ function getMiniAppBaseUrl(): string | null {
 async function replyWithLinkedStart(
   ctx: Context,
   state: TelegramLinkedStartState,
-  buttonUrl: string | null
+  buttonUrl: string | null,
+  consultantFooter = ""
 ): Promise<void> {
-  const reply = buildTelegramLinkedStartReply(state, buttonUrl);
+  const reply = buildTelegramLinkedStartReply(state, buttonUrl, consultantFooter);
   await ctx.reply(reply.text, {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
@@ -69,8 +71,11 @@ async function replyWithLoadedStartHome(
       role: true,
       permissionPreset: true,
       isRoot: true,
+      organizationId: true,
     },
   });
+  // White-label: клиенты партнёра видят в приветствии «Ваш консультант».
+  const consultantFooter = await telegramConsultantFooter(dbUser?.organizationId);
   if (dbUser) {
     const preset = effectivePreset({
       permissionPreset: dbUser.permissionPreset,
@@ -111,7 +116,8 @@ async function replyWithLoadedStartHome(
         pendingCount: home.summary.pending,
         employeesWithPending: home.summary.employeesWithPending,
       },
-      home.buttonUrl
+      home.buttonUrl,
+      consultantFooter
     );
     return;
   }
@@ -125,7 +131,8 @@ async function replyWithLoadedStartHome(
         isRoot: home.actor.isRoot,
         kind: "readonly",
       },
-      home.buttonUrl
+      home.buttonUrl,
+      consultantFooter
     );
     return;
   }
@@ -139,7 +146,8 @@ async function replyWithLoadedStartHome(
       kind: "staff",
       nextActionLabel: home.nextAction?.label ?? null,
     },
-    home.buttonUrl
+    home.buttonUrl,
+    consultantFooter
   );
 }
 

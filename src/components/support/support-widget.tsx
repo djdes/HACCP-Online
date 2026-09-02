@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ConsultantCard } from "@/components/dashboard/consultant-card";
+import type { ConsultantContact } from "@/lib/partners/consultant-contact-shared";
 
 /**
  * Поддержка одной кнопкой в углу кабинета.
@@ -68,7 +70,16 @@ const CHAT_POLL_MS = 10_000;
  */
 const ASSISTANT_POLL_MS = 3_000;
 
-export function SupportWidget() {
+/**
+ * `consultant` — партнёр, сопровождающий организацию (white-label).
+ * В меню помощи он идёт первым: клиенту партнёра быстрее написать своему
+ * консультанту, чем в общую поддержку WeSetup.
+ */
+export function SupportWidget({
+  consultant = null,
+}: {
+  consultant?: ConsultantContact | null;
+} = {}) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("menu");
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -304,6 +315,7 @@ export function SupportWidget() {
 
       {screen === "menu" ? (
         <div className="space-y-2 p-5">
+          {consultant ? <ConsultantCard consultant={consultant} compact /> : null}
           {/* Ассистент первым: на «как заполнить» и «где найти» он
               отвечает за секунды, и человеку не нужно ждать оператора. */}
           <button

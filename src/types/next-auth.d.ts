@@ -1,5 +1,16 @@
 import { DefaultSession } from "next-auth";
 
+/**
+ * Партнёр (консультант), открывший кабинет клиента. Уровень доступа
+ * перечитывается из PartnerClient на каждый getServerSession().
+ */
+export type SessionPartnerAccess = {
+  partnerId: string;
+  organizationId: string;
+  level: "view" | "edit";
+  brandName: string;
+};
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -15,9 +26,14 @@ declare module "next-auth" {
        * instead of organizationId directly to honour this.
        */
       actingAsOrganizationId: string | null;
-    activeOrganizationId?: string | null;
       /** Организация, в которой человек сейчас работает (multi-org). */
       activeOrganizationId?: string | null;
+      /**
+       * Non-null, когда человек вошёл в организацию клиента как партнёр
+       * (через /partner/clients/<orgId> → «Открыть кабинет»). В этом режиме
+       * middleware и getServerSession блокируют мутации при level=view.
+       */
+      partnerAccess?: SessionPartnerAccess | null;
       /**
        * Permission preset overlay поверх legacy `role`. Управляет:
        *   - terminology (admin видит «журналы», остальные «задачи»);
@@ -46,5 +62,7 @@ declare module "next-auth/jwt" {
     isRoot: boolean;
     actingAsOrganizationId: string | null;
     permissionPreset: string | null;
+    /** Кабинет клиента, открытый партнёром: { partnerId, organizationId, level }. */
+    partnerAccess?: { partnerId: string; organizationId: string; level: "view" | "edit" } | null;
   }
 }

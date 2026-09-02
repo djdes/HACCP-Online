@@ -5,6 +5,8 @@ import {
   fulfillPaidOrder,
   notifyAboutPayment,
 } from "@/lib/payment-fulfillment";
+import { accrueForPaidOrder } from "@/lib/partners/accruals";
+import { attachOrganizationByRef, parsePartnerRef } from "@/lib/partners/referral";
 
 export const dynamic = "force-dynamic";
 
@@ -93,14 +95,32 @@ export async function POST(request: NextRequest) {
   });
   if (claimed.count === 0) return ok(invIdRaw);
 
+  let organizationId: string | null = null;
   try {
     const result = await fulfillPaidOrder(order);
+    organizationId = result.organizationId;
     await notifyAboutPayment({ order, result });
   } catch (error) {
     // Деньги получены и заказ уже помечен оплаченным — откатывать статус
     // нельзя, иначе повторное уведомление создаст вторую организацию.
     // Логируем и подтверждаем: разбор руками через /root по номеру заказа.
     console.error(`robokassa: fulfillment failed for order ${invId}`, error);
+  }
+
+  // Партнёрская программа: заказ с меткой /p/<slug> привязывает новую
+  // организацию к партнёру, затем считается вознаграждение с платежа.
+  // Начисление идемпотентно по (заказ, вид), ошибки не мешают ответу кассе.
+  try {
+    if (organizationId) {
+      await attachOrganizationByRef({
+        ref: parsePartnerRef(order.partnerSlug),
+        organizationId,
+        actorUserId: null,
+      });
+    }
+    await accrueForPaidOrder(order.id);
+  } catch (error) {
+    console.error(`robokassa: partner accrual failed for order ${invId}`, error);
   }
 
   return ok(invIdRaw);

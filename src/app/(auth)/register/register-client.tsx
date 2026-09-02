@@ -40,6 +40,13 @@ function RegisterScreen() {
     return raw.includes("@") && raw.length <= 200 ? raw : "";
   })();
 
+  // Куда идти после создания аккаунта (например, на форму партнёрской
+  // заявки с /partners). Только внутренний путь — иначе в кабинет.
+  const nextPath = (() => {
+    const raw = searchParams.get("next") ?? "";
+    return raw.startsWith("/") && !raw.startsWith("//") && raw.length <= 500 ? raw : null;
+  })();
+
   const field = useEmailField(prefilled);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +69,14 @@ function RegisterScreen() {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.created) {
-        router.push("/dashboard?welcome=1");
+        router.push(nextPath ?? "/dashboard?welcome=1");
         router.refresh();
         return;
       }
       if (res.ok && data.exists) {
-        router.push(`/login?email=${encodeURIComponent(value)}&exists=1`);
+        router.push(
+          `/login?email=${encodeURIComponent(value)}&exists=1${nextPath ? `&next=${encodeURIComponent(nextPath)}` : ""}`,
+        );
         return;
       }
       setError(data.error ?? "Не получилось — попробуйте ещё раз");
