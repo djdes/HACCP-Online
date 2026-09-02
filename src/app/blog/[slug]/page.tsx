@@ -196,7 +196,7 @@ export default async function BlogArticlePage({
           </div>
           <p className="mx-auto mt-2 max-w-[480px] text-[14px] text-white/70">
             Все 35 журналов СанПиН и ХАССП в одном кабинете. Бесплатный
-            тариф навсегда, до 5 сотрудников, без привязки карты.
+            тариф навсегда, до 3 сотрудников, без привязки карты.
           </p>
           <Link
             href="/register"

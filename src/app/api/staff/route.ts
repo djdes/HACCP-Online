@@ -158,7 +158,7 @@ export async function POST(request: Request) {
     return u;
   });
 
-  // Лимит бесплатного тарифа (5 сотрудников): создание не блокируем,
+  // Лимит бесплатного тарифа (3 сотрудника): создание не блокируем,
   // при превышении переводим организацию на платный (тестовый режим).
   const planCheck = await ensurePlanForHeadcount(orgId);
 

@@ -14,6 +14,7 @@ import {
   DEFAULT_TWITTER_CARD,
   DEFAULT_TWITTER_IMAGES,
 } from "@/lib/meta-defaults";
+import { FREE_MAX_USERS } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,7 +22,7 @@ export const revalidate = 0;
 export const metadata = {
   title: "Цены на электронные журналы СанПиН и ХАССП",
   description:
-    "Сколько стоит WeSetup: бесплатный тариф до 5 сотрудников, подписка без лимитов и пакеты с оборудованием. Калькулятор экономии.",
+    "Сколько стоит WeSetup: бесплатный тариф до 3 сотрудников, подписка без лимитов и пакеты с оборудованием. Калькулятор экономии.",
   alternates: { canonical: "https://wesetup.ru/pricing" },
   openGraph: {
     type: "website",
@@ -30,7 +31,7 @@ export const metadata = {
     url: "https://wesetup.ru/pricing",
     title: "Цены на электронные журналы СанПиН и ХАССП",
     description:
-      "Сколько стоит WeSetup: бесплатный тариф до 5 сотрудников, подписка без лимитов и пакеты с оборудованием.",
+      "Сколько стоит WeSetup: бесплатный тариф до 3 сотрудников, подписка без лимитов и пакеты с оборудованием.",
     images: DEFAULT_OG_IMAGES,
   },
   twitter: {
@@ -44,9 +45,7 @@ export const metadata = {
  * Публичная страница тарифов.
  *
  * Цены берутся из БД (`PlatformTariff`) — те же, что на лендинге и в
- * кнопках оплаты. Прежняя шкала «100/80/60 ₽ за сотрудника» убрана:
- * она противоречила фикс-подписке на главной, и модератор платёжного
- * сервиса справедливо счёл бы это расхождением.
+ * кнопках оплаты.
  */
 export default async function PricingPage() {
   const tariffs = await readTariffs().catch(() => fallbackTariffs());
@@ -76,7 +75,7 @@ export default async function PricingPage() {
             period="навсегда"
             description="Для заведения с небольшой сменой."
             points={[
-              "До 5 сотрудников",
+              `До ${FREE_MAX_USERS} сотрудников`,
               "Все 35 журналов СанПиН и ХАССП",
               "Telegram-бот с пошаговым заполнением",
               "PDF для проверок, без привязки карты",
@@ -158,7 +157,7 @@ export default async function PricingPage() {
             Попробуйте бесплатно
           </h2>
           <p className="mt-2 max-w-[480px] text-[15px] leading-relaxed text-white/70">
-            Регистрация занимает 2 минуты. До 5 сотрудников — бесплатно
+            Регистрация занимает 2 минуты. До {FREE_MAX_USERS} сотрудников — бесплатно
             навсегда. Карта не требуется.
           </p>
           <Link

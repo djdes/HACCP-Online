@@ -129,7 +129,7 @@ export async function POST(request: Request) {
       return { user };
     });
 
-    // Лимит бесплатного тарифа (5 сотрудников): при превышении молча
+    // Лимит бесплатного тарифа (3 сотрудника): при превышении молча
     // переводим организацию на платный — блокировать приглашение нельзя.
     const planCheck = await ensurePlanForHeadcount(organizationId);
 

@@ -226,8 +226,8 @@ export default async function SubscriptionPage() {
             <div className="mt-5 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4 text-[13px] leading-relaxed text-[#6f7282]">
               <strong className="text-[#0b1024]">Шкала тарифов:</strong>
               <ul className="mt-2 list-disc space-y-1 pl-5">
-                <li>1–5 сотрудников: бесплатно</li>
-                <li>6–29: 100 ₽/чел/мес (сверх первых 5)</li>
+                <li>1–3 сотрудников: бесплатно</li>
+                <li>4–29: 100 ₽/чел/мес (сверх первых 3)</li>
                 <li>30–99: 80 ₽/чел/мес</li>
                 <li>100+ (сети): 60 ₽/чел/мес</li>
               </ul>

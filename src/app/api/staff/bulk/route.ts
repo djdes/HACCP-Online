@@ -269,7 +269,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // Импорт может разом перевалить за 5 бесплатных мест — проверяем
+  // Импорт может разом перевалить за 3 бесплатных места — проверяем
   // один раз после всей пачки, а не на каждой строке.
   const planCheck = await ensurePlanForHeadcount(orgId);
 
