@@ -10,7 +10,11 @@ export type AccessibleOrganization = {
   name: string;
   role: "owner" | "manager" | "home";
   isHome: boolean;
+  /** Демо-песочница аккаунта: в списке идёт последней и помечена пилюлей. */
+  isDemo: boolean;
 };
+
+const ORG_SELECT = { id: true, name: true, isDemo: true } as const;
 
 export async function listAccessibleOrganizations(
   userId: string,
@@ -19,11 +23,11 @@ export async function listAccessibleOrganizations(
     where: { id: userId },
     select: {
       organizationId: true,
-      organization: { select: { id: true, name: true } },
+      organization: { select: ORG_SELECT },
       organizationMemberships: {
         select: {
           role: true,
-          organization: { select: { id: true, name: true } },
+          organization: { select: ORG_SELECT },
         },
       },
     },
@@ -37,6 +41,7 @@ export async function listAccessibleOrganizations(
       name: user.organization.name,
       role: "home",
       isHome: true,
+      isDemo: user.organization.isDemo,
     });
   }
   for (const membership of user.organizationMemberships) {
@@ -46,11 +51,13 @@ export async function listAccessibleOrganizations(
       name: membership.organization.name,
       role: membership.role === "owner" ? "owner" : "manager",
       isHome: existing?.isHome ?? false,
+      isDemo: membership.organization.isDemo,
     });
   }
 
   return [...byId.values()].sort((a, b) => {
     if (a.isHome !== b.isHome) return a.isHome ? -1 : 1;
+    if (a.isDemo !== b.isDemo) return a.isDemo ? 1 : -1;
     return a.name.localeCompare(b.name, "ru");
   });
 }

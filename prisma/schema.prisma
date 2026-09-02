@@ -108,6 +108,11 @@ model Organization {
   /// отличать авто-переход (оплата не требовалась — тестовый режим) от
   /// осознанной покупки и чтобы не переводить повторно.
   planAutoUpgradedAt            DateTime?
+  /// Демо-организация: создана кнопкой «Посмотреть на демо-данных» после
+  /// регистрации (одна на аккаунт). Живёт до demoExpiresAt, потом её
+  /// удаляет cron purge-demo-orgs. Сотрудники демо не считаются в тарифе.
+  isDemo                        Boolean                    @default(false)
+  demoExpiresAt                 DateTime?
   locale                        String                     @default("ru")
   brandColor                    String?
   logoUrl                       String?
@@ -325,6 +330,8 @@ model Organization {
   journalGuideTemplates         JournalGuideTemplate[]
   journalPipelineTemplates      JournalPipelineTemplate[]
   partnerClients                PartnerClient[]            @relation("PartnerClients")
+
+  @@index([isDemo, demoExpiresAt])
 }
 
 /// Корпус/точка бизнеса организации. У сети может быть несколько

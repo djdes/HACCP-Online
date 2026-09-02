@@ -264,7 +264,20 @@ export function MetricsTable({
                       href={`/root/organizations/${m.organizationId}`}
                       className="text-[#0b1024] hover:text-[#3848c7]"
                     >
-                      <div className="font-medium">{m.organizationName}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{m.organizationName}</span>
+                        {m.isDemo ? (
+                          // Демо-песочница владельца: данные тестовые, в MRR
+                          // не входит, удалится сама — чтобы ROOT не принял
+                          // её за живого клиента.
+                          <span className="inline-flex items-center rounded-full bg-[#eef1ff] px-2.5 py-0.5 text-[12px] font-medium text-[#3848c7]">
+                            Демо
+                            {m.demoExpiresAt
+                              ? ` · до ${new Date(m.demoExpiresAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}`
+                              : ""}
+                          </span>
+                        ) : null}
+                      </div>
                     </Link>
                   </td>
                   <td className="px-5 py-3">

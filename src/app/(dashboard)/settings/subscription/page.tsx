@@ -1,4 +1,4 @@
-import { Coins, Users } from "lucide-react";
+import { Coins, FlaskConical, Users } from "lucide-react";
 import { redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -38,11 +38,15 @@ export default async function SubscriptionPage() {
       subscriptionPlan: true,
       subscriptionEnd: true,
       recurringActive: true,
+      isDemo: true,
       _count: { select: { users: { where: { isActive: true } } } },
     },
   });
 
-  const employees = org?._count.users || 1;
+  // В демо-организации сотрудники тестовые и в тариф не входят — иначе
+  // калькулятор показал бы «15 человек» и цену, которой не будет.
+  const isDemo = org?.isDemo === true;
+  const employees = isDemo ? 1 : org?._count.users || 1;
   const plan = org?.subscriptionPlan ?? "trial";
   // Та же цифра, что в карточке железа на лендинге — считаем из одного
   // источника, чтобы витрины не разъехались.
@@ -83,6 +87,16 @@ export default async function SubscriptionPage() {
       <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
         Улучшение тарифа
       </h1>
+
+      {isDemo ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-[#dcdfed] bg-[#f5f6ff] px-4 py-3 text-[13.5px] leading-[1.5] text-[#3848c7]">
+          <FlaskConical className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Это демо-организация — её сотрудники не учитываются в тарифе.
+            Тариф общий для аккаунта и настраивается из вашей организации.
+          </span>
+        </div>
+      ) : null}
 
       {/* Витрина тарифов — главное на странице, поэтому первым блоком.
           Раньше здесь висел SubscriptionManager с мёртвыми

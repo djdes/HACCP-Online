@@ -139,10 +139,12 @@ function CompleteProfileModal({
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const nameOk = organizationName.trim().length >= 2;
   const phoneOk = phoneLooksValid(phone);
-  const canSubmit = nameOk && phoneOk && !saving;
+  const busy = saving || demoLoading;
+  const canSubmit = nameOk && phoneOk && !busy;
 
   // Чего не хватает — говорим прямо под кнопкой. Нативные тултипы
   // браузера («Вы пропустили это поле») выключены: они появляются
@@ -152,10 +154,12 @@ function CompleteProfileModal({
     !phoneOk ? "телефон" : null,
   ].filter(Boolean) as string[];
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
-    setSaving(true);
+  /**
+   * Сохраняет анкету в свою организацию. Без закрытия модалки и refresh —
+   * это делает вызывающий: «Готово» просто закрывает, а «демо» после
+   * сохранения ещё создаёт демо-организацию и уводит в неё.
+   */
+  async function saveProfile(): Promise<boolean> {
     try {
       const res = await fetch("/api/profile/complete", {
         method: "POST",
@@ -173,15 +177,61 @@ function CompleteProfileModal({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || "Не удалось сохранить");
-      toast.success("Готово. Данные организации сохранены");
-      onClose();
-      router.refresh();
+      return true;
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Не удалось сохранить",
       );
+      return false;
+    }
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setSaving(true);
+    try {
+      if (!(await saveProfile())) return;
+      toast.success("Готово. Данные организации сохранены");
+      onClose();
+      router.refresh();
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * Анкета сохраняется в СВОЮ организацию до создания демо — иначе
+   * `/api/profile/complete` (пишет в активную org) переименовал бы демо,
+   * а анкета всплыла бы внутри песочницы ещё раз.
+   */
+  async function submitWithDemo() {
+    if (!canSubmit) return;
+    setDemoLoading(true);
+    try {
+      if (!(await saveProfile())) return;
+      const res = await fetch("/api/organizations/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sphere }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Не удалось создать демо");
+      }
+      toast.success("Демо-организация готова");
+      onClose();
+      router.push("/dashboard?welcome-demo=1");
+      router.refresh();
+    } catch (err) {
+      // Анкета уже сохранена — закрываем модалку, человек остаётся у себя.
+      toast.error(
+        err instanceof Error ? err.message : "Не удалось создать демо",
+      );
+      onClose();
+      router.refresh();
+    } finally {
+      setDemoLoading(false);
     }
   }
 
@@ -366,6 +416,35 @@ function CompleteProfileModal({
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
             Готово
           </button>
+
+          {/* Второй выход из анкеты: та же «Готово», но дальше — в
+              отдельную демо-организацию с сотрудниками и заполненными
+              журналами. Активна по тем же условиям, что и «Готово»:
+              анкета сохраняется первой. */}
+          <button
+            type="button"
+            onClick={submitWithDemo}
+            disabled={!canSubmit}
+            data-testid="complete-profile-demo"
+            className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:border-[#eef0f6] disabled:text-[#9b9fb3] disabled:hover:bg-white"
+          >
+            {demoLoading ? (
+              <>
+                <Loader2 className="size-4 animate-spin text-[#5566f6]" />
+                Готовим демо…
+              </>
+            ) : (
+              <>
+                <Sparkles className="size-4 text-[#5566f6]" />
+                Готово и посмотреть на демо-данных
+              </>
+            )}
+          </button>
+          <p className="mt-1.5 text-center text-[12px] leading-snug text-[#6f7282]">
+            Демо — отдельная тестовая организация с сотрудниками и
+            заполненными журналами. Удалится через 7 дней или по кнопке.
+          </p>
+
           <div className="mt-2 flex items-center justify-center gap-1.5 text-[12px]">
             {missing.length === 0 ? (
               <>

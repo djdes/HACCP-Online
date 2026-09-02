@@ -27,6 +27,10 @@ export type OrgMetrics = {
   /// Сколько точек заявила организация при регистрации.
   locationsCount: number;
   inn: string | null;
+  /// Демо-песочница владельца аккаунта: данные тестовые, MRR не считаем,
+  /// удалится в demoExpiresAt (cron purge-demo-orgs).
+  isDemo: boolean;
+  demoExpiresAt: string | null;
   /// Документов журналов всего — «сколько бумаги организация завела».
   documentsCount: number;
   subscriptionPlan: string;
@@ -148,6 +152,8 @@ export async function getAllOrgMetrics(
       ownershipKind: true,
       locationsCount: true,
       inn: true,
+      isDemo: true,
+      demoExpiresAt: true,
       subscriptionPlan: true,
       subscriptionEnd: true,
       createdAt: true,
@@ -300,6 +306,8 @@ export async function getAllOrgMetrics(
       ownershipKind: org.ownershipKind ?? null,
       locationsCount: org.locationsCount ?? 0,
       inn: org.inn ?? null,
+      isDemo: org.isDemo,
+      demoExpiresAt: org.demoExpiresAt?.toISOString() ?? null,
       documentsCount: org._count.journalDocuments,
       subscriptionPlan: org.subscriptionPlan,
       subscriptionEnd: org.subscriptionEnd?.toISOString() ?? null,

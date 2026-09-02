@@ -51,6 +51,7 @@ export async function ensurePlanForHeadcount(
       name: true,
       subscriptionPlan: true,
       accountId: true,
+      isDemo: true,
       account: { select: { id: true, subscriptionPlan: true } },
     },
   });
@@ -61,14 +62,18 @@ export async function ensurePlanForHeadcount(
 
   // Организации аккаунта. Человек, работающий в двух точках, живёт в
   // одной из них как «домашней» — поэтому двойного счёта нет.
+  // Демо-организация в тариф не входит: её тестовые сотрудники не должны
+  // переводить аккаунт на платный.
   const scopeOrgIds = org.accountId
     ? (
         await db.organization.findMany({
-          where: { accountId: org.accountId },
+          where: { accountId: org.accountId, isDemo: false },
           select: { id: true },
         })
       ).map((row) => row.id)
-    : [org.id];
+    : org.isDemo
+      ? []
+      : [org.id];
 
   const activeUsers = await db.user.count({
     where: { organizationId: { in: scopeOrgIds }, isActive: true },

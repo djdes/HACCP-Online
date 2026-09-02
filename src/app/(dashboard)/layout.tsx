@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { ImpersonationBanner } from "@/components/dashboard/impersonation-banner";
 import { CompleteProfileNudge } from "@/components/dashboard/complete-profile-nudge";
 import { WelcomeOrgBanner } from "@/components/organizations/welcome-org-banner";
+import { DemoOrgBanner } from "@/components/organizations/demo-org-banner";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -97,7 +98,16 @@ export default async function DashboardLayout({
         type: true,
         accountId: true,
         account: { select: { subscriptionPlan: true } },
-        _count: { select: { users: { where: { isActive: true } } } },
+        // Демо-организация: баннер «данные тестовые» + счётчики для
+        // диалога удаления.
+        isDemo: true,
+        demoExpiresAt: true,
+        _count: {
+          select: {
+            users: { where: { isActive: true } },
+            journalDocuments: true,
+          },
+        },
       },
     }),
       listAccessibleOrganizations(session.user.id),
@@ -121,14 +131,18 @@ export default async function DashboardLayout({
   // Тариф и лимит мест живут на аккаунте: у сети из трёх кафе один
   // договор и общие бесплатные места (FREE_MAX_USERS). Пока организация не привязана
   // к аккаунту (миграция не прогонялась) — считаем по одной точке.
+  // Демо-организация в тариф не входит: её 10–20 тестовых сотрудников
+  // иначе молча перевели бы аккаунт с бесплатного на платный.
   const accountUsers = brandedOrg?.accountId
     ? await db.user.count({
         where: {
           isActive: true,
-          organization: { accountId: brandedOrg.accountId },
+          organization: { accountId: brandedOrg.accountId, isDemo: false },
         },
       })
-    : (brandedOrg?._count.users ?? 0);
+    : brandedOrg?.isDemo
+      ? 0
+      : (brandedOrg?._count.users ?? 0);
   const accountPlan =
     brandedOrg?.account?.subscriptionPlan ??
     brandedOrg?.subscriptionPlan ??
@@ -145,13 +159,16 @@ export default async function DashboardLayout({
   // никогда бы не сработала.
   //
   // ROOT и платформенная организация исключены: это служебный аккаунт
-  // владельца, у него нет и не должно быть анкеты заведения.
+  // владельца, у него нет и не должно быть анкеты заведения. Демо —
+  // тоже: `/api/profile/complete` пишет в активную организацию и
+  // переименовал бы песочницу вместо своей.
   const platformOrgId = (process.env.PLATFORM_ORG_ID ?? "platform").trim();
   const needsProfileCompletion =
     hasFullWorkspaceAccess(session.user) &&
     !isImpersonating(session) &&
     session.user.isRoot !== true &&
     activeOrgId !== platformOrgId &&
+    !brandedOrg?.isDemo &&
     Boolean(profile) &&
     (!profile?.phone || brandedOrg?.name === DEFAULT_ORG_NAME);
 
@@ -256,6 +273,20 @@ export default async function DashboardLayout({
               organizationName={brandedOrg?.name ?? "Организация"}
             />
           </Suspense>
+          {/* Песочница: постоянная полоса «данные тестовые» с выходом
+              в свою организацию и удалением. Только владельцу аккаунта —
+              у него и кнопки, и домашняя организация, куда возвращаться. */}
+          {brandedOrg?.isDemo && ownedAccount && !isImpersonating(session) ? (
+            <Suspense fallback={null}>
+              <DemoOrgBanner
+                organizationName={brandedOrg.name}
+                demoExpiresAt={brandedOrg.demoExpiresAt?.toISOString() ?? null}
+                homeOrganizationId={session.user.organizationId}
+                staffCount={brandedOrg._count.users}
+                documentsCount={brandedOrg._count.journalDocuments}
+              />
+            </Suspense>
+          ) : null}
           {/* Контент во всю ширину экрана (R1: владельцу было «узко»
               на 1296px). Ограничение max-w-[1800px] оставлено только ради
               сверхшироких мониторов, где строка таблицы иначе теряет глаз.
