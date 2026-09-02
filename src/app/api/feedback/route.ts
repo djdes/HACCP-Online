@@ -5,6 +5,11 @@ import { db } from "@/lib/db";
 import { sendFeedbackAdminEmail } from "@/lib/email";
 import { getPlatformAdminEmail, notifyPlatformAdmin } from "@/lib/platform-admin";
 import { escapeHtml } from "@/lib/html-escape";
+import {
+  emailAttachmentPayload,
+  sendAttachmentsToPlatformAdmins,
+  validateSignedAttachments,
+} from "@/lib/support-attachments";
 
 const feedbackSchema = z.object({
   type: z.enum(["bug", "suggestion", "partnership"], {
@@ -21,6 +26,7 @@ const feedbackSchema = z.object({
     .max(40)
     .optional()
     .or(z.literal("")),
+  attachments: z.unknown().optional(),
 });
 
 const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
@@ -95,6 +101,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // Вложения: только загруженные этим же пользователем (HMAC-подпись мет).
+  const attachments = validateSignedAttachments(
+    parsed.attachments,
+    session.user.id
+  );
+  if (attachments === null) {
+    return NextResponse.json(
+      { error: "Вложения не прошли проверку — прикрепите файлы заново" },
+      { status: 400 }
+    );
+  }
+
   const orgId = getActiveOrgId(session);
   const org = await db.organization.findUnique({
     where: { id: orgId },
@@ -116,16 +134,22 @@ export async function POST(request: Request) {
       source: "site",
       message: parsed.message,
       phone,
+      ...(attachments.length > 0 ? { attachments } : {}),
     },
   });
 
   after(async () => {
     const adminEmail = getPlatformAdminEmail();
+    const emailAtts = emailAttachmentPayload(attachments);
     const [telegramOk, emailOk] = await Promise.all([
       notifyPlatformAdmin(
         composeTelegramMessage({
           type: parsed.type,
-          message: parsed.message,
+          message:
+            parsed.message +
+            (attachments.length > 0
+              ? `\n📎 ${attachments.map((a) => a.filename).join(", ")}`
+              : ""),
           reportId: report.id,
           userName: session.user.name ?? null,
           userEmail: session.user.email ?? null,
@@ -147,11 +171,21 @@ export async function POST(request: Request) {
             organizationName,
             phone,
             submittedAt: report.createdAt,
+            attachmentLinks: emailAtts.links,
+            attachments: emailAtts.files,
           }).catch((error) => {
             console.error("Feedback email failed:", error);
             return false;
           })
         : Promise.resolve(false),
+      // Третьим элементом — деструктуризация выше берёт только первые два.
+      sendAttachmentsToPlatformAdmins(
+        attachments,
+        `Вложения к обращению #fb_${report.id}`,
+        "feedback"
+      ).catch((error) => {
+        console.error("Feedback attachments failed:", error);
+      }),
     ]);
 
     try {

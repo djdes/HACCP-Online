@@ -60,12 +60,24 @@ function createSmtpTransport() {
  * одного этого модуля, а не всех вызывающих мест: добавляется ещё один
  * `case` с реализацией `deliver`, всё остальное не меняется.
  */
+/**
+ * Почтовое вложение. `path` — файл на локальном диске (nodemailer сам
+ * читает поток). Суммарный размер контролирует вызывающий: многие SMTP
+ * режут письма больше ~25 МБ, поэтому крупные файлы уходят ссылкой.
+ */
+export type EmailAttachment = {
+  filename: string;
+  path: string;
+  contentType?: string;
+};
+
 type EmailTransport = {
   name: string;
   deliver(message: {
     to: string;
     subject: string;
     html: string;
+    attachments?: EmailAttachment[];
   }): Promise<void>;
 };
 
@@ -84,8 +96,14 @@ function getTransport(): EmailTransport {
   const smtp = createSmtpTransport();
   cachedTransport = {
     name: "smtp",
-    async deliver({ to, subject, html }) {
-      await smtp.sendMail({ from: FROM, to, subject, html });
+    async deliver({ to, subject, html, attachments }) {
+      await smtp.sendMail({
+        from: FROM,
+        to,
+        subject,
+        html,
+        ...(attachments && attachments.length > 0 ? { attachments } : {}),
+      });
     },
   };
   return cachedTransport;
@@ -217,7 +235,8 @@ function isSmtpConfigured(): boolean {
 async function sendEmail(
   to: string,
   subject: string,
-  html: string
+  html: string,
+  attachments?: EmailAttachment[]
 ): Promise<boolean> {
   if (!isSmtpConfigured()) {
     const stripped = html
@@ -233,7 +252,7 @@ async function sendEmail(
     return false;
   }
   try {
-    await getTransport().deliver({ to, subject, html });
+    await getTransport().deliver({ to, subject, html, attachments });
     return true;
   } catch (error) {
     console.error("Email send error:", error);
@@ -467,6 +486,10 @@ export async function sendFeedbackAdminEmail(params: {
   organizationName?: string | null;
   phone?: string | null;
   submittedAt?: Date;
+  /** Ссылки на вложения (абсолютные URL) — рендерятся списком в письме. */
+  attachmentLinks?: Array<{ url: string; filename: string }>;
+  /** Файлы, вкладываемые в само письмо (мелкие; крупные — только ссылкой). */
+  attachments?: EmailAttachment[];
 }) {
   const {
     to,
@@ -493,11 +516,25 @@ export async function sendFeedbackAdminEmail(params: {
       ? `<tr><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#71717a;font-size:13px;width:140px">${escapeHtml(label)}</td><td style="padding:8px 0;border-bottom:1px solid #e4e4e7;color:#18181b">${escapeHtml(value)}</td></tr>`
       : "";
 
+  const attachmentsBlock =
+    params.attachmentLinks && params.attachmentLinks.length > 0
+      ? `<div style="margin:0 0 24px">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:#71717a">Вложения</p>
+      ${params.attachmentLinks
+        .map(
+          (a) =>
+            `<p style="margin:0 0 6px"><a href="${escapeHtml(a.url)}" style="color:#5566f6;text-decoration:underline;font-size:14px">${escapeHtml(a.filename)}</a></p>`
+        )
+        .join("")}
+    </div>`
+      : "";
+
   const body = `
     <div style="background:${typeBg};border:1px solid ${typeBorder};border-radius:8px;padding:20px;margin:0 0 24px">
       <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:${typeColor}">${typeLabel}</p>
       <p style="margin:0;white-space:pre-wrap;color:#18181b;font-size:14px;line-height:1.55">${escapeHtml(message)}</p>
     </div>
+    ${attachmentsBlock}
     <table style="width:100%;border-collapse:collapse;margin:0 0 24px">
       ${row("Отправитель", userName)}
       ${row("Email", userEmail)}
@@ -507,7 +544,12 @@ export async function sendFeedbackAdminEmail(params: {
     </table>
     <a href="${APP_URL}/root/feedback" style="display:inline-block;background:#5566f6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть панель обращений</a>`;
 
-  return sendEmail(to, subject, layout(`Обратная связь — ${typeLabel}`, body));
+  return sendEmail(
+    to,
+    subject,
+    layout(`Обратная связь — ${typeLabel}`, body),
+    params.attachments
+  );
 }
 
 /**

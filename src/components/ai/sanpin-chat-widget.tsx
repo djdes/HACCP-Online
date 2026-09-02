@@ -12,6 +12,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LiteMarkdown } from "@/components/ui/lite-markdown";
 import { SANPIN_CHAT_OPEN_EVENT } from "@/lib/sanpin-chat-bus";
 
 type PendingAction = {
@@ -442,11 +443,17 @@ function MessageBubble({
             : "border border-[#ececf4] bg-[#fafbff] text-[#0b1024]"
         }`}
       >
-        {message.content.split("\n").map((line, i) => (
-          <p key={i} className={i > 0 ? "mt-1.5" : ""}>
-            {line || " "}
-          </p>
-        ))}
+        {isUser ? (
+          message.content.split("\n").map((line, i) => (
+            <p key={i} className={i > 0 ? "mt-1.5" : ""}>
+              {line || " "}
+            </p>
+          ))
+        ) : (
+          // Ответы помощника приходят с markdown-разметкой (**жирный**,
+          // списки) — рендерим её, а не сырые звёздочки.
+          <LiteMarkdown text={message.content} />
+        )}
 
         {/* Карточка предложенного действия */}
         {action ? (

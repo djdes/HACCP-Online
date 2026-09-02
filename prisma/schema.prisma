@@ -962,6 +962,8 @@ model FeedbackReport {
   respondedAt       DateTime?
   respondedById     String?
   respondedByName   String?
+  /// Вложения: [{ url, filename, mimeType, sizeBytes }] — как у SupportMessage.
+  attachments       Json?
   createdAt         DateTime  @default(now())
 
   @@index([createdAt])
@@ -1005,6 +1007,10 @@ model SupportMessage {
   body         String
   /// Кто ответил со стороны поддержки — показываем клиенту в чате.
   operatorName String?
+  /// Вложения: [{ url, filename, mimeType, sizeBytes }]. JSON, а не
+  /// отдельная таблица: вложение живёт и умирает вместе с сообщением,
+  /// отдельного жизненного цикла у него нет. См. src/lib/support-attachments.ts.
+  attachments  Json?
   createdAt    DateTime      @default(now())
 
   @@index([threadId, createdAt])

@@ -118,6 +118,18 @@ export const miniAttachmentRateLimiter = createRateLimiter({
 });
 
 /**
+ * Вложения поддержки (чат с оператором + обратная связь). Файлы до 50 МБ,
+ * поэтому лимит жёстче журнальных фото: 30 загрузок в час на отправителя
+ * (userId или guest-id) — живому человеку хватает с запасом, disk-fill
+ * флуд обрезается. Для гостей дополнительно действует лимит по IP в
+ * самом маршруте.
+ */
+export const supportUploadRateLimiter = createRateLimiter({
+  tokensPerInterval: 30,
+  intervalMs: 60 * 60 * 1000,
+});
+
+/**
  * Защита от флуда bot-callback'ов. Кто-то жмёт «следующая страница»
  * 100 раз/сек или autoclicker'ом флудит «Отложить» — каждый callback
  * запускает DB-resolve. 30 callback/min на пару (chatId, prefix) —

@@ -11,6 +11,12 @@ import {
   composeSupportChatAdminMessage,
 } from "@/lib/support-chat";
 import { escapeTelegramHtml } from "@/lib/telegram";
+import {
+  emailAttachmentPayload,
+  parseStoredAttachments,
+  sendAttachmentsToPlatformAdmins,
+  validateSignedAttachments,
+} from "@/lib/support-attachments";
 
 /**
  * Онлайн-чат с поддержкой.
@@ -26,11 +32,14 @@ import { escapeTelegramHtml } from "@/lib/telegram";
 const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
 const messageSchema = z.object({
+  // Пустой текст допустим, когда есть вложения («просто скинул скрин») —
+  // проверка «текст или файл» ниже, после валидации вложений.
   message: z
     .string()
     .trim()
-    .min(SUPPORT_CHAT_MIN_LENGTH, "Сообщение слишком короткое")
-    .max(SUPPORT_CHAT_MAX_LENGTH, "Сообщение слишком длинное"),
+    .max(SUPPORT_CHAT_MAX_LENGTH, "Сообщение слишком длинное")
+    .default(""),
+  attachments: z.unknown().optional(),
 });
 
 async function loadProfile(userId: string) {
@@ -64,6 +73,7 @@ export async function GET() {
           author: true,
           body: true,
           operatorName: true,
+          attachments: true,
           createdAt: true,
         },
       })
@@ -73,7 +83,10 @@ export async function GET() {
 
   return NextResponse.json({
     threadId: thread?.id ?? null,
-    messages,
+    messages: messages.map((m) => ({
+      ...m,
+      attachments: parseStoredAttachments(m.attachments),
+    })),
     // Шапку виджета («под кем авторизован») рисуем из тех же данных,
     // что уходят оператору — расхождений между «кем я вижусь» и «кого
     // видит поддержка» быть не должно.
@@ -95,6 +108,21 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Некорректное сообщение" },
+      { status: 400 }
+    );
+  }
+
+  // Вложения: только загруженные этим же пользователем (HMAC-подпись мет).
+  const attachments = validateSignedAttachments(parsed.data.attachments, userId);
+  if (attachments === null) {
+    return NextResponse.json(
+      { error: "Вложения не прошли проверку — прикрепите файлы заново" },
+      { status: 400 }
+    );
+  }
+  if (parsed.data.message.length < SUPPORT_CHAT_MIN_LENGTH && attachments.length === 0) {
+    return NextResponse.json(
+      { error: "Сообщение слишком короткое" },
       { status: 400 }
     );
   }
@@ -132,13 +160,29 @@ export async function POST(request: Request) {
   });
 
   const message = await db.supportMessage.create({
-    data: { threadId: thread.id, author: "client", body: parsed.data.message },
-    select: { id: true, author: true, body: true, operatorName: true, createdAt: true },
+    data: {
+      threadId: thread.id,
+      author: "client",
+      body: parsed.data.message,
+      ...(attachments.length > 0 ? { attachments } : {}),
+    },
+    select: {
+      id: true,
+      author: true,
+      body: true,
+      operatorName: true,
+      attachments: true,
+      createdAt: true,
+    },
   });
 
+  const attachmentsNote =
+    attachments.length > 0
+      ? `\n📎 ${attachments.map((a) => a.filename).join(", ")}`
+      : "";
   const adminText = composeSupportChatAdminMessage({
     threadId: thread.id,
-    body: parsed.data.message,
+    body: (parsed.data.message || "(вложение без текста)") + attachmentsNote,
     userName: profile?.name ?? null,
     userEmail: profile?.email ?? null,
     organizationName: profile?.organization?.name ?? null,
@@ -151,24 +195,40 @@ export async function POST(request: Request) {
   // Доставку выносим за ответ: клиент не должен ждать Telegram и SMTP,
   // а упавший канал не должен терять уже сохранённую реплику.
   after(async () => {
+    const emailAtts = emailAttachmentPayload(attachments);
     await Promise.all([
       notifyPlatformAdmin(adminText, { kind: "support-chat" }),
+      // Файлы — отдельными сообщениями с якорем ветки в подписи: реплай
+      // на текст уже работает, файлы оператор просто видит рядом.
+      sendAttachmentsToPlatformAdmins(
+        attachments,
+        `Вложения к чату #chat_${thread.id}`,
+        "support-chat"
+      ),
       (async () => {
         const adminEmail = getPlatformAdminEmail();
         if (!adminEmail) return false;
         return sendFeedbackAdminEmail({
           to: adminEmail,
           type: "support",
-          message: parsed.data.message,
+          message: parsed.data.message || "(вложение без текста)",
           userName: profile?.name ?? null,
           userEmail: profile?.email ?? null,
           organizationName: profile?.organization?.name ?? null,
           phone: profile?.phone ?? null,
           submittedAt: message.createdAt,
+          attachmentLinks: emailAtts.links,
+          attachments: emailAtts.files,
         });
       })(),
     ]);
   });
 
-  return NextResponse.json({ threadId: thread.id, message });
+  return NextResponse.json({
+    threadId: thread.id,
+    message: {
+      ...message,
+      attachments: parseStoredAttachments(message.attachments),
+    },
+  });
 }

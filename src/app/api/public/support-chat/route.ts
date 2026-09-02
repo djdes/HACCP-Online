@@ -17,6 +17,12 @@ import {
   normalizeContact,
   publicContactLimiter,
 } from "@/lib/public-support";
+import {
+  emailAttachmentPayload,
+  parseStoredAttachments,
+  sendAttachmentsToPlatformAdmins,
+  validateSignedAttachments,
+} from "@/lib/support-attachments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,14 +45,16 @@ const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
 const postSchema = z.object({
   guestId: z.string().regex(GUEST_ID_PATTERN, "Некорректный идентификатор"),
+  // Пустой текст допустим при вложениях — проверка «текст или файл» ниже.
   message: z
     .string()
     .trim()
-    .min(SUPPORT_CHAT_MIN_LENGTH, "Сообщение слишком короткое")
-    .max(SUPPORT_CHAT_MAX_LENGTH, "Сообщение слишком длинное"),
+    .max(SUPPORT_CHAT_MAX_LENGTH, "Сообщение слишком длинное")
+    .default(""),
   email: z.string().trim().max(200).optional().or(z.literal("")),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   company: z.string().max(200).optional().or(z.literal("")),
+  attachments: z.unknown().optional(),
 });
 
 export async function GET(request: Request) {
@@ -70,6 +78,7 @@ export async function GET(request: Request) {
           author: true,
           body: true,
           operatorName: true,
+          attachments: true,
           createdAt: true,
         },
       })
@@ -77,7 +86,10 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     threadId: thread?.id ?? null,
-    messages,
+    messages: messages.map((m) => ({
+      ...m,
+      attachments: parseStoredAttachments(m.attachments),
+    })),
     contact: { email: thread?.userEmail ?? null, phone: thread?.phone ?? null },
   });
 }
@@ -94,6 +106,21 @@ export async function POST(request: Request) {
   if (parsed.data.company) return NextResponse.json({ ok: true });
 
   const key = guestThreadKey(parsed.data.guestId);
+
+  // Вложения: подписаны на этот же guest-key при загрузке.
+  const attachments = validateSignedAttachments(parsed.data.attachments, key);
+  if (attachments === null) {
+    return NextResponse.json(
+      { error: "Вложения не прошли проверку — прикрепите файлы заново" },
+      { status: 400 }
+    );
+  }
+  if (parsed.data.message.length < SUPPORT_CHAT_MIN_LENGTH && attachments.length === 0) {
+    return NextResponse.json(
+      { error: "Сообщение слишком короткое" },
+      { status: 400 }
+    );
+  }
   const existing = await db.supportThread.findUnique({
     where: { userId: key },
     select: { id: true, userEmail: true, phone: true },
@@ -147,19 +174,29 @@ export async function POST(request: Request) {
   });
 
   const message = await db.supportMessage.create({
-    data: { threadId: thread.id, author: "client", body: parsed.data.message },
+    data: {
+      threadId: thread.id,
+      author: "client",
+      body: parsed.data.message,
+      ...(attachments.length > 0 ? { attachments } : {}),
+    },
     select: {
       id: true,
       author: true,
       body: true,
       operatorName: true,
+      attachments: true,
       createdAt: true,
     },
   });
 
+  const attachmentsNote =
+    attachments.length > 0
+      ? `\n📎 ${attachments.map((a) => a.filename).join(", ")}`
+      : "";
   const adminText = composeSupportChatAdminMessage({
     threadId: thread.id,
-    body: parsed.data.message,
+    body: (parsed.data.message || "(вложение без текста)") + attachmentsNote,
     userName: "Гость с сайта",
     userEmail: email,
     organizationName: null,
@@ -171,21 +208,31 @@ export async function POST(request: Request) {
 
   after(async () => {
     const adminEmail = getPlatformAdminEmail();
+    const emailAtts = emailAttachmentPayload(attachments);
     await Promise.all([
       notifyPlatformAdmin(adminText, { kind: "support-chat" }).catch((error) => {
         console.error("Public chat telegram failed:", error);
         return false;
       }),
+      sendAttachmentsToPlatformAdmins(
+        attachments,
+        `Вложения к чату #chat_${thread.id}`,
+        "support-chat"
+      ).catch((error) => {
+        console.error("Public chat attachments failed:", error);
+      }),
       adminEmail
         ? sendFeedbackAdminEmail({
             to: adminEmail,
             type: "support",
-            message: parsed.data.message,
+            message: parsed.data.message || "(вложение без текста)",
             userName: "Гость с сайта",
             userEmail: email,
             organizationName: null,
             phone,
             submittedAt: message.createdAt,
+            attachmentLinks: emailAtts.links,
+            attachments: emailAtts.files,
           }).catch((error) => {
             console.error("Public chat email failed:", error);
             return false;
@@ -194,5 +241,11 @@ export async function POST(request: Request) {
     ]);
   });
 
-  return NextResponse.json({ ok: true, message });
+  return NextResponse.json({
+    ok: true,
+    message: {
+      ...message,
+      attachments: parseStoredAttachments(message.attachments),
+    },
+  });
 }

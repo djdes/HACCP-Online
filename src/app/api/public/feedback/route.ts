@@ -6,10 +6,17 @@ import { getPlatformAdminEmail, notifyPlatformAdmin } from "@/lib/platform-admin
 import { escapeHtml } from "@/lib/html-escape";
 import { clientIp } from "@/lib/client-ip";
 import {
+  GUEST_ID_PATTERN,
   guestSignature,
+  guestThreadKey,
   normalizeContact,
   publicContactLimiter,
 } from "@/lib/public-support";
+import {
+  emailAttachmentPayload,
+  sendAttachmentsToPlatformAdmins,
+  validateSignedAttachments,
+} from "@/lib/support-attachments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +36,9 @@ const schema = z.object({
   phone: z.string().trim().max(40).optional().or(z.literal("")),
   /// Ловушка для ботов: настоящий человек этого поля не видит.
   company: z.string().max(200).optional().or(z.literal("")),
+  /// Гостевой id из localStorage — им подписаны загруженные вложения.
+  guestId: z.string().regex(GUEST_ID_PATTERN).optional(),
+  attachments: z.unknown().optional(),
 });
 
 const TYPE_LABELS: Record<string, string> = {
@@ -85,6 +95,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // Вложения гостя подписаны его guest-ключом при загрузке.
+  const attachments = parsed.guestId
+    ? validateSignedAttachments(
+        parsed.attachments,
+        guestThreadKey(parsed.guestId)
+      )
+    : parsed.attachments === undefined
+      ? []
+      : null;
+  if (attachments === null) {
+    return NextResponse.json(
+      { error: "Вложения не прошли проверку — прикрепите файлы заново" },
+      { status: 400 }
+    );
+  }
+
   const report = await db.feedbackReport.create({
     data: {
       userId: null,
@@ -96,6 +122,7 @@ export async function POST(request: Request) {
       source: "landing",
       message: parsed.message,
       phone: contact.phone,
+      ...(attachments.length > 0 ? { attachments } : {}),
     },
   });
 
@@ -104,6 +131,9 @@ export async function POST(request: Request) {
       `<b>${TYPE_LABELS[parsed.type] ?? parsed.type}</b> · с лендинга`,
       "",
       escapeHtml(parsed.message),
+      ...(attachments.length > 0
+        ? [`📎 ${escapeHtml(attachments.map((a) => a.filename).join(", "))}`]
+        : []),
       "",
       `👤 ${escapeHtml(guestSignature(contact))}`,
       "",
@@ -112,6 +142,7 @@ export async function POST(request: Request) {
     ];
 
     const adminEmail = getPlatformAdminEmail();
+    const emailAtts = emailAttachmentPayload(attachments);
     const [telegramOk, emailOk] = await Promise.all([
       notifyPlatformAdmin(lines.join("\n"), { kind: "feedback" }).catch(
         (error) => {
@@ -129,11 +160,21 @@ export async function POST(request: Request) {
             organizationName: null,
             phone: contact.phone,
             submittedAt: report.createdAt,
+            attachmentLinks: emailAtts.links,
+            attachments: emailAtts.files,
           }).catch((error) => {
             console.error("Public feedback email failed:", error);
             return false;
           })
         : Promise.resolve(false),
+      // Третьим элементом — деструктуризация выше берёт только первые два.
+      sendAttachmentsToPlatformAdmins(
+        attachments,
+        `Вложения к обращению #fb_${report.id}`,
+        "feedback"
+      ).catch((error) => {
+        console.error("Public feedback attachments failed:", error);
+      }),
     ]);
 
     try {

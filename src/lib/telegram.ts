@@ -1,4 +1,4 @@
-import { Bot } from "grammy";
+import { Bot, InputFile } from "grammy";
 import { Agent, fetch as undiciFetch, setGlobalDispatcher } from "undici";
 import crypto from "node:crypto";
 import { escapeHtml } from "@/lib/html-escape";
@@ -442,6 +442,71 @@ export async function sendTelegramMessage(
           : {}),
       }),
     "Telegram send error"
+  );
+}
+
+/**
+ * Отправка файла (фото/документа) в чат — вложения поддержки.
+ *
+ * Файл читается с локального диска (`InputFile`), а не по URL: Telegram
+ * скачивает URL-фото только до 5 МБ, а наш лимит вложений — 50 МБ, что
+ * совпадает с потолком upload'а Bot API. Той же retry/TelegramLog-механикой,
+ * что и сообщения: в логе видно queued/sent/failed.
+ */
+export async function sendTelegramAttachment(
+  chatId: string,
+  args: {
+    filePath: string;
+    filename: string;
+    mimeType: string;
+    /** HTML-caption (уже экранированный вызывающим). */
+    caption?: string;
+  },
+  opts?: TelegramSendOptions
+): Promise<boolean> {
+  const { db } = await import("./db");
+  const delivery = normalizeTelegramDeliveryMetadata(opts?.delivery);
+  const log = await db.telegramLog.create({
+    data: {
+      chatId,
+      body: `[attachment] ${args.filename}${args.caption ? `\n${args.caption}` : ""}`,
+      userId: opts?.userId ?? null,
+      organizationId: delivery.organizationId,
+      kind: delivery.kind,
+      dedupeKey: delivery.dedupeKey,
+      status: "queued",
+      attempts: 0,
+    },
+  });
+
+  if (!bot) {
+    await db.telegramLog.update({
+      where: { id: log.id },
+      data: { status: "failed", error: "bot not configured" },
+    });
+    return false;
+  }
+
+  const input = new InputFile(args.filePath, args.filename);
+  const isPhoto =
+    args.mimeType.startsWith("image/") &&
+    // Telegram сжимает photo и не принимает слишком большие; gif/heic —
+    // документом, чтобы не потерять оригинал.
+    ["image/jpeg", "image/png", "image/webp"].includes(args.mimeType);
+
+  return executeTelegramSend(
+    log.id,
+    () =>
+      isPhoto
+        ? bot.api.sendPhoto(chatId, input, {
+            caption: args.caption,
+            parse_mode: "HTML",
+          })
+        : bot.api.sendDocument(chatId, input, {
+            caption: args.caption,
+            parse_mode: "HTML",
+          }),
+    "Telegram attachment send error"
   );
 }
 

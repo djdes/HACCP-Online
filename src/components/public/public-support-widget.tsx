@@ -21,6 +21,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  AttachButton,
+  AttachmentChips,
+  MessageAttachments,
+  useAttachmentUploads,
+} from "@/components/support/attachment-composer";
+import type { SupportAttachmentMeta } from "@/lib/support-attachments-shared";
 
 /**
  * Поддержка для гостя сайта — тот же пузырь, что в кабинете, только без
@@ -57,6 +64,7 @@ type ChatMessage = {
   author: string;
   body: string;
   operatorName: string | null;
+  attachments?: SupportAttachmentMeta[];
   createdAt: string;
 };
 
@@ -166,8 +174,15 @@ function SupportWidgetBody() {
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [draft, setDraft] = useState("");
   const guestId = useRef<string | null>(null);
+  // Дубль в state: хук вложений должен видеть id в момент рендера, а не
+  // только внутри ref (иначе загрузка до первого re-render уйдёт без него).
+  const [guestIdState, setGuestIdState] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const phoneRef = useRef<HTMLInputElement | null>(null);
+
+  // Вложения: чат и обратная связь — раздельные наборы.
+  const chatFiles = useAttachmentUploads({ guestId: guestIdState });
+  const feedbackFiles = useAttachmentUploads({ guestId: guestIdState });
 
   useEffect(() => {
     if (!attention) return;
@@ -188,6 +203,7 @@ function SupportWidgetBody() {
   function openWidget() {
     setAttention(false);
     if (!guestId.current) guestId.current = readGuestId();
+    setGuestIdState(guestId.current);
     let known = saved;
     if (!known) {
       known = readSavedContact();
@@ -306,12 +322,24 @@ function SupportWidgetBody() {
       requireContact("feedback");
       return;
     }
+    if (feedbackFiles.uploading) {
+      toast.error("Дождитесь загрузки файлов");
+      return;
+    }
     setBusy(true);
     try {
       const response = await fetch("/api/public/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, message, email, phone, company }),
+        body: JSON.stringify({
+          type,
+          message,
+          email,
+          phone,
+          company,
+          guestId: guestId.current ?? undefined,
+          attachments: feedbackFiles.readyAttachments,
+        }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error ?? "Не удалось отправить");
@@ -319,6 +347,7 @@ function SupportWidgetBody() {
       setSent(true);
       setMessage("");
       setType("");
+      feedbackFiles.clear();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ошибка");
     } finally {
@@ -328,9 +357,15 @@ function SupportWidgetBody() {
 
   async function sendChat() {
     const body = draft.trim();
-    if (body.length < 2) return;
+    const attachments = chatFiles.readyAttachments;
+    // Можно отправить только файл, без текста — «просто скинул скрин».
+    if (body.length < 2 && attachments.length === 0) return;
     if (!hasContact) {
       requireContact("chat");
+      return;
+    }
+    if (chatFiles.uploading) {
+      toast.error("Дождитесь загрузки файлов");
       return;
     }
     setBusy(true);
@@ -345,6 +380,7 @@ function SupportWidgetBody() {
           email,
           phone,
           company,
+          attachments,
         }),
       });
       const data = await response.json().catch(() => null);
@@ -353,6 +389,7 @@ function SupportWidgetBody() {
       }
       rememberContact({ email, phone });
       setMessages((current) => [...(current ?? []), data.message]);
+      chatFiles.clear();
     } catch (error) {
       setDraft(body);
       toast.error(error instanceof Error ? error.message : "Ошибка");
@@ -606,20 +643,37 @@ function SupportWidgetBody() {
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
+              onPaste={feedbackFiles.handlePaste}
               rows={5}
               placeholder="Опишите подробнее — что нужно или что предлагаете"
               className="w-full resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[14px] leading-[1.55] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
             />
 
-            <button
-              type="button"
-              onClick={() => void sendFeedback()}
-              disabled={busy}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
-            >
-              {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-              Отправить
-            </button>
+            <div>
+              <AttachmentChips
+                uploads={feedbackFiles.uploads}
+                onRemove={feedbackFiles.remove}
+              />
+              <div className="flex items-center gap-2">
+                <AttachButton
+                  onFiles={feedbackFiles.addFiles}
+                  disabled={busy}
+                  className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3c4053] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                />
+                <button
+                  type="button"
+                  onClick={() => void sendFeedback()}
+                  disabled={busy || feedbackFiles.uploading}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+                >
+                  {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Отправить
+                </button>
+              </div>
+              <p className="mt-1.5 text-[11px] leading-snug text-[#9b9fb3]">
+                Можно приложить скриншот или файл — до 50 МБ, без исполняемых.
+              </p>
+            </div>
           </div>
         )
       ) : null}
@@ -653,9 +707,15 @@ function SupportWidgetBody() {
                       {item.operatorName}
                     </div>
                   ) : null}
-                  <div className="whitespace-pre-wrap break-words">
-                    {item.body}
-                  </div>
+                  {item.body ? (
+                    <div className="whitespace-pre-wrap break-words">
+                      {item.body}
+                    </div>
+                  ) : null}
+                  <MessageAttachments
+                    attachments={item.attachments}
+                    light={item.author === "client"}
+                  />
                 </div>
               ))
             )}
@@ -663,10 +723,16 @@ function SupportWidgetBody() {
           </div>
 
           <div className="shrink-0 border-t border-[#eef0f6] p-3">
+            <AttachmentChips
+              uploads={chatFiles.uploads}
+              onRemove={chatFiles.remove}
+            />
             <div className="flex items-end gap-2">
+              <AttachButton onFiles={chatFiles.addFiles} disabled={busy} />
               <textarea
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
+                onPaste={chatFiles.handlePaste}
                 onKeyDown={(event) => {
                   // Enter отправляет, Shift+Enter — перенос строки: так
                   // ведут себя все мессенджеры, переучивать незачем.
@@ -682,7 +748,12 @@ function SupportWidgetBody() {
               <button
                 type="button"
                 onClick={() => void sendChat()}
-                disabled={busy || draft.trim().length < 2}
+                disabled={
+                  busy ||
+                  chatFiles.uploading ||
+                  (draft.trim().length < 2 &&
+                    chatFiles.readyAttachments.length === 0)
+                }
                 className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
                 aria-label="Отправить"
               >

@@ -23,6 +23,7 @@ import {
   maskEmail,
 } from "@/lib/platform-admin";
 import type { Prisma } from "@prisma/client";
+import { parseStoredAttachments } from "@/lib/support-attachments";
 import { FeedbackReply } from "./feedback-reply";
 import { TestNotifyButton } from "./test-notify-button";
 
@@ -154,6 +155,7 @@ export default async function RootFeedbackPage({
           author: true,
           body: true,
           operatorName: true,
+          attachments: true,
           createdAt: true,
         },
       },
@@ -244,6 +246,17 @@ export default async function RootFeedbackPage({
                       <div className="whitespace-pre-wrap break-words">
                         {item.body}
                       </div>
+                      {parseStoredAttachments(item.attachments).map((a, ai) => (
+                        <a
+                          key={ai}
+                          href={a.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 block text-[12.5px] text-[#3848c7] underline-offset-2 hover:underline"
+                        >
+                          📎 {a.filename}
+                        </a>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -415,6 +428,18 @@ export default async function RootFeedbackPage({
                     <p className="mt-3 whitespace-pre-wrap break-words text-[14px] leading-[1.55] text-[#0b1024]">
                       {r.message}
                     </p>
+
+                    {parseStoredAttachments(r.attachments).map((a, ai) => (
+                      <a
+                        key={ai}
+                        href={a.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block text-[13px] text-[#3848c7] underline-offset-2 hover:underline"
+                      >
+                        📎 {a.filename}
+                      </a>
+                    ))}
 
                     {r.responseMessage ? (
                       <div className="mt-4 rounded-xl border border-[#c7ccea] bg-[#f5f6ff] p-3">
