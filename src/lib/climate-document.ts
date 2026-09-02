@@ -377,11 +377,28 @@ export function normalizeClimateEntryData(value: unknown): ClimateEntryData {
     });
   }
 
+  const corrections = normalizeCorrections(record.corrections);
+
   return {
     responsibleTitle:
       typeof record.responsibleTitle === "string" ? record.responsibleTitle : null,
     measurements,
+    ...(corrections ? { corrections } : {}),
   };
+}
+
+/**
+ * Комментарии к отклонениям проходят через normalize/sync/merge без потерь:
+ * иначе ночной автозаполнитель и перезагрузка страницы стирали бы то, что
+ * человек написал в «Корректирующих действиях».
+ */
+function normalizeCorrections(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const corrections: Record<string, string> = {};
+  for (const [key, text] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof text === "string" && text.trim()) corrections[key] = text;
+  }
+  return Object.keys(corrections).length ? corrections : undefined;
 }
 
 export function getClimatePeriodLabel(dateFrom: Date | string, dateTo: Date | string) {
@@ -482,6 +499,7 @@ export function syncClimateEntryDataWithConfig(
       };
     });
   });
+  if (entryData.corrections) next.corrections = entryData.corrections;
 
   return next;
 }
@@ -512,6 +530,7 @@ export function mergeClimateEntryData(
       };
     });
   });
+  if (currentData.corrections) next.corrections = currentData.corrections;
 
   return next;
 }

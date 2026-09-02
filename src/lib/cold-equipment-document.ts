@@ -380,11 +380,28 @@ export function normalizeColdEquipmentEntryData(
     );
   }
 
+  const corrections = normalizeCorrections(record.corrections);
+
   return {
     responsibleTitle:
       typeof record.responsibleTitle === "string" ? record.responsibleTitle : null,
     temperatures,
+    ...(corrections ? { corrections } : {}),
   };
+}
+
+/**
+ * Комментарии к отклонениям проходят через normalize/sync/merge без потерь:
+ * иначе ночной автозаполнитель и перезагрузка страницы стирали бы то, что
+ * человек написал в «Корректирующих действиях».
+ */
+function normalizeCorrections(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const corrections: Record<string, string> = {};
+  for (const [key, text] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof text === "string" && text.trim()) corrections[key] = text;
+  }
+  return Object.keys(corrections).length ? corrections : undefined;
 }
 
 export function syncColdEquipmentEntryDataWithConfig(
@@ -396,6 +413,7 @@ export function syncColdEquipmentEntryDataWithConfig(
   config.equipment.forEach((item) => {
     next.temperatures[item.id] = entryData.temperatures[item.id] ?? null;
   });
+  if (entryData.corrections) next.corrections = entryData.corrections;
 
   return next;
 }
@@ -459,6 +477,7 @@ export function mergeColdEquipmentEntryData(
       generatedData.temperatures[equipmentId] ??
       null;
   });
+  if (currentData.corrections) next.corrections = currentData.corrections;
 
   return next;
 }

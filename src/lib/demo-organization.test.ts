@@ -7,6 +7,37 @@ import {
   demoExpiresAtFrom,
   demoOrgName,
 } from "@/lib/demo-organization.shared";
+import { getDemoRoster } from "@/lib/demo-organization-roster";
+import { getOnboardingPreset } from "@/lib/onboarding-presets";
+
+describe("getDemoRoster", () => {
+  for (const type of ["restaurant", "bakery", "meat", "other"]) {
+    it(`${type}: каждая должность есть в пресете и даёт доступ к гигиене`, () => {
+      const preset = getOnboardingPreset(type);
+      const roster = getDemoRoster(type);
+      for (const person of roster.people) {
+        const position = preset.positions.find((p) => p.name === person.position);
+        assert.ok(position, `${person.name}: должность «${person.position}» не в пресете ${type}`);
+        assert.ok(
+          position.journalCodes.includes("hygiene"),
+          `${person.position}: нет доступа к гигиеническому журналу`
+        );
+      }
+    });
+
+    it(`${type}: телефоны и ФИО уникальны, есть управляющий и уборщик`, () => {
+      const roster = getDemoRoster(type);
+      const phones = new Set(roster.people.map((p) => p.phone));
+      const names = new Set(roster.people.map((p) => p.name));
+      assert.equal(phones.size, roster.people.length);
+      assert.equal(names.size, roster.people.length);
+      assert.ok(roster.people.some((p) => p.role === "manager"));
+      assert.ok(roster.people.some((p) => p.position === "Уборщик"));
+      assert.ok(roster.rooms.length >= 3);
+      assert.ok(roster.areas.some((a) => a.equipment.some((e) => e.tempMax < 0)));
+    });
+  }
+});
 
 describe("demoOrgName", () => {
   it("берёт label сферы из анкеты", () => {

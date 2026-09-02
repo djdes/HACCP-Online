@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { AccessibleOrganization } from "@/lib/organization-access";
-import { CreateOrganizationDialog } from "@/components/layout/create-organization-dialog";
 
 /**
  * Список организаций аккаунта в меню профиля + создание новой точки.
@@ -20,29 +19,35 @@ import { CreateOrganizationDialog } from "@/components/layout/create-organizatio
  * Страницы остаются одно-организационными: мы не сводим данные разных
  * точек в один экран, а переключаем активную. Так проще и честнее —
  * журнал, задача и сотрудник всегда принадлежат одному объекту.
+ *
+ * Модалки создания (организации и демо) живут у родителя: этот список
+ * рендерится внутри Radix-меню с transform/overflow, и `fixed`-оверлей
+ * из него не выберется — его бы обрезало по ширине меню.
  */
+
+export type CreateDialogKind = "organization" | "demo";
 
 export function OrganizationSwitcher({
   organizations,
   activeId,
   canCreate,
-  currentSphere,
+  onOpenCreate,
   label = "Организации",
 }: {
   organizations: AccessibleOrganization[];
   activeId: string;
   canCreate: boolean;
-  currentSphere: string;
+  /** Открыть модалку создания; без callback'а кнопки создания не показываются. */
+  onOpenCreate?: (kind: CreateDialogKind) => void;
   /** Заголовок группы: в меню профиля «Организации», в nav-пилюле — «Сменить организацию». */
   label?: string;
 }) {
   const router = useRouter();
   const [switchingId, setSwitchingId] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
+  const canOpenCreate = canCreate && Boolean(onOpenCreate);
 
   // Одна организация и создавать нельзя — показывать нечего.
-  if (organizations.length < 2 && !canCreate) return null;
+  if (organizations.length < 2 && !canOpenCreate) return null;
 
   const hasDemo = organizations.some((organization) => organization.isDemo);
 
@@ -63,31 +68,6 @@ export function OrganizationSwitcher({
       toast.error(error instanceof Error ? error.message : "Ошибка");
     } finally {
       setSwitchingId(null);
-    }
-  }
-
-  /**
-   * Второй вход в демо — для тех, кто в анкете нажал просто «Готово».
-   * Сфера — текущей организации, чтобы песочница была похожа на свою.
-   */
-  async function openDemo() {
-    if (demoLoading) return;
-    setDemoLoading(true);
-    try {
-      const response = await fetch("/api/organizations/demo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sphere: currentSphere }),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(data?.error ?? "Не удалось создать демо");
-      toast.success("Демо-организация готова");
-      router.push("/dashboard?welcome-demo=1");
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка");
-    } finally {
-      setDemoLoading(false);
     }
   }
 
@@ -130,10 +110,10 @@ export function OrganizationSwitcher({
         );
       })}
 
-      {canCreate ? (
+      {canOpenCreate ? (
         <button
           type="button"
-          onClick={() => setCreateOpen(true)}
+          onClick={() => onOpenCreate?.("organization")}
           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] text-[#5566f6] transition-colors hover:bg-[#f5f6ff]"
         >
           <Plus className="size-4 shrink-0" />
@@ -141,32 +121,18 @@ export function OrganizationSwitcher({
         </button>
       ) : null}
 
-      {canCreate && !hasDemo ? (
+      {/* Второй вход в демо — для тех, кто в анкете нажал просто «Готово».
+          Сфера и последствия подтверждаются в модалке, а не создаются молча. */}
+      {canOpenCreate && !hasDemo ? (
         <button
           type="button"
-          onClick={openDemo}
-          disabled={demoLoading}
+          onClick={() => onOpenCreate?.("demo")}
           title="Отдельная тестовая организация с сотрудниками и заполненными журналами. Удалится через 7 дней или по кнопке."
-          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] text-[#5566f6] transition-colors hover:bg-[#f5f6ff] disabled:cursor-wait"
+          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] text-[#5566f6] transition-colors hover:bg-[#f5f6ff]"
         >
-          {demoLoading ? (
-            <Loader2 className="size-4 shrink-0 animate-spin" />
-          ) : (
-            <Sparkles className="size-4 shrink-0" />
-          )}
-          {demoLoading ? "Готовим демо…" : "Посмотреть демо"}
+          <Sparkles className="size-4 shrink-0" />
+          Создать демо-организацию
         </button>
-      ) : null}
-
-      {createOpen ? (
-        <CreateOrganizationDialog
-          currentSphere={currentSphere}
-          currentName={
-            organizations.find((item) => item.id === activeId)?.name ?? ""
-          }
-          onClose={() => setCreateOpen(false)}
-          organizationsCount={organizations.length}
-        />
       ) : null}
     </>
   );

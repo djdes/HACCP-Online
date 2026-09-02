@@ -56,7 +56,12 @@ import { OfflineIndicator } from "@/components/layout/offline-indicator";
 import { ThemeModeControls } from "@/components/theme/theme-quick-switch";
 import { planLabel } from "@/lib/plan-limits";
 import { orgDisplayName } from "@/lib/org-display-name";
-import { OrganizationSwitcher } from "@/components/layout/organization-switcher";
+import {
+  OrganizationSwitcher,
+  type CreateDialogKind,
+} from "@/components/layout/organization-switcher";
+import { CreateOrganizationDialog } from "@/components/layout/create-organization-dialog";
+import { CreateDemoDialog } from "@/components/layout/create-demo-dialog";
 import type { AccessibleOrganization } from "@/lib/organization-access";
 
 // Items inside the dropdown under the org-pill. «Сотрудники» вынесен
@@ -163,6 +168,15 @@ export function Header({
     !fullAccess &&
     (userRole === "head_chef" || userRole === "technologist");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Меню профиля управляемое: модалка создания организации/демо живёт
+  // вне Radix-меню (внутри её обрезает transform), а меню при этом
+  // нужно закрыть — иначе оно останется висеть под оверлеем.
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [createDialog, setCreateDialog] = useState<CreateDialogKind | null>(null);
+  const openCreateDialog = (kind: CreateDialogKind) => {
+    setProfileMenuOpen(false);
+    setCreateDialog(kind);
+  };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -317,7 +331,6 @@ export function Header({
                       organizations={organizations}
                       activeId={activeOrganizationId}
                       canCreate={false}
-                      currentSphere={organizationSphere}
                       label="Сменить организацию"
                     />
                     {visibleSecondaryNavItems.length > 0 ? (
@@ -608,7 +621,7 @@ export function Header({
             <LogOut className="size-5" />
           </button>
 
-          <DropdownMenu>
+          <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -649,7 +662,7 @@ export function Header({
                   organizations={organizations}
                   activeId={activeOrganizationId}
                   canCreate={canCreateOrganization}
-                  currentSphere={organizationSphere}
+                  onOpenCreate={openCreateDialog}
                 />
                 {organizations.length > 1 || canCreateOrganization ? (
                   <DropdownMenuSeparator className="my-1" />
@@ -753,6 +766,23 @@ export function Header({
           </DropdownMenu>
         </div>
       </div>
+
+      {createDialog === "demo" ? (
+        <CreateDemoDialog
+          currentSphere={organizationSphere}
+          onClose={() => setCreateDialog(null)}
+        />
+      ) : null}
+      {createDialog === "organization" ? (
+        <CreateOrganizationDialog
+          currentSphere={organizationSphere}
+          currentName={
+            organizations.find((item) => item.id === activeOrganizationId)?.name ?? ""
+          }
+          onClose={() => setCreateDialog(null)}
+          organizationsCount={organizations.length}
+        />
+      ) : null}
     </header>
   );
 }
