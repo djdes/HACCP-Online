@@ -16,6 +16,7 @@ import { HealthDocumentsClient } from "@/components/journals/health-documents-cl
 import { readControlPeriodicity } from "@/lib/control-periodicity";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
+  getJournalAutomation,
   isAutomationSupported,
   isJournalAutomationEnabled,
 } from "@/lib/journal-automation";
@@ -1392,6 +1393,12 @@ export default async function JournalDocumentsPage({
    * файла: менять их по одной было бы источником расхождений. Крошки
    * поэтому живут здесь — иначе на сорока ветках они бы разъехались.
    */
+  // Состояние автоматики читаем из уже загруженной строки организации —
+  // переключателю больше не нужен собственный запрос (он давал вспышку
+  // «выключено» на включённом журнале).
+  const journalAutomation = getJournalAutomation(orgSettings, resolvedCode);
+  const canManageAutomation = hasFullWorkspaceAccess(session.user);
+
   function withBanner(children: React.ReactNode) {
     return (
       <div className="space-y-5">
@@ -1401,11 +1408,22 @@ export default async function JournalDocumentsPage({
           journalCode={resolvedCode}
           journalMenu={journalMenu}
         />
-        {/* Автосоздание — настройка ЖУРНАЛА, а не отдельного документа:
-            решение «пусть заводится сам» принимают один раз для журнала
+        {/* Автоматика — настройка ЖУРНАЛА, а не отдельного документа:
+            решение «пусть ведётся сам» принимают один раз для журнала
             целиком. На странице документа тумблер и повторялся у каждого
-            документа, и лез поверх бланка. */}
-        <JournalAutoCreateToggle templateCode={resolvedCode} />
+            документа, и лез поверх бланка.
+
+            Показываем только там, где это осмысленно: у field-based
+            журналов автосоздание плодило документы-сироты, а сотрудник
+            без прав на настройки ловил 403 при переключении. */}
+        {canManageAutomation && isDocumentTemplate(resolvedCode) ? (
+          <JournalAutoCreateToggle
+            templateCode={resolvedCode}
+            initialAutoCreate={journalAutomation.autoCreate}
+            initialAutoFill={journalAutomation.autoFill}
+            autofillSupported={isAutomationSupported(resolvedCode)}
+          />
+        ) : null}
         {children}
       </div>
     );

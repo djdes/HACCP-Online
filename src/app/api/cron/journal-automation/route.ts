@@ -7,14 +7,14 @@ import {
   ensureActiveDocument,
   ensureNextPeriodDocument,
 } from "@/lib/journal-auto-create";
+import { applyJournalAutoFill } from "@/lib/journal-autofill";
 import {
-  applyStaffJournalAutoFill,
-  STAFF_JOURNAL_TEMPLATE_CODES,
-} from "@/lib/staff-journal-autofill";
-import {
-  isAutomationSupported,
-  listAutomationCodes,
-} from "@/lib/journal-automation";
+  AUTOFILL_SUPPORTED_CODES,
+  getAutofillCapability,
+} from "@/lib/journal-autofill-capability";
+import { listAutomationCodes } from "@/lib/journal-automation";
+import { resolveAutomationStaff } from "@/lib/journal-automation-staff";
+import { resolveDayStart } from "@/lib/today-compliance";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
 
 export const runtime = "nodejs";
@@ -32,10 +32,14 @@ export const dynamic = "force-dynamic";
  *      документ действительно заполнялся, а не ждал ручного тумблера).
  *   2. Документ на следующий период за 7 дней до конца текущего —
  *      чтобы 1-го числа не было провала.
- *   3. Автозаполнение ТОЛЬКО сегодняшнего дня: всем активным
- *      сотрудникам «Здоров, t < 37»; выходной/отпуск/больничный
- *      проставляются сами («В» / «Отп» / «Б/л») — правило выходных
- *      живёт в `isStaffDayOff` (недельное правило + исключения).
+ *   3. Автозаполнение ТОЛЬКО сегодняшнего дня — через единый движок
+ *      `applyJournalAutoFill`, который сам выбирает механику по
+ *      capability-карте: кадровые журналы (гигиена, здоровье) получают
+ *      «Здоров, t < 37» с учётом выходных/отпусков/больничных
+ *      (`isStaffDayOff`), per-day журналы (климат, холодильники, УФ,
+ *      чек-лист уборки и проветривания, стекло, фритюр) — строку на
+ *      день из своего config, уборка — план Т/Г по маскам помещений и
+ *      авто-подписи. «Сегодня» считается в часовом поясе организации.
  *
  * Идемпотентность: заполняются только ПУСТЫЕ ячейки, строки создаются
  * через `createMany skipDuplicates`. Повторный запуск в тот же день —
@@ -48,6 +52,7 @@ export const dynamic = "force-dynamic";
 type OrgRow = {
   id: string;
   name: string;
+  timezone: string | null;
   journalAutomationJson: unknown;
   autoJournalCodes: unknown;
 };
@@ -58,13 +63,14 @@ type OrgResult = {
   nextPeriodCreated: number;
   entriesCreated: number;
   entriesUpdated: number;
+  entriesSkipped: number;
   codes: string[];
   errors: string[];
 };
 
 async function runForOrganization(
   org: OrgRow,
-  todayKey: string
+  now: Date
 ): Promise<OrgResult> {
   const result: OrgResult = {
     organizationId: org.id,
@@ -72,9 +78,14 @@ async function runForOrganization(
     nextPeriodCreated: 0,
     entriesCreated: 0,
     entriesUpdated: 0,
+    entriesSkipped: 0,
     codes: [],
     errors: [],
   };
+
+  // «Сегодня» — в зоне организации, а не процесса: на проде процесс живёт
+  // в UTC, и с 00:00 до 03:00 МСК его «сегодня» — это ещё вчера.
+  const todayKey = toDateKey(resolveDayStart(org.timezone, now));
 
   const rows = listAutomationCodes(org).filter((row) => row.automation.autoCreate);
   if (rows.length === 0) return result;
@@ -91,7 +102,9 @@ async function runForOrganization(
       archivedAt: null,
       OR: [{ dismissal: null }, { dismissal: { date: { gt: todayDate } } }],
     },
-    select: { id: true },
+    // name + role нужны движку: имя уходит в подпись контролёра фритюра,
+    // роль — в фолбэк «ответственный не задан → primary-менеджер».
+    select: { id: true, name: true, role: true },
     orderBy: { id: "asc" },
   });
   const employeeIds = employees.map((employee) => employee.id);
@@ -114,8 +127,8 @@ async function runForOrganization(
       });
       if (next.created) result.nextPeriodCreated += 1;
 
-      if (!automation.autoFill || !isAutomationSupported(code)) continue;
-      if (employeeIds.length === 0) continue;
+      const capability = getAutofillCapability(code);
+      if (!automation.autoFill || !capability) continue;
       if (!current.documentId) continue;
 
       const document = await db.journalDocument.findFirst({
@@ -126,7 +139,15 @@ async function runForOrganization(
           dateFrom: { lte: todayDate },
           dateTo: { gte: todayDate },
         },
-        select: { id: true, autoFill: true },
+        select: {
+          id: true,
+          autoFill: true,
+          config: true,
+          responsibleUserId: true,
+          responsibleTitle: true,
+          dateFrom: true,
+          dateTo: true,
+        },
       });
       if (!document) continue;
 
@@ -138,20 +159,40 @@ async function runForOrganization(
       // сам» продолжает работать без этой правки.
       if (!document.autoFill) continue;
 
-      const entries = await db.journalDocumentEntry.findMany({
-        where: { documentId: document.id, date: todayDate },
-        select: { id: true, employeeId: true, date: true, data: true },
-      });
+      // Состав строк кадровых журналов: политика списка, если она задана,
+      // иначе прежний расчёт крона (все активные сотрудники).
+      let staffIds = employeeIds;
+      if (capability === "staff") {
+        if (employeeIds.length === 0) continue;
+        const staffPolicy = automation.staff;
+        if (staffPolicy) {
+          const resolved = await resolveAutomationStaff(db, {
+            organizationId: org.id,
+            templateCode: code,
+            staffPolicy,
+          });
+          if (resolved.employeeIds.length > 0) staffIds = resolved.employeeIds;
+        }
+      }
 
-      const filled = await applyStaffJournalAutoFill(db, {
-        documentId: document.id,
-        templateCode: code,
-        employeeIds,
+      const filled = await applyJournalAutoFill(db, {
+        document: {
+          id: document.id,
+          organizationId: org.id,
+          templateCode: code,
+          config: document.config,
+          responsibleUserId: document.responsibleUserId,
+          responsibleTitle: document.responsibleTitle,
+          dateFrom: document.dateFrom,
+          dateTo: document.dateTo,
+        },
         dateKeys: [todayKey],
-        entries,
+        employeeIds: staffIds,
+        users: employees,
       });
       result.entriesCreated += filled.created;
       result.entriesUpdated += filled.updated;
+      result.entriesSkipped += filled.skipped;
       if (filled.created > 0 || filled.updated > 0) result.codes.push(code);
     } catch (err) {
       result.errors.push(
@@ -204,24 +245,29 @@ async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
 
-  const todayKey = toDateKey(new Date());
+  const now = new Date();
+  // Ключ для отчёта и алерта — по зоне процесса; у каждой организации
+  // внутри прогона свой день (см. runForOrganization).
+  const todayKey = toDateKey(now);
   const orgs = await db.organization.findMany({
     select: {
       id: true,
       name: true,
+      timezone: true,
       journalAutomationJson: true,
       autoJournalCodes: true,
     },
   });
 
   const settled = await Promise.allSettled(
-    orgs.map((org) => runForOrganization(org, todayKey))
+    orgs.map((org) => runForOrganization(org, now))
   );
 
   let documentsCreated = 0;
   let nextPeriodCreated = 0;
   let entriesCreated = 0;
   let entriesUpdated = 0;
+  let entriesSkipped = 0;
   let organizationsTouched = 0;
   const errors: string[] = [];
 
@@ -237,6 +283,7 @@ async function handle(request: Request) {
     nextPeriodCreated += value.nextPeriodCreated;
     entriesCreated += value.entriesCreated;
     entriesUpdated += value.entriesUpdated;
+    entriesSkipped += value.entriesSkipped;
     if (
       value.documentsCreated > 0 ||
       value.entriesCreated > 0 ||
@@ -274,13 +321,14 @@ async function handle(request: Request) {
   return NextResponse.json({
     ok: true,
     date: todayKey,
-    supportedCodes: [...STAFF_JOURNAL_TEMPLATE_CODES],
+    supportedCodes: [...AUTOFILL_SUPPORTED_CODES],
     organizationsScanned: orgs.length,
     organizationsTouched,
     documentsCreated,
     nextPeriodCreated,
     entriesCreated,
     entriesUpdated,
+    entriesSkipped,
     errors: errors.slice(0, 10),
   });
 }

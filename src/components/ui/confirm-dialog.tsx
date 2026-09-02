@@ -90,6 +90,10 @@ export type ConfirmDialogProps = {
   /// режима, поле уточнения и т. п. Иначе такие диалоги приходится
   /// писать с нуля, и они расходятся с остальными по виду.
   children?: React.ReactNode;
+  /// Блокирует кнопку подтверждения, пока форма внутри `children` не
+  /// заполнена (не выбран сотрудник, пустой список). Без этого диалог с
+  /// выбором приходилось бы подтверждать и ловить ошибку с сервера.
+  confirmDisabled?: boolean;
 };
 
 export function ConfirmDialog({
@@ -105,6 +109,7 @@ export function ConfirmDialog({
   typeToConfirm,
   icon: IconOverride,
   children,
+  confirmDisabled = false,
 }: ConfirmDialogProps) {
   const [submitting, setSubmitting] = useState(false);
   const [phrase, setPhrase] = useState("");
@@ -142,7 +147,7 @@ export function ConfirmDialog({
 
   const phraseOk =
     !typeToConfirm || phrase.trim().toUpperCase() === typeToConfirm.toUpperCase();
-  const canConfirm = phraseOk && !submitting;
+  const canConfirm = phraseOk && !submitting && !confirmDisabled;
 
   async function handleConfirm() {
     if (!canConfirm) return;
@@ -172,12 +177,15 @@ export function ConfirmDialog({
       />
 
       {/* Card */}
+      {/* Карточка: шапка и кнопки закреплены, середина скроллится —
+          иначе диалог с выбором (список сотрудников) вырастает выше
+          экрана и кнопка «Подтвердить» уезжает за нижний край. */}
       <div
         ref={dialogRef}
-        className={`relative w-full max-w-[480px] overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)]`}
+        className={`relative flex max-h-[90vh] w-full max-w-[480px] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)]`}
       >
         {/* Header — gradient accent */}
-        <div className={`relative overflow-hidden ${styles.accentBg} p-6`}>
+        <div className={`relative shrink-0 overflow-hidden ${styles.accentBg} p-6`}>
           <div className="pointer-events-none absolute -right-12 -top-12 size-[200px] rounded-full bg-[#5566f6]/8 blur-3xl" />
           <div className="relative flex items-start gap-3">
             <div
@@ -209,6 +217,7 @@ export function ConfirmDialog({
           </div>
         </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto">
         {/* Bullets */}
         {bullets && bullets.length > 0 ? (
           <div className="space-y-2 px-6 pb-1 pt-4">
@@ -267,8 +276,10 @@ export function ConfirmDialog({
           </div>
         ) : null}
 
+        </div>
+
         {/* Buttons */}
-        <div className="flex items-center justify-end gap-2 px-6 pb-6 pt-4">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[#f0f1f7] px-6 pb-6 pt-4">
           <button
             type="button"
             onClick={onClose}

@@ -24,6 +24,17 @@ import {
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 import {
+  getPrimarySlotId,
+  getVerifierSlotId,
+} from "@/lib/journal-responsible-schemas";
+import {
+  getJournalAutomation,
+  isPerEmployeeJournal,
+  type JournalAutomationResponsibles,
+} from "@/lib/journal-automation";
+import { resolveAutomationStaff } from "@/lib/journal-automation-staff";
+import { getUserPositionLabel } from "@/lib/user-roles";
+import {
   applyRoomScheduleToMatrix,
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   fillPastDaysNotPerformed,
@@ -86,8 +97,10 @@ type CleaningRoomFromDb = {
   generalMonthDays: unknown;
 };
 
-async function fetchCleaningRooms(
-  db: PrismaClient,
+export async function fetchCleaningRooms(
+  // Узкий Pick — движку автозаполнения (`journal-autofill.ts`) не нужен
+  // весь PrismaClient, а полный тип не дал бы передать юнит-тестовый стаб.
+  db: Pick<PrismaClient, "room">,
   organizationId: string,
 ): Promise<CleaningRoomFromDb[]> {
   return db.room.findMany({
@@ -275,6 +288,10 @@ async function inheritResponsiblesFromLastDocument(
       id: { in: candidateIds },
       organizationId: args.organizationId,
       isActive: true,
+      // Архивный сотрудник — тот же уволенный: новый документ не должен
+      // рождаться с ссылкой на него (раньше фильтра не было, и
+      // наследование протаскивало архив).
+      archivedAt: null,
     },
     select: { id: true },
   });
@@ -289,6 +306,133 @@ async function inheritResponsiblesFromLastDocument(
         ? last.verifierUserId
         : null,
   };
+}
+
+/**
+ * Кого автоматика хочет видеть ответственным и проверяющим в НОВОМ
+ * документе — по политике `journalAutomationJson[code].responsibles`.
+ *
+ * Порядок разрешения (per-field, независимо):
+ *   custom  → настроенный id, если он жив, активен и из этой организации;
+ *   inherit → ответственные последнего документа шаблона;
+ *   иначе   → null, и дальше работает штатный каскад слотов/keywords/
+ *             ростера внутри `prefillResponsiblesForNewDocument`.
+ *
+ * Ошибок не бросает никогда: уволенный человек не должен мешать журналу
+ * создаться, а политика остаётся в настройках и заработает снова, если
+ * сотрудника восстановят.
+ */
+async function resolveDesiredResponsibles(
+  db: PrismaClient,
+  args: {
+    organizationId: string;
+    templateId: string;
+    policy?: JournalAutomationResponsibles;
+  }
+): Promise<{ responsibleUserId: string | null; verifierUserId: string | null }> {
+  const empty = { responsibleUserId: null, verifierUserId: null };
+  if (!args.policy) return empty;
+
+  if (args.policy.mode === "custom") {
+    const wanted = [
+      args.policy.responsibleUserId,
+      args.policy.verifierUserId,
+    ].filter((id): id is string => Boolean(id));
+    const alive =
+      wanted.length > 0
+        ? await db.user.findMany({
+            where: {
+              id: { in: wanted },
+              organizationId: args.organizationId,
+              isActive: true,
+              archivedAt: null,
+            },
+            select: { id: true },
+          })
+        : [];
+    const aliveIds = new Set(alive.map((user) => user.id));
+    const custom = {
+      responsibleUserId: aliveIds.has(args.policy.responsibleUserId)
+        ? args.policy.responsibleUserId
+        : null,
+      verifierUserId:
+        args.policy.verifierUserId && aliveIds.has(args.policy.verifierUserId)
+          ? args.policy.verifierUserId
+          : null,
+    };
+    if (custom.responsibleUserId && custom.verifierUserId) return custom;
+    // Хоть один слот пуст — добираем наследованием, дальше сработает каскад.
+    const inherited = await inheritResponsiblesFromLastDocument(db, args);
+    return {
+      responsibleUserId: custom.responsibleUserId ?? inherited.responsibleUserId,
+      verifierUserId: custom.verifierUserId ?? inherited.verifierUserId,
+    };
+  }
+
+  return inheritResponsiblesFromLastDocument(db, args);
+}
+
+/** Слот-карта для `prefillResponsiblesForNewDocument` (пустые не пишем). */
+function buildSlotOverrides(
+  templateCode: string,
+  desired: { responsibleUserId: string | null; verifierUserId: string | null }
+): Record<string, string | null> {
+  const overrides: Record<string, string | null> = {};
+  if (desired.responsibleUserId) {
+    overrides[getPrimarySlotId(templateCode)] = desired.responsibleUserId;
+  }
+  if (desired.verifierUserId) {
+    overrides[getVerifierSlotId(templateCode)] = desired.verifierUserId;
+  }
+  return overrides;
+}
+
+/**
+ * Должность ответственного для колонки «Должность ответственного» и шапки
+ * печатной формы. Без неё колонка автосозданных документов оставалась
+ * пустой: `responsibleTitle` заполняли только ручное создание и каскад
+ * настроек.
+ */
+async function loadResponsibleTitle(
+  db: PrismaClient,
+  responsibleUserId: string | null
+): Promise<string | null> {
+  if (!responsibleUserId) return null;
+  const user = await db.user.findUnique({
+    where: { id: responsibleUserId },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      positionTitle: true,
+      jobPosition: { select: { name: true, categoryKey: true } },
+    },
+  });
+  if (!user) return null;
+  return getUserPositionLabel(user) || null;
+}
+
+/**
+ * Список сотрудников-строк для per-employee журналов. Политика задана —
+ * спрашиваем резолвер; нет — отдаём undefined, и сидер идёт легаси-путём.
+ */
+async function resolveSeedEmployeeIds(
+  db: PrismaClient,
+  args: {
+    organizationId: string;
+    templateCode: string;
+    org: { journalAutomationJson?: unknown; autoJournalCodes?: unknown } | null;
+  }
+): Promise<string[] | undefined> {
+  if (!isPerEmployeeJournal(args.templateCode)) return undefined;
+  const staffPolicy = getJournalAutomation(args.org, args.templateCode).staff;
+  if (!staffPolicy) return undefined;
+  const resolved = await resolveAutomationStaff(db, {
+    organizationId: args.organizationId,
+    templateCode: args.templateCode,
+    staffPolicy,
+  });
+  return resolved.employeeIds.length > 0 ? resolved.employeeIds : undefined;
 }
 
 export type CreateReport = {
@@ -372,10 +516,22 @@ export async function ensureActiveDocument(
   // resolveJournalPeriod. Иначе fallback на дефолтную семантику.
   const orgRow = await db.organization.findUnique({
     where: { id: args.organizationId },
-    select: { journalPeriods: true },
+    // Автоматика читается из той же строки: политика ответственных и
+    // списка сотрудников живёт в journalAutomationJson, а легаси-список
+    // автосоздания — в autoJournalCodes (нужен getJournalAutomation).
+    select: {
+      journalPeriods: true,
+      journalAutomationJson: true,
+      autoJournalCodes: true,
+    },
   });
   const overrides = parseJournalPeriodsJson(orgRow?.journalPeriods ?? null);
   const period = resolveJournalPeriod(args.templateCode, now, overrides);
+  const desired = await resolveDesiredResponsibles(db, {
+    organizationId: args.organizationId,
+    templateId: template.id,
+    policy: getJournalAutomation(orgRow, args.templateCode).responsibles,
+  });
   // «Как прошлый журнал» — для cleaning подтягиваем config предыдущего
   // документа (rooms, ответственные, weekday-маски), отрезая matrix/marks
   // (период-специфика). Так новый месяц cleaning стартует не с пустоты,
@@ -392,6 +548,7 @@ export async function ensureActiveDocument(
     organizationId: args.organizationId,
     journalCode: args.templateCode,
     baseConfig: prevConfig ?? {},
+    slotOverrides: buildSlotOverrides(args.templateCode, desired),
   });
   // C1: cleaning собирается от Room организации, а не от blueprint'ов.
   const cleaningRooms =
@@ -416,6 +573,16 @@ export async function ensureActiveDocument(
         templateId: template.id,
       })
     : { responsibleUserId: null, verifierUserId: null };
+  const responsibleUserId =
+    prefill.responsibleUserId ?? inherited.responsibleUserId;
+  const [responsibleTitle, seedEmployeeIds] = await Promise.all([
+    loadResponsibleTitle(db, responsibleUserId),
+    resolveSeedEmployeeIds(db, {
+      organizationId: args.organizationId,
+      templateCode: args.templateCode,
+      org: orgRow,
+    }),
+  ]);
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -426,8 +593,8 @@ export async function ensureActiveDocument(
       status: "active",
       autoFill: args.autoFill === true,
       config: planCfg as never,
-      responsibleUserId:
-        prefill.responsibleUserId ?? inherited.responsibleUserId,
+      responsibleUserId,
+      responsibleTitle,
       verifierUserId: prefill.verifierUserId ?? inherited.verifierUserId,
     },
     select: { id: true, dateFrom: true, dateTo: true },
@@ -438,7 +605,8 @@ export async function ensureActiveDocument(
     organizationId: args.organizationId,
     dateFrom: doc.dateFrom,
     dateTo: doc.dateTo,
-    responsibleUserId: prefill.responsibleUserId ?? inherited.responsibleUserId,
+    responsibleUserId,
+    employeeIds: seedEmployeeIds,
   }).catch((err) => {
     console.warn(
       `[journal-auto-create] seedEntries failed for ${args.templateCode}`,
@@ -553,7 +721,11 @@ export async function ensureNextPeriodDocument(
   const nextStart = new Date(current.dateTo.getTime() + 24 * 60 * 60 * 1000);
   const orgRowNext = await db.organization.findUnique({
     where: { id: args.organizationId },
-    select: { journalPeriods: true },
+    select: {
+      journalPeriods: true,
+      journalAutomationJson: true,
+      autoJournalCodes: true,
+    },
   });
   const nextOverrides = parseJournalPeriodsJson(
     orgRowNext?.journalPeriods ?? null
@@ -603,10 +775,16 @@ export async function ensureNextPeriodDocument(
     args.organizationId,
     args.templateCode,
   );
+  const desiredNext = await resolveDesiredResponsibles(db, {
+    organizationId: args.organizationId,
+    templateId: template.id,
+    policy: getJournalAutomation(orgRowNext, args.templateCode).responsibles,
+  });
   const prefillNext = await prefillResponsiblesForNewDocument({
     organizationId: args.organizationId,
     journalCode: args.templateCode,
     baseConfig: prevConfigNext ?? {},
+    slotOverrides: buildSlotOverrides(args.templateCode, desiredNext),
   });
   const planCfgNext = preplanCleaningConfig(
     args.templateCode,
@@ -615,6 +793,14 @@ export async function ensureNextPeriodDocument(
     nextPeriod.dateTo,
     now,
   );
+  const [responsibleTitleNext, seedEmployeeIdsNext] = await Promise.all([
+    loadResponsibleTitle(db, prefillNext.responsibleUserId),
+    resolveSeedEmployeeIds(db, {
+      organizationId: args.organizationId,
+      templateCode: args.templateCode,
+      org: orgRowNext,
+    }),
+  ]);
   const doc = await db.journalDocument.create({
     data: {
       organizationId: args.organizationId,
@@ -626,6 +812,7 @@ export async function ensureNextPeriodDocument(
       autoFill: args.autoFill === true,
       config: planCfgNext as never,
       responsibleUserId: prefillNext.responsibleUserId,
+      responsibleTitle: responsibleTitleNext,
       // Phase C: verifierUserId — двухступенчатая проверка не работает
       // без него, заведующая не получает «проверь когда заполнят»
       // в TasksFlow. (Ранее терялся в next-period auto-create — см.
@@ -641,6 +828,7 @@ export async function ensureNextPeriodDocument(
     dateFrom: doc.dateFrom,
     dateTo: doc.dateTo,
     responsibleUserId: prefillNext.responsibleUserId,
+    employeeIds: seedEmployeeIdsNext,
   }).catch((err) => {
     console.warn(
       `[journal-auto-create:next] seedEntries failed for ${args.templateCode}`,

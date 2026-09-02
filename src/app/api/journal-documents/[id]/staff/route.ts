@@ -9,6 +9,11 @@ import {
 } from "@/lib/hygiene-document";
 import { applyStaffJournalAutoFill } from "@/lib/staff-journal-autofill";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import {
+  getJournalAutomation,
+  isPerEmployeeJournal,
+} from "@/lib/journal-automation";
+import { resolveAutomationStaff } from "@/lib/journal-automation-staff";
 
 type StaffAction =
   | "add_employee"
@@ -74,6 +79,32 @@ export async function POST(
   const dateKeys = buildDateKeys(document.dateFrom, document.dateTo);
   const defaultData = getDefaultEntryDataForTemplate(document.template.code);
 
+  /**
+   * Состав сотрудников для «заполнить всех». Если у журнала задана
+   * политика списка (`journalAutomationJson[code].staff`) — берём её:
+   * иначе ручная кнопка ломала бы custom-список, добавляя весь ростер.
+   * Политики нет — прежнее поведение (все активные сотрудники).
+   */
+  const templateCode = document.template.code;
+  const organizationId = getActiveOrgId(session);
+  const allUserIds = users.map((user) => user.id);
+
+  async function resolveTargetUserIds(): Promise<string[]> {
+    if (!isPerEmployeeJournal(templateCode)) return allUserIds;
+    const org = await db.organization.findUnique({
+      where: { id: organizationId },
+      select: { journalAutomationJson: true, autoJournalCodes: true },
+    });
+    const staffPolicy = getJournalAutomation(org, templateCode).staff;
+    if (!staffPolicy) return allUserIds;
+    const resolved = await resolveAutomationStaff(db, {
+      organizationId,
+      templateCode,
+      staffPolicy,
+    });
+    return resolved.employeeIds.length > 0 ? resolved.employeeIds : allUserIds;
+  }
+
   if (action === "apply_auto_fill") {
     // Общая логика с ежедневным cron'ом (/api/cron/auto-fill-journals):
     // тот же helper, разница только в наборе дат (здесь — весь период
@@ -81,7 +112,7 @@ export async function POST(
     const result = await applyStaffJournalAutoFill(db, {
       documentId,
       templateCode: document.template.code,
-      employeeIds: users.map((user) => user.id),
+      employeeIds: await resolveTargetUserIds(),
       dateKeys,
       entries: document.entries,
     });
@@ -107,7 +138,7 @@ export async function POST(
   if (action === "fill_from_list") {
     const category = body.category || "all";
     if (category === "all") {
-      targetUserIds = users.map((user) => user.id);
+      targetUserIds = await resolveTargetUserIds();
     } else if (category.startsWith("role:")) {
       const role = category.replace("role:", "");
       targetUserIds = users.filter((user) => user.role === role).map((user) => user.id);

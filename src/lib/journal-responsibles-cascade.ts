@@ -388,6 +388,15 @@ export async function prefillResponsiblesForNewDocument(input: {
   organizationId: string;
   journalCode: string;
   baseConfig?: Record<string, unknown>;
+  /**
+   * Явно выбранные автоматикой люди (модалка включения автосоздания,
+   * политика `journalAutomationJson[code].responsibles.mode = "custom"`).
+   * Кладутся ПОВЕРХ сохранённых в /settings/journal-responsibles слотов,
+   * дальше идёт штатный путь: валидация «жив и из этой орги», авто-подбор
+   * незаполненных слотов и patchDocumentConfig — печатные формы получают
+   * имена и должности без отдельного кода.
+   */
+  slotOverrides?: SlotUserMap;
 }): Promise<{
   config: Record<string, unknown>;
   responsibleUserId: string | null;
@@ -427,6 +436,13 @@ export async function prefillResponsiblesForNewDocument(input: {
     SlotUserMap
   >;
   const slots: SlotUserMap = { ...(allSlots[journalCode] ?? {}) };
+
+  // 1b. Выбор автоматики важнее сохранённых слотов. Пустые значения
+  // игнорируем: «не выбрано» в модалке значит «оставить как есть», а не
+  // «очистить слот».
+  for (const [slotId, userId] of Object.entries(input.slotOverrides ?? {})) {
+    if (userId) slots[slotId] = userId;
+  }
 
   // 2. Если в orgSlots ничего нет — попробуем подобрать на лету через
   // schema.keywords по активным сотрудникам с подходящими должностями.

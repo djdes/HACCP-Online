@@ -344,6 +344,84 @@ export function normalizeFryerOilEntryData(value: unknown): FryerOilEntryData {
   };
 }
 
+/**
+ * Пустая строка фритюрного журнала: ни одного показателя не внесено.
+ * Сид-заготовки (`{_autoSeeded:true}`) нормализуются ровно в такую
+ * форму — автозаполнение имеет право её перезаписать.
+ */
+export function isFryerOilEntryDataEmpty(data: FryerOilEntryData): boolean {
+  return (
+    !data.startDate &&
+    data.startHour === null &&
+    data.startMinute === null &&
+    !data.fatType &&
+    data.qualityStart === null &&
+    !data.equipmentType &&
+    !data.productType &&
+    data.endHour === null &&
+    data.endMinute === null &&
+    data.qualityEnd === null &&
+    !data.qualityStartNote &&
+    !data.qualityEndNote &&
+    data.carryoverKg === 0 &&
+    data.disposedKg === 0 &&
+    !data.controllerName
+  );
+}
+
+/**
+ * Штатная формулировка органолептической оценки по баллу. Фразу
+ * «к утилизации» автозаполнение НЕ пишет никогда: повторяющийся каждый
+ * день текст инцидента выглядит абсурдно, решение об утилизации —
+ * человеческое.
+ */
+function qualityPhraseForScore(score: number | null): string {
+  if (score === null) return "";
+  if (score >= 5) return DEFAULT_QUALITY_PHRASES[0];
+  if (score === 4) return DEFAULT_QUALITY_PHRASES[2];
+  return DEFAULT_QUALITY_PHRASES[3];
+}
+
+/**
+ * Строка автозаполнения фритюрного журнала: copy-forward из источника
+ * (последний заполненный день этого или предыдущего документа).
+ *
+ *   • жир / оборудование / продукция / оценки / остаток — из source;
+ *     без source — первые значения из справочников config и оценка 5;
+ *   • `startDate = dateKey`, времена — из `config.shift` (типовая смена);
+ *   • примечания — штатная фраза по оценке (не «к утилизации»);
+ *   • `disposedKg = 0` — утилизацию автозаполнение не выдумывает.
+ */
+export function buildFryerOilAutoFillEntryData(params: {
+  config: FryerOilDocumentConfig;
+  dateKey: string;
+  source: FryerOilEntryData | null;
+  controllerFallback: string;
+}): FryerOilEntryData {
+  const { config, dateKey, source, controllerFallback } = params;
+  const start = parseShiftTime(config.shift.startTime) ?? { hour: 7, minute: 0 };
+  const end = parseShiftTime(config.shift.endTime) ?? { hour: 16, minute: 0 };
+  const qualityStart = source?.qualityStart ?? 5;
+  const qualityEnd = source?.qualityEnd ?? qualityStart;
+  return {
+    startDate: dateKey,
+    startHour: start.hour,
+    startMinute: start.minute,
+    fatType: source?.fatType || config.lists.fatTypes[0] || "",
+    qualityStart,
+    equipmentType: source?.equipmentType || config.lists.equipmentTypes[0] || "",
+    productType: source?.productType || config.lists.productTypes[0] || "",
+    endHour: end.hour,
+    endMinute: end.minute,
+    qualityEnd,
+    qualityStartNote: qualityPhraseForScore(qualityStart),
+    qualityEndNote: qualityPhraseForScore(qualityEnd),
+    carryoverKg: source?.carryoverKg ?? 0,
+    disposedKg: 0,
+    controllerName: source?.controllerName || controllerFallback,
+  };
+}
+
 // Public accessors
 export function getFryerOilDocumentTitle(): string {
   return FRYER_OIL_PAGE_TITLE;

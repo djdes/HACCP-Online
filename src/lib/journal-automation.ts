@@ -17,11 +17,57 @@
  * заполнять руками).
  */
 
+import {
+  AUTOFILL_SUPPORTED_CODES,
+  getAutofillCapability,
+} from "@/lib/journal-autofill-capability";
+
+/**
+ * Политика ответственных для АВТОСОЗДАВАЕМЫХ документов журнала.
+ *
+ *   • inherit — «как в последнем журнале»: ответственный/проверяющий
+ *     наследуются из последнего документа шаблона (с валидацией «жив,
+ *     активен, эта орга»), при провале — штатный каскад
+ *     слоты → keywords → ростер.
+ *   • custom  — явно выбранные люди. Невалидный id (уволен/чужая орга)
+ *     не роняет создание — каскад валидации падает на следующий шаг.
+ *
+ * ОТСУТСТВИЕ ключа = легаси-поведение (штатный каскад) — существующие
+ * организации ничего не замечают.
+ */
+export type JournalAutomationResponsibles =
+  | { mode: "inherit" }
+  | {
+      mode: "custom";
+      responsibleUserId: string;
+      verifierUserId: string | null;
+    };
+
+/**
+ * Политика списка сотрудников (строк) для per-employee журналов
+ * (гигиена, здоровье).
+ *
+ *   • inherit — строки последнего документа (активные) ∪ новые
+ *     сотрудники, подходящие по должностям, нанятые после его создания.
+ *   • custom  — ровно выбранные ∩ активные; новички НЕ добавляются сами.
+ *
+ * Отсутствие ключа = легаси (должности из JobPositionJournalAccess →
+ * весь ростер). Пустой результат любой ветки → легаси-фолбэк: журнал
+ * с нулём строк не создаём никогда.
+ */
+export type JournalAutomationStaff =
+  | { mode: "inherit" }
+  | { mode: "custom"; userIds: string[] };
+
 export type JournalAutomation = {
   /** Cron 06:00 заводит документ на текущий период, если его нет. */
   autoCreate: boolean;
   /** Cron 06:00 заполняет сегодняшний день по графику сотрудников. */
   autoFill: boolean;
+  /** Ответственные для новых автосозданных документов. */
+  responsibles?: JournalAutomationResponsibles;
+  /** Список сотрудников-строк (только per-employee журналы). */
+  staff?: JournalAutomationStaff;
 };
 
 export type JournalAutomationMap = Record<string, JournalAutomation>;
@@ -41,12 +87,22 @@ export const AUTOMATION_DEFAULT_ON_CODES = ["hygiene", "health_check"] as const;
 
 /**
  * Журналы, которые автоматика вообще умеет обслуживать (для остальных
- * тумблер не показываем: у них нет поштучного «сегодняшнего дня»).
+ * тумблер автозаполнения не показываем). Делегируется capability-карте
+ * `journal-autofill-capability.ts` — единственному месту, где живёт
+ * список поддерживаемых кодов и их механика.
  */
-export const AUTOMATION_SUPPORTED_CODES = ["hygiene", "health_check"] as const;
+export const AUTOMATION_SUPPORTED_CODES = AUTOFILL_SUPPORTED_CODES;
 
 export function isAutomationSupported(code: string): boolean {
-  return (AUTOMATION_SUPPORTED_CODES as readonly string[]).includes(code);
+  return getAutofillCapability(code) !== null;
+}
+
+/**
+ * Журналы «строка = сотрудник» (гигиена, здоровье). Гейт секции
+ * «Сотрудники» в модалке включения и применения staff-политики.
+ */
+export function isPerEmployeeJournal(code: string): boolean {
+  return getAutofillCapability(code) === "staff";
 }
 
 /** Включена ли автоматика по умолчанию для этого кода журнала. */
@@ -59,6 +115,59 @@ function toStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+/**
+ * Разбирает политику ответственных. Мусор → undefined (= легаси).
+ * У custom обязателен непустой `responsibleUserId`; `verifierUserId`
+ * опционален (null = «проверяющего каскад подберёт сам»).
+ */
+export function parseResponsibles(
+  value: unknown
+): JournalAutomationResponsibles | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const row = value as Record<string, unknown>;
+  if (row.mode === "inherit") return { mode: "inherit" };
+  if (row.mode === "custom") {
+    const responsibleUserId =
+      typeof row.responsibleUserId === "string" && row.responsibleUserId
+        ? row.responsibleUserId
+        : null;
+    if (!responsibleUserId) return undefined;
+    return {
+      mode: "custom",
+      responsibleUserId,
+      verifierUserId:
+        typeof row.verifierUserId === "string" && row.verifierUserId
+          ? row.verifierUserId
+          : null,
+    };
+  }
+  return undefined;
+}
+
+/**
+ * Разбирает staff-политику. Мусор → undefined (= легаси). В custom
+ * остаются только непустые строки — `userIds: [42]` даёт пустой список,
+ * который резолвер трактует как легаси-фолбэк.
+ */
+export function parseStaff(value: unknown): JournalAutomationStaff | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const row = value as Record<string, unknown>;
+  if (row.mode === "inherit") return { mode: "inherit" };
+  if (row.mode === "custom") {
+    const userIds = Array.isArray(row.userIds)
+      ? row.userIds.filter(
+          (item): item is string => typeof item === "string" && item.length > 0
+        )
+      : [];
+    return { mode: "custom", userIds };
+  }
+  return undefined;
+}
+
 /** Разбирает JSON-поле в типизированную карту, молча выкидывая мусор. */
 export function parseJournalAutomationJson(value: unknown): JournalAutomationMap {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -66,10 +175,15 @@ export function parseJournalAutomationJson(value: unknown): JournalAutomationMap
   for (const [code, raw] of Object.entries(value as Record<string, unknown>)) {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const row = raw as Record<string, unknown>;
-    map[code] = {
+    const entry: JournalAutomation = {
       autoCreate: row.autoCreate === true,
       autoFill: row.autoFill === true,
     };
+    const responsibles = parseResponsibles(row.responsibles);
+    if (responsibles) entry.responsibles = responsibles;
+    const staff = parseStaff(row.staff);
+    if (staff) entry.staff = staff;
+    map[code] = entry;
   }
   return map;
 }
@@ -114,7 +228,13 @@ export function withJournalAutomation(
   value: JournalAutomation
 ): JournalAutomationMap {
   const map = parseJournalAutomationJson(current);
-  return { ...map, [code]: { autoCreate: value.autoCreate, autoFill: value.autoFill } };
+  const entry: JournalAutomation = {
+    autoCreate: value.autoCreate,
+    autoFill: value.autoFill,
+  };
+  if (value.responsibles) entry.responsibles = value.responsibles;
+  if (value.staff) entry.staff = value.staff;
+  return { ...map, [code]: entry };
 }
 
 /**

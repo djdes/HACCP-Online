@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { loadLegacyEligibleEmployees } from "@/lib/journal-automation-staff";
 
 /**
  * Per-journal seeder для JournalDocumentEntry — создаёт «строки» на
@@ -88,6 +89,14 @@ export async function seedEntriesForDocument(input: {
   dateFrom: Date;
   dateTo: Date;
   responsibleUserId: string | null;
+  /**
+   * Готовый список сотрудников-строк (per-employee журналы). Передаётся
+   * автоматикой, когда у журнала задана политика `staff` — тогда сидер не
+   * считает состав сам, а сеет ровно тех, кого выбрал резолвер
+   * (`resolveAutomationStaff`). Не передан — легаси-путь: должности из
+   * `JobPositionJournalAccess`, иначе весь активный ростер.
+   */
+  employeeIds?: string[];
 }): Promise<EntrySeedResult> {
   const {
     documentId,
@@ -137,53 +146,26 @@ data: { _autoSeeded: true } as never,
   // в JobPositionJournalAccess для этого шаблона — entry на каждый
   // день. Если access не настроен — берём всех active employees орги.
   if (PER_EMPLOYEE_PER_DAY_JOURNALS.has(journalCode)) {
-    const template = await db.journalTemplate.findUnique({
-      where: { code: journalCode },
-      select: { id: true },
-    });
-    if (!template) return { created: 0, skipped: 0 };
-
-    const accessRows = await db.jobPositionJournalAccess.findMany({
-      where: { templateId: template.id, organizationId },
-      select: { jobPositionId: true },
-    });
-    const allowedPositionIds = accessRows.map((r) => r.jobPositionId);
-
-    const employees = await db.user.findMany({
-      where: {
-        organizationId,
-        isActive: true,
-        archivedAt: null,
-        ...(allowedPositionIds.length > 0
-          ? { jobPositionId: { in: allowedPositionIds } }
-          : {}),
-      },
-      select: { id: true },
-    });
-
-    // Fallback: должности в JobPositionJournalAccess настроены, но ни у
-    // одного активного сотрудника нет такого jobPositionId (частый случай —
-    // доступ выдан по должности, а у людей jobPositionId ещё null). Раньше
-    // мы молча сидели 0 строк, и гигиенический журнал открывался с 7
-    // безымянными строками-заглушками. Сидим весь активный ростер.
-    const seedEmployees =
-      employees.length > 0 || allowedPositionIds.length === 0
-        ? employees
-        : await db.user.findMany({
-            where: { organizationId, isActive: true, archivedAt: null },
-            select: { id: true },
+    // Состав строк: либо готовый список от автоматики, либо легаси-расчёт
+    // (одна реализация на оба пути — см. journal-automation-staff.ts).
+    const seedEmployeeIds =
+      input.employeeIds && input.employeeIds.length > 0
+        ? input.employeeIds
+        : await loadLegacyEligibleEmployees(db, {
+            organizationId,
+            templateCode: journalCode,
           });
 
-    if (seedEmployees.length === 0) {
+    if (seedEmployeeIds.length === 0) {
       return { created: 0, skipped: dates.length };
     }
 
     const rows = [];
-    for (const emp of seedEmployees) {
+    for (const employeeId of seedEmployeeIds) {
       for (const date of dates) {
         rows.push({
           documentId,
-          employeeId: emp.id,
+          employeeId,
           date,
           // Маркер «авто-сид»: эта entry создана при создании документа,
 // чтобы у журнала появилась структура rows. Заполненной её

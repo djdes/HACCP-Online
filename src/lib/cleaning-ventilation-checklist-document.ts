@@ -344,6 +344,36 @@ export function normalizeCleaningVentilationEntryData(
 }
 
 /**
+ * Пустая строка чек-листа: ни у одной процедуры нет отметок времени.
+ * Такую строку автозаполнение имеет право перезаписать.
+ */
+export function isCleaningVentilationEntryDataEmpty(
+  data: CleaningVentilationChecklistEntryData
+): boolean {
+  return Object.values(data.procedures).every(
+    (times) => !times || times.length === 0
+  );
+}
+
+/**
+ * Строка автозаполнения: все включённые процедуры получают свои
+ * типовые времена из config (зеркало демо-сида `buildVentilationRows`).
+ */
+export function buildCleaningVentilationAutoFillEntryData(
+  config: CleaningVentilationChecklistConfig
+): CleaningVentilationChecklistEntryData {
+  const data: CleaningVentilationChecklistEntryData = {
+    procedures: {},
+    responsibleUserId: config.mainResponsibleUserId || undefined,
+  };
+  for (const procedure of config.procedures) {
+    if (!procedure.enabled) continue;
+    data.procedures[procedure.id] = [...procedure.times];
+  }
+  return data;
+}
+
+/**
  * Локальная ISO-дата без ухода в UTC. `toISOString()` на дате, собранной
  * из локальных компонентов, сдвигал сутки назад в положительных TZ —
  * именно отсюда в таблицу заезжало «30.07» при дате начала 10.08 (V1).

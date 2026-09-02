@@ -88,6 +88,20 @@ export function normalizeGlassControlEntryData(
   };
 }
 
+/**
+ * Строка автозаполнения: контроль проведён, повреждений не выявлено.
+ * Любое реальное повреждение — событие, его вносит человек; автомат
+ * фиксирует только штатный «осмотр без замечаний».
+ */
+export function buildGlassControlAutoFillEntryData(): GlassControlEntryData {
+  return {
+    damagesDetected: false,
+    itemName: "",
+    quantity: "",
+    damageInfo: "",
+  };
+}
+
 export function getGlassControlResponsibleOptions(
   users: Array<{ id: string; name: string; role: string }>
 ) {

@@ -1991,7 +1991,7 @@ export function stripAutoSignatureMarker(value: string): string {
  * `applyRoomScheduleToMatrix` — вынесена, чтобы «/» за прошедшие дни
  * ставился ровно по тем же строкам.
  */
-function collectMatrixRoomIds(config: CleaningDocumentConfig): string[] {
+export function collectMatrixRoomIds(config: CleaningDocumentConfig): string[] {
   const ids: string[] = [];
   const seen = new Set<string>();
   for (const room of config.rooms) {
@@ -2069,6 +2069,89 @@ export function fillPastDaysNotPerformed(
   if (!changed) return config;
   next.marks = next.matrix;
   return syncCompatibilityFields(next);
+}
+
+/**
+ * Автоподписи ответственных — серверный порт клиентского
+ * `applyAutoSignatures` (`cleaning-document-client.tsx`), для движка
+ * автозаполнения (cron 06:00 и `/api/organizations/auto-journals/apply`).
+ *
+ * Правила (те же, что у клиента, — иначе крон и ручное заполнение
+ * спорили бы за одни клетки):
+ *   • день, где есть хоть одна отметка Т/Г в room-строках, получает
+ *     `auto:С1` в строках подписей уборки и контроля;
+ *   • дни из `options.completionDays` (TF-completions) не трогаем —
+ *     подпись там считается по completions;
+ *   • ручные подписи (без `auto:`-префикса, включая sentinel «—»)
+ *     не перетираются и не снимаются;
+ *   • устаревшие авто-подписи снимаются, когда все отметки дня сняты;
+ *   • идемпотентно: повторный вызов на тех же данных возвращает config
+ *     как есть.
+ */
+export function applyCleaningAutoSignatures(
+  config: CleaningDocumentConfig,
+  dateKeys: string[],
+  options: { completionDays?: ReadonlySet<string> } = {},
+): CleaningDocumentConfig {
+  const cleaningCode = config.cleaningResponsibles[0]?.code ?? "";
+  const controlCode = config.controlResponsibles[0]?.code ?? "";
+  const roomIds = collectMatrixRoomIds(config);
+  if (roomIds.length === 0) return config;
+
+  const cleaningRow = { ...(config.matrix[CLEANING_SIGNATURE_ROW_ID] ?? {}) };
+  const controlRow = { ...(config.matrix[CONTROL_SIGNATURE_ROW_ID] ?? {}) };
+  let changed = false;
+
+  function applyOne(
+    row: Record<string, CleaningMatrixValue>,
+    dateKey: string,
+    performed: boolean,
+    code: string,
+  ): boolean {
+    const current = row[dateKey];
+    if (performed) {
+      if (!code) return false;
+      const want = markAutoSignature(code);
+      if (current === undefined) {
+        row[dateKey] = want;
+        return true;
+      }
+      if (isAutoSignatureValue(current) && current !== want) {
+        row[dateKey] = want;
+        return true;
+      }
+      return false;
+    }
+    if (current !== undefined && isAutoSignatureValue(current)) {
+      delete row[dateKey];
+      return true;
+    }
+    return false;
+  }
+
+  for (const dateKey of dateKeys) {
+    if (options.completionDays?.has(dateKey)) continue;
+    const performed = roomIds.some((id) => {
+      const value = config.matrix[id]?.[dateKey];
+      return value === "T" || value === "G";
+    });
+    if (applyOne(cleaningRow, dateKey, performed, cleaningCode)) changed = true;
+    if (applyOne(controlRow, dateKey, performed, controlCode)) changed = true;
+  }
+  if (!changed) return config;
+
+  const nextMatrix = cloneMatrix(config.matrix);
+  if (Object.keys(cleaningRow).length > 0) {
+    nextMatrix[CLEANING_SIGNATURE_ROW_ID] = cleaningRow;
+  } else {
+    delete nextMatrix[CLEANING_SIGNATURE_ROW_ID];
+  }
+  if (Object.keys(controlRow).length > 0) {
+    nextMatrix[CONTROL_SIGNATURE_ROW_ID] = controlRow;
+  } else {
+    delete nextMatrix[CONTROL_SIGNATURE_ROW_ID];
+  }
+  return { ...config, matrix: nextMatrix, marks: nextMatrix };
 }
 
 export function deleteCleaningRows(config: CleaningDocumentConfig, rowIds: string[]) {

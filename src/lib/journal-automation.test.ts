@@ -19,11 +19,18 @@ import {
   isAutomationDefaultOn,
   isAutomationSupported,
   isJournalAutomationEnabled,
+  isPerEmployeeJournal,
   listAutomationCodes,
   listAutomationOwnedCodes,
   parseJournalAutomationJson,
+  parseResponsibles,
+  parseStaff,
   withJournalAutomation,
 } from "@/lib/journal-automation";
+import {
+  AUTOFILL_SUPPORTED_CODES,
+  getAutofillCapability,
+} from "@/lib/journal-autofill-capability";
 import { isEntryDataEmpty } from "@/lib/hygiene-document";
 import {
   canEditAutomationCell,
@@ -99,6 +106,126 @@ test("listAutomationCodes объединяет карту и легаси-спи
   );
   // «Владеет» cron автоматизации только теми, где включены оба флага.
   assert.deepEqual(listAutomationOwnedCodes(org), ["hygiene"]);
+});
+
+test("parseResponsibles: inherit/custom валидны, мусор → undefined", () => {
+  assert.deepEqual(parseResponsibles({ mode: "inherit" }), { mode: "inherit" });
+  assert.deepEqual(
+    parseResponsibles({
+      mode: "custom",
+      responsibleUserId: "u1",
+      verifierUserId: "u2",
+    }),
+    { mode: "custom", responsibleUserId: "u1", verifierUserId: "u2" }
+  );
+  // Без ответственного custom бессмысленен.
+  assert.equal(parseResponsibles({ mode: "custom", verifierUserId: "u2" }), undefined);
+  assert.equal(parseResponsibles({ mode: "custom", responsibleUserId: 42 }), undefined);
+  assert.equal(parseResponsibles(null), undefined);
+  assert.equal(parseResponsibles("inherit"), undefined);
+  assert.equal(parseResponsibles({ mode: "magic" }), undefined);
+});
+
+test("parseStaff: userIds фильтруются до непустых строк", () => {
+  assert.deepEqual(parseStaff({ mode: "inherit" }), { mode: "inherit" });
+  assert.deepEqual(
+    parseStaff({ mode: "custom", userIds: ["a", 42, "", "b", null] }),
+    { mode: "custom", userIds: ["a", "b"] }
+  );
+  // `[42]` → пустой custom (резолвер уйдёт в легаси), не ошибка.
+  assert.deepEqual(parseStaff({ mode: "custom", userIds: [42] }), {
+    mode: "custom",
+    userIds: [],
+  });
+  assert.equal(parseStaff([]), undefined);
+  assert.equal(parseStaff({ mode: "roster" }), undefined);
+});
+
+test("parseJournalAutomationJson сохраняет валидные responsibles/staff", () => {
+  const parsed = parseJournalAutomationJson({
+    hygiene: {
+      autoCreate: true,
+      autoFill: true,
+      responsibles: { mode: "inherit" },
+      staff: { mode: "custom", userIds: ["u1", "u2"] },
+    },
+    cleaning: {
+      autoCreate: true,
+      autoFill: false,
+      responsibles: { mode: "broken" },
+      staff: "мусор",
+    },
+  });
+  assert.deepEqual(parsed.hygiene, {
+    autoCreate: true,
+    autoFill: true,
+    responsibles: { mode: "inherit" },
+    staff: { mode: "custom", userIds: ["u1", "u2"] },
+  });
+  // Невалидные политики выкинуты — легаси-поведение без ключей.
+  assert.deepEqual(parsed.cleaning, { autoCreate: true, autoFill: false });
+});
+
+test("withJournalAutomation переносит политики и не теряет чужие", () => {
+  const current = {
+    hygiene: {
+      autoCreate: true,
+      autoFill: true,
+      staff: { mode: "inherit" },
+    },
+  };
+  const next = withJournalAutomation(current, "climate_control", {
+    autoCreate: true,
+    autoFill: true,
+    responsibles: { mode: "custom", responsibleUserId: "u1", verifierUserId: null },
+  });
+  assert.deepEqual(next.hygiene.staff, { mode: "inherit" });
+  assert.deepEqual(next.climate_control.responsibles, {
+    mode: "custom",
+    responsibleUserId: "u1",
+    verifierUserId: null,
+  });
+  assert.equal(next.climate_control.staff, undefined);
+});
+
+test("capability-карта: 9 поддерживаемых кодов, событийные исключены", () => {
+  assert.deepEqual(
+    [...AUTOFILL_SUPPORTED_CODES].sort(),
+    [
+      "cleaning",
+      "cleaning_ventilation_checklist",
+      "climate_control",
+      "cold_equipment_control",
+      "fryer_oil",
+      "glass_control",
+      "health_check",
+      "hygiene",
+      "uv_lamp_runtime",
+    ]
+  );
+  assert.equal(getAutofillCapability("hygiene"), "staff");
+  assert.equal(getAutofillCapability("fryer_oil"), "per-day");
+  assert.equal(getAutofillCapability("cleaning"), "config-matrix");
+  for (const code of AUTOFILL_SUPPORTED_CODES) {
+    assert.equal(isAutomationSupported(code), true, code);
+  }
+  for (const code of [
+    "disinfectant_usage",
+    "finished_product",
+    "perishable_rejection",
+    "intensive_cooling",
+    "accident_journal",
+  ]) {
+    assert.equal(isAutomationSupported(code), false, code);
+    assert.equal(getAutofillCapability(code), null, code);
+  }
+});
+
+test("isPerEmployeeJournal — только гигиена и здоровье", () => {
+  assert.equal(isPerEmployeeJournal("hygiene"), true);
+  assert.equal(isPerEmployeeJournal("health_check"), true);
+  assert.equal(isPerEmployeeJournal("climate_control"), false);
+  assert.equal(isPerEmployeeJournal("cleaning"), false);
 });
 
 test("isEntryDataEmpty считает _autoSeeded-болванку пустой", () => {
