@@ -6,7 +6,31 @@
 проекта Wesetup. Транспорт: `src/lib/ai-assistant/pf-client.ts`
 (submit + long-poll, как у перефразирования в ProjectsFlow).
 
-## Как исполнять
+## Штатный исполнитель — dispatcher/wesetup-worker.ps1
+
+Постоянный воркер (по образцу `C:\www\DocsFlow\dispatcher\docsflow-worker.ps1`):
+берёт из очереди ТОЛЬКО задания своего проекта с `mode: assistant`, зовёт
+`claude -p` без инструментов и MCP, отдаёт результат в `/complete`. Ralph
+(`C:\www\ralph\dispatch.ps1`) такие задания сознательно пропускает — его
+перезапускать не нужно.
+
+Запуск (на этой Windows-машине, рядом с ralph):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File d:\www\Wesetup.ru\dispatcher\wesetup-worker.ps1
+# однократный проход для проверки:
+powershell -ExecutionPolicy Bypass -File d:\www\Wesetup.ru\dispatcher\wesetup-worker.ps1 -Once
+```
+
+Конфиг: `dispatcher/config.json` (ProjectId Wesetup в PF, модель, таймаут).
+Agent-токен PF подхватывается из `C:\www\ralph\mcp-projectsflow.json` —
+отдельный секрет не нужен. Опрос очереди каждые 10 с (чат сайта ждёт ответ
+до 90 с). Воркер обрабатывает и ходы чата поддержки (задания с
+`reply_url`/`token`): забирает правила `?mode=worker` и контекст с сайта,
+отвечает POST'ом на `reply_url`. Скрипт намеренно ASCII-only: PowerShell 5.1
+ломает кириллицу в .ps1 без BOM.
+
+## Как исполнять (вручную, сессией Claude Code)
 
 1. `pf_list_pending_ai_prompt_jobs` → отфильтровать задания своего
    проекта.

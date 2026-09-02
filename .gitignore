@@ -93,3 +93,5 @@ eslint-report.json
 # Tuya broker debug log
 cf2.log
 
+
+dispatcher/logs/
