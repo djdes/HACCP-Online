@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   Building2,
+  Check,
   CheckCircle2,
   ChevronDown,
   Cloud,
@@ -12,7 +13,6 @@ import {
   Wifi,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand/logo";
-import { AutoCarousel } from "@/components/landing/auto-carousel";
 
 /**
  * Three stacked/tilted mockups showing the product surfaces: a desktop
@@ -25,12 +25,108 @@ import { AutoCarousel } from "@/components/landing/auto-carousel";
  * Content is stylised miniature UI: the proportions and typography
  * read as «it's our app», not «it's a random chart».
  */
+
+/** Три поверхности продукта — по одной строке чек-листа на мокап. */
+const SHOWCASE_POINTS = [
+  {
+    title: "Бланк для проверки",
+    hint: "PDF по форме СанПиН — отдаёте инспектору в один клик",
+  },
+  {
+    title: "Бот для смены",
+    hint: "Повар заполняет журнал из Telegram за минуту",
+  },
+  {
+    title: "Кабинет управляющей",
+    hint: "Вся картина дня: кто заполнил, что просрочено",
+  },
+] as const;
+
+/**
+ * Витрина продукта — тёмный блок с заголовком, чек-листом и веером
+ * мокапов, как у Мегаплана. Раньше на телефоне это была карусель с
+ * серой подписью, и блок читался как недоделанный.
+ *
+ * Мобильный веер: лист А4 стоит ровно впереди, телефон и окно
+ * браузера выглядывают из-за него наклонёнными в разные стороны.
+ * Низ карточек уходит за край блока — так веер не раздувает высоту.
+ */
+export function ProductShowcase() {
+  return (
+    <section
+      aria-label="Как выглядит WeSetup"
+      className="relative mt-8 overflow-hidden rounded-3xl border border-[#ececf4] bg-[#0b1024] text-left text-white shadow-[0_20px_60px_-30px_rgba(11,16,36,0.55)] sm:mt-16"
+    >
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 -top-24 size-[420px] rounded-full bg-[#5566f6] opacity-40 blur-[120px]" />
+        <div className="absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
+        <div className="absolute left-1/3 top-1/2 size-[280px] rounded-full bg-[#3d4efc] opacity-25 blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 px-5 pt-7 sm:px-10 sm:pt-12 lg:flex lg:items-end lg:justify-between lg:gap-10">
+        <div className="lg:max-w-[440px]">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#aeb7ff]">
+            Как это выглядит
+          </div>
+          <h2 className="mt-2 text-[clamp(1.5rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Три экрана — и проверка больше не страшна
+          </h2>
+        </div>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-3 lg:mt-0 lg:flex-1 lg:grid-cols-3">
+          {SHOWCASE_POINTS.map((point, i) => (
+            // `hero-point`: внутри hero-секции li без своей анимации
+            // остаются с opacity 0 (stagger-правило в globals.css ждёт
+            // data-inview, которого у hero не бывает).
+            <li
+              key={point.title}
+              className="hero-point flex items-start gap-3"
+              style={{ animationDelay: `${400 + i * 120}ms` }}
+            >
+              <span className="mt-0.5 inline-flex size-[22px] shrink-0 items-center justify-center rounded-full bg-white/10 text-[#aeb7ff] ring-1 ring-white/15">
+                <Check className="size-3" strokeWidth={3} />
+              </span>
+              <span>
+                <span className="block text-[15px] font-semibold leading-snug">
+                  {point.title}
+                </span>
+                <span className="mt-0.5 block text-[13px] leading-snug text-white/65">
+                  {point.hint}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Телефон: веер из трёх карточек в коробке фиксированной высоты.
+          Ширины заданы процентами от блока, чтобы на 320–430px ничего
+          не вылезало за края. */}
+      <div className="relative mt-4 h-[320px] sm:hidden">
+        <div className="absolute left-[2%] top-4 w-[42%] origin-top -rotate-[14deg]">
+          <TelegramMockup />
+        </div>
+        <div className="absolute right-[-4%] top-6 w-[560px] origin-top-right rotate-[9deg] scale-[0.42]">
+          <DesktopMockup />
+        </div>
+        <div className="absolute left-1/2 top-[68px] z-10 w-[80%] -translate-x-1/2">
+          <A4SheetMockup />
+        </div>
+      </div>
+
+      {/* sm+: прежний десктопный веер, теперь внутри тёмного блока. */}
+      <div className="hero-fan relative mx-auto hidden max-w-[1100px] sm:mt-12 sm:block sm:min-h-[620px] md:min-h-[680px]">
+        <ScreenshotFan />
+      </div>
+    </section>
+  );
+}
+
 /**
  * Веер мокапов для sm+ — дашборд по центру, телефон слева, лист А4
  * справа. Абсолютное позиционирование: карточки намеренно
  * перекрываются и наклонены.
  */
-export function ScreenshotFan() {
+function ScreenshotFan() {
   return (
     <div className="absolute inset-0">
       <div className="absolute left-1/2 top-0 w-[min(700px,100%)] -translate-x-1/2">
@@ -47,96 +143,6 @@ export function ScreenshotFan() {
         <A4SheetMockup />
       </div>
     </div>
-  );
-}
-
-/**
- * Мокапы для телефона — по одному на экран, листаются свайпом.
- *
- * Отдельным компонентом, а не веткой внутри веера: веер живёт в
- * контейнере `.hero-fan` с `perspective` и анимациями, и мобильный
- * блок внутри него раздувался шире экрана. Здесь он рисуется в
- * обычной колонке страницы.
- */
-export function ScreenshotStack() {
-  return (
-    <div className="w-full max-w-full overflow-hidden">
-      <AutoCarousel
-        ariaLabel="Как выглядит WeSetup"
-        slideClassName="flex-[0_0_100%]"
-        autoplayMs={6500}
-        items={[
-          <MobileSlide key="a4" caption="Бланк для проверки" widthClass="w-full">
-            <A4SheetMockup />
-          </MobileSlide>,
-          <MobileSlide key="bot" caption="Бот для смены" widthClass="w-[196px]">
-            <TelegramMockup />
-          </MobileSlide>,
-          <MobileSlide
-            key="app"
-            caption="Кабинет"
-            widthClass="w-full"
-            scaleClass="scale-[0.66]"
-          >
-            <DesktopMockup />
-          </MobileSlide>,
-        ]}
-      />
-    </div>
-  );
-}
-
-/**
- * Слайд мобильной карусели. Высота фиксирована и одинакова для всех
- * трёх: лист 1:1.414, телефон 9:19 и окно браузера сами по себе дают
- * разную высоту, и без общей коробки карусель прыгала на каждом
- * пролистывании. Мокап вписывается по высоте и центрируется.
- */
-function MobileSlide({
-  children,
-  caption,
-  widthClass,
-  scaleClass,
-}: {
-  children: React.ReactNode;
-  caption: string;
-  /// Своя ширина у каждого: лист альбомный и берёт всю строку,
-  /// телефону нужна узкая колонка — во всю ширину он вышел бы
-  /// двухметровым.
-  widthClass: string;
-  /// Уменьшение для окна браузера: по содержимому оно выше коробки,
-  /// а сузить его нельзя — текст внутри стал бы нечитаемым.
-  scaleClass?: string;
-}) {
-  return (
-    // Коробка одной высоты для всех трёх: у листа, телефона и окна
-    // браузера пропорции разные, и без неё ряд вставал по самому
-    // высокому, а под остальными зияла пустота в пол-экрана.
-    <figure className="flex h-[500px] flex-col">
-      {/* Без overflow-hidden на общей коробке: он срезал мягкую тень
-          мокапа ровным краем, и при свайпе за карточкой ехал серый
-          прямоугольник. */}
-      <div className="flex flex-1 items-center justify-center">
-        {scaleClass ? (
-          // `scale` не уменьшает layout-коробку: у окна браузера она
-          // оставалась ~650px и вылезала за слайд, унося с собой
-          // подпись. Поэтому уменьшенный мокап живёт в собственной
-          // коробке по высоте слайда и растёт от её верха.
-          // Высота задана числом, а не h-full: процент от flex-родителя
-          // не разрешился, коробка осталась в натуральные 650px и
-          // вытолкнула подпись за пределы слайда. 430px — это те же
-          // 650 после scale-[0.66].
-          <div className={`h-[430px] ${widthClass} overflow-hidden`}>
-            <div className={`origin-top ${scaleClass}`}>{children}</div>
-          </div>
-        ) : (
-          <div className={widthClass}>{children}</div>
-        )}
-      </div>
-      <figcaption className="mt-3 text-center text-[12px] font-medium text-[#6f7282]">
-        {caption}
-      </figcaption>
-    </figure>
   );
 }
 

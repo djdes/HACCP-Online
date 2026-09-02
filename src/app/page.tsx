@@ -54,10 +54,7 @@ import {
   bundleTotal,
 } from "@/lib/hardware-pricing";
 import { PublicFooter } from "@/components/public/public-chrome";
-import {
-  ScreenshotFan,
-  ScreenshotStack,
-} from "@/components/public/screenshot-fan";
+import { ProductShowcase } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
 import { RoiCalculator } from "@/components/landing/roi-calculator";
@@ -448,8 +445,7 @@ export default async function LandingPage() {
               priceCurrency: "RUB",
               unitText: "месяц",
             },
-            description:
-              "Без лимита по сотрудникам, IoT-датчики, автозаполнение",
+            description: `До ${SUBSCRIPTION_MAX_USERS} сотрудников в подписке, далее +${EXTRA_USER_PRICE_RUB} ₽/мес за каждого; IoT-датчики, автозаполнение`,
             availability: "https://schema.org/InStock",
           },
         ],
@@ -696,21 +692,10 @@ export default async function LandingPage() {
             )}
           </div>
 
-          {/* Мокапы продукта. На телефоне высота идёт по содержимому:
-              там теперь горизонтальный ряд карточек, и фиксированный
-              min-h оставлял под ним пустую полосу. На sm+ высота задана
-              явно — веер собран из absolute-элементов и сам её не
-              держит. */}
-          {/* Телефон: мокапы по одному, обычной колонкой. Внутри
-              .hero-fan они разъезжались — там perspective и анимации
-              под десктопный веер. */}
-          <div className="mt-8 sm:hidden">
-            <ScreenshotStack />
-          </div>
-
-          <div className="hero-fan relative mx-auto hidden max-w-[1100px] sm:mt-20 sm:block sm:min-h-[620px] md:min-h-[680px]">
-            <ScreenshotFan />
-          </div>
+          {/* Витрина продукта: тёмный блок с чек-листом и веером мокапов.
+              Высоту на sm+ держит сам блок — веер собран из
+              absolute-элементов. */}
+          <ProductShowcase />
         </div>
       </section>
 
@@ -979,7 +964,7 @@ export default async function LandingPage() {
           </a>
         </div>
         <div className="mt-4 text-center text-[13px] text-[#9b9fb3]">
-          Годовая оплата подписки — −20%. Железо — один раз.
+          Подписка оплачивается помесячно. Железо — один раз.
         </div>
 
         {/* ГАРАНТИЯ — один светлый блок во всю ширину. Раньше здесь
@@ -1096,7 +1081,7 @@ export default async function LandingPage() {
 
       {/* D12 — ROI КАЛЬКУЛЯТОР */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <RoiCalculator />
+        <RoiCalculator subscriptionMonthly={monthly.priceRub} />
       </section>
 
       {/* HOW IT WORKS */}

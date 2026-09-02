@@ -45,8 +45,9 @@ export default async function RootMetricsPage() {
             </div>
             <p className="mt-1.5 max-w-[680px] text-[14px] leading-relaxed text-[#6f7282]">
               Активность, retention и выручка по всем организациям.
-              Расчётный MRR — `calculatePerEmployeePrice(activeUsers)`,
-              реальный — 0 для trial-org. Trend — % изменения 7-дневной
+              Расчётный MRR — `quoteSubscription(activeUsers)` по единой
+              модели: до 3 — 0 ₽, до 30 — одна подписка, дальше +100 ₽ за
+              каждого; реальный — 0 для trial-org. Trend — % изменения 7-дневной
               активности vs предыдущая неделя. Email — адрес того, кто
               зарегистрировал организацию. Заголовки колонок кликабельны,
               поиск ищет по части адреса или названия. Клик по числу

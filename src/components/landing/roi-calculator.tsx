@@ -1,25 +1,34 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
+import { quoteSubscription } from "@/lib/subscription-pricing";
 
 /**
  * H10 — ROI калькулятор на лендинге. Slider «сколько у вас сотрудников»
  * → расчёт «сколько стоит» + «сколько часов экономите» + «средний штраф
  * РПН который мы помогаем избежать».
  *
- * Цифры — приблизительные/маркетинговые, основаны на разговорах с
- * клиентами:
+ * Стоимость — по единой модели `quoteSubscription`: цену подписки
+ * страница читает из БД и передаёт пропсом, компонент клиентский и
+ * в БД не ходит.
+ *
+ * Цифры экономии — приблизительные/маркетинговые, основаны на
+ * разговорах с клиентами:
  *   - 30 минут/день экономии на одного сотрудника (заполнение бумажных
  *     журналов через TasksFlow + автоматику)
  *   - средний штраф РПН за непредоставление журналов = 50_000 ₽ за раз,
  *     1-2 раза в год без системы
  */
-export function RoiCalculator() {
+export function RoiCalculator({
+  subscriptionMonthly,
+}: {
+  /** Цена подписки из БД (`PlatformTariff.monthly`), ₽/мес. */
+  subscriptionMonthly: number;
+}) {
   const [employees, setEmployees] = useState(15);
 
   const calc = useMemo(() => {
-    const price = calculatePerEmployeePrice(employees);
+    const price = quoteSubscription(employees, subscriptionMonthly);
     // 30 мин/день × 22 рабочих дня × employees × 500 ₽/час (средняя
     // ставка повара/менеджера на бумажную работу).
     const hoursSavedPerMonth = (employees * 22 * 0.5);
@@ -44,9 +53,9 @@ export function RoiCalculator() {
       netBenefit: netBenefit,
       netBenefitFormatted: netBenefit.toLocaleString("ru-RU"),
       roiX: Number.isFinite(roiX) ? roiX : null,
-      tier: price.bracketLabel,
+      tier: price.tierLabel,
     };
-  }, [employees]);
+  }, [employees, subscriptionMonthly]);
 
   return (
     <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-10">
@@ -96,7 +105,7 @@ export function RoiCalculator() {
               ? "0 ₽"
               : `${calc.monthlyCostFormatted} ₽`
           }
-          hint={calc.monthlyCost === 0 ? "Бесплатно" : calc.tier}
+          hint={calc.tier}
           tone="muted"
         />
         <Tile

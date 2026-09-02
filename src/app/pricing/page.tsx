@@ -15,14 +15,20 @@ import {
   DEFAULT_TWITTER_IMAGES,
 } from "@/lib/meta-defaults";
 import { FREE_MAX_USERS } from "@/lib/plan-limits";
+import {
+  EXTRA_USER_PRICE_RUB,
+  SUBSCRIPTION_MAX_USERS,
+} from "@/lib/plan-catalog";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// Метаданные — статический литерал, поэтому числа здесь вшиты; они
+// должны совпадать с FREE_MAX_USERS (3) и SUBSCRIPTION_MAX_USERS (30).
 export const metadata = {
   title: "Цены на электронные журналы СанПиН и ХАССП",
   description:
-    "Сколько стоит WeSetup: бесплатный тариф до 3 сотрудников, подписка без лимитов и пакеты с оборудованием. Калькулятор экономии.",
+    "Сколько стоит WeSetup: бесплатно до 3 сотрудников, одна подписка на команду до 30, доплата за каждого сверх 30 и пакеты с оборудованием. Калькулятор экономии.",
   alternates: { canonical: "https://wesetup.ru/pricing" },
   openGraph: {
     type: "website",
@@ -31,7 +37,7 @@ export const metadata = {
     url: "https://wesetup.ru/pricing",
     title: "Цены на электронные журналы СанПиН и ХАССП",
     description:
-      "Сколько стоит WeSetup: бесплатный тариф до 3 сотрудников, подписка без лимитов и пакеты с оборудованием.",
+      "Сколько стоит WeSetup: бесплатно до 3 сотрудников, одна подписка на команду до 30, доплата за каждого сверх 30 и пакеты с оборудованием. Калькулятор экономии.",
     images: DEFAULT_OG_IMAGES,
   },
   twitter: {
@@ -45,7 +51,9 @@ export const metadata = {
  * Публичная страница тарифов.
  *
  * Цены берутся из БД (`PlatformTariff`) — те же, что на лендинге и в
- * кнопках оплаты.
+ * кнопках оплаты. Модель одна на весь сайт (`quoteSubscription`):
+ * до 3 сотрудников бесплатно, до 30 — одна подписка на команду,
+ * дальше доплата за каждого.
  */
 export default async function PricingPage() {
   const tariffs = await readTariffs().catch(() => fallbackTariffs());
@@ -62,9 +70,12 @@ export default async function PricingPage() {
             Сколько стоит WeSetup
           </h1>
           <p className="mt-3 max-w-[640px] text-[16px] leading-relaxed text-[#3c4053]">
-            Все 35 журналов доступны бесплатно небольшой смене. Платная
-            подписка снимает лимит по сотрудникам и включает автоматизацию.
-            Оборудование — разовая покупка, без скрытых платежей.
+            Все 35 журналов доступны бесплатно смене до {FREE_MAX_USERS}{" "}
+            человек. Команда до {SUBSCRIPTION_MAX_USERS} — одна подписка{" "}
+            {formatRub(monthly.priceRub)}/мес на всех, не за человека; каждый
+            сотрудник сверх {SUBSCRIPTION_MAX_USERS} —{" "}
+            {`+${EXTRA_USER_PRICE_RUB} ₽/мес`}. Оборудование — разовая
+            покупка, без скрытых платежей.
           </p>
         </div>
 
@@ -88,9 +99,9 @@ export default async function PricingPage() {
             name={monthly.title}
             price={formatRub(monthly.priceRub)}
             period={`за ${monthly.periodDays} дней`}
-            description="Если датчики и планшеты уже есть — подключаем их и снимаем ограничения."
+            description="Одна цена на всю команду. Если датчики и планшеты уже есть — подключаем их."
             points={[
-              "Без лимита по сотрудникам",
+              `До ${SUBSCRIPTION_MAX_USERS} сотрудников, далее +${EXTRA_USER_PRICE_RUB} ₽/мес за каждого`,
               "Подключение своих IoT-датчиков",
               "Автозаполнение температур и гигиены",
               "Приоритетная поддержка в Telegram",
@@ -126,7 +137,7 @@ export default async function PricingPage() {
           .
         </p>
 
-        <RoiCalculator />
+        <RoiCalculator subscriptionMonthly={monthly.priceRub} />
 
         <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-8">
           <h2 className="text-[18px] font-semibold tracking-[-0.01em]">

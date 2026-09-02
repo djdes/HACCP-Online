@@ -4,7 +4,11 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { PlanUpgrade } from "@/components/settings/plan-upgrade";
-import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
+import { pricingScaleRows, quoteSubscription } from "@/lib/subscription-pricing";
+import {
+  EXTRA_USER_PRICE_RUB,
+  SUBSCRIPTION_MAX_USERS,
+} from "@/lib/plan-catalog";
 import { HARDWARE_BUNDLES, bundleTotal } from "@/lib/hardware-pricing";
 import {
   readTariffs,
@@ -39,13 +43,20 @@ export default async function SubscriptionPage() {
   });
 
   const employees = org?._count.users || 1;
-  const price = calculatePerEmployeePrice(employees);
   const plan = org?.subscriptionPlan ?? "trial";
   // Та же цифра, что в карточке железа на лендинге — считаем из одного
   // источника, чтобы витрины не разъехались.
   const hardwareFromRub = Math.min(...HARDWARE_BUNDLES.map(bundleTotal));
   // Цена подписки живёт в БД и правится ROOT'ом — калькулятор берёт её
   // оттуда же, что и лендинг, иначе итоги на двух витринах разойдутся.
+  const tariffs = await readTariffs().catch(() => fallbackTariffs());
+  const monthly =
+    tariffs.find((t) => t.key === TARIFF_MONTHLY) ?? fallbackTariffs()[0];
+  const price = quoteSubscription(employees, monthly.priceRub);
+  // Пример для справки: команда чуть больше подписки — видно и базу,
+  // и доплату.
+  const exampleEmployees = SUBSCRIPTION_MAX_USERS + 5;
+  const example = quoteSubscription(exampleEmployees, monthly.priceRub);
   // История платежей организации. Только проведённые идут в итог: заказ
   // в статусе pending денег не принёс, и складывать его в «оплачено»
   // значит показывать выручку, которой нет.
@@ -66,10 +77,6 @@ export default async function SubscriptionPage() {
   const paidTotalRub = payments
     .filter((payment) => payment.status === "paid" && !payment.isTest)
     .reduce((sum, payment) => sum + Number(payment.amountRub), 0);
-
-  const tariffs = await readTariffs().catch(() => fallbackTariffs());
-  const monthly =
-    tariffs.find((t) => t.key === TARIFF_MONTHLY) ?? fallbackTariffs()[0];
 
   return (
     <div className="space-y-5">
@@ -176,10 +183,11 @@ export default async function SubscriptionPage() {
               Как считается стоимость
             </h2>
             <p className="mt-1 max-w-[640px] text-[13px] leading-relaxed text-[#6f7282]">
-              Платите только за реально работающих в системе. До{" "}
-              {price.freeAllowance} сотрудников — бесплатно. Дальше —{" "}
-              {price.pricePerUserRub} ₽ за каждого активного в месяц.
-              Скидки применяются автоматически при росте команды.
+              До {FREE_MAX_USERS} сотрудников — бесплатно. Команда до{" "}
+              {SUBSCRIPTION_MAX_USERS} — одна подписка{" "}
+              {monthly.priceRub.toLocaleString("ru-RU")} ₽/мес на всех, не за
+              человека. Каждый сотрудник сверх {SUBSCRIPTION_MAX_USERS} —{" "}
+              {`+${EXTRA_USER_PRICE_RUB} ₽/мес.`}
             </p>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -188,16 +196,18 @@ export default async function SubscriptionPage() {
                 value={String(employees)}
                 hint={
                   <span className="inline-flex items-center gap-1 text-[#6f7282]">
-                    <Users className="size-3" /> {price.bracketLabel}
+                    <Users className="size-3" /> {price.tierLabel}
                   </span>
                 }
               />
               <PricingStat
-                label="Платно"
-                value={String(price.paidEmployees)}
+                label={`Сверх ${SUBSCRIPTION_MAX_USERS}`}
+                value={String(price.extraEmployees)}
                 hint={
                   <span className="text-[#6f7282]">
-                    бесплатно {price.freeAllowance} → платно остальные
+                    {price.extraEmployees > 0
+                      ? `+${EXTRA_USER_PRICE_RUB} ₽/мес за каждого`
+                      : "входит в подписку"}
                   </span>
                 }
               />
@@ -214,8 +224,9 @@ export default async function SubscriptionPage() {
                       Бесплатно
                     </span>
                   ) : (
+                    // Годового тарифа нет — ×12 только для ориентира.
                     <span className="text-[#6f7282]">
-                      {price.yearlyRub.toLocaleString("ru-RU")} ₽/год
+                      {price.yearlyRub.toLocaleString("ru-RU")} ₽/год без скидки
                     </span>
                   )
                 }
@@ -226,11 +237,18 @@ export default async function SubscriptionPage() {
             <div className="mt-5 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4 text-[13px] leading-relaxed text-[#6f7282]">
               <strong className="text-[#0b1024]">Шкала тарифов:</strong>
               <ul className="mt-2 list-disc space-y-1 pl-5">
-                <li>1–3 сотрудников: бесплатно</li>
-                <li>4–29: 100 ₽/чел/мес (сверх первых 3)</li>
-                <li>30–99: 80 ₽/чел/мес</li>
-                <li>100+ (сети): 60 ₽/чел/мес</li>
+                {pricingScaleRows(monthly.priceRub).map((row) => (
+                  <li key={row.range}>
+                    {row.range}: {row.price}
+                  </li>
+                ))}
               </ul>
+              <p className="mt-2">
+                Например, {exampleEmployees} сотрудников:{" "}
+                {example.baseRub.toLocaleString("ru-RU")} +{" "}
+                {example.extraEmployees} × {EXTRA_USER_PRICE_RUB} ={" "}
+                {example.monthlyRub.toLocaleString("ru-RU")} ₽/мес.
+              </p>
               {BILLING_TEST_MODE ? (
                 <p className="mt-3 text-[#3c4053]">
                   Пока сайт в тестовом режиме, суммы выше — справочные:

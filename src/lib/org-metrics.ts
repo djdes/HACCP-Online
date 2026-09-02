@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { calculatePerEmployeePrice } from "@/lib/per-employee-pricing";
+import { quoteSubscription } from "@/lib/subscription-pricing";
+import { fallbackTariffs, readTariff, TARIFF_MONTHLY } from "@/lib/tariffs";
 
 /**
  * Метрики по одной организации для ROOT-дашборда. Считаются по сырым
@@ -41,9 +42,10 @@ export type OrgMetrics = {
   weeklyTrendPct: number | null;
   /// Когда последний раз кто-то заполнял журнал. null = никогда.
   lastEntryAt: string | null;
-  /// Расчётный MRR — calculatePerEmployeePrice(activeUsers).monthlyRub.
-  /// Для trial считаем как «потенциальный MRR» (что было бы, если bы
-  /// заплатили за всех активных).
+  /// Расчётный MRR — quoteSubscription(activeUsers, цена тарифа).monthlyRub:
+  /// до 3 активных — 0, до 30 — одна подписка на команду, дальше
+  /// +100 ₽/мес за каждого сверх 30. Для trial это «потенциальный MRR»
+  /// (что было бы, если бы организация платила).
   potentialMrrRub: number;
   /// Реальный MRR — 0 для trial, иначе potentialMrrRub. Простая
   /// эвристика, потом заменим на честный billing.
@@ -170,6 +172,7 @@ export async function getAllOrgMetrics(
     lastDocByOrgRaw,
     lastLoginByOrgRaw,
     usersForOwner,
+    monthlyTariff,
   ] = await Promise.all([
     db.user.groupBy({
       by: ["organizationId"],
@@ -220,7 +223,13 @@ export async function getAllOrgMetrics(
         lastLoginAt: true,
       },
     }),
+    // Цена подписки — из БД, один раз на весь список: MRR считается по
+    // той же цифре, что видят клиенты на витрине. Снятый с продажи или
+    // недоступный тариф не должен ронять ROOT-дашборд — берём дефолт.
+    readTariff(TARIFF_MONTHLY).catch(() => null),
   ]);
+
+  const subscriptionMonthlyRub = (monthlyTariff ?? fallbackTariffs()[0]).priceRub;
 
   type OwnerRow = (typeof usersForOwner)[number];
   const ownerByOrg = new Map<string, OwnerRow>();
@@ -276,7 +285,7 @@ export async function getAllOrgMetrics(
 
     const owner = ownerByOrg.get(org.id);
 
-    const calc = calculatePerEmployeePrice(activeUsers);
+    const calc = quoteSubscription(activeUsers, subscriptionMonthlyRub);
     const isPaid =
       org.subscriptionPlan === "paid" || org.subscriptionPlan === "pro";
 

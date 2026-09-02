@@ -1,11 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
+  ArrowRight,
   Loader2,
+  Mail,
   MessageCircle,
   MessagesSquare,
+  Phone,
   Send,
   X,
 } from "lucide-react";
@@ -18,14 +28,15 @@ import { cn } from "@/lib/utils";
  *
  * Отличие ровно одно и оно определяет всю форму: у гостя нет профиля,
  * поэтому вместо шапки «под кем вы авторизованы» он сам оставляет телефон
- * и почту. Требуем хотя бы одно из двух — без контакта ответить некуда, а
- * заставлять заполнять оба поля значит терять половину обращений.
+ * и почту. Спрашиваем один раз, до выбора «чат или обратная связь»:
+ * без контакта ответить некуда, а заставлять заполнять оба поля значит
+ * терять половину обращений. Кто уже оставлял — попадает сразу в меню.
  *
  * Переписка привязана к случайному id в localStorage: вернувшись через
  * день, человек видит свою ветку, а не пустой чат.
  */
 
-type Screen = "menu" | "feedback" | "chat";
+type Screen = "contact" | "menu" | "feedback" | "chat";
 type FeedbackType = "bug" | "suggestion" | "partnership";
 
 const FEEDBACK_TYPES: Array<{ value: FeedbackType; label: string }> = [
@@ -33,6 +44,13 @@ const FEEDBACK_TYPES: Array<{ value: FeedbackType; label: string }> = [
   { value: "suggestion", label: "Улучшение" },
   { value: "partnership", label: "Сотрудничество" },
 ];
+
+const SCREEN_TITLES: Record<Screen, string> = {
+  contact: "Как с вами связаться?",
+  menu: "Связаться с нами",
+  feedback: "Обратная связь",
+  chat: "Онлайн-чат",
+};
 
 type ChatMessage = {
   id: string;
@@ -42,9 +60,21 @@ type ChatMessage = {
   createdAt: string;
 };
 
+type Contact = { email: string; phone: string };
+type ContactField = "phone" | "email";
+type ContactError = { message: string; fields: ContactField[] };
+
 const GUEST_KEY = "wesetup.support-guest-id";
 const CONTACT_KEY = "wesetup.support-contact";
 const CHAT_POLL_MS = 10_000;
+/** Пульс вокруг пузыря гаснет сам: навязчивая анимация раздражает сильнее, чем зовёт. */
+const ATTENTION_MS = 4_000;
+const EMAIL_RE = /^\S+@\S+\.\S+$/;
+
+const INPUT_CLASS =
+  "h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] transition-colors focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15";
+const INVALID_INPUT_CLASS =
+  "border-[#a13a32] focus:border-[#a13a32] focus:ring-[#a13a32]/15";
 
 /** id гостя переживает перезагрузку — иначе ветка теряется на F5. */
 function readGuestId(): string {
@@ -60,12 +90,71 @@ function readGuestId(): string {
   }
 }
 
+/** Контакт из прошлого визита; битую или пустую запись считаем отсутствием. */
+function readSavedContact(): Contact | null {
+  try {
+    const raw = localStorage.getItem(CONTACT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { email?: unknown; phone?: unknown };
+    const email = typeof parsed.email === "string" ? parsed.email.trim() : "";
+    const phone = typeof parsed.phone === "string" ? parsed.phone.trim() : "";
+    return email || phone ? { email, phone } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Проверяем мягко: хватит одного контакта, лишь бы по нему можно было ответить. */
+function validateContact({ phone, email }: Contact): ContactError | null {
+  if (!phone && !email) {
+    return {
+      message: "Оставьте телефон или почту — иначе некуда ответить",
+      fields: ["phone", "email"],
+    };
+  }
+  const fields: ContactField[] = [];
+  if (phone && phone.replace(/\D/g, "").length < 10) fields.push("phone");
+  if (email && !EMAIL_RE.test(email)) fields.push("email");
+  if (fields.length === 0) return null;
+  const message =
+    fields.length === 2
+      ? "Проверьте телефон и почту: в номере не меньше 10 цифр, в адресе — @ и домен"
+      : fields[0] === "phone"
+        ? "В телефоне должно быть не меньше 10 цифр"
+        : "Похоже, в адресе почты опечатка";
+  return { message, fields };
+}
+
+/**
+ * Виджет живёт в футере, а у футера на лендинге при появлении стоит
+ * transform/filter — для `position: fixed` это становится containing
+ * block, и пузырь уезжал в самый низ страницы. Поэтому рендерим в body.
+ */
 export function PublicSupportWidget() {
+  // На сервере и при гидрации — null, после — портал в body.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  if (!mounted) return null;
+  return createPortal(<SupportWidgetBody />, document.body);
+}
+
+function SupportWidgetBody() {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("menu");
+  /// Пульс у закрытого пузыря: до первого открытия или пока не истёк таймер.
+  const [attention, setAttention] = useState(true);
 
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  /// Подтверждённый контакт — по нему решаем, пускать ли сразу в меню.
+  const [saved, setSaved] = useState<Contact | null>(null);
+  const [contactError, setContactError] = useState<ContactError | null>(null);
+  /// Куда вернуть после экрана контакта: обычно в меню, но если контакт
+  /// потерялся посреди отправки — обратно на ту же форму.
+  const afterContact = useRef<Screen>("menu");
   /// Ловушка для ботов: поле спрятано от человека, но не от автозаполнялки.
   const [company, setCompany] = useState("");
 
@@ -78,29 +167,102 @@ export function PublicSupportWidget() {
   const [draft, setDraft] = useState("");
   const guestId = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const phoneRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!open || guestId.current) return;
-    guestId.current = readGuestId();
-    try {
-      const saved = localStorage.getItem(CONTACT_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as { email?: string; phone?: string };
-        setEmail((value) => value || parsed.email || "");
-        setPhone((value) => value || parsed.phone || "");
-      }
-    } catch {
-      /* контакты не восстановились — спросим заново */
-    }
-  }, [open]);
+    if (!attention) return;
+    const timer = setTimeout(() => setAttention(false), ATTENTION_MS);
+    return () => clearTimeout(timer);
+  }, [attention]);
 
-  const rememberContact = useCallback(() => {
+  const rememberContact = useCallback((next: Contact) => {
+    setSaved(next);
     try {
-      localStorage.setItem(CONTACT_KEY, JSON.stringify({ email, phone }));
+      localStorage.setItem(CONTACT_KEY, JSON.stringify(next));
     } catch {
       /* приватный режим — просто не запоминаем */
     }
-  }, [email, phone]);
+  }, []);
+
+  /** Контакт спрашиваем до меню: кто уже оставлял — сразу к кнопкам. */
+  function openWidget() {
+    setAttention(false);
+    if (!guestId.current) guestId.current = readGuestId();
+    let known = saved;
+    if (!known) {
+      known = readSavedContact();
+      if (known) {
+        setSaved(known);
+        setEmail(known.email);
+        setPhone(known.phone);
+      }
+    }
+    afterContact.current = "menu";
+    setScreen(known ? "menu" : "contact");
+    setOpen(true);
+  }
+
+  /** Незавершённую правку контакта откатываем к сохранённому. */
+  const restoreContact = useCallback(() => {
+    setContactError(null);
+    if (!saved) return;
+    setEmail(saved.email);
+    setPhone(saved.phone);
+  }, [saved]);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setSent(false);
+    if (screen === "contact") restoreContact();
+  }, [screen, restoreContact]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, close]);
+
+  useEffect(() => {
+    if (!open || screen !== "contact") return;
+    // Автофокус только с мышью: на телефоне клавиатура сразу закрыла бы полкарточки.
+    if (window.matchMedia("(pointer: fine)").matches) phoneRef.current?.focus();
+  }, [open, screen]);
+
+  function backToMenu() {
+    if (screen === "contact") restoreContact();
+    setSent(false);
+    setScreen("menu");
+  }
+
+  function editContact() {
+    setContactError(null);
+    afterContact.current = "menu";
+    setScreen("contact");
+  }
+
+  function submitContact() {
+    const next = { phone: phone.trim(), email: email.trim() };
+    const problem = validateContact(next);
+    if (problem) {
+      setContactError(problem);
+      return;
+    }
+    setPhone(next.phone);
+    setEmail(next.email);
+    setContactError(null);
+    rememberContact(next);
+    setScreen(afterContact.current);
+    afterContact.current = "menu";
+  }
+
+  /** Контакт потерялся посреди отправки — не тост, а обратно к вопросу. */
+  function requireContact(from: Screen) {
+    afterContact.current = from;
+    setScreen("contact");
+  }
 
   const loadChat = useCallback(async () => {
     if (!guestId.current) return;
@@ -129,12 +291,6 @@ export function PublicSupportWidget() {
     if (screen === "chat") bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages, screen]);
 
-  function close() {
-    setOpen(false);
-    setScreen("menu");
-    setSent(false);
-  }
-
   const hasContact = email.trim().length > 0 || phone.trim().length > 0;
 
   async function sendFeedback() {
@@ -147,7 +303,7 @@ export function PublicSupportWidget() {
       return;
     }
     if (!hasContact) {
-      toast.error("Оставьте телефон или почту — иначе некуда ответить");
+      requireContact("feedback");
       return;
     }
     setBusy(true);
@@ -159,7 +315,7 @@ export function PublicSupportWidget() {
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) throw new Error(data?.error ?? "Не удалось отправить");
-      rememberContact();
+      rememberContact({ email, phone });
       setSent(true);
       setMessage("");
       setType("");
@@ -174,7 +330,7 @@ export function PublicSupportWidget() {
     const body = draft.trim();
     if (body.length < 2) return;
     if (!hasContact) {
-      toast.error("Оставьте телефон или почту — иначе некуда ответить");
+      requireContact("chat");
       return;
     }
     setBusy(true);
@@ -195,7 +351,7 @@ export function PublicSupportWidget() {
       if (!response.ok || !data?.message) {
         throw new Error(data?.error ?? "Не удалось отправить сообщение");
       }
-      rememberContact();
+      rememberContact({ email, phone });
       setMessages((current) => [...(current ?? []), data.message]);
     } catch (error) {
       setDraft(body);
@@ -205,50 +361,41 @@ export function PublicSupportWidget() {
     }
   }
 
-  /** Телефон и почта — одинаковая пара на обоих экранах. */
-  const contactFields = (
-    <div className="relative grid gap-2 sm:grid-cols-2">
-      <input
-        type="tel"
-        value={phone}
-        onChange={(event) => setPhone(event.target.value)}
-        placeholder="Телефон"
-        autoComplete="tel"
-        inputMode="tel"
-        className="h-11 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-      />
-      <input
-        type="email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        placeholder="E-mail"
-        autoComplete="email"
-        inputMode="email"
-        className="h-11 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-      />
-      {/* Ловушка: скрыта от человека, видна автозаполнялке бота. */}
-      <input
-        type="text"
-        value={company}
-        onChange={(event) => setCompany(event.target.value)}
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-        className="pointer-events-none absolute left-[-9999px] size-0 opacity-0"
-      />
-    </div>
+  /** Ловушка: скрыта от человека, видна автозаполнялке бота. Родитель — relative. */
+  const honeypot = (
+    <input
+      type="text"
+      value={company}
+      onChange={(event) => setCompany(event.target.value)}
+      tabIndex={-1}
+      autoComplete="off"
+      aria-hidden="true"
+      className="pointer-events-none absolute left-[-9999px] size-0 opacity-0"
+    />
   );
+
+  const savedLabel = saved
+    ? [saved.phone, saved.email].filter(Boolean).join(" и ")
+    : "";
+  const phoneInvalid = contactError?.fields.includes("phone") ?? false;
+  const emailInvalid = contactError?.fields.includes("email") ?? false;
 
   if (!open) {
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-30 flex h-12 items-center gap-2 rounded-full bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_16px_40px_-16px_rgba(85,102,246,0.75)] transition-all hover:-translate-y-0.5 hover:bg-[#4a5bf0]"
+        onClick={openWidget}
+        className="fixed bottom-5 right-5 z-30 flex size-12 items-center justify-center rounded-full bg-[#5566f6] text-white shadow-[0_14px_30px_-10px_rgba(85,102,246,0.6)] ring-1 ring-white/25 transition-all duration-200 hover:scale-105 hover:bg-[#4a5bf0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/25"
         aria-label="Связаться с нами"
+        title="Написать нам"
       >
-        <MessageCircle className="size-4" />
-        Связаться
+        {attention ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-full bg-[#5566f6] opacity-40 motion-safe:animate-ping"
+          />
+        ) : null}
+        <MessageCircle className="relative size-5" />
       </button>
     );
   }
@@ -257,13 +404,11 @@ export function PublicSupportWidget() {
     <div className="fixed bottom-5 right-5 z-40 flex max-h-[min(640px,calc(100vh-2.5rem))] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef0f6] px-5 py-4">
         <div className="min-w-0">
-          {screen !== "menu" ? (
+          {/* На первом вопросе о контакте возвращаться некуда — меню ещё закрыто. */}
+          {screen !== "menu" && (screen !== "contact" || saved) ? (
             <button
               type="button"
-              onClick={() => {
-                setScreen("menu");
-                setSent(false);
-              }}
+              onClick={backToMenu}
               className="mb-1 inline-flex items-center gap-1 text-[12.5px] text-[#6f7282] transition-colors hover:text-[#3848c7]"
             >
               <ArrowLeft className="size-3.5" />
@@ -271,14 +416,12 @@ export function PublicSupportWidget() {
             </button>
           ) : null}
           <div className="text-[15px] font-semibold text-[#0b1024]">
-            {screen === "feedback"
-              ? "Обратная связь"
-              : screen === "chat"
-                ? "Онлайн-чат"
-                : "Связаться с нами"}
+            {SCREEN_TITLES[screen]}
           </div>
           <div className="mt-1 text-[12px] leading-snug text-[#6f7282]">
-            Отвечаем в рабочие часы, обычно в течение дня
+            {screen === "contact"
+              ? "Оставьте телефон или почту — ответим туда, даже если вы закроете сайт."
+              : "Отвечаем в рабочие часы, обычно в течение дня"}
           </div>
         </div>
         <button
@@ -291,8 +434,90 @@ export function PublicSupportWidget() {
         </button>
       </div>
 
+      {screen === "contact" ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitContact();
+          }}
+          className="relative space-y-3 overflow-y-auto px-5 py-4"
+        >
+          <div className="space-y-2">
+            <input
+              ref={phoneRef}
+              type="tel"
+              value={phone}
+              onChange={(event) => {
+                setPhone(event.target.value);
+                setContactError(null);
+              }}
+              placeholder="Телефон"
+              aria-label="Телефон"
+              aria-invalid={phoneInvalid || undefined}
+              autoComplete="tel"
+              inputMode="tel"
+              className={cn(INPUT_CLASS, phoneInvalid && INVALID_INPUT_CLASS)}
+            />
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setContactError(null);
+              }}
+              placeholder="E-mail"
+              aria-label="E-mail"
+              aria-invalid={emailInvalid || undefined}
+              autoComplete="email"
+              inputMode="email"
+              className={cn(INPUT_CLASS, emailInvalid && INVALID_INPUT_CLASS)}
+            />
+            {honeypot}
+          </div>
+          {contactError ? (
+            <p role="alert" className="text-[13px] leading-snug text-[#a13a32]">
+              {contactError.message}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
+          >
+            Продолжить
+            <ArrowRight className="size-4" />
+          </button>
+          <p className="text-[12px] leading-snug text-[#9b9fb3]">
+            Достаточно одного поля. Ничего, кроме ответа, по нему не придёт.
+          </p>
+        </form>
+      ) : null}
+
       {screen === "menu" ? (
         <div className="space-y-2 p-5">
+          {/* Куда ответим — видно до выбора, чтобы опечатку поймали ещё здесь. */}
+          {saved ? (
+            <div className="mb-3 flex items-center gap-2 rounded-2xl bg-[#f5f6ff] px-3.5 py-2.5 text-[12.5px] text-[#3c4053]">
+              {saved.phone ? (
+                <Phone className="size-3.5 shrink-0 text-[#5566f6]" />
+              ) : (
+                <Mail className="size-3.5 shrink-0 text-[#5566f6]" />
+              )}
+              <span className="min-w-0 flex-1 truncate">
+                Ответим на{" "}
+                <span className="font-medium text-[#0b1024]">{savedLabel}</span>
+              </span>
+              <span aria-hidden="true" className="text-[#9b9fb3]">
+                ·
+              </span>
+              <button
+                type="button"
+                onClick={editContact}
+                className="shrink-0 font-medium text-[#3848c7] transition-colors hover:text-[#5566f6]"
+              >
+                Изменить
+              </button>
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={() => setScreen("feedback")}
@@ -346,7 +571,7 @@ export function PublicSupportWidget() {
             </button>
           </div>
         ) : (
-          <div className="space-y-4 overflow-y-auto px-5 py-4">
+          <div className="relative space-y-4 overflow-y-auto px-5 py-4">
             <div className="space-y-2">
               <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
                 Тип обращения
@@ -376,15 +601,7 @@ export function PublicSupportWidget() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-                Куда ответить
-              </div>
-              {contactFields}
-              <p className="text-[12px] text-[#9b9fb3]">
-                Достаточно одного поля.
-              </p>
-            </div>
+            {honeypot}
 
             <textarea
               value={message}
@@ -409,15 +626,6 @@ export function PublicSupportWidget() {
 
       {screen === "chat" ? (
         <>
-          {!hasContact ? (
-            <div className="shrink-0 space-y-2 border-b border-[#eef0f6] px-5 py-4">
-              <div className="text-[12.5px] leading-snug text-[#6f7282]">
-                Оставьте контакт — если разговор прервётся, ответим по нему.
-              </div>
-              {contactFields}
-            </div>
-          ) : null}
-
           <div className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
             {messages === null ? (
               <div className="flex items-center gap-2 text-[13px] text-[#9b9fb3]">

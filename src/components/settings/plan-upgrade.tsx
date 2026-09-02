@@ -11,8 +11,10 @@ import {
 import { cn } from "@/lib/utils";
 import { PricingCalculator } from "@/components/public/pricing-calculator";
 import {
+  EXTRA_USER_PRICE_RUB,
   LARGE_TEAM_NOTE,
   PLAN_CATALOG,
+  SUBSCRIPTION_MAX_USERS,
   catalogPlanIdFor,
   type CatalogPlanId,
 } from "@/lib/plan-catalog";
@@ -59,6 +61,13 @@ export function PlanUpgrade({
 
   const currentId: CatalogPlanId = catalogPlanIdFor(currentPlan);
   const seatsLeft = Math.max(0, freeUserLimit - activeUsers);
+  // На платном тарифе лимита «нет» только до SUBSCRIPTION_MAX_USERS —
+  // дальше доплата, и в шапке это должно быть видно.
+  const extraUsers = Math.max(0, activeUsers - SUBSCRIPTION_MAX_USERS);
+  const paidSummary =
+    extraUsers > 0
+      ? `${activeUsers} сотрудников · +${EXTRA_USER_PRICE_RUB} ₽/мес за каждого сверх ${SUBSCRIPTION_MAX_USERS}`
+      : `${activeUsers}/${SUBSCRIPTION_MAX_USERS} сотрудников в подписке`;
 
   return (
     <section className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
@@ -71,7 +80,7 @@ export function PlanUpgrade({
             <Users className="size-3.5" />
             {currentId === "free"
               ? `${activeUsers}/${freeUserLimit} сотрудников · свободно мест: ${seatsLeft}`
-              : `${activeUsers} сотрудников · без лимита`}
+              : paidSummary}
           </p>
         </div>
         {billingTestMode ? (
@@ -212,9 +221,9 @@ export function PlanUpgrade({
         </div>
       ) : null}
 
-      {/* Команды больше 50 человек считаем индивидуально: тариф с
-          фиксированной ценой на них не рассчитан, а молчать об этом
-          нельзя — человек оплатит и упрётся в лимит. */}
+      {/* Сверх лимита подписки — фиксированная доплата за сотрудника;
+          места сверх лимита оформляются через поддержку, поэтому рядом
+          кнопка связи. Молчать нельзя — человек оплатит и упрётся в лимит. */}
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3">
         <span className="text-[13px] text-[#3c4053]">{LARGE_TEAM_NOTE}</span>
         <a
