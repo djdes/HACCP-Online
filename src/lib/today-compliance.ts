@@ -242,7 +242,7 @@ const STRICT_COMPLETENESS_CODES = new Set(["hygiene", "health_check"]);
  * null if the template isn't recognized — callers then fall back to
  * the entry-based rollup or treat the template as aperiodic.
  */
-function rollupConfigDocumentForDay(
+export function rollupConfigDocumentForDay(
   templateCode: string,
   config: unknown,
   todayKey: string
@@ -259,17 +259,27 @@ function rollupConfigDocumentForDay(
       cfg.matrix && typeof cfg.matrix === "object"
         ? (cfg.matrix as Record<string, Record<string, unknown>>)
         : {};
-    const rooms = Array.isArray(cfg.rooms) ? cfg.rooms : [];
-    let todayCount = 0;
-    for (const room of rooms) {
+    // Room-first документы (cleaningMode "rooms") держат список помещений
+    // в `selectedRoomIds`, а `rooms` у них пустой — без этого такой
+    // журнал никогда не становился «заполнен сегодня».
+    const roomIds = new Set<string>();
+    for (const room of Array.isArray(cfg.rooms) ? cfg.rooms : []) {
       const roomId = (room as { id?: string })?.id;
-      if (!roomId) continue;
+      if (roomId) roomIds.add(roomId);
+    }
+    if (cfg.cleaningMode === "rooms" && Array.isArray(cfg.selectedRoomIds)) {
+      for (const id of cfg.selectedRoomIds) {
+        if (typeof id === "string" && id) roomIds.add(id);
+      }
+    }
+    let todayCount = 0;
+    for (const roomId of roomIds) {
       const cell = matrix[roomId]?.[todayKey];
       if (cell !== undefined && cell !== "" && cell !== null) {
         todayCount += 1;
       }
     }
-    const expectedCount = rooms.length;
+    const expectedCount = roomIds.size;
     if (expectedCount === 0) {
       return { todayCount, expectedCount: 0, filled: todayCount > 0 };
     }

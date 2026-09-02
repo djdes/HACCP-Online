@@ -1,7 +1,13 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { computeAutoJournalCodes, getOnboardingPreset } from "@/lib/onboarding-presets";
-import { sphereToPreset } from "@/lib/org-profile";
+import {
+  ALL_JOURNAL_CODES,
+  computeAutoJournalCodes,
+  computeDisabledJournalCodes,
+  getOnboardingPreset,
+} from "@/lib/onboarding-presets";
+import { normalizeSphere, sphereToPreset } from "@/lib/org-profile";
+import { paperJournalsFor } from "@/lib/sphere-journal-rules";
 import { createOrganization } from "@/lib/create-organization";
 import {
   DEMO_ORG_TTL_DAYS,
@@ -9,6 +15,13 @@ import {
   demoOrgName,
 } from "@/lib/demo-organization.shared";
 import { getDemoRoster, type DemoPerson } from "@/lib/demo-organization-roster";
+import {
+  buildDemoJournalSeed,
+  buildPaperJournalRows,
+  paperJournalInstructor,
+  paperJournalTitle,
+  type DemoJournalContext,
+} from "@/lib/demo-organization-journals";
 import { ensureActiveDocument } from "@/lib/journal-auto-create";
 import {
   buildDateKeys,
@@ -32,7 +45,7 @@ import {
 import {
   DEFAULT_EQUIPMENT_TYPES,
   DEFAULT_FAT_TYPES,
-  DEFAULT_PRODUCT_TYPES,
+  DEFAULT_QUALITY_PHRASES,
   type FryerOilEntryData,
 } from "@/lib/fryer-oil-document";
 import {
@@ -171,6 +184,7 @@ export async function seedDemoOrganizationData(input: {
   const windowKeys = buildDateKeys(windowStart, today);
   /** Ключ дня «k дней назад» (0 = сегодня); undefined если окно короче. */
   const ago = (k: number): string | undefined => windowKeys[windowKeys.length - 1 - k];
+  const pastKeys = windowKeys.slice(0, -1);
 
   // 1. Должности — только те, что заняты в ростере. Пустые должности в
   // демо лишь шумят в /settings/users и в выборе ответственных.
@@ -237,6 +251,20 @@ export async function seedDemoOrganizationData(input: {
     manager;
   const cleaner = people.find((p) => p.position === "Уборщик") ?? people[people.length - 1];
   const chef = people.find((p) => p.role === "head_chef") ?? technologist;
+  // Роли для «редких» журналов. В сферах без поваров/кладовщиков
+  // (пекарня, производство) — любой линейный сотрудник, лишь бы не тот же
+  // человек: unique (документ, сотрудник, день) не пустит две записи.
+  const lineStaff = people.filter((p) => p.role === "cook" && p.id !== cleaner.id);
+  const cook =
+    people.find((p) => /^Повар/.test(p.position) && p.role === "cook") ?? lineStaff[0] ?? chef;
+  const storekeeper =
+    people.find((p) => p.position === "Кладовщик") ??
+    lineStaff.find((p) => p.id !== cook.id) ??
+    technologist;
+  const dishwasher =
+    people.find((p) => p.position === "Посудомойщик") ??
+    lineStaff.find((p) => p.id !== cook.id && p.id !== storekeeper.id) ??
+    cleaner;
 
   // 3. Здание, помещения, цеха и холодильники — ДО документов: журнал
   // уборки строится из Room, холодильный — из Equipment, климат — из Area.
@@ -280,9 +308,22 @@ export async function seedDemoOrganizationData(input: {
   // начинается 1-го или 16-го; если окно истории длиннее — сдвигаем
   // начало, чтобы прошлые дни были внутри документа, а не «до него».
   const absences = planAbsences(people, windowKeys);
+  const organization = await db.organization.findUnique({
+    where: { id: orgId },
+    select: { name: true },
+  });
+  const organizationName = organization?.name ?? demoOrgName(input.sphere);
+  // Все журналы пресета, не только ежедневные: демо показывает, как
+  // выглядят приёмка, бракераж, аудиты и акты «в работе». Порядок — как
+  // в ALL_JOURNAL_CODES, чтобы /journals читался сверху вниз.
+  const disabled = new Set(computeDisabledJournalCodes(preset));
+  const presetCodes = new Set(preset.positions.flatMap((p) => p.journalCodes));
+  const enabledCodes = ALL_JOURNAL_CODES.filter(
+    (code) => presetCodes.has(code) && !disabled.has(code),
+  );
   let documentsCreated = 0;
   let entriesCreated = 0;
-  for (const code of computeAutoJournalCodes(preset)) {
+  for (const code of enabledCodes) {
     const report = await ensureActiveDocument(db, {
       organizationId: orgId,
       templateCode: code,
@@ -331,13 +372,15 @@ export async function seedDemoOrganizationData(input: {
         rows = buildClimateRows(doc.id, doc.config, windowKeys, responsible, ago);
         break;
       case "fryer_oil":
-        rows = buildFryerRows(doc.id, windowKeys, chef, ago);
+        rows = buildFryerRows(doc.id, windowKeys, chef, cook, ago);
         break;
+      // Два журнала намеренно без сегодняшней записи — чтобы на /journals
+      // было видно, как выглядит «ещё не заполнено», а не только зелёное.
       case "cleaning_ventilation_checklist":
-        rows = buildVentilationRows(doc.id, doc.config, windowKeys, people, cleaner);
+        rows = buildVentilationRows(doc.id, doc.config, pastKeys, people, cleaner);
         break;
       case "uv_lamp_runtime":
-        rows = buildUvRows(doc.id, doc.config, windowKeys, responsible);
+        rows = buildUvRows(doc.id, doc.config, pastKeys, responsible);
         break;
       case "cleaning":
         config = await buildCleaningConfig(orgId, doc.config, windowKeys, todayKey, ago);
@@ -351,8 +394,29 @@ export async function seedDemoOrganizationData(input: {
       case "disinfectant_usage":
         config = buildDisinfectantConfig(doc.config, windowKeys, technologist);
         break;
-      default:
+      default: {
+        const seed = buildDemoJournalSeed(code, {
+          documentId: doc.id,
+          rawConfig: doc.config,
+          docDateFrom: doc.dateFrom,
+          windowKeys,
+          todayKey,
+          ago,
+          people,
+          manager,
+          technologist,
+          chef,
+          cleaner,
+          cook,
+          storekeeper,
+          dishwasher,
+          roster,
+          organizationName,
+        } satisfies DemoJournalContext);
+        if (seed?.rows) rows = seed.rows;
+        if (seed?.config !== undefined) config = seed.config;
         break;
+      }
     }
 
     if (rows) {
@@ -372,6 +436,24 @@ export async function seedDemoOrganizationData(input: {
     if (Object.keys(docUpdate).length > 0) {
       await db.journalDocument.update({ where: { id: doc.id }, data: docUpdate });
     }
+  }
+
+  // 5. Бумажные журналы сферы (инструктажи, огнетушители) — по одному
+  // активному документу с заполненными строками, подписи пустые: их
+  // ставят ручкой, электронная копия — для сроков и печати.
+  const paperCtx = { people, manager, technologist, chef, todayKey, ago, roster };
+  for (const journal of paperJournalsFor(normalizeSphere(input.sphere))) {
+    await db.paperJournalDocument.create({
+      data: {
+        organizationId: orgId,
+        journalId: journal.id,
+        title: paperJournalTitle(journal, todayKey),
+        rows: json(buildPaperJournalRows(journal, paperCtx)),
+        responsible: paperJournalInstructor(journal, paperCtx).name,
+        createdById: input.createdById,
+      },
+    });
+    documentsCreated += 1;
   }
 
   return {
@@ -563,38 +645,108 @@ function buildClimateRows(
   return rows;
 }
 
+/**
+ * Фритюр: две фритюрницы, у каждой своя жизнь масла. №1 (шеф) — на
+ * пальмовом, масло служит ~4 дня и меняется по горькому привкусу;
+ * №2 (повар) — на подсолнечном под картофель фри, меняется через день.
+ * Сегодня обе фритюрницы запущены, но смена ещё идёт — конец дня пуст.
+ * Unique (документ, сотрудник, день) — поэтому за каждой фритюрницей
+ * закреплён свой человек.
+ */
 function buildFryerRows(
   documentId: string,
   windowKeys: string[],
   chef: SeededPerson,
+  cook: SeededPerson,
   ago: (k: number) => string | undefined,
 ): EntryRow[] {
   const rows: EntryRow[] = [];
-  const badDay = ago(2);
-  windowKeys.forEach((dateKey, index) => {
-    const isBad = dateKey === badDay;
-    const afterBad = badDay !== undefined && dateKey === ago(1);
-    const data: FryerOilEntryData = {
-      startDate: dateKey,
-      startHour: 7,
-      startMinute: 30,
-      fatType: DEFAULT_FAT_TYPES[0],
-      qualityStart: 5,
-      qualityStartNote: afterBad ? "Свежее масло после замены" : "Прозрачное, без запаха",
-      equipmentType: DEFAULT_EQUIPMENT_TYPES[0],
-      productType: DEFAULT_PRODUCT_TYPES[index % DEFAULT_PRODUCT_TYPES.length],
-      endHour: 16,
-      endMinute: 0,
-      qualityEnd: isBad ? 2 : 4,
-      qualityEndNote: isBad
-        ? "Тёмный цвет, пена, прогорклый запах — масло слито и утилизировано, фритюрница промыта, залито свежее."
-        : "Светло-янтарное, без постороннего запаха",
-      carryoverKg: isBad ? 0 : 6,
-      disposedKg: isBad ? 8 : 0,
-      controllerName: chef.name,
-    };
-    rows.push({ documentId, employeeId: chef.id, date: new Date(dateKey), data: json(data) });
-  });
+  const todayKey = ago(0);
+  const [good, lightColor, amber, weakTaste, bitter] = DEFAULT_QUALITY_PHRASES;
+  const fryers: Array<{
+    equipment: string;
+    person: SeededPerson;
+    fat: string;
+    products: string[];
+    /** Через сколько дней масло меняют; последний день цикла — «к утилизации». */
+    cycleDays: number;
+    loadKg: number;
+    startHour: number;
+    endHour: number;
+  }> = [
+    {
+      equipment: DEFAULT_EQUIPMENT_TYPES[0],
+      person: chef,
+      fat: DEFAULT_FAT_TYPES[1],
+      products: ["Куриные крылышки", "Наггетсы", "Креветки в кляре", "Луковые кольца"],
+      cycleDays: 4,
+      loadKg: 10,
+      startHour: 10,
+      endHour: 22,
+    },
+    {
+      equipment: DEFAULT_EQUIPMENT_TYPES[1],
+      person: cook === chef ? chef : cook,
+      fat: DEFAULT_FAT_TYPES[0],
+      products: ["Картофель фри", "Сырные палочки", "Картофель фри"],
+      cycleDays: 2,
+      loadKg: 8,
+      startHour: 11,
+      endHour: 23,
+    },
+  ];
+  // Обе фритюрницы на одном человеке (сфера без поваров) — вторую не
+  // ведём, иначе unique-ключ отбросит половину строк.
+  const active = fryers[0].person.id === fryers[1].person.id ? fryers.slice(0, 1) : fryers;
+
+  for (const fryer of active) {
+    windowKeys.forEach((dateKey, index) => {
+      const dayInCycle = index % fryer.cycleDays; // 0 — свежее масло
+      const lastDay = dayInCycle === fryer.cycleDays - 1;
+      const isToday = dateKey === todayKey;
+      const fresh = dayInCycle === 0;
+      const qualityStart = fresh ? 5 : dayInCycle === 1 ? 4 : 3;
+      const qualityEnd = lastDay ? 2 : dayInCycle === 0 ? 4 : 3;
+      // Переходящий остаток — что осталось со вчера: продукт уносит
+      // ~1,5 кг в день. В день свежей закладки остатка нет, в последний
+      // день цикла остаток сливается целиком.
+      const carryoverKg = fresh ? 0 : fryer.loadKg - 1.5 * dayInCycle;
+      const disposedKg = lastDay ? Math.max(carryoverKg - 1.5, 1) : 0;
+      const data: FryerOilEntryData = {
+        startDate: dateKey,
+        startHour: fryer.startHour,
+        startMinute: fresh ? 0 : 30,
+        fatType: fryer.fat,
+        qualityStart,
+        qualityStartNote: fresh
+          ? `${good}. Залито свежее, ${fryer.loadKg} кг`
+          : dayInCycle === 1
+            ? lightColor
+            : weakTaste,
+        equipmentType: fryer.equipment,
+        productType: fryer.products[index % fryer.products.length],
+        endHour: isToday ? null : fryer.endHour,
+        endMinute: isToday ? null : 0,
+        qualityEnd: isToday ? null : qualityEnd,
+        qualityEndNote: isToday
+          ? ""
+          : lastDay
+            ? `${bitter}. Масло слито (${disposedKg} кг), ванна промыта, завтра — свежее.`
+            : dayInCycle === 0
+              ? amber
+              : weakTaste,
+        carryoverKg,
+        disposedKg: isToday ? 0 : disposedKg,
+        controllerName: chef.name,
+      };
+      rows.push({
+        documentId,
+        employeeId: fryer.person.id,
+        date: new Date(dateKey),
+        data: json(data),
+      });
+    });
+  }
   return rows;
 }
 
@@ -862,6 +1014,10 @@ export async function createDemoOrganization(input: {
       demoExpiresAt: demoExpiresAtFrom(now),
       // Ежедневные журналы продолжают заводиться cron'ом, как у ROOT-демо.
       autoJournalCodes: computeAutoJournalCodes(preset) as never,
+      // createOrganization включает только «обязательные по закону» для
+      // сферы; демо должно показать весь набор пресета, иначе половина
+      // заполненных журналов спрятана за «выключено».
+      disabledJournalCodes: computeDisabledJournalCodes(preset) as never,
     },
   });
 

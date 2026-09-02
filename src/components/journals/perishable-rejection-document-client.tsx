@@ -211,6 +211,10 @@ export function PerishableRejectionDocumentClient({
     }
   }
   const { mobileView, switchMobileView } = useMobileView("perishable_rejection");
+  // Объявлено до cardItems: карточки читают selectedRows при рендере,
+  // а `const` в TDZ падал «Cannot access before initialization» на любом
+  // документе с хотя бы одной строкой.
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
     id: row.id,
@@ -244,7 +248,6 @@ export function PerishableRejectionDocumentClient({
       { label: "Примечание", value: row.note, hideIfEmpty: true },
     ],
   }));
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [listModalOpen, setListModalOpen] = useState(false);
   const [activeListSection, setActiveListSection] = useState<

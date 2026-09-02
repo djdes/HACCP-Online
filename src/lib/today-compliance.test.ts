@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { resolveDayStart } from "./today-compliance";
+import { resolveDayStart, rollupConfigDocumentForDay } from "./today-compliance";
 
 /**
  * Граница суток в статусе «заполнено сегодня».
@@ -46,4 +46,19 @@ test("пустая зона — откат на Москву, а не паден
     resolveDayStart(null, now).toISOString(),
     "2026-08-29T00:00:00.000Z",
   );
+});
+
+test("cleaning rooms-mode: помещения берутся из selectedRoomIds", () => {
+  const config = {
+    cleaningMode: "rooms",
+    rooms: [],
+    selectedRoomIds: ["r1", "r2"],
+    matrix: { r1: { "2026-09-02": "T" }, r2: { "2026-09-02": "G" } },
+  };
+  assert.deepEqual(rollupConfigDocumentForDay("cleaning", config, "2026-09-02"), {
+    todayCount: 2,
+    expectedCount: 2,
+    filled: true,
+  });
+  assert.equal(rollupConfigDocumentForDay("cleaning", config, "2026-09-03")?.filled, false);
 });
