@@ -8,6 +8,7 @@ import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
 import { MiniTour } from "./_components/mini-tour";
+import { SanpinChatWidget } from "@/components/ai/sanpin-chat-widget";
 import {
   MiniThemeBootstrap,
   MiniThemeProvider,
@@ -127,6 +128,10 @@ export default async function MiniLayout({
             <OfflineIndicator />
             <MiniNav />
             <MiniTour />
+            {/* AI помощник и в Mini App (П-3: зеркало сайта). FAB поднят
+                над нижней навигацией. Показываем только авторизованным —
+                до Telegram-входа API всё равно ответит 401. */}
+            {session?.user ? <SanpinChatWidget bottomOffset={96} /> : null}
           </div>
         </MiniThemeProvider>
       </MiniSessionProvider>

@@ -1,32 +1,41 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
-import { requireApiAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { aiChatRateLimiter } from "@/lib/rate-limit";
+import { db } from "@/lib/db";
+import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
+import {
+  buildChatJobText,
+  parseAssistantReply,
+  pathnameSchema,
+} from "@/lib/ai-assistant/job-text";
+import {
+  prepareAction,
+  verifyAndExecuteAction,
+  type ActionActor,
+} from "@/lib/ai-assistant/actions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Диспетчер отвечает 10–60 секунд; long-poll живёт в этом же запросе.
+export const maxDuration = 120;
 
 /**
  * POST /api/ai/sanpin-chat
  *
+ * AI-помощник: СанПиН/ХАССП + контекст страницы + данные организации +
+ * действия с подтверждением.
+ *
+ * Сайт к языковой модели НЕ ходит (Anthropic-ключа на проде нет).
+ * Каждый вопрос — задание в невидимой очереди ProjectsFlow
+ * `ai-prompt-jobs` (mode "assistant", карточек на доске не создаёт);
+ * отвечает диспетчерская сессия Claude Code. См. `src/lib/ai-assistant/`.
+ *
  * Body:
- *   { messages: [{ role: "user" | "assistant", content: string }, ...] }
- *
- * Возвращает streaming-ответ Claude'а с system-prompt'ом, в котором
- * ai играет роль эксперта по СанПиН/ХАССП.
- *
- * Что отличает этого помощника от generic-чата:
- *   - Глубокая «контекстная закладка» в system: какие нормативы РФ
- *     релевантны, как структурировать ответы (ссылка на пункт ТР ТС
- *     021/2011, СанПиН 2.3/2.4.3590-20, СП 2.4.3648-20).
- *   - Refusal'ы: «не могу заменить юриста / технолога»; «уточняйте у
- *     своего технолога перед внедрением».
- *   - Краткость: ответ ≤ 200 слов по умолчанию, рабочему на кухне
- *     не нужны простыни текста.
- *
- * Не RAG — embeddings ТР ТС положим позже, сейчас подача через
- * system prompt и Claude общие знания.
+ *   { messages: [...], pathname?: string }            — обычный ход чата
+ *   { messages: [...], confirmAction: { token } }     — подтверждение
+ *     действия из карточки. Выполняется обычным серверным кодом (без AI
+ *     и без расхода квоты) с полным набором guard'ов.
  */
 const bodySchema = z.object({
   messages: z
@@ -38,37 +47,17 @@ const bodySchema = z.object({
     )
     .min(1)
     .max(20),
+  pathname: pathnameSchema.optional(),
+  confirmAction: z.object({ token: z.string().min(1).max(8000) }).optional(),
 });
-
-const SYSTEM_PROMPT = `Ты — AI-помощник в системе WeSetup (электронные журналы СанПиН и ХАССП для пищевых производств в РФ). Твоя задача — отвечать на вопросы технологов, шеф-поваров и менеджеров кафе, ресторанов, пекарен, мясокомбинатов о требованиях санитарных норм и ХАССП-плана.
-
-Ключевые российские нормативы, на которые ты ориентируешься:
-- ТР ТС 021/2011 «О безопасности пищевой продукции»
-- ТР ТС 022/2011 «Пищевая продукция в части её маркировки»
-- СанПиН 2.3/2.4.3590-20 (общественное питание, организации)
-- СП 2.4.3648-20 (детские, образовательные учреждения)
-- ГОСТ Р 51705.1-2001 (управление качеством, ХАССП)
-- СанПиН 1.2.3685-21 (гигиенические нормативы факторов среды)
-
-Правила ответа:
-1. КРАТКО — обычно 3–7 предложений. Если вопрос требует длинного ответа — сделай маркированный список.
-2. Если знаешь конкретный пункт нормативного документа — ссылайся («согласно п. 2.5 СанПиН 2.3/2.4.3590-20…»).
-3. Если вопрос юридически тонкий или требует решения собственника бизнеса — пометь это («это решение должен принимать ваш технолог / юрист»).
-4. Если не знаешь точно — скажи «не уверен», предложи проверить в Росстандарте / Роспотребнадзоре.
-5. Отвечай на русском, в дружелюбном-профессиональном тоне (на «вы»).
-6. Никогда не выдавай юридических заключений. Никогда не говори «это законно» / «это незаконно» — только «согласно нормативу X требуется Y».
-
-Примеры хороших ответов:
-- «Какая температура должна быть в холодильнике для готовых блюд?» → «Согласно п. 4.5 СанПиН 2.3/2.4.3590-20, готовая продукция и сырьё должны храниться раздельно при +2…+6 °C. Замер фиксируется минимум 2 раза в смену в журнале контроля холодильного оборудования. Рекомендую вести замер каждые 4 часа на проблемных холодильниках.»
-- «Как часто менять масло во фритюре?» → «Жёсткой нормы по часам нет. ХАССП требует контроля по визуальным критериям (потемнение, дымление, пенообразование) и/или по показаниям полярных соединений (norm: ≤ 25%). На практике большинство ресторанов меняют каждые 1–3 смены. Журнал контроля фритюра должен фиксировать каждый замер.»`;
 
 export async function POST(request: Request) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
 
-  // Per-user rate limit: 10 запросов в минуту. Защищает от спама
-  // и сильного перерасхода токенов одним юзером (например, скрипт
-  // в цикле). Месячный quota по org остался отдельно.
+  // Per-user rate limit: 10 запросов в минуту. Защищает от спама и
+  // от расхода очереди диспетчера одним юзером. Месячная quota по org —
+  // отдельно ниже.
   if (!aiChatRateLimiter.consume(`user:${auth.session.user.id}`)) {
     return NextResponse.json(
       {
@@ -82,25 +71,41 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "AI-помощник недоступен (ANTHROPIC_API_KEY не настроен)" },
-      { status: 503 }
-    );
+  let parsed;
+  try {
+    parsed = bodySchema.parse(await request.json());
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: err.issues[0]?.message ?? "Bad body" },
+        { status: 400 }
+      );
+    }
+    throw err;
   }
 
-  // Free-tier rate-limit: проверяем aiMonthlyMessagesLeft на org.
-  // -1 = unlimited (Pro tier), 0 — отказ + upgrade-CTA.
-  //
-  // КРИТИЧНО: декремент атомарный (updateMany с условием > 0) чтобы
-  // не было race-condition: раньше «прочитали → call Anthropic →
-  // decrement» допускал ситуацию когда два concurrent-запроса оба
-  // прошли проверку с left=1, оба декрементировали → DB становилась
-  // -1, а -1 = unlimited по нашей семантике. Org получала бесплатный
-  // безлимит.
-  const { db } = await import("@/lib/db");
-  const { getActiveOrgId } = await import("@/lib/auth-helpers");
   const orgId = getActiveOrgId(auth.session);
+  const actor: ActionActor = {
+    id: auth.session.user.id,
+    role: auth.session.user.role,
+    isRoot: auth.session.user.isRoot === true,
+    name: auth.session.user.name ?? null,
+  };
+
+  // --- Подтверждение действия: без AI и без квоты. --------------------
+  if (parsed.confirmAction) {
+    const result = await verifyAndExecuteAction(parsed.confirmAction.token, {
+      orgId,
+      actor,
+    });
+    return NextResponse.json({ actionResult: result });
+  }
+
+  // --- Обычный ход чата. ----------------------------------------------
+  // Free-tier quota: aiMonthlyMessagesLeft на org. -1 = unlimited.
+  // Декремент атомарный (updateMany с условием > 0), иначе два
+  // concurrent-запроса с left=1 загнали бы счётчик в -1 = «бесплатный
+  // безлимит».
   const org = await db.organization.findUnique({
     where: { id: orgId },
     select: { aiMonthlyMessagesLeft: true, aiMonthlyQuota: true },
@@ -109,8 +114,6 @@ export async function POST(request: Request) {
   const isUnlimited = left < 0;
   let messagesLeft: number = isUnlimited ? -1 : 0;
   if (!isUnlimited) {
-    // Атомарный декремент только если > 0. Если строк не обновилось —
-    // квота исчерпана (либо параллельный запрос забрал последний токен).
     const updateResult = await db.organization.updateMany({
       where: { id: orgId, aiMonthlyMessagesLeft: { gt: 0 } },
       data: { aiMonthlyMessagesLeft: { decrement: 1 } },
@@ -128,84 +131,67 @@ export async function POST(request: Request) {
     messagesLeft = Math.max(0, left - 1);
   }
 
-  let parsed;
-  try {
-    parsed = bodySchema.parse(await request.json());
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: err.issues[0]?.message ?? "Bad body" },
-        { status: 400 }
-      );
-    }
-    throw err;
+  async function refundQuota() {
+    if (isUnlimited) return;
+    await db.organization
+      .update({
+        where: { id: orgId },
+        data: { aiMonthlyMessagesLeft: { increment: 1 } },
+      })
+      .catch((err) => console.warn("[sanpin-chat] quota refund failed", err));
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const question = parsed.messages[parsed.messages.length - 1];
+  const history = parsed.messages.slice(0, -1);
 
+  let jobText: string;
   try {
-    // Prompt caching: system-prompt у нас ~600 токенов и идентичен для
-    // всех юзеров. Anthropic кеширует его на 5 минут — повторные
-    // запросы одного и того же юзера или соседних работников в той же
-    // org стоят 10× дешевле на input-токенах ($0.08 vs $0.80 / 1M
-    // tokens для Haiku 4.5). Документация:
-    // https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching
-    //
-    // Передаём system как массив из одного блока с cache_control —
-    // первая часть (system) кешируется, messages всё равно меняются.
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 800,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: parsed.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
-
-    const textBlock = response.content.find((b) => b.type === "text");
-    const reply = textBlock && textBlock.type === "text" ? textBlock.text : "";
-
-    return NextResponse.json({
-      reply,
-      messagesLeft,
-      isUnlimited,
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        // Возвращаем cache-метрики если Anthropic SDK их выдал —
-        // полезно для отладки и observability.
-        cacheReadTokens:
-          (response.usage as { cache_read_input_tokens?: number })
-            .cache_read_input_tokens ?? 0,
-        cacheCreationTokens:
-          (response.usage as { cache_creation_input_tokens?: number })
-            .cache_creation_input_tokens ?? 0,
-      },
+    jobText = await buildChatJobText({
+      orgId,
+      userId: actor.id,
+      pathname: parsed.pathname,
+      history,
+      question: question.content,
     });
   } catch (err) {
-    console.error("[sanpin-chat] anthropic error", err);
-    // Refund квоты при ошибке Anthropic — пользователь не должен
-    // терять сообщение из-за того что у нас сломался upstream.
-    if (!isUnlimited) {
-      await db.organization
-        .update({
-          where: { id: orgId },
-          data: { aiMonthlyMessagesLeft: { increment: 1 } },
-        })
-        .catch((refundErr) =>
-          console.warn("[sanpin-chat] quota refund failed", refundErr)
-        );
-    }
+    console.error("[sanpin-chat] job text build failed", err);
+    await refundQuota();
     return NextResponse.json(
       { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 502 }
     );
   }
+
+  const result = await enqueueAndWait(jobText);
+  if (!result.ok) {
+    // Пользователь не должен терять сообщение из-за нашего upstream'а.
+    await refundQuota();
+    return NextResponse.json(
+      { error: result.error },
+      { status: result.code === "not_configured" ? 503 : 502 }
+    );
+  }
+
+  const { reply, action } = parseAssistantReply(result.text);
+
+  // Действие от исполнителя — недоверенный вход: валидация + резолв в
+  // превью-карточку. Невалидное действие не роняет ответ — просто нет
+  // карточки, а причина дописывается к reply.
+  let pendingAction = null;
+  let replyOut = reply || "(пустой ответ)";
+  if (action) {
+    const prepared = await prepareAction(action, { orgId, actor });
+    if (prepared.ok) {
+      pendingAction = prepared.preview;
+    } else {
+      replyOut = `${replyOut}\n\nНе удалось подготовить действие: ${prepared.error}`;
+    }
+  }
+
+  return NextResponse.json({
+    reply: replyOut,
+    pendingAction,
+    messagesLeft,
+    isUnlimited,
+  });
 }

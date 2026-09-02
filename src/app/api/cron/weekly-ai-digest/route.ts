@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
 import { checkCronSecret } from "@/lib/cron-auth";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { notifyOrganization } from "@/lib/telegram";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  * GET/POST /api/cron/weekly-ai-digest?secret=$CRON_SECRET
  *
  * Раз в неделю (например, понедельник 08:00 MSK) для каждой org
- * с активной подпиской и непустым ANTHROPIC_API_KEY:
+ * с активной подпиской (AI — через диспетчер ProjectsFlow):
  *   1. Собираем factual digest за прошлую неделю (compliance %,
  *      число CAPA, число потерь, число записей, ТОП проблемных
  *      журналов).
@@ -23,8 +23,8 @@ export const dynamic = "force-dynamic";
  * НЕ заменяет существующий weekly-digest cron (который шлёт
  * структурированные числа). Этот добавляет AI-narrative поверх.
  *
- * Если ANTHROPIC_API_KEY пуст — silent skip (не падает, просто
- * нечего слать).
+ * Если интеграция с диспетчером не настроена — silent skip (не
+ * падает, просто нечего слать).
  *
  * INFRA NEXT: cron понедельник 08:00 MSK = 05:00 UTC.
  */
@@ -111,12 +111,6 @@ async function buildContext(orgId: string, weekStart: Date, weekEnd: Date) {
 async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({
-      ok: true,
-      skipped: "ANTHROPIC_API_KEY not configured",
-    });
-  }
 
   const now = new Date();
   const weekEnd = new Date(now);
@@ -131,7 +125,6 @@ async function handle(request: Request) {
     select: { id: true, name: true },
   });
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   let sent = 0;
   let errors = 0;
 
@@ -155,21 +148,32 @@ async function handle(request: Request) {
       `- Override'ов «закрытого дня»: ${ctx.closedDayOverrides}`;
 
     try {
-      const response = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 600,
-        system: [
-          {
-            type: "text",
-            text: SYSTEM_PROMPT,
-            cache_control: { type: "ephemeral" },
-          },
-        ],
-        messages: [{ role: "user", content: userPrompt }],
-      });
-
-      const block = response.content.find((b) => b.type === "text");
-      const narrative = block && block.type === "text" ? block.text : "";
+      // AI-запрос уходит в очередь диспетчера ProjectsFlow — сайт к LLM
+      // не ходит (см. src/lib/ai-assistant/pf-client.ts). Cron никуда не
+      // спешит, поэтому ждём каждый ответ последовательно.
+      const result = await enqueueAndWait(
+        [
+          "type: wesetup_weekly_digest",
+          "---",
+          SYSTEM_PROMPT,
+          "---",
+          userPrompt,
+        ].join("\n")
+      );
+      if (!result.ok) {
+        if (result.code === "not_configured") {
+          return NextResponse.json({
+            ok: true,
+            skipped: "assistant integration not configured",
+            sent,
+            errors,
+          });
+        }
+        errors += 1;
+        console.warn(`[weekly-ai-digest] org ${org.id} failed: ${result.error}`);
+        continue;
+      }
+      const narrative = result.text;
       if (!narrative.trim()) continue;
 
       const message =

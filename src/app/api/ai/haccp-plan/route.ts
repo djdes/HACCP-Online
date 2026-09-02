@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { jsPDF } from "jspdf";
+import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * Менеджер обычно ищет в Google docs шаблон и адаптирует. Теперь —
  * 30 сек и готовый draft.
  *
- * Auth: management. Если ANTHROPIC_API_KEY не настроен → 503.
+ * Auth: management. Если интеграция с диспетчером не настроена → 503.
  */
 
 const SYSTEM_PROMPT = `Ты — технолог-консультант с 20-летним опытом внедрения ХАССП в российских пищевых компаниях. Твоя задача — написать draft-ХАССП-плана под профиль конкретной организации.
@@ -66,12 +66,6 @@ export async function GET() {
   if (!hasFullWorkspaceAccess(auth.session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "AI-помощник недоступен" },
-      { status: 503 }
-    );
-  }
   if (!aiHeavyRateLimiter.consume(`ai-haccp:${auth.session.user.id}`)) {
     return NextResponse.json(
       { error: "Слишком много запросов" },
@@ -109,30 +103,20 @@ export async function GET() {
       .join(", ")}\n\n` +
     `Сгенерируй полный ХАССП-план в markdown.`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  let markdown = "";
-  try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 4000,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    const block = response.content.find((b) => b.type === "text");
-    markdown = block && block.type === "text" ? block.text.trim() : "";
-  } catch (err) {
-    console.error("[haccp-plan] anthropic error:", err);
+  // AI-запрос уходит в очередь диспетчера ProjectsFlow — сайт к LLM не
+  // ходит (см. src/lib/ai-assistant/pf-client.ts).
+  const result = await enqueueAndWait(
+    ["type: wesetup_haccp_plan", "---", SYSTEM_PROMPT, "---", userPrompt].join(
+      "\n"
+    )
+  );
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "Ошибка AI. Подробности в логах сервера." },
-      { status: 500 }
+      { error: result.error },
+      { status: result.code === "not_configured" ? 503 : 502 }
     );
   }
+  const markdown = result.text.trim();
   if (!markdown) {
     return NextResponse.json(
       { error: "AI вернул пустой ответ" },

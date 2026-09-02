@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
 import { requireApiAuth } from "@/lib/auth-helpers";
+import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
 import { aiHeavyRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -47,12 +47,6 @@ const SYSTEM_PROMPT = `Ты — переводчик-консультант дл
 export async function POST(request: Request) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "AI-помощник недоступен" },
-      { status: 503 }
-    );
-  }
   if (!aiHeavyRateLimiter.consume(`ai-translate:${auth.session.user.id}`)) {
     return NextResponse.json(
       { error: "Слишком много запросов на перевод" },
@@ -73,38 +67,26 @@ export async function POST(request: Request) {
     throw err;
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1500,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: `Переведи на ${LANG_NAMES[body.to]}:\n\n${body.text}`,
-        },
-      ],
-    });
-    const block = response.content.find((b) => b.type === "text");
-    const translated =
-      block && block.type === "text" ? block.text.trim() : "";
-    return NextResponse.json({
-      translated,
-      languageCode: body.to,
-      languageName: LANG_NAMES[body.to],
-    });
-  } catch (err) {
-    console.error("[ai-translate] anthropic error:", err);
+  // AI-запрос уходит в очередь диспетчера ProjectsFlow — сайт к LLM не
+  // ходит (см. src/lib/ai-assistant/pf-client.ts).
+  const result = await enqueueAndWait(
+    [
+      "type: wesetup_translate",
+      "---",
+      SYSTEM_PROMPT,
+      "---",
+      `Переведи на ${LANG_NAMES[body.to]}:\n\n${body.text}`,
+    ].join("\n")
+  );
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "Ошибка AI. Подробности в логах сервера." },
-      { status: 500 }
+      { error: result.error },
+      { status: result.code === "not_configured" ? 503 : 502 }
     );
   }
+  return NextResponse.json({
+    translated: result.text.trim(),
+    languageCode: body.to,
+    languageName: LANG_NAMES[body.to],
+  });
 }

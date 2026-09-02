@@ -316,11 +316,12 @@ export default async function DashboardLayout({
               владельца: «наш футер на каждой странице»). `mt-auto`
               прижимает его к низу на коротких экранах. */}
           <DashboardFooter partnerBrandName={consultant?.brandName ?? null} />
-          {/* AI SanPiN/HACCP помощник — доступен management+ из любого
-              экрана дашборда. Сотрудникам без полного доступа не
-              нужен — они выполняют конкретные задачи, а не настраивают
-              нормативы. */}
-          {hasFullWorkspaceAccess(session.user) ? <SanpinChatWidget /> : null}
+          {/* AI помощник — доступен ВСЕМ авторизованным (решение
+              владельца 2026-09-02): отвечает по текущей странице и данным
+              организации, действия предлагает карточкой с подтверждением.
+              Права на действия режутся на сервере (ACL, «своя строка /
+              сегодня»), поэтому виджет безопасен и для рядовых ролей. */}
+          <SanpinChatWidget />
           {/* Поддержка — доступна management+ из любого экрана. */}
           {hasFullWorkspaceAccess(session.user) ? (
             <SupportWidget consultant={consultant} />

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { aiHeavyRateLimiter } from "@/lib/rate-limit";
@@ -74,12 +74,6 @@ export async function POST(request: Request) {
   if (!hasFullWorkspaceAccess(auth.session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "AI-помощник недоступен" },
-      { status: 503 }
-    );
-  }
   if (!aiHeavyRateLimiter.consume(`ai-sop:${auth.session.user.id}`)) {
     return NextResponse.json(
       { error: "Слишком много запросов" },
@@ -121,37 +115,28 @@ export async function POST(request: Request) {
     `Тема: ${TOPIC_BRIEFS[body.topic]}\n\n` +
     `Сгенерируй полную инструкцию.`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    const block = response.content.find((b) => b.type === "text");
-    const sop = block && block.type === "text" ? block.text.trim() : "";
-    return NextResponse.json({
-      sop,
-      topic: body.topic,
-      orgContext: {
-        name: org?.name,
-        type: org?.type,
-        userCount,
-        equipmentCount,
-      },
-    });
-  } catch (err) {
-    console.error("[generate-sop] anthropic error:", err);
+  // Сайт к LLM не ходит — задание уезжает в очередь диспетчера
+  // ProjectsFlow (см. src/lib/ai-assistant/pf-client.ts). Инструкция
+  // самодостаточна: system-промпт + контекст организации одной строкой.
+  const result = await enqueueAndWait(
+    ["type: wesetup_generate_sop", "---", SYSTEM_PROMPT, "---", userPrompt].join(
+      "\n"
+    )
+  );
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "Ошибка AI. Подробности в логах сервера." },
-      { status: 500 }
+      { error: result.error },
+      { status: result.code === "not_configured" ? 503 : 502 }
     );
   }
+  return NextResponse.json({
+    sop: result.text.trim(),
+    topic: body.topic,
+    orgContext: {
+      name: org?.name,
+      type: org?.type,
+      userCount,
+      equipmentCount,
+    },
+  });
 }

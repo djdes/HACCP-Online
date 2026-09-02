@@ -1,41 +1,76 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bot, Loader2, Send, Sparkles, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import {
+  Bot,
+  Check,
+  Loader2,
+  Send,
+  Sparkles,
+  X,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SANPIN_CHAT_OPEN_EVENT } from "@/lib/sanpin-chat-bus";
+
+type PendingAction = {
+  token: string;
+  kind: string;
+  title: string;
+  details: string[];
+  expiresAt: number;
+};
 
 type Message = {
   role: "user" | "assistant";
   content: string;
+  /** Предложенное действие — карточка с кнопкой «Выполнить». */
+  pendingAction?: PendingAction | null;
+  /** Что стало с карточкой после клика. */
+  actionState?: "confirmed" | "cancelled";
+  /** Итог выполнения («Заполнено ячеек: 12»). */
+  actionResult?: string;
 };
 
 const STARTERS = [
+  "Что на этой странице?",
   "Какая температура для холодильника готовых блюд?",
   "Как часто менять масло во фритюре?",
   "Что должно быть в журнале гигиены сотрудников?",
-  "Какие документы нужны при приёмке мясного сырья?",
 ];
 
-const STORAGE_KEY = "wesetup-sanpin-chat-v1";
+// v2: в сообщениях появились карточки действий, старый формат не читаем.
+const STORAGE_KEY = "wesetup-sanpin-chat-v2";
+
+/** Ответ через диспетчер занимает 10–60 секунд — статусы сменяются. */
+const WAIT_STAGES: Array<[number, string]> = [
+  [0, "Думаю…"],
+  [8_000, "Изучаю ваши данные…"],
+  [25_000, "Ещё немного, сверяюсь с нормативами…"],
+];
+const CLIENT_TIMEOUT_MS = 100_000;
 
 /**
- * Floating-чат «AI помощник по СанПиН/ХАССП». Маленькая иконка в нижнем
- * правом углу dashboard'а; клик — открывает sheet с историей. Сообщения
- * сохраняются в localStorage, чтобы менеджер мог вернуться к диалогу
- * после рефреша страницы.
+ * Floating-чат «AI помощник». Иконка в нижнем правом углу; клик —
+ * sheet с историей. История в localStorage (20 сообщений).
  *
- * История бережно ограничена 20 сообщениями (= 10 пар) — больше Claude
- * Haiku на context-window держит, но это лишний расход токенов и
- * замусоривание system-prompt'а.
+ * Помощник видит текущую страницу (`pathname` уходит с каждым запросом)
+ * и данные организации, а действия (добавить сотрудника, заполнить
+ * журнал) предлагает карточкой — выполняются они только после клика
+ * «Выполнить». Сайт к LLM не ходит: запрос обрабатывает диспетчер
+ * ProjectsFlow, поэтому ответ занимает до минуты.
  */
-export function SanpinChatWidget() {
+export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [waitLabel, setWaitLabel] = useState(WAIT_STAGES[0][1]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pathname = usePathname();
 
   // Поддержка открывает этот же чат своим пунктом меню — см. sanpin-chat-bus.
   useEffect(() => {
@@ -44,13 +79,23 @@ export function SanpinChatWidget() {
     return () => window.removeEventListener(SANPIN_CHAT_OPEN_EVENT, onOpen);
   }, []);
 
-  // Restore chat history on mount.
+  // Restore chat history on mount; протухшие карточки действий гасим.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Message[];
-        if (Array.isArray(parsed)) setMessages(parsed.slice(-20));
+        if (Array.isArray(parsed)) {
+          setMessages(
+            parsed.slice(-20).map((m) =>
+              m.pendingAction &&
+              !m.actionState &&
+              m.pendingAction.expiresAt < Date.now()
+                ? { ...m, actionState: "cancelled" as const }
+                : m
+            )
+          );
+        }
       }
     } catch {
       /* ignore corrupted storage */
@@ -71,7 +116,7 @@ export function SanpinChatWidget() {
     if (!open) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages, open]);
+  }, [messages, open, busy]);
 
   // Focus input on open.
   useEffect(() => {
@@ -81,9 +126,28 @@ export function SanpinChatWidget() {
     }
   }, [open]);
 
+  // Сменяющиеся статусы ожидания.
+  useEffect(() => {
+    if (!busy) {
+      setWaitLabel(WAIT_STAGES[0][1]);
+      return;
+    }
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - started;
+      const stage = [...WAIT_STAGES].reverse().find(([at]) => elapsed >= at);
+      if (stage) setWaitLabel(stage[1]);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [busy]);
+
   // Quota state — обновляется после каждого ответа сервера.
   // null = не знаем (ещё не было запроса), -1 = unlimited.
   const [messagesLeft, setMessagesLeft] = useState<number | null>(null);
+
+  function toApiMessages(list: Message[]) {
+    return list.slice(-20).map((m) => ({ role: m.role, content: m.content }));
+  }
 
   async function send(content: string) {
     const trimmed = content.trim();
@@ -96,7 +160,11 @@ export function SanpinChatWidget() {
       const response = await fetch("/api/ai/sanpin-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.slice(-20) }),
+        body: JSON.stringify({
+          messages: toApiMessages(next),
+          pathname: pathname ?? undefined,
+        }),
+        signal: AbortSignal.timeout(CLIENT_TIMEOUT_MS),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -114,18 +182,81 @@ export function SanpinChatWidget() {
       }
       setMessages((cur) => [
         ...cur,
-        { role: "assistant", content: data.reply || "(пустой ответ)" },
+        {
+          role: "assistant",
+          content: data.reply || "(пустой ответ)",
+          pendingAction: data.pendingAction ?? null,
+        },
       ]);
       if (typeof data.messagesLeft === "number") {
         setMessagesLeft(data.messagesLeft);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Ошибка AI");
+      toast.error(
+        err instanceof Error && err.name !== "TimeoutError"
+          ? err.message
+          : "AI-помощник не ответил вовремя. Попробуйте ещё раз"
+      );
       // Roll back the optimistic user message — keeps history clean.
       setMessages(messages);
     } finally {
       setBusy(false);
     }
+  }
+
+  async function confirmAction(index: number, action: PendingAction) {
+    if (confirmBusy) return;
+    setConfirmBusy(true);
+    try {
+      const response = await fetch("/api/ai/sanpin-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: toApiMessages(messages).slice(-1),
+          confirmAction: { token: action.token },
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = await response.json();
+      const result = data?.actionResult as
+        | { ok: boolean; summary?: string; error?: string }
+        | undefined;
+      if (!response.ok || !result) {
+        throw new Error(data?.error ?? "Не удалось выполнить действие");
+      }
+      setMessages((cur) =>
+        cur.map((m, i) =>
+          i === index
+            ? {
+                ...m,
+                actionState: "confirmed" as const,
+                actionResult: result.ok
+                  ? (result.summary ?? "Готово")
+                  : `Не выполнено: ${result.error ?? "ошибка"}`,
+              }
+            : m
+        )
+      );
+      if (result.ok) {
+        toast.success(result.summary ?? "Готово");
+      } else {
+        toast.error(result.error ?? "Не удалось выполнить действие");
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Не удалось выполнить действие"
+      );
+    } finally {
+      setConfirmBusy(false);
+    }
+  }
+
+  function cancelAction(index: number) {
+    setMessages((cur) =>
+      cur.map((m, i) =>
+        i === index ? { ...m, actionState: "cancelled" as const } : m
+      )
+    );
   }
 
   function reset() {
@@ -138,6 +269,8 @@ export function SanpinChatWidget() {
     }
   }
 
+  const fabBottom = bottomOffset ? { bottom: bottomOffset } : undefined;
+
   return (
     <>
       {/* FAB launcher — компактная иконка-кнопка */}
@@ -145,6 +278,7 @@ export function SanpinChatWidget() {
         <button
           type="button"
           onClick={() => setOpen(true)}
+          style={fabBottom}
           className="fixed bottom-5 right-5 z-40 flex size-11 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white shadow-[0_12px_28px_-10px_rgba(85,102,246,0.6)] transition-all hover:scale-105"
           aria-label="AI помощник по СанПиН"
           title="AI помощник"
@@ -166,7 +300,7 @@ export function SanpinChatWidget() {
                 <div>
                   <div className="text-[15px] font-semibold">AI помощник</div>
                   <div className="text-[12px] text-white/80">
-                    СанПиН, ХАССП и ТР ТС
+                    СанПиН, ХАССП и ваши журналы
                   </div>
                 </div>
               </div>
@@ -197,8 +331,10 @@ export function SanpinChatWidget() {
               {messages.length === 0 ? (
                 <div className="space-y-3 text-[13px] leading-relaxed text-[#3c4053]">
                   <p>
-                    Я помогу с вопросами о санитарных нормах и ХАССП. Спросите,
-                    например:
+                    Я отвечу на вопросы о санитарных нормах, о вашей
+                    организации и о странице, где вы находитесь. Могу
+                    заполнить журнал или добавить сотрудника — с вашего
+                    подтверждения. Спросите, например:
                   </p>
                   <div className="grid gap-2">
                     {STARTERS.map((s) => (
@@ -220,12 +356,18 @@ export function SanpinChatWidget() {
               ) : (
                 <div className="space-y-3">
                   {messages.map((m, i) => (
-                    <MessageBubble key={i} role={m.role} content={m.content} />
+                    <MessageBubble
+                      key={i}
+                      message={m}
+                      confirmBusy={confirmBusy}
+                      onConfirm={(action) => confirmAction(i, action)}
+                      onCancel={() => cancelAction(i)}
+                    />
                   ))}
                   {busy ? (
                     <div className="flex items-center gap-2 text-[12px] text-[#6f7282]">
                       <Loader2 className="size-3 animate-spin" />
-                      Думаю…
+                      {waitLabel}
                     </div>
                   ) : null}
                 </div>
@@ -279,13 +421,18 @@ export function SanpinChatWidget() {
 }
 
 function MessageBubble({
-  role,
-  content,
+  message,
+  confirmBusy,
+  onConfirm,
+  onCancel,
 }: {
-  role: "user" | "assistant";
-  content: string;
+  message: Message;
+  confirmBusy: boolean;
+  onConfirm: (action: PendingAction) => void;
+  onCancel: () => void;
 }) {
-  const isUser = role === "user";
+  const isUser = message.role === "user";
+  const action = message.pendingAction;
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
@@ -295,11 +442,72 @@ function MessageBubble({
             : "border border-[#ececf4] bg-[#fafbff] text-[#0b1024]"
         }`}
       >
-        {content.split("\n").map((line, i) => (
+        {message.content.split("\n").map((line, i) => (
           <p key={i} className={i > 0 ? "mt-1.5" : ""}>
-            {line || " "}
+            {line || " "}
           </p>
         ))}
+
+        {/* Карточка предложенного действия */}
+        {action ? (
+          <div className="mt-2.5 rounded-2xl border border-[#dcdfed] bg-white p-3">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-[#0b1024]">
+              <span className="flex size-6 items-center justify-center rounded-lg bg-[#eef1ff]">
+                <Zap className="size-3.5 text-[#5566f6]" />
+              </span>
+              {action.title}
+            </div>
+            <ul className="mt-2 space-y-1 text-[12px] leading-[1.5] text-[#3c4053]">
+              {action.details.map((d, i) => (
+                <li key={i}>{d}</li>
+              ))}
+            </ul>
+
+            {message.actionState === "confirmed" ? (
+              <div
+                className={`mt-2.5 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[12px] ${
+                  message.actionResult?.startsWith("Не выполнено")
+                    ? "bg-[#fff4f2] text-[#a13a32]"
+                    : "bg-[#ecfdf5] text-[#116b2a]"
+                }`}
+              >
+                <Check className="size-3.5 shrink-0" />
+                {message.actionResult ?? "Готово"}
+              </div>
+            ) : message.actionState === "cancelled" ? (
+              <div className="mt-2.5 rounded-xl bg-[#f5f6ff] px-2.5 py-1.5 text-[12px] text-[#6f7282]">
+                Отменено
+              </div>
+            ) : (
+              <div className="mt-2.5 flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={confirmBusy}
+                  onClick={() => onConfirm(action)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5566f6] px-3.5 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
+                >
+                  {confirmBusy ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Check className="size-3.5" />
+                  )}
+                  Выполнить
+                </button>
+                <button
+                  type="button"
+                  disabled={confirmBusy}
+                  onClick={onCancel}
+                  className="inline-flex h-9 items-center rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-50"
+                >
+                  Отмена
+                </button>
+              </div>
+            )}
+            <p className="mt-2 text-[11px] leading-[1.4] text-[#9b9fb3]">
+              Действие выполнится только после вашего подтверждения.
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

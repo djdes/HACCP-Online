@@ -56,6 +56,7 @@ function isCategoryNote(
  * нельзя (server→client serialization), поэтому держим mapping здесь.
  */
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "AI-помощник": Sparkles,
   Партнёры: Handshake,
   "Распределение задач": Gauge,
   "Умные пресеты": Wand2,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 
@@ -62,13 +62,6 @@ export async function POST(
   // POST/GET); согласовываем suggest с ним.
   if (!hasFullWorkspaceAccess(auth.session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
-  }
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "AI-помощник недоступен" },
-      { status: 503 }
-    );
   }
 
   const { id } = await params;
@@ -146,98 +139,67 @@ ${
 Задача:
 ${stepInstruction}`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1200,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    const textBlock = response.content.find((b) => b.type === "text");
-    const raw =
-      textBlock && textBlock.type === "text" ? textBlock.text.trim() : "";
-
-    let parsed: { suggestions?: Suggestion[] } = {};
-    try {
-      // Иногда Claude оборачивает в ```json ... ```
-      const cleaned = raw
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .replace(/```\s*$/i, "")
-        .trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      // Refund квоты — AI вернул мусор, пользователь не должен платить.
-      if (!isUnlimited) {
-        await db.organization
-          .update({
-            where: { id: orgId },
-            data: { aiMonthlyMessagesLeft: { increment: 1 } },
-          })
-          .catch(() => null);
-      }
-      return NextResponse.json(
-        {
-          error: "AI вернул некорректный JSON",
-          raw: raw.slice(0, 500),
-        },
-        { status: 502 }
+  async function refundQuota() {
+    if (isUnlimited) return;
+    await db.organization
+      .update({
+        where: { id: orgId },
+        data: { aiMonthlyMessagesLeft: { increment: 1 } },
+      })
+      .catch((refundErr) =>
+        console.warn("[capa-suggest] quota refund failed", refundErr)
       );
-    }
+  }
 
-    if (!Array.isArray(parsed.suggestions) || parsed.suggestions.length === 0) {
-      // Refund квоты — Anthropic ответил, но контент бесполезный.
-      if (!isUnlimited) {
-        await db.organization
-          .update({
-            where: { id: orgId },
-            data: { aiMonthlyMessagesLeft: { increment: 1 } },
-          })
-          .catch(() => null);
-      }
-      return NextResponse.json(
-        { error: "AI не вернул suggestions" },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json({
-      suggestions: parsed.suggestions.slice(0, 3),
-      step,
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-      },
-    });
-  } catch (err) {
-    console.error("[capa-suggest] anthropic error", err);
-    // Refund квоты — пользователь не должен терять сообщение из-за
-    // нашего upstream-сбоя.
-    if (!isUnlimited) {
-      await db.organization
-        .update({
-          where: { id: orgId },
-          data: { aiMonthlyMessagesLeft: { increment: 1 } },
-        })
-        .catch((refundErr) =>
-          console.warn("[capa-suggest] quota refund failed", refundErr)
-        );
-    }
-    // err.message может содержать ANTHROPIC_API_KEY в URL fetch'а
-    // при некоторых network-failures (Anthropic SDK логирует body
-    // request'ов). Не отдаём raw в JSON, а только generic. Подробности
-    // уже в console.error выше — админ видит в PM2 logs.
+  // AI-запрос уходит в очередь диспетчера ProjectsFlow — сайт к LLM не
+  // ходит (см. src/lib/ai-assistant/pf-client.ts).
+  const result = await enqueueAndWait(
+    ["type: wesetup_capa_suggest", "---", SYSTEM_PROMPT, "---", userPrompt].join(
+      "\n"
+    )
+  );
+  if (!result.ok) {
+    // Пользователь не должен терять сообщение из-за upstream-сбоя.
+    await refundQuota();
     return NextResponse.json(
-      { error: "Ошибка AI. Подробности в логах сервера." },
-      { status: 500 }
+      { error: result.error },
+      { status: result.code === "not_configured" ? 503 : 502 }
     );
   }
+
+  const raw = result.text.trim();
+  let parsedReply: { suggestions?: Suggestion[] } = {};
+  try {
+    // Иногда модель оборачивает в ```json ... ```
+    const cleaned = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```\s*$/i, "")
+      .trim();
+    parsedReply = JSON.parse(cleaned);
+  } catch {
+    // Refund квоты — AI вернул мусор, пользователь не должен платить.
+    await refundQuota();
+    return NextResponse.json(
+      { error: "AI вернул некорректный JSON", raw: raw.slice(0, 500) },
+      { status: 502 }
+    );
+  }
+
+  if (
+    !Array.isArray(parsedReply.suggestions) ||
+    parsedReply.suggestions.length === 0
+  ) {
+    // Refund квоты — AI ответил, но контент бесполезный.
+    await refundQuota();
+    return NextResponse.json(
+      { error: "AI не вернул suggestions" },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json({
+    suggestions: parsedReply.suggestions.slice(0, 3),
+    step,
+  });
 }

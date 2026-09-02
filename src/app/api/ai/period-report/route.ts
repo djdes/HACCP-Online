@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
+import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -55,13 +55,6 @@ export async function POST(request: Request) {
   if (!hasFullWorkspaceAccess(session.user)) {
     return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: "AI-помощник недоступен (ANTHROPIC_API_KEY не настроен)" },
-      { status: 503 }
-    );
-  }
-
   let parsed;
   try {
     parsed = bodySchema.parse(await request.json());
@@ -228,43 +221,26 @@ ${
 }
 `.trim();
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1500,
-      system: [
-        {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: `Сгенерируй отчёт за период по этим данным:\n\n${factsBlock}`,
-        },
-      ],
-    });
-
-    const textBlock = response.content.find((b) => b.type === "text");
-    const reply = textBlock && textBlock.type === "text" ? textBlock.text : "";
-
-    return NextResponse.json({
-      report: reply,
-      facts: factsBlock,
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-      },
-    });
-  } catch (err) {
-    console.error("[period-report] anthropic error", err);
+  // AI-запрос уходит в очередь диспетчера ProjectsFlow — сайт к LLM не
+  // ходит (см. src/lib/ai-assistant/pf-client.ts).
+  const result = await enqueueAndWait(
+    [
+      "type: wesetup_period_report",
+      "---",
+      SYSTEM_PROMPT,
+      "---",
+      `Сгенерируй отчёт за период по этим данным:\n\n${factsBlock}`,
+    ].join("\n")
+  );
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "Ошибка AI. Подробности в логах сервера." },
-      { status: 502 }
+      { error: result.error },
+      { status: result.code === "not_configured" ? 503 : 502 }
     );
   }
+
+  return NextResponse.json({
+    report: result.text,
+    facts: factsBlock,
+  });
 }
