@@ -1856,6 +1856,15 @@ model PaperJournalDocument {
   rows           Json
   /// Кто проводит инструктаж — один на весь документ.
   responsible    String?
+  /// Период документа из модалки создания. Без FK на User, как и
+  /// остальные поля модели: `*UserId` нужны только чтобы модалка
+  /// редактирования потом подставила выбранного человека обратно.
+  dateFrom          DateTime?
+  dateTo            DateTime?
+  responsibleUserId String?
+  /// Кто проверяет (колонка «ФИО проверяющего» есть не у всех).
+  verifier          String?
+  verifierUserId    String?
   status         String       @default("active") // active | closed
   closedAt       DateTime?
   createdById    String?

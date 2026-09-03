@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { paperJournalById } from "@/lib/sphere-journal-rules";
+import { buildJournalDocumentTitle } from "@/lib/journal-document-title";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,9 +12,9 @@ export const dynamic = "force-dynamic";
  * Документы бумажного журнала: список и создание.
  *
  * Бумажный журнал ведётся так же, как электронный: заводим документ на
- * период, заполняем, закрываем. Разница только в том, что оригиналом
- * остаётся распечатанный лист с живыми подписями — здесь хранится
- * подготовка к печати, чтобы не перезаполнять бланк каждый раз.
+ * период с ответственным, заполняем, закрываем. Разница только в том,
+ * что оригиналом остаётся распечатанный лист с живыми подписями — здесь
+ * хранится подготовка к печати, чтобы не перезаполнять бланк каждый раз.
  */
 export async function GET(
   _request: Request,
@@ -32,6 +33,9 @@ export async function GET(
       id: true,
       title: true,
       status: true,
+      dateFrom: true,
+      dateTo: true,
+      responsible: true,
       closedAt: true,
       createdAt: true,
       updatedAt: true,
@@ -39,6 +43,19 @@ export async function GET(
   });
 
   return NextResponse.json({ documents });
+}
+
+/** `YYYY-MM-DD` → Date (UTC-полночь); мусор → null. */
+function parseIsoDay(value: unknown): Date | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function text(value: unknown, max = 200): string | null {
+  return typeof value === "string" ? value.trim().slice(0, max) || null : null;
 }
 
 export async function POST(
@@ -57,13 +74,24 @@ export async function POST(
   }
 
   const body = await request.json().catch(() => ({}));
+  // Строки документа подставляет редактор при первом открытии — здесь
+  // документ создаётся пустым, если клиент не прислал их сам.
   const rows = Array.isArray(body?.rows) ? body.rows : [];
+  const dateFrom = parseIsoDay(body?.dateFrom);
+  const dateTo = parseIsoDay(body?.dateTo);
+  if (dateFrom && dateTo && dateTo < dateFrom) {
+    return NextResponse.json(
+      { error: "Дата окончания раньше даты начала" },
+      { status: 400 },
+    );
+  }
   const title =
-    String(body?.title ?? "").trim() ||
-    `${journal.name} — ${new Date().toLocaleDateString("ru-RU", {
-      month: "long",
-      year: "numeric",
-    })}`;
+    text(body?.title) ??
+    buildJournalDocumentTitle({
+      journalName: journal.name,
+      dateFrom: typeof body?.dateFrom === "string" ? body.dateFrom : null,
+      dateTo: typeof body?.dateTo === "string" ? body.dateTo : null,
+    });
 
   const document = await db.paperJournalDocument.create({
     data: {
@@ -71,7 +99,12 @@ export async function POST(
       journalId: id,
       title,
       rows,
-      responsible: String(body?.responsible ?? "").trim() || null,
+      dateFrom,
+      dateTo,
+      responsible: text(body?.responsible),
+      responsibleUserId: text(body?.responsibleUserId, 64),
+      verifier: text(body?.verifier),
+      verifierUserId: text(body?.verifierUserId, 64),
       createdById: session.user.id,
     },
     select: { id: true, title: true, status: true },

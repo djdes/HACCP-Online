@@ -47,6 +47,9 @@ export async function PUT(
   if (typeof body?.responsible === "string") {
     patch.responsible = body.responsible.trim() || null;
   }
+  if (typeof body?.verifier === "string") {
+    patch.verifier = body.verifier.trim() || null;
+  }
   if (typeof body?.title === "string" && body.title.trim()) {
     patch.title = body.title.trim();
   }

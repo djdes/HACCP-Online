@@ -17,7 +17,19 @@ export const dynamic = "force-dynamic";
  * сохраняем: эти журналы живут на бумаге, в БД им места нет.
  */
 
-async function build(id: string, rows: string[][] | undefined) {
+type PaperPeriod = { from: string | null; to: string | null };
+
+function isoDay(value: unknown): string | null {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? value
+    : null;
+}
+
+async function build(
+  id: string,
+  rows: string[][] | undefined,
+  period?: PaperPeriod,
+) {
   const session = await requireAuth();
   if (!hasFullWorkspaceAccess(session.user)) {
     return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
@@ -39,6 +51,7 @@ async function build(id: string, rows: string[][] | undefined) {
     journal,
     organization: organization ?? { name: "Организация" },
     rows,
+    period,
     branding: branding ? { brandName: branding.brandName, pdfSignature: branding.pdfSignature } : null,
   });
 
@@ -69,5 +82,9 @@ export async function POST(
         .filter((row): row is unknown[] => Array.isArray(row))
         .map((row) => row.map((cell) => String(cell ?? "")))
     : undefined;
-  return build(id, rows);
+  // Период приходит только со страницы документа; черновик и публичный
+  // семпл его не шлют — их бланк печатается как раньше.
+  const from = isoDay(body?.dateFrom);
+  const to = isoDay(body?.dateTo);
+  return build(id, rows, from || to ? { from, to } : undefined);
 }

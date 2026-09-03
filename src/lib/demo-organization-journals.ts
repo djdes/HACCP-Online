@@ -1231,13 +1231,4 @@ export function buildPaperJournalRows(journal: PaperJournal, ctx: PaperCtx): str
   return rows;
 }
 
-export function paperJournalTitle(journal: PaperJournal, todayKey: string): string {
-  const monthsNominative = [
-    "январь", "февраль", "март", "апрель", "май", "июнь",
-    "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
-  ];
-  const [year, month] = todayKey.split("-");
-  return `${journal.name} — ${monthsNominative[Number(month) - 1]} ${year}`;
-}
-
 export { shortName as demoShortName };

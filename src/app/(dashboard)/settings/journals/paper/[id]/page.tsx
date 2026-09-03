@@ -4,23 +4,20 @@ import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { paperJournalById } from "@/lib/sphere-journal-rules";
 import { PageCrumbs } from "@/components/layout/page-nav";
-import { PaperJournalWorkspace } from "./paper-journal-workspace";
+import { PaperDocumentsClient } from "./paper-documents-client";
+import { PaperJournalEditor } from "./paper-journal-editor";
+import { PaperJournalIntro } from "./paper-journal-intro";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Заполнение бумажного бланка перед печатью.
+ * Бумажный журнал: список документов и быстрый черновик.
  *
- * Ничего не сохраняем в БД: журнал по закону живёт на бумаге с живой
- * подписью, а здесь мы лишь избавляем человека от рукописной шапки —
- * данные организации подставляются сами, строки печатаются ровно.
- *
- * Сотрудники подставляются в строки заранее: колонки «ФИО» и «должность»
- * заполняются из карточек, остальное остаётся пустым. Переписывать
- * полтора десятка фамилий от руки в каждый из бумажных журналов — ровно
- * та работа, ради избавления от которой сервис и существует. Подписи,
- * даты и виды инструктажа НЕ трогаем: в бумажном журнале они живые, в
- * этом весь его смысл.
+ * Документы ведутся как в электронных журналах — на период, с
+ * ответственным, каждый на своей странице. Черновик внизу ничего не
+ * сохраняет: он для случая «вбил пару строк — скачал — распечатал».
+ * Шапка организации подставляется сама, строки печатаются ровно;
+ * подписи остаются живыми — в этом весь смысл бумажного журнала.
  */
 export default async function PaperJournalPage({
   params,
@@ -42,9 +39,11 @@ export default async function PaperJournalPage({
     db.user.findMany({
       where: { organizationId, isActive: true, archivedAt: null },
       select: {
+        id: true,
         name: true,
+        role: true,
         positionTitle: true,
-        jobPosition: { select: { name: true } },
+        jobPosition: { select: { name: true, categoryKey: true } },
       },
       orderBy: { name: "asc" },
     }),
@@ -66,7 +65,10 @@ export default async function PaperJournalPage({
           { label: journal.name },
         ]}
       />
-      <PaperJournalWorkspace
+      <PaperJournalIntro journal={journal} />
+      <PaperDocumentsClient journal={journal} users={employees} />
+      <PaperJournalEditor
+        mode="draft"
         journal={journal}
         organization={{
           name: organization?.name ?? "Организация",

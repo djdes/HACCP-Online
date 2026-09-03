@@ -19,10 +19,11 @@ import {
   buildDemoJournalSeed,
   buildPaperJournalRows,
   paperJournalInstructor,
-  paperJournalTitle,
   type DemoJournalContext,
 } from "@/lib/demo-organization-journals";
 import { ensureActiveDocument } from "@/lib/journal-auto-create";
+import { buildJournalDocumentTitle } from "@/lib/journal-document-title";
+import { hasResponsibleColumn, hasVerifierColumn } from "@/lib/paper-journal-columns";
 import {
   buildDateKeys,
   toDateKey,
@@ -442,14 +443,31 @@ export async function seedDemoOrganizationData(input: {
   // активному документу с заполненными строками, подписи пустые: их
   // ставят ручкой, электронная копия — для сроков и печати.
   const paperCtx = { people, manager, technologist, chef, todayKey, ago, roster };
+  // Документ — на текущий месяц, как его заводит модалка на странице журнала.
+  const [demoYear, demoMonth] = todayKey.split("-").map(Number);
+  const monthFrom = `${todayKey.slice(0, 7)}-01`;
+  const monthTo = `${todayKey.slice(0, 7)}-${String(
+    new Date(Date.UTC(demoYear, demoMonth, 0)).getUTCDate(),
+  ).padStart(2, "0")}`;
   for (const journal of paperJournalsFor(normalizeSphere(input.sphere))) {
     await db.paperJournalDocument.create({
       data: {
         organizationId: orgId,
         journalId: journal.id,
-        title: paperJournalTitle(journal, todayKey),
+        title: buildJournalDocumentTitle({
+          journalName: journal.name,
+          dateFrom: monthFrom,
+          dateTo: monthTo,
+        }),
         rows: json(buildPaperJournalRows(journal, paperCtx)),
-        responsible: paperJournalInstructor(journal, paperCtx).name,
+        dateFrom: new Date(`${monthFrom}T00:00:00.000Z`),
+        dateTo: new Date(`${monthTo}T00:00:00.000Z`),
+        responsible: hasResponsibleColumn(journal)
+          ? paperJournalInstructor(journal, paperCtx).name
+          : null,
+        verifier: hasVerifierColumn(journal)
+          ? paperJournalInstructor(journal, paperCtx).name
+          : null,
         createdById: input.createdById,
       },
     });

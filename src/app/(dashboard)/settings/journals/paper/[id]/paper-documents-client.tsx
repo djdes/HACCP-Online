@@ -1,17 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Archive, FilePlus2, Loader2, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Archive, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatJournalPeriodLabel } from "@/lib/journal-document-title";
+import type { PaperJournal } from "@/lib/sphere-journal-rules";
 import { cn } from "@/lib/utils";
+import {
+  CreatePaperDocumentDialog,
+  type PaperPickerUser,
+} from "./create-paper-document-dialog";
 
 /**
  * Документы бумажного журнала — как в электронных: активные и закрытые.
  *
  * Бумажный журнал ведут периодами, и после закрытия периода бланк не
- * должен продолжать заполняться. Раньше страница была одним разовым
- * бланком: закрыл вкладку — заполнение потеряно, а история не велась.
+ * должен продолжать заполняться. Документ открывается отдельной
+ * страницей, как у электронных журналов; создаётся через модалку с
+ * периодом и людьми.
  *
  * Оригиналом остаётся распечатанный лист с живыми подписями. Здесь
  * хранится подготовка к печати, чтобы не перезаполнять бланк каждый раз.
@@ -21,29 +29,34 @@ export type PaperDocument = {
   id: string;
   title: string;
   status: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+  responsible: string | null;
   closedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
+/** `Date` из API приходит ISO-строкой — для подписи периода нужна дата. */
+function isoDay(value: string | null): string | null {
+  return value ? value.slice(0, 10) : null;
+}
+
 export function PaperDocumentsClient({
-  journalId,
-  activeDocumentId,
-  onOpen,
+  journal,
+  users,
 }: {
-  journalId: string;
-  activeDocumentId: string | null;
-  onOpen: (id: string | null) => void;
+  journal: PaperJournal;
+  users: PaperPickerUser[];
 }) {
   const [documents, setDocuments] = useState<PaperDocument[] | null>(null);
   const [tab, setTab] = useState<"active" | "closed">("active");
-  const [busy, setBusy] = useState(false);
   const [closing, setClosing] = useState<PaperDocument | null>(null);
   const [removing, setRemoving] = useState<PaperDocument | null>(null);
 
   async function reload() {
     const res = await fetch(
-      `/api/settings/journals/paper/${journalId}/documents`,
+      `/api/settings/journals/paper/${journal.id}/documents`,
     ).catch(() => null);
     if (!res?.ok) {
       setDocuments([]);
@@ -56,31 +69,11 @@ export function PaperDocumentsClient({
   useEffect(() => {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journalId]);
-
-  async function create() {
-    setBusy(true);
-    try {
-      const res = await fetch(
-        `/api/settings/journals/paper/${journalId}/documents`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" },
-      );
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        toast.error(data?.error ?? "Не удалось создать");
-        return;
-      }
-      await reload();
-      onOpen(data.document.id);
-      toast.success("Документ создан");
-    } finally {
-      setBusy(false);
-    }
-  }
+  }, [journal.id]);
 
   async function patch(id: string, body: Record<string, unknown>) {
     const res = await fetch(
-      `/api/settings/journals/paper/${journalId}/documents/${id}`,
+      `/api/settings/journals/paper/${journal.id}/documents/${id}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -137,81 +130,78 @@ export function PaperDocumentsClient({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => void create()}
-          disabled={busy}
-          className="ml-auto inline-flex h-9 items-center gap-2 rounded-xl bg-[#5566f6] px-3 text-[13.5px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
-        >
-          {busy ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <FilePlus2 className="size-4" />
-          )}
-          Новый документ
-        </button>
+        <CreatePaperDocumentDialog
+          journal={journal}
+          users={users}
+          triggerClassName="ml-auto"
+        />
       </div>
 
       {visible.length === 0 ? (
         <p className="px-5 py-8 text-center text-[13.5px] text-[#6f7282]">
           {tab === "active"
-            ? "Активных документов нет. Создайте — и заполняйте бланк здесь, не теряя введённое."
+            ? "Активных документов нет. Создайте — и заполняйте бланк на его странице, не теряя введённое."
             : "Закрытых документов пока нет."}
         </p>
       ) : (
         <ul className="divide-y divide-[#eef0f6]">
-          {visible.map((doc) => (
-            <li
-              key={doc.id}
-              className="flex flex-wrap items-center gap-3 px-5 py-3"
-            >
-              <button
-                type="button"
-                onClick={() => onOpen(doc.id)}
-                className={cn(
-                  "min-w-0 flex-1 text-left text-[14px] transition-colors hover:text-[#3848c7]",
-                  doc.id === activeDocumentId
-                    ? "font-semibold text-[#3848c7]"
-                    : "text-[#0b1024]",
+          {visible.map((doc) => {
+            const period = formatJournalPeriodLabel(
+              isoDay(doc.dateFrom),
+              isoDay(doc.dateTo),
+            );
+            const meta = [
+              period,
+              doc.responsible,
+              doc.closedAt
+                ? `Закрыт ${new Date(doc.closedAt).toLocaleDateString("ru-RU")}`
+                : `Изменён ${new Date(doc.updatedAt).toLocaleString("ru-RU")}`,
+            ].filter(Boolean);
+            return (
+              <li
+                key={doc.id}
+                className="flex flex-wrap items-center gap-3 px-5 py-3"
+              >
+                <Link
+                  href={`/settings/journals/paper/${journal.id}/documents/${doc.id}`}
+                  className="min-w-0 flex-1 text-left text-[14px] text-[#0b1024] transition-colors hover:text-[#3848c7]"
+                >
+                  {doc.title}
+                  <span className="mt-0.5 block text-[12px] font-normal text-[#9b9fb3]">
+                    {meta.join(" · ")}
+                  </span>
+                </Link>
+
+                {doc.status === "active" ? (
+                  <button
+                    type="button"
+                    onClick={() => setClosing(doc)}
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#6f7282] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  >
+                    <Archive className="size-4" />
+                    Закрыть
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void patch(doc.id, { status: "active" })}
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#6f7282] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  >
+                    Открыть заново
+                  </button>
                 )}
-              >
-                {doc.title}
-                <span className="mt-0.5 block text-[12px] font-normal text-[#9b9fb3]">
-                  {doc.closedAt
-                    ? `Закрыт ${new Date(doc.closedAt).toLocaleDateString("ru-RU")}`
-                    : `Изменён ${new Date(doc.updatedAt).toLocaleString("ru-RU")}`}
-                </span>
-              </button>
 
-              {doc.status === "active" ? (
                 <button
                   type="button"
-                  onClick={() => setClosing(doc)}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#6f7282] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  onClick={() => setRemoving(doc)}
+                  aria-label="Удалить документ"
+                  className="rounded-lg p-2 text-[#9b9fb3] transition-colors hover:bg-[#fff4f2] hover:text-[#a13a32]"
                 >
-                  <Archive className="size-4" />
-                  Закрыть
+                  <Trash2 className="size-4" />
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void patch(doc.id, { status: "active" })}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#6f7282] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-                >
-                  Открыть заново
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setRemoving(doc)}
-                aria-label="Удалить документ"
-                className="rounded-lg p-2 text-[#9b9fb3] transition-colors hover:bg-[#fff4f2] hover:text-[#a13a32]"
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -221,7 +211,6 @@ export function PaperDocumentsClient({
         onConfirm={async () => {
           if (!closing) return;
           await patch(closing.id, { status: "closed" });
-          if (closing.id === activeDocumentId) onOpen(null);
           setClosing(null);
         }}
         variant="info"
@@ -240,10 +229,9 @@ export function PaperDocumentsClient({
         onConfirm={async () => {
           if (!removing) return;
           await fetch(
-            `/api/settings/journals/paper/${journalId}/documents/${removing.id}`,
+            `/api/settings/journals/paper/${journal.id}/documents/${removing.id}`,
             { method: "DELETE" },
           );
-          if (removing.id === activeDocumentId) onOpen(null);
           await reload();
           setRemoving(null);
         }}

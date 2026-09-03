@@ -4,6 +4,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { PaperJournal } from "@/lib/sphere-journal-rules";
 import { stampPartnerPdfFooter, type PdfFooterBrand } from "@/lib/pdf-page-labels";
+import { formatJournalPeriodLabel } from "@/lib/journal-document-title";
 
 /**
  * Бланк бумажного журнала для печати.
@@ -52,8 +53,21 @@ export function renderPaperJournalPdf(params: {
   blankRows?: number;
   /** White-label партнёра — подпись в подвале каждой страницы. */
   branding?: PdfFooterBrand | null;
+  /**
+   * Период документа `YYYY-MM-DD`. Есть только у документа со страницы
+   * журнала; черновик и публичный семпл печатаются без него.
+   */
+  period?: { from: string | null; to: string | null } | null;
 }): Buffer {
-  const { journal, organization, rows = [], blankRows = 18, branding = null } = params;
+  const {
+    journal,
+    organization,
+    rows = [],
+    blankRows = 18,
+    branding = null,
+    period = null,
+  } = params;
+  const periodLabel = period ? formatJournalPeriodLabel(period.from, period.to) : "";
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const font = loadUnicodeFont(doc);
@@ -77,6 +91,15 @@ export function renderPaperJournalPdf(params: {
   doc.setFontSize(15);
   doc.text(journal.name, pageWidth / 2, 30, { align: "center" });
 
+  // Период — под названием, как в шапке документа на экране. Без него
+  // (черновик, семпл) все строки ниже остаются на прежних местах.
+  const noteY = periodLabel ? 40 : 36;
+  if (periodLabel) {
+    doc.setFont(font, "normal");
+    doc.setFontSize(9);
+    doc.text(`Период: ${periodLabel}`, pageWidth / 2, 35, { align: "center" });
+  }
+
   // Красная пометка: человек не должен решить, что этот бланк заменяет
   // электронный журнал — он именно для бумаги.
   doc.setFont(font, "normal");
@@ -91,7 +114,7 @@ export function renderPaperJournalPdf(params: {
       ? `Бланк для бумажного ведения. Электронная форма не применяется — ${journal.law.label}.`
       : `Бланк для бумажного ведения — ${journal.law.label}.`,
     pageWidth / 2,
-    36,
+    noteY,
     { align: "center" },
   );
   doc.setTextColor(0, 0, 0);
@@ -109,7 +132,7 @@ export function renderPaperJournalPdf(params: {
   autoTable(doc, {
     head,
     body: [...filled, ...blanks],
-    startY: 42,
+    startY: noteY + 6,
     styles: {
       font,
       fontSize: 8,
