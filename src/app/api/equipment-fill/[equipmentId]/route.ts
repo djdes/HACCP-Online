@@ -13,6 +13,7 @@ import {
   notifyOrganization,
   escapeTelegramHtml as esc,
 } from "@/lib/telegram";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,6 +121,9 @@ export async function POST(
     },
     select: { id: true, config: true },
   });
+
+  const limited = await trialWriteGate(organizationId);
+  if (limited) return limited;
 
   let touched = 0;
   for (const doc of docs) {

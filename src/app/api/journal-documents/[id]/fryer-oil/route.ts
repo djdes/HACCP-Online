@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { normalizeFryerOilEntryData, FRYER_OIL_TEMPLATE_CODE } from "@/lib/fryer-oil-document";
 import { getServerSession } from "@/lib/server-session";
 import { canWriteJournal } from "@/lib/journal-acl";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 async function resolveEmployeeId(
   sessionUserId: string,
@@ -170,6 +171,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Некорректная дата записи" }, { status: 400 });
   }
 
+  const limited = await trialWriteGate(orgId, items.length);
+  if (limited) return limited;
+
   // Транзакцией: полусохранённый день хуже несохранённого — человек не
   // поймёт, какие фритюрницы уже записаны, а какие нет.
   const entries = await db.$transaction(
@@ -224,6 +228,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!isValidDate(date)) {
     return NextResponse.json({ error: "Некорректная дата записи" }, { status: 400 });
   }
+  const limited = await trialWriteGate(getActiveOrgId(session));
+  if (limited) return limited;
+
   const entry = await db.journalDocumentEntry.update({
     where: { id: current.id },
     data: { date, data },

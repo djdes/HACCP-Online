@@ -31,6 +31,8 @@ type Props = {
   /** Текущее значение `Organization.subscriptionPlan`. */
   currentPlan: string;
   currentPlanLabel: string;
+  /** Строка о тестовом периоде и лимитах бесплатного тарифа; null на платном. */
+  trialNote?: string | null;
   activeUsers: number;
   freeUserLimit: number;
   /** Тестовый режим биллинга — оплата не списывается. */
@@ -51,6 +53,7 @@ type Props = {
 export function PlanUpgrade({
   currentPlan,
   currentPlanLabel,
+  trialNote,
   activeUsers,
   freeUserLimit,
   billingTestMode,
@@ -82,6 +85,9 @@ export function PlanUpgrade({
               ? `${activeUsers}/${freeUserLimit} сотрудников · свободно мест: ${seatsLeft}`
               : paidSummary}
           </p>
+          {trialNote ? (
+            <p className="mt-1 text-[13px] text-[#6f7282]">{trialNote}</p>
+          ) : null}
         </div>
         {billingTestMode ? (
           <span className="rounded-full bg-[#ecfdf5] px-3 py-1 text-[12px] font-medium text-[#116b2a]">

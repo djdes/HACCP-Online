@@ -23,6 +23,7 @@ import {
 } from "@/lib/journal-entry-write";
 import { checkEntryScope } from "@/lib/journal-entry-write";
 import { orgTodayKey } from "@/lib/timezone";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 /**
  * Контекст автоматического запрета «день в день» — для PATCH/DELETE,
@@ -164,6 +165,9 @@ export async function PUT(
     });
   }
 
+  const limited = await trialWriteGate(doc.organizationId);
+  if (limited) return limited;
+
   const entry = await db.journalDocumentEntry.upsert({
     where: {
       documentId_employeeId_date: {
@@ -301,6 +305,9 @@ export async function PATCH(
   if (employees.length !== uniqueEmployeeIds.length) {
     return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
   }
+
+  const limited = await trialWriteGate(doc.organizationId, normalizedEntries.length);
+  if (limited) return limited;
 
   try {
     const result = await db.$transaction(async (tx) => {

@@ -20,6 +20,7 @@ import { GeoReminder } from "./_components/geo-reminder";
 import { MiniHomeSkeleton } from "./_components/mini-home-skeleton";
 import { PullToRefresh } from "./_components/pull-to-refresh";
 import { MyShiftButton } from "./_components/my-shift-button";
+import { TRIAL_LIMITS, formatDaysRu, type TrialPhase } from "@/lib/trial";
 
 type LocalState =
   | { kind: "init" }
@@ -59,10 +60,17 @@ type StaffHomeData = {
   all: HomeJournal[];
 };
 
+type MiniTrialInfo = {
+  phase: TrialPhase;
+  daysLeft: number;
+  endsAt: string | null;
+};
+
 type ManagerHomeData = {
   mode: "manager";
   user: HomeUser;
   permissions: string[];
+  trial?: MiniTrialInfo | null;
   summary: {
     total: number;
     pending: number;
@@ -624,6 +632,21 @@ export default function MiniHomePage() {
               tone="ice"
             />
           </div>
+          {home.trial ? (
+            <p
+              className="mt-3"
+              style={{
+                fontSize: 12,
+                lineHeight: 1.45,
+                color:
+                  home.trial.phase === "expired"
+                    ? "var(--mini-amber)"
+                    : "var(--mini-text-muted)",
+              }}
+            >
+              {trialLine(home.trial)}
+            </p>
+          ) : null}
           <div className="mini-dotted-sep mt-4 pt-3 flex flex-wrap gap-2">
             {perms.has("staff.view") ? (
               <Link href="/mini/staff" className="mini-btn-ghost">
@@ -731,6 +754,19 @@ export default function MiniHomePage() {
     </div>
     </PullToRefresh>
   );
+}
+
+/** Строка о тестовом периоде в сводке менеджера — зеркало карточки на сайте. */
+function trialLine(trial: MiniTrialInfo): string {
+  if (trial.phase === "trial") {
+    const left =
+      trial.daysLeft <= 1 ? "последний день" : `осталось ${formatDaysRu(trial.daysLeft)}`;
+    return `Тестовый период: ${left}. Потом — подписка без лимитов или бесплатный тариф.`;
+  }
+  if (trial.phase === "expired") {
+    return "Тестовый период закончился — выберите тариф на сайте: Настройки → Тарифы и оплата. Журналы работают.";
+  }
+  return `Бесплатный тариф: до ${TRIAL_LIMITS.entriesPerDay} записей в день, ${TRIAL_LIMITS.tuyaSensors} датчика, ${TRIAL_LIMITS.aiMessagesPerMonth} AI-сообщений в месяц.`;
 }
 
 function ManagerStat({

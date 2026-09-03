@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { authenticateExternalRequest, tokenHint } from "@/lib/external/auth";
 import { dispatchExternalEntries } from "@/lib/external/dispatch";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -196,6 +197,9 @@ export async function POST(request: Request) {
     const d = new Date(candidate);
     return Number.isFinite(d.getTime()) ? d : null;
   })();
+
+  const limited = await trialWriteGate(organizationId, entries.length);
+  if (limited) return limited;
 
   const result = await dispatchExternalEntries({
     organizationId,

@@ -1,4 +1,5 @@
 import { FREE_MAX_USERS } from "@/lib/plan-limits";
+import { TRIAL_LIMITS } from "@/lib/trial";
 
 /**
  * Витрина тарифов — единственное место копирайта для `/settings/subscription`.
@@ -75,6 +76,7 @@ export const PLAN_CATALOG: CatalogPlan[] = [
       "Все 35 журналов СанПиН и ХАССП",
       "Telegram-бот и Mini App",
       "PDF-отчёты для проверки",
+      `До ${TRIAL_LIMITS.entriesPerDay} записей в день, ${TRIAL_LIMITS.tuyaSensors} датчика и ${TRIAL_LIMITS.aiMessagesPerMonth} AI-сообщений в месяц`,
     ],
   },
   {
@@ -89,6 +91,7 @@ export const PLAN_CATALOG: CatalogPlan[] = [
     features: [
       `До ${SUBSCRIPTION_MAX_USERS} сотрудников`,
       "Свои IoT-датчики и автозаполнение",
+      "Без дневного лимита записей и лимита датчиков",
       "Приоритетная поддержка в Telegram",
     ],
   },

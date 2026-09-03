@@ -14,6 +14,7 @@ import {
 } from "@/lib/cold-equipment-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import { isManagementRole, pickPrimaryManager } from "@/lib/user-roles";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 type ColdEquipmentAction = "apply_auto_fill" | "sync_entries";
 
@@ -140,6 +141,9 @@ export async function POST(
   const existingByDate = new Map<string, (typeof document.entries)[number]>(
     Array.from(entriesByDate.entries()).map(([dateKey, entries]) => [dateKey, entries[0]])
   );
+
+  const limited = await trialWriteGate(getActiveOrgId(session));
+  if (limited) return limited;
 
   const rowsToCreate = generatedRows
     .filter((row) => !existingByDate.has(toDateKey(row.date)))

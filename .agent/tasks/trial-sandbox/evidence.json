@@ -1,0 +1,21 @@
+{
+  "taskId": "trial-sandbox",
+  "verifiedAt": "2026-09-03",
+  "verdict": "PASS",
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck | grep '^src/'", "result": "no output (0 errors in src)" },
+    { "cmd": "npm test", "result": "tests 435, pass 435, fail 0" },
+    { "cmd": "npx eslint <changed files>", "result": "0 errors; 6 pre-existing no-unused-vars warnings in untouched lines" },
+    { "cmd": "npm run build", "result": "EXIT=0" }
+  ],
+  "acceptance": [
+    { "id": "AC1", "status": "PASS", "note": "getTrialStatus phases/dates covered by src/lib/trial.test.ts" },
+    { "id": "AC2", "status": "PASS", "note": "decideTrialWrite tests; trialWriteGate 402 trial_daily_limit in 16 write endpoints + AI actions" },
+    { "id": "AC3", "status": "PASS", "note": "trialSensorGate 402 trial_sensor_limit on POST/PUT equipment" },
+    { "id": "AC4", "status": "PASS", "note": "TrialStatusCard + TrialExpiredModal on /dashboard" },
+    { "id": "AC5", "status": "PASS", "note": "POST /api/settings/subscription/trial-decision → free + audit plan.trial_reduced" },
+    { "id": "AC6", "status": "PASS", "note": "mini/home returns trial; Mini App manager summary line" },
+    { "id": "AC7", "status": "PASS", "note": "TRIAL_DAYS shared by both registration routes" },
+    { "id": "AC8", "status": "PASS", "note": "typecheck/lint/test/build green; roadmap + whats-new updated" }
+  ]
+}

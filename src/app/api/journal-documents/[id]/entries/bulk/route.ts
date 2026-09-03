@@ -17,6 +17,7 @@ import {
 } from "@/lib/journal-entry-write";
 import { checkEntryScope } from "@/lib/journal-entry-write";
 import { orgTodayKey } from "@/lib/timezone";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 /**
  * POST /api/journal-documents/[id]/entries/bulk
@@ -200,6 +201,9 @@ export async function POST(
   if (accepted.length === 0) {
     return NextResponse.json({ saved: 0, skipped, reason: "past_day_locked" });
   }
+
+  const limited = await trialWriteGate(doc.organizationId, accepted.length);
+  if (limited) return limited;
 
   await db.$transaction(
     accepted.map((item) =>

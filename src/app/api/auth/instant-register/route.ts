@@ -16,6 +16,7 @@ import {
   attachOrganizationByRef,
   readPartnerRefFromRequest,
 } from "@/lib/partners/referral";
+import { TRIAL_DAYS } from "@/lib/trial";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +35,6 @@ export const dynamic = "force-dynamic";
 const PASSWORD_ALPHABET =
   "23456789abcdefghjkmnpqrstuvwxyzACDEFHJKLMNPRTUVWXY";
 const PASSWORD_LENGTH = 12;
-const TRIAL_DAYS = 14;
 // Название-заглушка живёт в org-profile: по нему кабинет понимает,
 // что анкета ещё не заполнена (см. (dashboard)/layout.tsx).
 

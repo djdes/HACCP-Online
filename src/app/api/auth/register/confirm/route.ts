@@ -12,6 +12,7 @@ import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
 import { attachAccountForNewOrganization } from "@/lib/create-organization";
+import { TRIAL_DAYS } from "@/lib/trial";
 import {
   attachOrganizationByRef,
   readPartnerRefFromRequest,
@@ -153,7 +154,7 @@ export async function POST(request: Request) {
         type: organizationType,
         inn,
         subscriptionPlan: plan,
-        subscriptionEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        subscriptionEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
         // Автоматика гигиенического журнала — сразу после регистрации.
         journalAutomationJson: defaultJournalAutomationJson(),
       },

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Hourglass,
   ChevronDown,
   FileText,
   Gauge,
@@ -56,6 +57,7 @@ function isCategoryNote(
  * нельзя (server→client serialization), поэтому держим mapping здесь.
  */
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Тестовый период": Hourglass,
   "AI-помощник": Sparkles,
   Партнёры: Handshake,
   "Распределение задач": Gauge,

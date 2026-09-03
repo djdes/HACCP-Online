@@ -18,6 +18,7 @@ import {
   isTraceabilitySource,
   extractBatchKeyFromData,
 } from "@/lib/journal-traceability";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 // Universal deviation rules for all journal types
 type DeviationRule = {
@@ -241,6 +242,10 @@ export async function POST(request: Request) {
       // Записываем сгенерированный ключ в data чтобы он был и в JSON.
       (data as Record<string, unknown>).batchKey = batchKey;
     }
+
+    // Мягкий дневной лимит бесплатного тарифа — см. trial-limits.server.
+    const limited = await trialWriteGate(organizationId);
+    if (limited) return limited;
 
     const entry = await db.journalEntry.create({
       data: {

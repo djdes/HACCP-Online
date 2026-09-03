@@ -14,6 +14,7 @@ import {
 } from "@/lib/climate-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import { isManagementRole, pickPrimaryManager } from "@/lib/user-roles";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 type ClimateAction = "apply_auto_fill" | "sync_entries";
 
@@ -119,6 +120,9 @@ export async function POST(
       entry,
     ])
   );
+
+  const limited = await trialWriteGate(getActiveOrgId(session));
+  if (limited) return limited;
 
   const rowsToCreate = generatedRows
     .filter((row) => !existingByKey.has(`${row.employeeId}:${toDateKey(row.date)}`))

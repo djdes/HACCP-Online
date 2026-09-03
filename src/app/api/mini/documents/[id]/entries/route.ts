@@ -14,6 +14,7 @@ import {
   hasFullDocumentAccess,
 } from "@/lib/journal-entry-write";
 import { orgTodayKey } from "@/lib/timezone";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const dynamic = "force-dynamic";
 
@@ -214,6 +215,9 @@ export async function POST(
       { status: 403 }
     );
   }
+
+  const limited = await trialWriteGate(orgId);
+  if (limited) return limited;
 
   const entry = await db.journalDocumentEntry.upsert({
     where: {

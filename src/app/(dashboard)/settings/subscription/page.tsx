@@ -21,6 +21,8 @@ import {
   planLabel,
 } from "@/lib/plan-limits";
 import { RecurringCard } from "@/components/settings/recurring-card";
+import { getTrialUsage } from "@/lib/trial-limits.server";
+import { formatDaysRu, formatTrialEndDate } from "@/lib/trial";
 
 export default async function SubscriptionPage() {
   // Раньше здесь стоял `requireRole(["owner"])`, и страница была
@@ -48,6 +50,19 @@ export default async function SubscriptionPage() {
   const isDemo = org?.isDemo === true;
   const employees = isDemo ? 1 : org?._count.users || 1;
   const plan = org?.subscriptionPlan ?? "trial";
+  // Тестовый период и лимиты бесплатного тарифа — одной строкой под
+  // названием плана. null на платном.
+  const trialUsage = await getTrialUsage(getActiveOrgId(session));
+  const limitsLine = trialUsage
+    ? `Лимиты: ${trialUsage.entriesLimit} записей в день, ${trialUsage.sensorsLimit} датчика, ${trialUsage.aiQuota} AI-сообщений в месяц.`
+    : "";
+  const trialNote = !trialUsage
+    ? null
+    : trialUsage.status.phase === "trial"
+      ? `Тестовый период: ${trialUsage.status.daysLeft <= 1 ? "последний день" : `осталось ${formatDaysRu(trialUsage.status.daysLeft)}`} (до ${formatTrialEndDate(trialUsage.status.endsAt)}). ${limitsLine}`
+      : trialUsage.status.phase === "expired"
+        ? `Тестовый период закончился. ${limitsLine}`
+        : limitsLine;
   // Та же цифра, что в карточке железа на лендинге — считаем из одного
   // источника, чтобы витрины не разъехались.
   const hardwareFromRub = Math.min(...HARDWARE_BUNDLES.map(bundleTotal));
@@ -104,6 +119,7 @@ export default async function SubscriptionPage() {
       <PlanUpgrade
         currentPlan={plan}
         currentPlanLabel={planLabel(plan)}
+        trialNote={trialNote}
         activeUsers={employees}
         freeUserLimit={FREE_MAX_USERS}
         billingTestMode={BILLING_TEST_MODE}

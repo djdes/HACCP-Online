@@ -26,6 +26,8 @@ import {
 import { createStaffMember } from "@/lib/staff-create";
 import { isManagementRole } from "@/lib/user-roles";
 import { orgTodayKey } from "@/lib/timezone";
+import { consumeTrialWrite } from "@/lib/trial-limits.server";
+import { trialDailyLimitMessage } from "@/lib/trial";
 
 /**
  * Действия AI-помощника: предложение → подтверждение → исполнение.
@@ -516,6 +518,11 @@ async function executeFillCells(
       ok: false,
       error: "Все выбранные дни закрыты для редактирования",
     };
+  }
+
+  const trial = await consumeTrialWrite(ctx.orgId, accepted.length);
+  if (!trial.allowed) {
+    return { ok: false, error: trialDailyLimitMessage(trial.limit) };
   }
 
   await db.$transaction(

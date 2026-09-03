@@ -11,6 +11,7 @@ import { buildCompletionValidator } from "@/lib/tasksflow-adapters/task-form";
 import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
 import { toDateKey } from "@/lib/hygiene-document";
 import { isManagementRole } from "@/lib/user-roles";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -199,6 +200,9 @@ export async function POST(
   } else {
     sanitized = coerceValues(rawValues);
   }
+
+  const limited = await trialWriteGate(link.integration.organizationId);
+  if (limited) return limited;
 
   const todayKey = toDateKey(new Date());
   const applied = await adapter.applyRemoteCompletion({

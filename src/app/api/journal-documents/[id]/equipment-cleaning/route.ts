@@ -9,6 +9,7 @@ import {
 } from "@/lib/equipment-cleaning-document";
 import { isManagementRole } from "@/lib/user-roles";
 import { canWriteJournal } from "@/lib/journal-acl";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 function aclActorFromSession(session: {
   user: { id: string; role: string; isRoot?: boolean };
@@ -92,6 +93,9 @@ export async function POST(
 
   const entryDate = new Date(`${data.washDate}T${data.washTime}:00`);
 
+  const limited = await trialWriteGate(getActiveOrgId(session));
+  if (limited) return limited;
+
   const entry = await db.journalDocumentEntry.create({
     data: {
       documentId: document.id,
@@ -154,6 +158,9 @@ export async function PATCH(
   if (!employeeId) {
     return NextResponse.json({ error: "Не выбран сотрудник" }, { status: 400 });
   }
+
+  const limited = await trialWriteGate(getActiveOrgId(session));
+  if (limited) return limited;
 
   const entry = await db.journalDocumentEntry.update({
     where: { id: currentEntry.id },

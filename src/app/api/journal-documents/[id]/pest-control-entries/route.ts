@@ -6,6 +6,7 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isManagementRole } from "@/lib/user-roles";
 import { canWriteJournal } from "@/lib/journal-acl";
+import { trialWriteGate } from "@/lib/trial-limits.server";
 
 const PEST_CONTROL_TEMPLATE_CODE = "pest_control";
 
@@ -121,6 +122,9 @@ export async function POST(
   if (!employee) {
     return NextResponse.json({ error: "Сотрудник не найден" }, { status: 404 });
   }
+
+  const limited = await trialWriteGate(getActiveOrgId(session));
+  if (limited) return limited;
 
   const seconds = Math.floor(Math.random() * 60);
   const storedDate = buildStoredDate(
@@ -255,6 +259,9 @@ export async function PATCH(
     body.timeSpecified === true,
     existingEntry.date.getUTCSeconds()
   );
+
+  const limited = await trialWriteGate(getActiveOrgId(session));
+  if (limited) return limited;
 
   try {
     const entry = await db.journalDocumentEntry.update({
