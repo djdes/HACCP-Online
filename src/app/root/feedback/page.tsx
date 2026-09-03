@@ -5,7 +5,6 @@ import {
   LifeBuoy,
   Handshake,
   MessageSquareText,
-  MessagesSquare,
   Phone,
   Send,
   Globe,
@@ -24,7 +23,10 @@ import {
 } from "@/lib/platform-admin";
 import type { Prisma } from "@prisma/client";
 import { parseStoredAttachments } from "@/lib/support-attachments";
+import { getPartnerThreadOwnership } from "@/lib/support-threads";
+import { threadKindOf } from "@/lib/support-threads-shared";
 import { FeedbackReply } from "./feedback-reply";
+import { SupportChats, type RootChatThread } from "./support-chats";
 import { TestNotifyButton } from "./test-notify-button";
 
 export const dynamic = "force-dynamic";
@@ -136,31 +138,68 @@ export default async function RootFeedbackPage({
   // Онлайн-чаты: отдельная сущность от обращений, поэтому и грузим
   // отдельно. Показываем последние ветки целиком — переписка коротка,
   // а разбирать её без контекста бессмысленно.
-  const chatThreads = await db.supportThread.findMany({
-    orderBy: { lastMessageAt: "desc" },
-    take: 30,
-    select: {
-      id: true,
-      userName: true,
-      userEmail: true,
-      phone: true,
-      organizationName: true,
-      unreadForStaff: true,
-      lastMessageAt: true,
-      messages: {
-        orderBy: { createdAt: "asc" },
-        take: 50,
-        select: {
-          id: true,
-          author: true,
-          body: true,
-          operatorName: true,
-          attachments: true,
-          createdAt: true,
+  const [chatThreadRows, allOrganizations] = await Promise.all([
+    db.supportThread.findMany({
+      orderBy: { lastMessageAt: "desc" },
+      take: 30,
+      select: {
+        id: true,
+        key: true,
+        userName: true,
+        userEmail: true,
+        phone: true,
+        organizationId: true,
+        organizationName: true,
+        unreadForStaff: true,
+        unreadForClient: true,
+        lastMessageAt: true,
+        messages: {
+          orderBy: { createdAt: "asc" },
+          take: 50,
+          select: {
+            id: true,
+            author: true,
+            body: true,
+            operatorName: true,
+            authorName: true,
+            attachments: true,
+            createdAt: true,
+          },
         },
       },
-    },
-  });
+    }),
+    db.organization.findMany({
+      where: { isDemo: false },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+  // Кто отвечает: организация с активным партнёром ждёт партнёра, не нас.
+  const ownership = await getPartnerThreadOwnership(
+    chatThreadRows.map((t) => t.organizationId).filter((id): id is string => Boolean(id))
+  );
+  const chatThreads: RootChatThread[] = chatThreadRows.map((t) => ({
+    id: t.id,
+    kind: threadKindOf(t.key),
+    organizationId: t.organizationId,
+    organizationName: t.organizationName,
+    userName: t.userName,
+    userEmail: t.userEmail,
+    phone: t.phone,
+    unreadForStaff: t.unreadForStaff,
+    unreadForClient: t.unreadForClient,
+    lastMessageAt: t.lastMessageAt.toISOString(),
+    partner: (t.organizationId && ownership.get(t.organizationId)) || null,
+    messages: t.messages.map((m) => ({
+      id: m.id,
+      author: m.author,
+      body: m.body,
+      operatorName: m.operatorName,
+      authorName: m.authorName,
+      attachments: parseStoredAttachments(m.attachments),
+      createdAt: m.createdAt.toISOString(),
+    })),
+  }));
 
   return (
     <div className="space-y-8">
@@ -182,89 +221,7 @@ export default async function RootFeedbackPage({
         />
       </div>
 
-      <section className="rounded-2xl border border-[#ececf4] bg-white p-5">
-        <div className="flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]">
-          <MessagesSquare className="size-4 text-[#5566f6]" />
-          Онлайн-чаты
-          <span className="text-[13px] font-normal text-[#6f7282]">
-            веток: {chatThreads.length}
-          </span>
-        </div>
-        <p className="mt-1 text-[13px] text-[#6f7282]">
-          Отвечать — свайп-реплаем на сообщение чата в Telegram: ответ
-          появится у клиента прямо в переписке.
-        </p>
-
-        {chatThreads.length === 0 ? (
-          <p className="mt-4 text-[13.5px] text-[#9b9fb3]">Переписок пока нет.</p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {chatThreads.map((thread) => (
-              <details
-                key={thread.id}
-                className="rounded-xl border border-[#ececf4] bg-[#fafbff] px-4 py-3"
-              >
-                <summary className="cursor-pointer list-none">
-                  <span className="flex flex-wrap items-center gap-2 text-[13.5px]">
-                    <span className="font-medium text-[#0b1024]">
-                      {thread.organizationName || "Без организации"}
-                    </span>
-                    <span className="text-[#6f7282]">
-                      {[thread.userName, thread.userEmail, thread.phone]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                    {thread.unreadForStaff > 0 ? (
-                      <span className="rounded-full bg-[#fff4f2] px-2 py-0.5 text-[11px] font-medium text-[#a13a32]">
-                        без ответа: {thread.unreadForStaff}
-                      </span>
-                    ) : null}
-                    <span className="ml-auto text-[12px] text-[#9b9fb3]">
-                      {thread.lastMessageAt.toLocaleString("ru-RU")}
-                    </span>
-                  </span>
-                </summary>
-
-                <div className="mt-3 space-y-1.5">
-                  {thread.messages.map((item) => (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        "max-w-[80%] rounded-xl px-3 py-2 text-[13px] leading-[1.5]",
-                        item.author === "client"
-                          ? "bg-white text-[#0b1024] ring-1 ring-[#ececf4]"
-                          : "ml-auto bg-[#eef1ff] text-[#0b1024]"
-                      )}
-                    >
-                      <div className="mb-0.5 text-[11px] text-[#6f7282]">
-                        {item.author === "client"
-                          ? "Клиент"
-                          : item.operatorName || "Поддержка"}
-                        {" · "}
-                        {item.createdAt.toLocaleString("ru-RU")}
-                      </div>
-                      <div className="whitespace-pre-wrap break-words">
-                        {item.body}
-                      </div>
-                      {parseStoredAttachments(item.attachments).map((a, ai) => (
-                        <a
-                          key={ai}
-                          href={a.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-1 block text-[12.5px] text-[#3848c7] underline-offset-2 hover:underline"
-                        >
-                          📎 {a.filename}
-                        </a>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </details>
-            ))}
-          </div>
-        )}
-      </section>
+      <SupportChats threads={chatThreads} organizations={allOrganizations} />
 
       <div className="rounded-2xl border border-[#ececf4] bg-white p-5">
         <div className="flex items-center gap-2 text-[13px] font-medium text-[#6f7282]">

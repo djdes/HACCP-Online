@@ -14,6 +14,10 @@ import {
 import { toast } from "sonner";
 import { LiteMarkdown } from "@/components/ui/lite-markdown";
 import { SANPIN_CHAT_OPEN_EVENT } from "@/lib/sanpin-chat-bus";
+import { IncomingMessagePopup } from "@/components/support/incoming-message-popup";
+import type { IncomingPopup } from "@/components/support/use-incoming-messages";
+import { playIncomingChirp, primeNotificationSound } from "@/lib/notification-sound";
+import { previewOf } from "@/lib/support-threads-shared";
 
 type PendingAction = {
   token: string;
@@ -72,13 +76,25 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
+  // Ответ пришёл, а панель закрыта (человек ушёл работать, пока помощник
+  // думал): звук и всплывашка справа снизу, клик возвращает в панель.
+  const [replyPopup, setReplyPopup] = useState<IncomingPopup | null>(null);
+  const openRef = useRef(open);
+  openRef.current = open;
 
   // Поддержка открывает этот же чат своим пунктом меню — см. sanpin-chat-bus.
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener(SANPIN_CHAT_OPEN_EVENT, onOpen);
+    primeNotificationSound();
     return () => window.removeEventListener(SANPIN_CHAT_OPEN_EVENT, onOpen);
   }, []);
+
+  useEffect(() => {
+    if (!replyPopup) return;
+    const t = setTimeout(() => setReplyPopup(null), 12_000);
+    return () => clearTimeout(t);
+  }, [replyPopup]);
 
   // Restore chat history on mount; протухшие карточки действий гасим.
   useEffect(() => {
@@ -189,6 +205,16 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
           pendingAction: data.pendingAction ?? null,
         },
       ]);
+      playIncomingChirp();
+      if (!openRef.current) {
+        setReplyPopup({
+          id: String(Date.now()),
+          threadId: null,
+          title: "ИИ-помощник ответил",
+          preview: previewOf(String(data.reply ?? ""), 0, 120),
+          createdAt: new Date().toISOString(),
+        });
+      }
       if (typeof data.messagesLeft === "number") {
         setMessagesLeft(data.messagesLeft);
       }
@@ -274,6 +300,15 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
 
   return (
     <>
+      <IncomingMessagePopup
+        popup={replyPopup}
+        icon={Sparkles}
+        onOpen={() => {
+          setReplyPopup(null);
+          setOpen(true);
+        }}
+        onDismiss={() => setReplyPopup(null)}
+      />
       {/* FAB launcher — компактная иконка-кнопка */}
       {!open ? (
         <button

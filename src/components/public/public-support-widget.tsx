@@ -17,6 +17,8 @@ import {
   MessagesSquare,
   Phone,
   Send,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -27,6 +29,19 @@ import {
   MessageAttachments,
   useAttachmentUploads,
 } from "@/components/support/attachment-composer";
+import {
+  IncomingMessagePopup,
+  LauncherBadge,
+} from "@/components/support/incoming-message-popup";
+import { useIncomingMessages } from "@/components/support/use-incoming-messages";
+import {
+  isNotificationSoundMuted,
+  setNotificationSoundMuted,
+} from "@/lib/notification-sound";
+import {
+  SUPPORT_CHAT_OPEN_EVENT,
+  announceSupportChatRead,
+} from "@/lib/support-chat-bus";
 import type { SupportAttachmentMeta } from "@/lib/support-attachments-shared";
 
 /**
@@ -74,6 +89,8 @@ type ContactError = { message: string; fields: ContactField[] };
 
 const GUEST_KEY = "wesetup.support-guest-id";
 const CONTACT_KEY = "wesetup.support-contact";
+/** Гость уже писал в чат — только тогда есть смысл опрашивать статус ветки. */
+const HAS_THREAD_KEY = "wesetup.support-guest-has-thread";
 const CHAT_POLL_MS = 10_000;
 /** Пульс вокруг пузыря гаснет сам: навязчивая анимация раздражает сильнее, чем зовёт. */
 const ATTENTION_MS = 4_000;
@@ -177,6 +194,9 @@ function SupportWidgetBody() {
   // Дубль в state: хук вложений должен видеть id в момент рендера, а не
   // только внутри ref (иначе загрузка до первого re-render уйдёт без него).
   const [guestIdState, setGuestIdState] = useState<string | null>(null);
+  /// Ветка уже есть — фоновый опрос «ответили ли» имеет смысл.
+  const [hasThread, setHasThread] = useState(false);
+  const [muted, setMuted] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const phoneRef = useRef<HTMLInputElement | null>(null);
 
@@ -189,6 +209,32 @@ function SupportWidgetBody() {
     const timer = setTimeout(() => setAttention(false), ATTENTION_MS);
     return () => clearTimeout(timer);
   }, [attention]);
+
+  // Кто уже переписывался — id гостя нужен сразу, до открытия пузыря:
+  // ответ оператора должен прозвучать, даже если виджет ни разу не трогали.
+  useEffect(() => {
+    setMuted(isNotificationSoundMuted());
+    try {
+      if (localStorage.getItem(HAS_THREAD_KEY) !== "1") return;
+    } catch {
+      return;
+    }
+    if (!guestId.current) guestId.current = readGuestId();
+    setGuestIdState(guestId.current);
+    setHasThread(true);
+  }, []);
+
+  const chatVisible = open && screen === "chat";
+  const incoming = useIncomingMessages({
+    enabled: hasThread && Boolean(guestIdState),
+    statusUrl: guestIdState
+      ? `/api/public/support-chat/status?guestId=${encodeURIComponent(guestIdState)}`
+      : null,
+    scope: guestIdState ? `guest:${guestIdState}` : "guest",
+    chatVisible,
+    title: (status) => status.latest?.operatorName ?? "Поддержка WeSetup",
+  });
+  const { chirpFor } = incoming;
 
   const rememberContact = useCallback((next: Contact) => {
     setSaved(next);
@@ -216,6 +262,26 @@ function SupportWidgetBody() {
     afterContact.current = "menu";
     setScreen(known ? "menu" : "contact");
     setOpen(true);
+    return known;
+  }
+
+  /** Всплывашка «новое сообщение» ведёт сразу в переписку. */
+  const openChatRef = useRef<() => void>(() => {});
+  openChatRef.current = () => {
+    const known = openWidget();
+    if (known) setScreen("chat");
+    else afterContact.current = "chat";
+  };
+  useEffect(() => {
+    const handler = () => openChatRef.current();
+    window.addEventListener(SUPPORT_CHAT_OPEN_EVENT, handler);
+    return () => window.removeEventListener(SUPPORT_CHAT_OPEN_EVENT, handler);
+  }, []);
+
+  function toggleMute() {
+    const next = !muted;
+    setNotificationSoundMuted(next);
+    setMuted(next);
   }
 
   /** Незавершённую правку контакта откатываем к сохранённому. */
@@ -280,28 +346,38 @@ function SupportWidgetBody() {
     setScreen("contact");
   }
 
-  const loadChat = useCallback(async () => {
-    if (!guestId.current) return;
-    const response = await fetch(
-      "/api/public/support-chat?guestId=" +
-        encodeURIComponent(guestId.current)
-    ).catch(() => null);
-    if (!response?.ok) {
-      setMessages((current) => current ?? []);
-      return;
-    }
-    const data = await response.json().catch(() => null);
-    setMessages(data?.messages ?? []);
-    if (data?.contact?.email) setEmail((value) => value || data.contact.email);
-    if (data?.contact?.phone) setPhone((value) => value || data.contact.phone);
-  }, []);
+  const loadChat = useCallback(
+    async (markRead = false) => {
+      if (!guestId.current) return;
+      const read = markRead && document.visibilityState === "visible";
+      const response = await fetch(
+        "/api/public/support-chat?guestId=" +
+          encodeURIComponent(guestId.current) +
+          (read ? "&markRead=1" : "")
+      ).catch(() => null);
+      if (!response?.ok) {
+        setMessages((current) => current ?? []);
+        return;
+      }
+      const data = await response.json().catch(() => null);
+      const list: ChatMessage[] = data?.messages ?? [];
+      setMessages(list);
+      if (data?.contact?.email) setEmail((value) => value || data.contact.email);
+      if (data?.contact?.phone) setPhone((value) => value || data.contact.phone);
+      // Оператор ответил, пока чат открыт: звук без всплывашки.
+      const last = list[list.length - 1];
+      if (last && last.author === "operator") chirpFor(last.id);
+      if (read) announceSupportChatRead();
+    },
+    [chirpFor]
+  );
 
   useEffect(() => {
-    if (!open || screen !== "chat") return;
-    void loadChat();
-    const timer = setInterval(() => void loadChat(), CHAT_POLL_MS);
+    if (!chatVisible) return;
+    void loadChat(true);
+    const timer = setInterval(() => void loadChat(true), CHAT_POLL_MS);
     return () => clearInterval(timer);
-  }, [open, screen, loadChat]);
+  }, [chatVisible, loadChat]);
 
   useEffect(() => {
     if (screen === "chat") bottomRef.current?.scrollIntoView({ block: "end" });
@@ -390,6 +466,13 @@ function SupportWidgetBody() {
       rememberContact({ email, phone });
       setMessages((current) => [...(current ?? []), data.message]);
       chatFiles.clear();
+      // С этого момента есть что ждать — включаем фоновый опрос ответа.
+      try {
+        localStorage.setItem(HAS_THREAD_KEY, "1");
+      } catch {
+        /* приватный режим — опрос только в этой вкладке */
+      }
+      setHasThread(true);
     } catch (error) {
       setDraft(body);
       toast.error(error instanceof Error ? error.message : "Ошибка");
@@ -417,27 +500,48 @@ function SupportWidgetBody() {
   const phoneInvalid = contactError?.fields.includes("phone") ?? false;
   const emailInvalid = contactError?.fields.includes("email") ?? false;
 
+  const popup = (
+    <IncomingMessagePopup
+      popup={incoming.popup}
+      onOpen={() => {
+        incoming.dismissPopup();
+        openChatRef.current();
+      }}
+      onDismiss={incoming.dismissPopup}
+    />
+  );
+
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={openWidget}
-        className="fixed bottom-5 right-5 z-30 flex size-12 items-center justify-center rounded-full bg-[#5566f6] text-white shadow-[0_14px_30px_-10px_rgba(85,102,246,0.6)] ring-1 ring-white/25 transition-all duration-200 hover:scale-105 hover:bg-[#4a5bf0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/25"
-        aria-label="Связаться с нами"
-        title="Написать нам"
-      >
-        {attention ? (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 rounded-full bg-[#5566f6] opacity-40 motion-safe:animate-ping"
-          />
-        ) : null}
-        <MessageCircle className="relative size-5" />
-      </button>
+      <>
+        {popup}
+        <button
+          type="button"
+          onClick={openWidget}
+          className="fixed bottom-5 right-5 z-30 flex size-12 items-center justify-center rounded-full bg-[#5566f6] text-white shadow-[0_14px_30px_-10px_rgba(85,102,246,0.6)] ring-1 ring-white/25 transition-all duration-200 hover:scale-105 hover:bg-[#4a5bf0] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/25"
+          aria-label={
+            incoming.unread > 0
+              ? `Связаться с нами · новых сообщений: ${incoming.unread}`
+              : "Связаться с нами"
+          }
+          title="Написать нам"
+        >
+          {attention && incoming.unread === 0 ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-full bg-[#5566f6] opacity-40 motion-safe:animate-ping"
+            />
+          ) : null}
+          <LauncherBadge count={incoming.unread} />
+          <MessageCircle className="relative size-5" />
+        </button>
+      </>
     );
   }
 
   return (
+    <>
+    {popup}
     <div className="fixed bottom-5 right-5 z-40 flex max-h-[min(640px,calc(100vh-2.5rem))] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef0f6] px-5 py-4">
         <div className="min-w-0">
@@ -461,14 +565,27 @@ function SupportWidgetBody() {
               : "Отвечаем в рабочие часы, обычно в течение дня"}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={close}
-          className="rounded-lg p-1 text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
-          aria-label="Закрыть"
-        >
-          <X className="size-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {screen === "chat" ? (
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="rounded-lg p-1 text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
+              aria-label={muted ? "Включить звук новых сообщений" : "Выключить звук новых сообщений"}
+              title={muted ? "Звук выключен" : "Звук при новом сообщении"}
+            >
+              {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={close}
+            className="rounded-lg p-1 text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
+            aria-label="Закрыть"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
       </div>
 
       {screen === "contact" ? (
@@ -768,5 +885,6 @@ function SupportWidgetBody() {
         </>
       ) : null}
     </div>
+    </>
   );
 }

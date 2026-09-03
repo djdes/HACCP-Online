@@ -324,7 +324,10 @@ export default async function DashboardLayout({
           <SanpinChatWidget />
           {/* Поддержка — доступна management+ из любого экрана. */}
           {hasFullWorkspaceAccess(session.user) ? (
-            <SupportWidget consultant={consultant} />
+            <SupportWidget
+              consultant={consultant}
+              hideChat={Boolean(partnerAccess)}
+            />
           ) : null}
           {/* «Что нового» отключено: заметки писались вручную и отставали
               от кода — менялся SHA сборки, а текст оставался прежним, и

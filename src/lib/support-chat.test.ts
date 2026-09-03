@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   buildSupportChatTag,
+  composePartnerHandoffAdminMessage,
   composeSupportChatAdminMessage,
+  composeSupportChatPartnerMessage,
   extractSupportThreadId,
 } from "@/lib/support-chat";
 
@@ -69,4 +71,33 @@ test("composeSupportChatAdminMessage escapes the body", () => {
   // parse_mode HTML: неэкранированный тег из пользовательского текста
   // ломает сообщение, и Telegram отвечает 400 — обращение не дойдёт.
   assert.match(text, /&lt;b&gt;жирный/);
+});
+
+test("partner handoff admin message keeps the chat anchor but asks nothing", () => {
+  const text = composePartnerHandoffAdminMessage({
+    threadId: "thr_9",
+    body: "не печатается журнал",
+    organizationName: "Кафе «Луна»",
+    brandName: "Консалт-Про",
+    authorName: "Мария",
+    escape,
+    appUrl: "https://wesetup.ru",
+  });
+  assert.equal(extractSupportThreadId(text), "thr_9");
+  assert.ok(text.includes("Консалт-Про"));
+  assert.ok(text.includes("Отвечать не нужно"));
+  assert.ok(!text.includes("Ответить: свайп-реплай"));
+});
+
+test("partner message links to the partner chats page", () => {
+  const text = composeSupportChatPartnerMessage({
+    threadId: "thr_9",
+    body: "<b>вопрос</b>",
+    organizationName: "Кафе",
+    authorName: "Мария",
+    escape,
+    appUrl: "https://wesetup.ru",
+  });
+  assert.ok(text.includes("/partner/chats?thread=thr_9"));
+  assert.ok(text.includes("&lt;b&gt;вопрос&lt;/b&gt;"));
 });

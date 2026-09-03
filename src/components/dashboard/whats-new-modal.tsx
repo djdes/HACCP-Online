@@ -2,18 +2,20 @@
 
 import { useEffect, useState } from "react";
 import {
-  Hourglass,
   ChevronDown,
   FileText,
   Gauge,
   Handshake,
+  Hourglass,
   ListChecks,
+  MessageCircle,
+  MessageCircleMore,
+  Moon,
   Plug,
   Settings2,
   ShieldCheck,
   Sparkles,
   SquarePen,
-  MessageCircleMore,
   Table2,
   Users,
   Wand2,
@@ -57,6 +59,8 @@ function isCategoryNote(
  * нельзя (server→client serialization), поэтому держим mapping здесь.
  */
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Чат и поддержка": MessageCircle,
+  "Тёмная тема": Moon,
   "Тестовый период": Hourglass,
   "AI-помощник": Sparkles,
   Партнёры: Handshake,

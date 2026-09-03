@@ -1,9 +1,10 @@
 /**
  * Онлайн-чат с поддержкой.
  *
- * Один пользователь — одна ветка на всё время. Человек, вернувшийся через
- * неделю, видит, о чём писал раньше, и не пересказывает всё заново; тот же
- * контекст видит оператор.
+ * Одна ветка на организацию (гость с сайта — одна ветка на устройство).
+ * Человек, вернувшийся через неделю, видит, о чём писал раньше, и не
+ * пересказывает всё заново; тот же контекст видит оператор. Ключи веток и
+ * маршрутизация «партнёр или WeSetup» — в support-threads.ts.
  *
  * Ответ оператора приходит из Telegram: админ-сообщение несёт якорь
  * `#chat_<threadId>`, свайп-реплай на него дописывает реплику в ветку.
@@ -73,4 +74,73 @@ export function composeSupportChatAdminMessage(args: {
   lines.push("Ответить: свайп-реплай на это сообщение.");
   lines.push(`<a href="${args.appUrl}/root/feedback">Открыть админку</a>`);
   return lines.join("\n");
+}
+
+/**
+ * Сообщение клиента — партнёру, который сопровождает организацию.
+ * Партнёр отвечает из своего кабинета, поэтому главное здесь — ссылка.
+ */
+export function composeSupportChatPartnerMessage(args: {
+  threadId: string;
+  body: string;
+  organizationName?: string | null;
+  authorName?: string | null;
+  escape: (value: string) => string;
+  appUrl: string;
+}): string {
+  const lines: string[] = [];
+  lines.push("<b>💬 Клиент пишет в чат</b>");
+  if (args.organizationName) lines.push(`🏢 ${args.escape(args.organizationName)}`);
+  if (args.authorName) lines.push(`👤 ${args.escape(args.authorName)}`);
+  lines.push("");
+  lines.push(args.escape(args.body));
+  lines.push("");
+  lines.push(
+    `<a href="${args.appUrl}/partner/chats?thread=${args.threadId}">Ответить в кабинете партнёра</a>`
+  );
+  return lines.join("\n");
+}
+
+/**
+ * Тихое уведомление админу о переписке в партнёрской организации:
+ * отвечает партнёр, просьбы ответить нет, но якорь ветки оставлен —
+ * свайп-реплай по-прежнему работает, если захочется вмешаться.
+ */
+export function composePartnerHandoffAdminMessage(args: {
+  threadId: string;
+  body: string;
+  organizationName?: string | null;
+  brandName: string;
+  authorName?: string | null;
+  escape: (value: string) => string;
+  appUrl: string;
+}): string {
+  const lines: string[] = [];
+  lines.push(`<b>🤝 Чат клиента партнёра</b> · отвечает ${args.escape(args.brandName)}`);
+  lines.push("");
+  lines.push(args.escape(args.body));
+  lines.push("");
+  const who = [args.organizationName, args.authorName].filter(Boolean).join(" · ");
+  if (who) lines.push(`🏢 ${args.escape(who)}`);
+  lines.push("");
+  lines.push(buildSupportChatTag(args.threadId));
+  lines.push("Отвечать не нужно. Свайп-реплай — если хотите вмешаться.");
+  lines.push(`<a href="${args.appUrl}/root/feedback">Открыть админку</a>`);
+  return lines.join("\n");
+}
+
+/** Реплика оператора — руководству организации в Telegram. */
+export function composeOperatorReplyTelegram(args: {
+  operatorLabel: string;
+  body: string;
+  escape: (value: string) => string;
+  appUrl: string;
+}): string {
+  return [
+    `<b>💬 ${args.escape(args.operatorLabel)}</b>`,
+    "",
+    args.escape(args.body),
+    "",
+    `<a href="${args.appUrl}/dashboard?support=chat">Открыть чат</a>`,
+  ].join("\n");
 }

@@ -254,15 +254,27 @@ function defaultDeps(): SupportDeps {
       });
     },
     async replyToChat({ threadId, message, operatorName }) {
-      await db.supportMessage.create({
-        data: { threadId, author: "operator", body: message, operatorName },
+      // Реплика в старую личную ветку уходит в ветку организации; счётчики
+      // непрочитанного и уведомление клиенту — в общей библиотеке чата.
+      const { deliverOperatorMessage, postOperatorMessage, resolveReplyTarget } =
+        await import("@/lib/support-threads");
+      const target = await resolveReplyTarget(threadId);
+      const operator = {
+        kind: "admin" as const,
+        name: operatorName,
+        userId: null,
+        partnerId: null,
+      };
+      const posted = await postOperatorMessage({
+        threadId: target.thread.id,
+        body: message,
+        attachments: [],
+        operator,
       });
-      // Счётчик непрочитанного гасим здесь же: оператор ответил, значит
-      // ветку он разобрал, и в админке она не должна висеть как новая.
-      await db.supportThread.update({
-        where: { id: threadId },
-        data: { lastMessageAt: new Date(), unreadForStaff: 0 },
-      });
+      // Доставка не должна ронять свайп-реплай: реплика уже сохранена.
+      await deliverOperatorMessage({ ...posted, operator }).catch((error) =>
+        console.error("[bot:support] client delivery failed:", error)
+      );
     },
     async replyToReport({ reportId, message }) {
       const result = await applyFeedbackReply({

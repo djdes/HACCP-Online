@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
   ChevronDown,
@@ -10,11 +10,14 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  MessagesSquare,
   Palette,
   Users,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { BrandLogo } from "@/components/brand/logo";
+import { IncomingMessagePopup } from "@/components/support/incoming-message-popup";
+import { useIncomingMessages } from "@/components/support/use-incoming-messages";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/partner", label: "Обзор", icon: LayoutDashboard, exact: true },
+  { href: "/partner/chats", label: "Чаты", icon: MessagesSquare },
   { href: "/partner/invites", label: "Приглашения", icon: Mail },
   { href: "/partner/branding", label: "Брендинг", icon: Palette },
   { href: "/partner/rewards", label: "Вознаграждение", icon: Coins },
@@ -61,10 +65,31 @@ export function PartnerShell({
   children,
 }: PartnerShellProps) {
   const pathname = usePathname() ?? "/partner";
+  const router = useRouter();
   const initials = (userName || userEmail || "?").trim().slice(0, 1).toUpperCase();
+
+  // Клиент написал в чат — звук и всплывашка в любом разделе кабинета,
+  // бейдж у пункта «Чаты». На самой странице чатов всплывашку не показываем.
+  const incoming = useIncomingMessages({
+    enabled: true,
+    statusUrl: "/api/partner/chats/status",
+    scope: "partner",
+    chatVisible: pathname.startsWith("/partner/chats"),
+    title: (status) => status.latest?.operatorName ?? "Клиент",
+  });
 
   return (
     <div className="flex min-h-screen flex-col">
+      <IncomingMessagePopup
+        popup={incoming.popup}
+        icon={MessagesSquare}
+        onOpen={() => {
+          const threadId = incoming.popup?.threadId;
+          incoming.dismissPopup();
+          router.push(threadId ? `/partner/chats?thread=${encodeURIComponent(threadId)}` : "/partner/chats");
+        }}
+        onDismiss={incoming.dismissPopup}
+      />
       <header className="sticky top-0 z-30 border-b border-[#ececf4] bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-3 px-4 md:px-8">
           <div className="flex min-w-0 items-center gap-3">
@@ -179,6 +204,11 @@ export function PartnerShell({
                   >
                     <item.icon className="size-4" />
                     {item.label}
+                    {item.href === "/partner/chats" && incoming.unread > 0 ? (
+                      <span className="rounded-full bg-[#d2453d] px-1.5 py-0.5 text-[11px] font-semibold leading-none tabular-nums text-white">
+                        {incoming.unread > 99 ? "99+" : incoming.unread}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               );

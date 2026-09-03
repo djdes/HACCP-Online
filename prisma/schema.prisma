@@ -986,7 +986,10 @@ model FeedbackReport {
 /// обращений перестала бы читаться.
 model SupportThread {
   id               String   @id @default(cuid())
-  userId           String   @unique
+  /// Ключ ветки: "<userId>" (legacy, до веток организаций), "guest:<uuid>",
+  /// "org:<orgId>". Колонка в БД по-прежнему называется userId — переименование
+  /// только на уровне Prisma, чтобы `db push` не трогал данные.
+  key              String   @unique(map: "SupportThread_userId_key") @map("userId")
   userEmail        String?
   userName         String?
   phone            String?
@@ -996,6 +999,8 @@ model SupportThread {
   lastMessageAt    DateTime @default(now())
   /// Непрочитанное оператором: сбрасывается при ответе.
   unreadForStaff   Int      @default(0)
+  /// Непрочитанное клиентом: +1 на реплику оператора, 0 когда клиент открыл чат.
+  unreadForClient  Int      @default(0)
   createdAt        DateTime @default(now())
 
   messages SupportMessage[]
@@ -1017,9 +1022,18 @@ model SupportMessage {
   /// отдельная таблица: вложение живёт и умирает вместе с сообщением,
   /// отдельного жизненного цикла у него нет. См. src/lib/support-attachments.ts.
   attachments  Json?
+  /// Кто написал: управляющий организации (client) или сотрудник партнёра / ROOT (operator).
+  authorUserId String?
+  authorName   String?
+  /// Партнёр, от имени которого написан ответ оператора. null — WeSetup.
+  partnerId    String?
+  /// Рассылка ROOT «всем организациям»: один id на рассылку, по нему
+  /// пропускаем уже обработанные организации при повторе.
+  broadcastId  String?
   createdAt    DateTime      @default(now())
 
   @@index([threadId, createdAt])
+  @@index([broadcastId])
 }
 
 /// In-app notifications that surface state-drift hints ("add these new

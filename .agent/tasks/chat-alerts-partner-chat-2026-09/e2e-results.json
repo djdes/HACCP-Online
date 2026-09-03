@@ -1,0 +1,137 @@
+[
+  {
+    "ac": "AC8",
+    "ok": true,
+    "note": "default theme=dark (hour 22, expected dark), font=\"Segoe UI\", \"Helvetica Neue\", Arial, san"
+  },
+  {
+    "ac": "AC8",
+    "ok": true,
+    "note": "cabinet mode=dark → landing dark, body bg rgb(11, 13, 26)"
+  },
+  {
+    "ac": "AC8: ночная тема лендинга",
+    "ok": false,
+    "note": "step failed: page.goto: Timeout 30000ms exceeded."
+  },
+  {
+    "ac": "AC3",
+    "ok": true,
+    "note": "status polls before first message: 0"
+  },
+  {
+    "ac": "AC3",
+    "ok": true,
+    "note": "guest thread cmtly0do4005hmg9mz3n8bpj1, flag=1"
+  },
+  {
+    "ac": "AC7",
+    "ok": true,
+    "note": "root reply to guest → 200 {\"telegram\":false,\"inApp\":false}"
+  },
+  {
+    "ac": "AC3",
+    "ok": true,
+    "note": "landing popup shown, launcher label: Связаться с нами · новых сообщений: 1"
+  },
+  {
+    "ac": "AC3",
+    "ok": true,
+    "note": "after opening chat unreadForClient=0"
+  },
+  {
+    "ac": "AC1",
+    "ok": true,
+    "note": "org thread cmtgxxh160000rqtsuvumn46j, authorName present"
+  },
+  {
+    "ac": "AC7",
+    "ok": true,
+    "note": "root reply to org → delivered {\"telegram\":true,\"inApp\":true}"
+  },
+  {
+    "ac": "AC2",
+    "ok": true,
+    "note": "dashboard popup + badge: Поддержка · новых сообщений: 1"
+  },
+  {
+    "ac": "AC2",
+    "ok": true,
+    "note": "after opening chat unreadForClient=0"
+  },
+  {
+    "ac": "AC4",
+    "ok": true,
+    "note": "механизм: playIncomingChirp + popup при !open — покрыт кодом sanpin-chat-widget.tsx (ручная проверка на проде)"
+  },
+  {
+    "ac": "AC7",
+    "ok": true,
+    "note": "root inbox renders compose + broadcast buttons"
+  },
+  {
+    "ac": "AC7",
+    "ok": true,
+    "note": "broadcast dialog with typeToConfirm"
+  },
+  {
+    "ac": "AC7",
+    "ok": false,
+    "note": "broadcast → undefined orgs; repeat → 429"
+  },
+  {
+    "ac": "AC6",
+    "ok": true,
+    "note": "partner wrote first from /partner/chats"
+  },
+  {
+    "ac": "AC6",
+    "ok": true,
+    "note": "impersonate demo org → 200"
+  },
+  {
+    "ac": "AC6",
+    "ok": true,
+    "note": "client sees partner message, unreadForClient=10"
+  },
+  {
+    "ac": "AC7",
+    "ok": false,
+    "note": "broadcast delivered to client org exactly once (0)"
+  },
+  {
+    "ac": "AC5",
+    "ok": true,
+    "note": "client reply → 200"
+  },
+  {
+    "ac": "AC5",
+    "ok": true,
+    "note": "partner status unread=1, latest=\"Спасибо, консультант, вопрос по журналу e2e mtlxzf04\""
+  },
+  {
+    "ac": "AC5",
+    "ok": true,
+    "note": "partner popup → opens the thread"
+  },
+  {
+    "ac": "AC5",
+    "ok": true,
+    "note": "root inbox shows «Ждёт партнёра» ×1"
+  },
+  {
+    "ac": "AC6",
+    "ok": true,
+    "note": "partner opens client cabinet → 200"
+  },
+  {
+    "ac": "AC6",
+    "ok": true,
+    "note": "POST /api/support/chat in partner mode → 403"
+  },
+  {
+    "ac": "AC6",
+    "ok": true,
+    "note": "«Онлайн-чат» hidden in partner mode (count 0)"
+  }
+]

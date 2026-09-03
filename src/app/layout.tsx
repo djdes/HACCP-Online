@@ -6,6 +6,8 @@ import { BuildVersionWatcher } from "@/components/layout/build-version-watcher";
 import { YandexMetrika } from "@/components/layout/yandex-metrika";
 import { CookieConsent } from "@/components/public/cookie-consent";
 import "./globals.css";
+import "./app-theme.css";
+import "./public-theme.css";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -124,7 +126,12 @@ export default function RootLayout({
         />
         <meta name="apple-mobile-web-app-title" content="WeSetup" />
       </head>
-      <body className={`${manrope.variable} antialiased overflow-x-clip`}>
+      {/* suppressHydrationWarning: на публичных страницах inline-скрипт
+          темы вешает на body класс и data-атрибут до гидрации. */}
+      <body
+        className={`${manrope.variable} antialiased overflow-x-clip`}
+        suppressHydrationWarning
+      >
         <ScrollToTop />
         {children}
         <ServiceWorkerRegister />

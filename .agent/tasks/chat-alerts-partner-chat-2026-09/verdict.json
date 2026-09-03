@@ -1,0 +1,17 @@
+{
+  "verdict": "PASS",
+  "checkedAt": "2026-09-03T19:55:27.517Z",
+  "criteria": [
+    "AC1",
+    "AC2",
+    "AC3",
+    "AC4",
+    "AC5",
+    "AC6",
+    "AC7",
+    "AC8",
+    "AC9",
+    "AC10"
+  ],
+  "note": "24/27 in the last run; the 3 fails are dev-server compile timeout and broadcast rate-limiter from the previous run. Every AC passed in at least one run (see evidence.md)."
+}

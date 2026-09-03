@@ -168,3 +168,23 @@ export async function sendPartnerTeamInviteEmail(params: {
     <p ${MUTED}>Ссылка действительна 7 дней.</p>`;
   return sendRawEmail(params.to, subject, renderEmailLayout("Команда партнёра", body));
 }
+
+/** Клиент написал в онлайн-чат — партнёру, который его сопровождает. */
+export async function sendPartnerChatMessageEmail(params: {
+  to: string;
+  organizationName: string;
+  authorName: string | null;
+  preview: string;
+  threadId: string;
+}) {
+  const subject = `Новое сообщение от клиента: ${params.organizationName}`;
+  const who = params.authorName ? `${params.authorName}, ${params.organizationName}` : params.organizationName;
+  const body = `
+    <p ${P}>В онлайн-чат написал клиент: <strong>${escapeHtml(who)}</strong>.</p>
+    <div ${BOX}>
+      <p style="margin:0;color:#18181b;white-space:pre-wrap">${escapeHtml(params.preview)}</p>
+    </div>
+    ${button(`${APP_URL}/partner/chats?thread=${encodeURIComponent(params.threadId)}`, "Ответить в кабинете партнёра")}
+    <p ${MUTED}>Клиент увидит ответ прямо в чате кабинета WeSetup, со звуком и всплывающим уведомлением.</p>`;
+  return sendRawEmail(params.to, subject, renderEmailLayout("Сообщение от клиента", body));
+}

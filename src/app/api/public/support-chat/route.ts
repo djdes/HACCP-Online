@@ -1,15 +1,11 @@
 import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { sendFeedbackAdminEmail } from "@/lib/email";
-import { getPlatformAdminEmail, notifyPlatformAdmin } from "@/lib/platform-admin";
 import {
   SUPPORT_CHAT_HISTORY_LIMIT,
   SUPPORT_CHAT_MAX_LENGTH,
   SUPPORT_CHAT_MIN_LENGTH,
-  composeSupportChatAdminMessage,
 } from "@/lib/support-chat";
-import { escapeTelegramHtml } from "@/lib/telegram";
 import { clientIp } from "@/lib/client-ip";
 import {
   GUEST_ID_PATTERN,
@@ -17,26 +13,27 @@ import {
   normalizeContact,
   publicContactLimiter,
 } from "@/lib/public-support";
+import { validateSignedAttachments } from "@/lib/support-attachments";
 import {
-  emailAttachmentPayload,
-  parseStoredAttachments,
-  sendAttachmentsToPlatformAdmins,
-  validateSignedAttachments,
-} from "@/lib/support-attachments";
+  MESSAGE_SELECT,
+  THREAD_SELECT,
+  deliverClientMessage,
+  markReadByClient,
+  postClientMessage,
+  toMessageDto,
+} from "@/lib/support-threads";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
 /**
  * Онлайн-чат для гостя лендинга.
  *
  * Ветка та же самая, что у авторизованных (`SupportThread`) — оператор
- * отвечает свайп-реплаем в Telegram одинаково и не различает, откуда
- * пришёл человек. Отличается только ключ: вместо `userId` пишем
- * `guest:<uuid>`, где uuid лежит у гостя в localStorage. Аккаунта у него
- * нет, а переписку при возвращении показать надо.
+ * отвечает одинаково и не различает, откуда пришёл человек. Отличается
+ * только ключ: вместо организации пишем `guest:<uuid>`, где uuid лежит у
+ * гостя в localStorage. Аккаунта у него нет, а переписку при возвращении
+ * показать надо.
  *
  * uuid — единственный ключ к ветке, поэтому он случайный и длинный.
  * Угадать чужую переписку перебором нереально, а знать свою достаточно
@@ -58,38 +55,34 @@ const postSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const guestId = new URL(request.url).searchParams.get("guestId") ?? "";
+  const url = new URL(request.url);
+  const guestId = url.searchParams.get("guestId") ?? "";
   if (!GUEST_ID_PATTERN.test(guestId)) {
-    return NextResponse.json({ threadId: null, messages: [] });
+    return NextResponse.json({ threadId: null, unreadForClient: 0, messages: [] });
   }
+  const markRead = url.searchParams.get("markRead") === "1";
 
   const thread = await db.supportThread.findUnique({
-    where: { userId: guestThreadKey(guestId) },
-    select: { id: true, userEmail: true, phone: true },
+    where: { key: guestThreadKey(guestId) },
+    select: THREAD_SELECT,
   });
+  if (thread && markRead && thread.unreadForClient > 0) {
+    await markReadByClient(thread.id);
+  }
 
   const messages = thread
     ? await db.supportMessage.findMany({
         where: { threadId: thread.id },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
         take: SUPPORT_CHAT_HISTORY_LIMIT,
-        select: {
-          id: true,
-          author: true,
-          body: true,
-          operatorName: true,
-          attachments: true,
-          createdAt: true,
-        },
-      })
+        select: MESSAGE_SELECT,
+      }).then((rows) => rows.reverse())
     : [];
 
   return NextResponse.json({
     threadId: thread?.id ?? null,
-    messages: messages.map((m) => ({
-      ...m,
-      attachments: parseStoredAttachments(m.attachments),
-    })),
+    unreadForClient: markRead ? 0 : (thread?.unreadForClient ?? 0),
+    messages: messages.map(toMessageDto),
     contact: { email: thread?.userEmail ?? null, phone: thread?.phone ?? null },
   });
 }
@@ -122,7 +115,7 @@ export async function POST(request: Request) {
     );
   }
   const existing = await db.supportThread.findUnique({
-    where: { userId: key },
+    where: { key },
     select: { id: true, userEmail: true, phone: true },
   });
 
@@ -149,103 +142,32 @@ export async function POST(request: Request) {
     );
   }
 
-  const now = new Date();
-  const thread = await db.supportThread.upsert({
-    where: { userId: key },
-    create: {
-      userId: key,
-      userEmail: email,
-      userName: "Гость с сайта",
-      phone,
-      lastMessageAt: now,
-      unreadForStaff: 1,
-    },
-    update: {
-      userEmail: email,
-      phone,
-      lastMessageAt: now,
-      unreadForStaff: { increment: 1 },
-    },
-    select: { id: true },
-  });
+  const thread =
+    existing ??
+    (await db.supportThread.create({
+      data: {
+        key,
+        userEmail: email,
+        userName: "Гость с сайта",
+        phone,
+        lastMessageAt: new Date(),
+      },
+      select: { id: true },
+    }));
 
-  const previousMessages = await db.supportMessage.count({
-    where: { threadId: thread.id },
-  });
-
-  const message = await db.supportMessage.create({
-    data: {
-      threadId: thread.id,
-      author: "client",
-      body: parsed.data.message,
-      ...(attachments.length > 0 ? { attachments } : {}),
-    },
-    select: {
-      id: true,
-      author: true,
-      body: true,
-      operatorName: true,
-      attachments: true,
-      createdAt: true,
-    },
-  });
-
-  const attachmentsNote =
-    attachments.length > 0
-      ? `\n📎 ${attachments.map((a) => a.filename).join(", ")}`
-      : "";
-  const adminText = composeSupportChatAdminMessage({
+  const posted = await postClientMessage({
     threadId: thread.id,
-    body: (parsed.data.message || "(вложение без текста)") + attachmentsNote,
-    userName: "Гость с сайта",
-    userEmail: email,
-    organizationName: null,
-    phone,
-    previousMessages,
-    escape: escapeTelegramHtml,
-    appUrl: APP_URL,
+    body: parsed.data.message,
+    attachments,
+    author: { userId: null, name: "Гость с сайта" },
+    snapshot: { userEmail: email, phone },
   });
 
-  after(async () => {
-    const adminEmail = getPlatformAdminEmail();
-    const emailAtts = emailAttachmentPayload(attachments);
-    await Promise.all([
-      notifyPlatformAdmin(adminText, { kind: "support-chat" }).catch((error) => {
-        console.error("Public chat telegram failed:", error);
-        return false;
-      }),
-      sendAttachmentsToPlatformAdmins(
-        attachments,
-        `Вложения к чату #chat_${thread.id}`,
-        "support-chat"
-      ).catch((error) => {
-        console.error("Public chat attachments failed:", error);
-      }),
-      adminEmail
-        ? sendFeedbackAdminEmail({
-            to: adminEmail,
-            type: "support",
-            message: parsed.data.message || "(вложение без текста)",
-            userName: "Гость с сайта",
-            userEmail: email,
-            organizationName: null,
-            phone,
-            submittedAt: message.createdAt,
-            attachmentLinks: emailAtts.links,
-            attachments: emailAtts.files,
-          }).catch((error) => {
-            console.error("Public chat email failed:", error);
-            return false;
-          })
-        : Promise.resolve(false),
-    ]);
-  });
+  after(() =>
+    deliverClientMessage(posted).catch((error) =>
+      console.error("[public-support-chat] delivery failed:", error)
+    )
+  );
 
-  return NextResponse.json({
-    ok: true,
-    message: {
-      ...message,
-      attachments: parseStoredAttachments(message.attachments),
-    },
-  });
+  return NextResponse.json({ ok: true, message: posted.message });
 }

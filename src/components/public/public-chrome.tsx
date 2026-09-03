@@ -6,6 +6,7 @@ import { ArrowRight, LogIn } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getWebHomeHref } from "@/lib/role-access";
+import { PublicThemeBootstrap, PublicThemeScope } from "@/components/theme/site-theme";
 
 /**
  * Top nav shared across the marketing landing, the blog, and the journal
@@ -42,6 +43,10 @@ export async function PublicHeader({
 
   return (
     <div className="public-header sticky top-0 z-40 border-b border-[#ececf4] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+      {/* Ночная тема публичных страниц — см. usePublicAutoTheme. Шапка
+          стоит первой на каждой странице, поэтому скрипт успевает до отрисовки. */}
+      <PublicThemeBootstrap />
+      <PublicThemeScope />
       <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-2.5 sm:px-6 sm:py-5">
         <Link href="/" className="text-[#0b1024]" aria-label="WeSetup — на главную">
           <BrandLogo height={30} className="sm:[--logo-h:26px]" title="" />

@@ -1,0 +1,83 @@
+/*
+ * Ночная тема публичных страниц (лендинг, блог, каталог журналов, тарифы).
+ *
+ * Тема вешается на <body class="app-shell public-theme" data-app-theme>
+ * (см. usePublicAutoTheme в site-theme.tsx), так что все dark-оверрайды
+ * из app-theme.css и globals.css работают и здесь. Ниже — только то, что
+ * общим оверрайдам не по зубам: типографика лендинга остаётся своей, а
+ * полупрозрачные шапки, градиентные «затухания в белый» и тёмные CTA-ленты
+ * получают ночные значения.
+ */
+
+/* ── Типографика: лендинг остаётся на системном стеке, не на Manrope ── */
+body.public-theme,
+body.public-theme input,
+body.public-theme textarea,
+body.public-theme select,
+body.public-theme button {
+  font-family: revert-layer;
+}
+body.public-theme main h1 {
+  font-weight: revert-layer;
+  line-height: revert-layer;
+  letter-spacing: revert-layer;
+}
+
+/* ── Фон страницы: обёртка `min-h-screen bg-white` — это фон, а не карточка ── */
+body.public-theme[data-app-theme="dark"] .min-h-screen.bg-white {
+  background-color: var(--app-bg) !important;
+}
+
+/* ── Полупрозрачные поверхности (шапка, hero-карточки) ── */
+body.public-theme[data-app-theme="dark"] .landing-nav,
+body.public-theme[data-app-theme="dark"] .public-header {
+  background-color: rgba(11, 13, 26, 0.86) !important;
+  border-color: var(--app-border) !important;
+}
+body.public-theme[data-app-theme="dark"] .bg-white\/80,
+body.public-theme[data-app-theme="dark"] .bg-white\/90,
+body.public-theme[data-app-theme="dark"] .bg-white\/95,
+body.public-theme[data-app-theme="dark"] .hover\:bg-white:hover {
+  background-color: color-mix(in srgb, var(--app-surface) 88%, transparent) !important;
+}
+
+/* ── Градиенты «в белый» → в ночной фон ── */
+body.public-theme[data-app-theme="dark"] .from-white {
+  --tw-gradient-from: var(--app-bg);
+}
+body.public-theme[data-app-theme="dark"] .to-white {
+  --tw-gradient-to: var(--app-bg);
+}
+body.public-theme[data-app-theme="dark"] .via-white {
+  --tw-gradient-via: var(--app-bg);
+}
+body.public-theme[data-app-theme="dark"] .from-\[\#f5f6ff\] {
+  --tw-gradient-from: var(--app-tint-indigo);
+}
+body.public-theme[data-app-theme="dark"] .from-\[\#fafbff\] {
+  --tw-gradient-from: var(--app-surface-muted);
+}
+body.public-theme[data-app-theme="dark"] .to-\[\#f5f6ff\],
+body.public-theme[data-app-theme="dark"] .to-\[\#fafbff\] {
+  --tw-gradient-to: var(--app-surface-muted);
+}
+
+/* ── Тёмные CTA-ленты (#0b1024) на тёмном фоне: приподнимаем и обводим ── */
+body.public-theme[data-app-theme="dark"] .bg-\[\#0b1024\] {
+  background-color: var(--app-surface-elevated) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* ── Точечная сетка и «техно-бумага»: на тёмном тон светлый ── */
+body.public-theme[data-app-theme="dark"] .landing-page::after {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(245, 246, 255, 0.07) 1px,
+    transparent 0
+  );
+}
+
+/* ── Кнопка «Войти», карточки с белой заливкой в hero ── */
+body.public-theme[data-app-theme="dark"] .ring-white\/25 {
+  --tw-ring-color: rgba(255, 255, 255, 0.12);
+}

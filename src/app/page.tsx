@@ -28,6 +28,8 @@ import {
 import { db } from "@/lib/db";
 import { EquipmentPricing } from "@/components/landing/equipment-pricing";
 import { AudienceCarousel } from "@/components/landing/audience-carousel";
+import { TestimonialsCarousel } from "@/components/landing/testimonials-carousel";
+import { listPublicReviews } from "@/lib/balance/reviews";
 import { IndustriesGrid } from "@/components/landing/industries-grid";
 import { AutomationScene } from "@/components/landing/automation-scene";
 import { SampleGallery } from "@/components/landing/sample-gallery";
@@ -48,6 +50,7 @@ import {
   bundleTotal,
 } from "@/lib/hardware-pricing";
 import { PublicFooter } from "@/components/public/public-chrome";
+import { PublicThemeBootstrap, PublicThemeScope } from "@/components/theme/site-theme";
 import { ProductShowcase } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
@@ -293,6 +296,13 @@ export default async function LandingPage() {
   // Цены тарифов живут в БД и правятся ROOT'ом в /root/tariffs — карточки,
   // калькулятор и JSON-LD читают одно и то же значение, поэтому смена
   // цены не требует деплоя. Страница уже force-dynamic.
+  // Отзывы клиентов: только одобренные модератором и разрешённые к
+  // публикации. Пусто — секции на странице не будет.
+  const publicReviews = await listPublicReviews().catch((error) => {
+    console.error("[landing] Failed to load reviews", error);
+    return [];
+  });
+
   const tariffs = await readTariffs().catch(() => fallbackTariffs());
   const monthly =
     tariffs.find((t) => t.key === TARIFF_MONTHLY) ?? fallbackTariffs()[0];
@@ -401,6 +411,9 @@ export default async function LandingPage() {
 
   return (
     <div className="landing-page min-h-screen bg-white text-[#0b1024]">
+      {/* Ночная тема: скрипт до гидрации + хук, который держит её актуальной. */}
+      <PublicThemeBootstrap />
+      <PublicThemeScope />
       <LandingMotion />
       <CursorGlow />
       <script
@@ -1059,6 +1072,8 @@ export default async function LandingPage() {
         </div>
         <AudienceCarousel />
       </section>
+
+      <TestimonialsCarousel reviews={publicReviews} />
 
       {/* КОМУ ПОДХОДИТ — полный список сфер/типов бизнеса со ссылками на
           посадочные /dlya-*. Стоит под каруселью «Подходит для»: та

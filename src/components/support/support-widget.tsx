@@ -10,6 +10,8 @@ import {
   MessagesSquare,
   Pencil,
   Send,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,7 +23,20 @@ import {
   MessageAttachments,
   useAttachmentUploads,
 } from "@/components/support/attachment-composer";
+import {
+  IncomingMessagePopup,
+  LauncherBadge,
+} from "@/components/support/incoming-message-popup";
+import { useIncomingMessages } from "@/components/support/use-incoming-messages";
+import {
+  isNotificationSoundMuted,
+  setNotificationSoundMuted,
+} from "@/lib/notification-sound";
 import { openSanpinChat } from "@/lib/sanpin-chat-bus";
+import {
+  SUPPORT_CHAT_OPEN_EVENT,
+  announceSupportChatRead,
+} from "@/lib/support-chat-bus";
 import type { ConsultantContact } from "@/lib/partners/consultant-contact-shared";
 import type { SupportAttachmentMeta } from "@/lib/support-attachments-shared";
 
@@ -35,6 +50,10 @@ import type { SupportAttachmentMeta } from "@/lib/support-attachments-shared";
  *
  * Шапка показывает, под кем человек авторизован: поддержка видит ровно
  * эти данные, и расхождений «я писал не с того аккаунта» не возникает.
+ *
+ * Переписка — одна на организацию: все управляющие видят одну ветку и
+ * подпись, кто из них писал. Ответ оператора приходит сам: фоновый опрос
+ * статуса, звук, всплывашка справа снизу и бейдж на кнопке.
  */
 
 type Screen = "menu" | "feedback" | "chat";
@@ -59,6 +78,7 @@ type ChatMessage = {
   author: string;
   body: string;
   operatorName: string | null;
+  authorName?: string | null;
   attachments?: SupportAttachmentMeta[];
   createdAt: string;
 };
@@ -70,11 +90,16 @@ const CHAT_POLL_MS = 10_000;
  * `consultant` — партнёр, сопровождающий организацию (white-label).
  * В меню помощи он идёт первым: клиенту партнёра быстрее написать своему
  * консультанту, чем в общую поддержку WeSetup.
+ *
+ * `hideChat` — партнёр внутри кабинета клиента: писать самому себе незачем,
+ * у него для переписки есть /partner/chats.
  */
 export function SupportWidget({
   consultant = null,
+  hideChat = false,
 }: {
   consultant?: ConsultantContact | null;
+  hideChat?: boolean;
 } = {}) {
   const [open, setOpen] = useState(false);
   const [screen, setScreen] = useState<Screen>("menu");
@@ -87,6 +112,7 @@ export function SupportWidget({
 
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [draft, setDraft] = useState("");
+  const [muted, setMuted] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   // Вложения: чат и форма обратной связи — раздельные наборы, чтобы файл
@@ -94,16 +120,65 @@ export function SupportWidget({
   const chatFiles = useAttachmentUploads();
   const feedbackFiles = useAttachmentUploads();
 
-  const loadChat = useCallback(async () => {
-    const response = await fetch("/api/support/chat").catch(() => null);
-    if (!response?.ok) {
-      setMessages([]);
-      return;
-    }
-    const data = await response.json();
-    setIdentity(data.identity ?? null);
-    setMessages(data.messages ?? []);
+  const chatVisible = open && screen === "chat";
+  const incoming = useIncomingMessages({
+    enabled: !hideChat,
+    statusUrl: "/api/support/chat/status",
+    scope: "org",
+    chatVisible,
+    title: (status) => status.latest?.operatorName ?? "Поддержка WeSetup",
+  });
+  const { chirpFor } = incoming;
+
+  const openChat = useCallback(() => {
+    setOpen(true);
+    setScreen("chat");
+    setSent(false);
   }, []);
+
+  // Всплывашка, колокольчик и deep-link `?support=chat` открывают сразу переписку.
+  useEffect(() => {
+    if (hideChat) return;
+    window.addEventListener(SUPPORT_CHAT_OPEN_EVENT, openChat);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("support") === "chat") {
+      openChat();
+      params.delete("support");
+      const query = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
+      );
+    }
+    return () => window.removeEventListener(SUPPORT_CHAT_OPEN_EVENT, openChat);
+  }, [hideChat, openChat]);
+
+  useEffect(() => {
+    setMuted(isNotificationSoundMuted());
+  }, []);
+
+  const loadChat = useCallback(
+    async (markRead = false) => {
+      const read = markRead && document.visibilityState === "visible";
+      const response = await fetch(
+        read ? "/api/support/chat?markRead=1" : "/api/support/chat"
+      ).catch(() => null);
+      if (!response?.ok) {
+        setMessages([]);
+        return;
+      }
+      const data = await response.json();
+      setIdentity(data.identity ?? null);
+      const list: ChatMessage[] = data.messages ?? [];
+      setMessages(list);
+      // Реплика оператора пришла, пока чат открыт: звук без всплывашки.
+      const last = list[list.length - 1];
+      if (last && last.author === "operator") chirpFor(last.id);
+      if (read) announceSupportChatRead();
+    },
+    [chirpFor]
+  );
 
   // Данные шапки нужны сразу при открытии, ещё до выбора экрана.
   useEffect(() => {
@@ -112,10 +187,11 @@ export function SupportWidget({
   }, [open, identity, loadChat]);
 
   useEffect(() => {
-    if (!open || screen !== "chat") return;
-    const timer = setInterval(() => void loadChat(), CHAT_POLL_MS);
+    if (!chatVisible) return;
+    void loadChat(true);
+    const timer = setInterval(() => void loadChat(true), CHAT_POLL_MS);
     return () => clearInterval(timer);
-  }, [open, screen, loadChat]);
+  }, [chatVisible, loadChat]);
 
   useEffect(() => {
     if (screen === "chat") {
@@ -129,6 +205,12 @@ export function SupportWidget({
     setSent(false);
     setType("");
     setMessage("");
+  }
+
+  function toggleMute() {
+    const next = !muted;
+    setNotificationSoundMuted(next);
+    setMuted(next);
   }
 
   async function sendFeedback() {
@@ -203,314 +285,371 @@ export function SupportWidget({
     }
   }
 
+  // Подпись автора у реплик клиента нужна, только если писали разные люди.
+  const clientAuthors = new Set(
+    (messages ?? [])
+      .filter((m) => m.author === "client" && m.authorName)
+      .map((m) => m.authorName as string)
+  );
+  const showClientAuthors = clientAuthors.size > 1;
+
+  const popup = (
+    <IncomingMessagePopup
+      popup={incoming.popup}
+      onOpen={() => {
+        incoming.dismissPopup();
+        openChat();
+      }}
+      onDismiss={incoming.dismissPopup}
+    />
+  );
+
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-[68px] z-30 flex size-11 items-center justify-center rounded-full bg-white text-[#5566f6] shadow-[0_10px_24px_-10px_rgba(11,16,36,0.25)] ring-1 ring-[#ececf4] transition-all hover:scale-105"
-        aria-label="Поддержка"
-        title="Поддержка"
-      >
-        <MessageCircle className="size-4" />
-      </button>
+      <>
+        {popup}
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="fixed bottom-5 right-[68px] z-30 flex size-11 items-center justify-center rounded-full bg-white text-[#5566f6] shadow-[0_10px_24px_-10px_rgba(11,16,36,0.25)] ring-1 ring-[#ececf4] transition-all hover:scale-105"
+          aria-label={
+            incoming.unread > 0
+              ? `Поддержка · новых сообщений: ${incoming.unread}`
+              : "Поддержка"
+          }
+          title="Поддержка"
+        >
+          <LauncherBadge count={incoming.unread} />
+          <MessageCircle className="relative size-4" />
+        </button>
+      </>
     );
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex max-h-[min(640px,calc(100vh-2.5rem))] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef0f6] px-5 py-4">
-        <div className="min-w-0">
-          {screen !== "menu" ? (
+    <>
+      {popup}
+      <div className="fixed bottom-5 right-5 z-40 flex max-h-[min(640px,calc(100vh-2.5rem))] w-[calc(100vw-2.5rem)] max-w-sm flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#eef0f6] px-5 py-4">
+          <div className="min-w-0">
+            {screen !== "menu" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setScreen("menu");
+                  setSent(false);
+                }}
+                className="mb-1 inline-flex items-center gap-1 text-[12.5px] text-[#6f7282] transition-colors hover:text-[#3848c7]"
+              >
+                <ArrowLeft className="size-3.5" />
+                Назад
+              </button>
+            ) : null}
+            <div className="text-[15px] font-semibold text-[#0b1024]">
+              {screen === "feedback"
+                ? "Обратная связь"
+                : screen === "chat"
+                  ? "Онлайн-чат"
+                  : "Поддержка"}
+            </div>
+            {/* Под кем авторизован: поддержка видит ровно эти данные. */}
+            <div className="mt-1 space-y-0.5 text-[12px] leading-snug text-[#6f7282]">
+              {identity?.organizationName ? (
+                <div className="truncate">{identity.organizationName}</div>
+              ) : null}
+              {identity?.email ? (
+                <div className="truncate">{identity.email}</div>
+              ) : null}
+              {identity?.phone ? (
+                <div className="truncate">{identity.phone}</div>
+              ) : null}
+              {/* Показали контакты — сразу дали, где их поправить: это те же
+                  поля пользователя, что увидит оператор. */}
+              <Link
+                href="/settings/phone"
+                onClick={close}
+                className="inline-flex items-center gap-1 pt-0.5 text-[12px] font-medium text-[#5566f6] transition-colors duration-150 hover:text-[#3848c7]"
+              >
+                <Pencil className="size-3" />
+                Изменить
+              </Link>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            {screen === "chat" ? (
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="rounded-lg p-1 text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
+                aria-label={muted ? "Включить звук новых сообщений" : "Выключить звук новых сообщений"}
+                title={muted ? "Звук выключен" : "Звук при новом сообщении"}
+              >
+                {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={close}
+              className="rounded-lg p-1 text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
+              aria-label="Закрыть"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        {screen === "menu" ? (
+          <div className="space-y-2 p-5">
+            {consultant ? <ConsultantCard consultant={consultant} compact /> : null}
+            {/* Помощник первым: на «как заполнить» и «где найти» он отвечает
+                за секунды, и человеку не нужно ждать оператора. Открываем не
+                свой экран, а соседний пузырь — AI-чат в кабинете один. */}
             <button
               type="button"
               onClick={() => {
-                setScreen("menu");
-                setSent(false);
+                openSanpinChat();
+                close();
               }}
-              className="mb-1 inline-flex items-center gap-1 text-[12.5px] text-[#6f7282] transition-colors hover:text-[#3848c7]"
+              className="flex w-full items-center gap-3 rounded-2xl border border-[#5566f6]/30 bg-[#f5f6ff] px-4 py-3 text-left transition-colors hover:border-[#5566f6]/60 hover:bg-[#eef1ff]"
             >
-              <ArrowLeft className="size-3.5" />
-              Назад
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#5566f6] text-white">
+                <Bot className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-medium text-[#0b1024]">
+                  ИИ Помощник
+                </span>
+                <span className="block text-[12px] text-[#6f7282]">
+                  Поможет по вашим журналам
+                </span>
+              </span>
             </button>
-          ) : null}
-          <div className="text-[15px] font-semibold text-[#0b1024]">
-            {screen === "feedback"
-              ? "Обратная связь"
-              : screen === "chat"
-                ? "Онлайн-чат"
-                : "Поддержка"}
-          </div>
-          {/* Под кем авторизован: поддержка видит ровно эти данные. */}
-          <div className="mt-1 space-y-0.5 text-[12px] leading-snug text-[#6f7282]">
-            {identity?.organizationName ? (
-              <div className="truncate">{identity.organizationName}</div>
-            ) : null}
-            {identity?.email ? (
-              <div className="truncate">{identity.email}</div>
-            ) : null}
-            {identity?.phone ? (
-              <div className="truncate">{identity.phone}</div>
-            ) : null}
-            {/* Показали контакты — сразу дали, где их поправить: это те же
-                поля пользователя, что увидит оператор. */}
-            <Link
-              href="/settings/phone"
-              onClick={close}
-              className="inline-flex items-center gap-1 pt-0.5 text-[12px] font-medium text-[#5566f6] transition-colors duration-150 hover:text-[#3848c7]"
-            >
-              <Pencil className="size-3" />
-              Изменить
-            </Link>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={close}
-          className="rounded-lg p-1 text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
-          aria-label="Закрыть"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
 
-      {screen === "menu" ? (
-        <div className="space-y-2 p-5">
-          {consultant ? <ConsultantCard consultant={consultant} compact /> : null}
-          {/* Помощник первым: на «как заполнить» и «где найти» он отвечает
-              за секунды, и человеку не нужно ждать оператора. Открываем не
-              свой экран, а соседний пузырь — AI-чат в кабинете один. */}
-          <button
-            type="button"
-            onClick={() => {
-              openSanpinChat();
-              close();
-            }}
-            className="flex w-full items-center gap-3 rounded-2xl border border-[#5566f6]/30 bg-[#f5f6ff] px-4 py-3 text-left transition-colors hover:border-[#5566f6]/60 hover:bg-[#eef1ff]"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#5566f6] text-white">
-              <Bot className="size-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[14px] font-medium text-[#0b1024]">
-                ИИ Помощник
-              </span>
-              <span className="block text-[12px] text-[#6f7282]">
-                Поможет по вашим журналам
-              </span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setScreen("feedback")}
-            className="flex w-full items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-left transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
-              <MessagesSquare className="size-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[14px] font-medium text-[#0b1024]">
-                Обратная связь
-              </span>
-              <span className="block text-[12px] text-[#6f7282]">
-                Сотрудничество / Идея / Ошибка
-              </span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setScreen("chat")}
-            className="flex w-full items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-left transition-colors hover:border-[#0f7a5a]/40 hover:bg-[#ecfdf5]"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ecfdf5] text-[#0f7a5a]">
-              <MessageCircle className="size-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[14px] font-medium text-[#0b1024]">
-                Онлайн-чат
-              </span>
-              <span className="block text-[12px] text-[#6f7282]">
-                Связь с оператором
-              </span>
-            </span>
-          </button>
-        </div>
-      ) : null}
-
-      {screen === "feedback" ? (
-        sent ? (
-          <div className="px-5 py-8 text-center">
-            <p className="text-[14px] leading-[1.55] text-[#0b1024]">
-              Спасибо, обязательно ответим в течение 5 рабочих дней.
-            </p>
             <button
               type="button"
-              onClick={close}
-              className="mt-4 inline-flex h-10 items-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              onClick={() => setScreen("feedback")}
+              className="flex w-full items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-left transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
             >
-              Закрыть
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#5566f6]">
+                <MessagesSquare className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-medium text-[#0b1024]">
+                  Обратная связь
+                </span>
+                <span className="block text-[12px] text-[#6f7282]">
+                  Сотрудничество / Идея / Ошибка
+                </span>
+              </span>
             </button>
+
+            {!hideChat ? (
+              <button
+                type="button"
+                onClick={() => setScreen("chat")}
+                className="relative flex w-full items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-left transition-colors hover:border-[#0f7a5a]/40 hover:bg-[#ecfdf5]"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#ecfdf5] text-[#0f7a5a]">
+                  <MessageCircle className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-medium text-[#0b1024]">
+                    Онлайн-чат
+                  </span>
+                  <span className="block text-[12px] text-[#6f7282]">
+                    {consultant
+                      ? `Связь с консультантом ${consultant.brandName}`
+                      : "Связь с оператором"}
+                  </span>
+                </span>
+                {incoming.unread > 0 ? (
+                  <span className="rounded-full bg-[#d2453d] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-white">
+                    {incoming.unread}
+                  </span>
+                ) : null}
+              </button>
+            ) : null}
           </div>
-        ) : (
-          <div className="space-y-4 overflow-y-auto px-5 py-4">
-            <div className="space-y-2">
-              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-                Тип обращения
+        ) : null}
+
+        {screen === "feedback" ? (
+          sent ? (
+            <div className="px-5 py-8 text-center">
+              <p className="text-[14px] leading-[1.55] text-[#0b1024]">
+                Спасибо, обязательно ответим в течение 5 рабочих дней.
+              </p>
+              <button
+                type="button"
+                onClick={close}
+                className="mt-4 inline-flex h-10 items-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0]"
+              >
+                Закрыть
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4 overflow-y-auto px-5 py-4">
+              <div className="space-y-2">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                  Тип обращения
+                </div>
+                <div className="space-y-1.5">
+                  {FEEDBACK_TYPES.map((item) => (
+                    <label
+                      key={item.value}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-[14px] transition-colors",
+                        type === item.value
+                          ? "border-[#5566f6] bg-[#f5f6ff] text-[#0b1024]"
+                          : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#fafbff]"
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="support-feedback-type"
+                        value={item.value}
+                        checked={type === item.value}
+                        onChange={() => setType(item.value)}
+                        className="size-4 accent-[#5566f6]"
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                {FEEDBACK_TYPES.map((item) => (
-                  <label
-                    key={item.value}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-[14px] transition-colors",
-                      type === item.value
-                        ? "border-[#5566f6] bg-[#f5f6ff] text-[#0b1024]"
-                        : "border-[#dcdfed] bg-white text-[#3c4053] hover:bg-[#fafbff]"
-                    )}
+
+              <textarea
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                onPaste={feedbackFiles.handlePaste}
+                rows={6}
+                placeholder="Опишите подробнее — что произошло или что предлагаете"
+                className="w-full resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[14px] leading-[1.55] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+
+              <div>
+                <AttachmentChips
+                  uploads={feedbackFiles.uploads}
+                  onRemove={feedbackFiles.remove}
+                />
+                <div className="flex items-center gap-2">
+                  <AttachButton
+                    onFiles={feedbackFiles.addFiles}
+                    disabled={busy}
+                    className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3c4053] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void sendFeedback()}
+                    disabled={busy || feedbackFiles.uploading}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
                   >
-                    <input
-                      type="radio"
-                      name="support-feedback-type"
-                      value={item.value}
-                      checked={type === item.value}
-                      onChange={() => setType(item.value)}
-                      className="size-4 accent-[#5566f6]"
-                    />
-                    {item.label}
-                  </label>
-                ))}
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Отправить
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] leading-snug text-[#9b9fb3]">
+                  Можно приложить скриншот или файл — до 50 МБ, без исполняемых.
+                </p>
               </div>
             </div>
+          )
+        ) : null}
 
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              onPaste={feedbackFiles.handlePaste}
-              rows={6}
-              placeholder="Опишите подробнее — что произошло или что предлагаете"
-              className="w-full resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[14px] leading-[1.55] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-            />
+        {screen === "chat" ? (
+          <>
+            <div className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
+              {messages === null ? (
+                <div className="flex items-center gap-2 text-[13px] text-[#9b9fb3]">
+                  <Loader2 className="size-4 animate-spin" />
+                  Загружаем переписку
+                </div>
+              ) : messages.length === 0 ? (
+                <p className="py-6 text-center text-[13px] leading-snug text-[#6f7282]">
+                  Напишите вопрос — ответим здесь же. Переписка сохраняется,
+                  можно вернуться к ней позже.
+                </p>
+              ) : (
+                messages.map((item) => (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-[1.5]",
+                      item.author === "client"
+                        ? "ml-auto bg-[#5566f6] text-white"
+                        : "bg-[#f5f6ff] text-[#0b1024]"
+                    )}
+                  >
+                    {item.author === "operator" && item.operatorName ? (
+                      <div className="mb-0.5 text-[11px] font-medium text-[#3848c7]">
+                        {item.operatorName}
+                      </div>
+                    ) : null}
+                    {item.author === "client" && showClientAuthors && item.authorName ? (
+                      <div className="mb-0.5 text-[11px] font-medium text-white/75">
+                        {item.authorName}
+                      </div>
+                    ) : null}
+                    {item.body ? (
+                      <div className="whitespace-pre-wrap break-words">
+                        {item.body}
+                      </div>
+                    ) : null}
+                    <MessageAttachments
+                      attachments={item.attachments}
+                      light={item.author === "client"}
+                    />
+                  </div>
+                ))
+              )}
+              <div ref={bottomRef} />
+            </div>
 
-            <div>
+            <div className="shrink-0 border-t border-[#eef0f6] p-3">
               <AttachmentChips
-                uploads={feedbackFiles.uploads}
-                onRemove={feedbackFiles.remove}
+                uploads={chatFiles.uploads}
+                onRemove={chatFiles.remove}
               />
-              <div className="flex items-center gap-2">
-                <AttachButton
-                  onFiles={feedbackFiles.addFiles}
-                  disabled={busy}
-                  className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#3c4053] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              <div className="flex items-end gap-2">
+                <AttachButton onFiles={chatFiles.addFiles} disabled={busy} />
+                <textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onPaste={chatFiles.handlePaste}
+                  onKeyDown={(event) => {
+                    // Enter отправляет, Shift+Enter — перенос строки: так
+                    // ведут себя все мессенджеры, и переучивать незачем.
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      void sendChat();
+                    }
+                  }}
+                  rows={1}
+                  placeholder="Сообщение"
+                  className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
                 />
                 <button
                   type="button"
-                  onClick={() => void sendFeedback()}
-                  disabled={busy || feedbackFiles.uploading}
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+                  onClick={() => void sendChat()}
+                  disabled={
+                    busy ||
+                    chatFiles.uploading ||
+                    (draft.trim().length < 2 &&
+                      chatFiles.readyAttachments.length === 0)
+                  }
+                  className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
+                  aria-label="Отправить"
                 >
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-                  Отправить
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
                 </button>
               </div>
-              <p className="mt-1.5 text-[11px] leading-snug text-[#9b9fb3]">
-                Можно приложить скриншот или файл — до 50 МБ, без исполняемых.
-              </p>
             </div>
-          </div>
-        )
-      ) : null}
-
-      {screen === "chat" ? (
-        <>
-          <div className="flex-1 space-y-2 overflow-y-auto px-5 py-4">
-            {messages === null ? (
-              <div className="flex items-center gap-2 text-[13px] text-[#9b9fb3]">
-                <Loader2 className="size-4 animate-spin" />
-                Загружаем переписку
-              </div>
-            ) : messages.length === 0 ? (
-              <p className="py-6 text-center text-[13px] leading-snug text-[#6f7282]">
-                Напишите вопрос — ответим здесь же. Переписка сохраняется,
-                можно вернуться к ней позже.
-              </p>
-            ) : (
-              messages.map((item) => (
-                <div
-                  key={item.id}
-                  className={cn(
-                    "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-[1.5]",
-                    item.author === "client"
-                      ? "ml-auto bg-[#5566f6] text-white"
-                      : "bg-[#f5f6ff] text-[#0b1024]"
-                  )}
-                >
-                  {item.author === "operator" && item.operatorName ? (
-                    <div className="mb-0.5 text-[11px] font-medium text-[#3848c7]">
-                      {item.operatorName}
-                    </div>
-                  ) : null}
-                  {item.body ? (
-                    <div className="whitespace-pre-wrap break-words">
-                      {item.body}
-                    </div>
-                  ) : null}
-                  <MessageAttachments
-                    attachments={item.attachments}
-                    light={item.author === "client"}
-                  />
-                </div>
-              ))
-            )}
-            <div ref={bottomRef} />
-          </div>
-
-          <div className="shrink-0 border-t border-[#eef0f6] p-3">
-            <AttachmentChips
-              uploads={chatFiles.uploads}
-              onRemove={chatFiles.remove}
-            />
-            <div className="flex items-end gap-2">
-              <AttachButton onFiles={chatFiles.addFiles} disabled={busy} />
-              <textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onPaste={chatFiles.handlePaste}
-                onKeyDown={(event) => {
-                  // Enter отправляет, Shift+Enter — перенос строки: так
-                  // ведут себя все мессенджеры, и переучивать незачем.
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    void sendChat();
-                  }
-                }}
-                rows={1}
-                placeholder="Сообщение"
-                className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-[#dcdfed] px-3.5 py-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-              />
-              <button
-                type="button"
-                onClick={() => void sendChat()}
-                disabled={
-                  busy ||
-                  chatFiles.uploading ||
-                  (draft.trim().length < 2 &&
-                    chatFiles.readyAttachments.length === 0)
-                }
-                className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
-                aria-label="Отправить"
-              >
-                {busy ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Send className="size-4" />
-                )}
-              </button>
-            </div>
-          </div>
-        </>
-      ) : null}
-    </div>
+          </>
+        ) : null}
+      </div>
+    </>
   );
 }

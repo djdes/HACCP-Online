@@ -1,35 +1,34 @@
 import { NextResponse, after } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "@/lib/auth-helpers";
+import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
-import { sendFeedbackAdminEmail } from "@/lib/email";
-import { getPlatformAdminEmail, notifyPlatformAdmin } from "@/lib/platform-admin";
 import {
   SUPPORT_CHAT_HISTORY_LIMIT,
   SUPPORT_CHAT_MAX_LENGTH,
   SUPPORT_CHAT_MIN_LENGTH,
-  composeSupportChatAdminMessage,
 } from "@/lib/support-chat";
-import { escapeTelegramHtml } from "@/lib/telegram";
+import { validateSignedAttachments } from "@/lib/support-attachments";
 import {
-  emailAttachmentPayload,
-  parseStoredAttachments,
-  sendAttachmentsToPlatformAdmins,
-  validateSignedAttachments,
-} from "@/lib/support-attachments";
+  MESSAGE_SELECT,
+  deliverClientMessage,
+  findOrgThread,
+  getOrCreateOrgThread,
+  markReadByClient,
+  postClientMessage,
+  toMessageDto,
+} from "@/lib/support-threads";
 
 /**
- * Онлайн-чат с поддержкой.
+ * Онлайн-чат с поддержкой — ветка активной организации.
  *
- * GET — вся история ветки этого пользователя (её же видит оператор).
- * POST — реплика клиента: пишем в БД, шлём админу в Telegram с якорем
- * для свайп-ответа и дублируем на почту поддержки.
+ * GET — вся история ветки организации (её же видят оператор и партнёр).
+ *       `?markRead=1` — клиент смотрит на переписку, гасим непрочитанное.
+ * POST — реплика клиента: пишем в БД, доставку (партнёру или админу)
+ *        выносим за ответ.
  *
  * Ветку заводим лениво, только на первой реплике: пустые ветки в админке
  * не нужны, а просто открытый виджет обращением не является.
  */
-
-const APP_URL = process.env.NEXTAUTH_URL || "https://wesetup.ru";
 
 const messageSchema = z.object({
   // Пустой текст допустим, когда есть вложения («просто скинул скрин») —
@@ -42,59 +41,55 @@ const messageSchema = z.object({
   attachments: z.unknown().optional(),
 });
 
-async function loadProfile(userId: string) {
-  return db.user.findUnique({
-    where: { id: userId },
-    select: {
-      name: true,
-      email: true,
-      phone: true,
-      organization: { select: { id: true, name: true } },
-    },
-  });
+async function loadProfile(userId: string, organizationId: string) {
+  const [user, organization] = await Promise.all([
+    db.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true, phone: true },
+    }),
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    }),
+  ]);
+  return { user, organization };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await requireAuth();
-  const userId = session.user.id;
+  const orgId = getActiveOrgId(session);
+  const markRead = new URL(request.url).searchParams.get("markRead") === "1";
 
-  const thread = await db.supportThread.findUnique({
-    where: { userId },
-    select: { id: true },
-  });
+  const thread = await findOrgThread(orgId, { adopt: true });
+  if (thread && markRead && thread.unreadForClient > 0) {
+    await markReadByClient(thread.id);
+  }
 
   const messages = thread
     ? await db.supportMessage.findMany({
         where: { threadId: thread.id },
-        orderBy: { createdAt: "asc" },
+        // Последние N реплик, а не первые: длинная ветка не должна
+        // прятать свежий ответ за лимитом истории.
+        orderBy: { createdAt: "desc" },
         take: SUPPORT_CHAT_HISTORY_LIMIT,
-        select: {
-          id: true,
-          author: true,
-          body: true,
-          operatorName: true,
-          attachments: true,
-          createdAt: true,
-        },
-      })
+        select: MESSAGE_SELECT,
+      }).then((rows) => rows.reverse())
     : [];
 
-  const profile = await loadProfile(userId);
+  const { user, organization } = await loadProfile(session.user.id, orgId);
 
   return NextResponse.json({
     threadId: thread?.id ?? null,
-    messages: messages.map((m) => ({
-      ...m,
-      attachments: parseStoredAttachments(m.attachments),
-    })),
+    unreadForClient: markRead ? 0 : (thread?.unreadForClient ?? 0),
+    messages: messages.map(toMessageDto),
     // Шапку виджета («под кем авторизован») рисуем из тех же данных,
     // что уходят оператору — расхождений между «кем я вижусь» и «кого
     // видит поддержка» быть не должно.
     identity: {
-      organizationName: profile?.organization?.name ?? null,
-      email: profile?.email ?? null,
-      phone: profile?.phone ?? null,
-      name: profile?.name ?? null,
+      organizationName: organization?.name ?? null,
+      email: user?.email ?? null,
+      phone: user?.phone ?? null,
+      name: user?.name ?? null,
     },
   });
 }
@@ -102,6 +97,16 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await requireAuth();
   const userId = session.user.id;
+  const orgId = getActiveOrgId(session);
+
+  // Партнёр внутри кабинета клиента писал бы сам себе: у него для этого
+  // есть /partner/chats.
+  if (session.user.partnerAccess) {
+    return NextResponse.json(
+      { error: "Консультант пишет клиенту из партнёрского кабинета", code: "partner_mode" },
+      { status: 403 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = messageSchema.safeParse(body);
@@ -127,108 +132,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const profile = await loadProfile(userId);
-  const now = new Date();
+  const { user, organization } = await loadProfile(userId, orgId);
+  const snapshot = {
+    organizationName: organization?.name ?? null,
+    userEmail: user?.email ?? null,
+    userName: user?.name ?? null,
+    phone: user?.phone ?? null,
+  };
 
-  const thread = await db.supportThread.upsert({
-    where: { userId },
-    create: {
-      userId,
-      userEmail: profile?.email ?? null,
-      userName: profile?.name ?? null,
-      phone: profile?.phone ?? null,
-      organizationId: profile?.organization?.id ?? null,
-      organizationName: profile?.organization?.name ?? null,
-      lastMessageAt: now,
-      unreadForStaff: 1,
-    },
-    update: {
-      // Контакты могли поменяться с прошлого раза — оператору нужны свежие.
-      userEmail: profile?.email ?? null,
-      userName: profile?.name ?? null,
-      phone: profile?.phone ?? null,
-      organizationId: profile?.organization?.id ?? null,
-      organizationName: profile?.organization?.name ?? null,
-      lastMessageAt: now,
-      unreadForStaff: { increment: 1 },
-    },
-    select: { id: true },
-  });
-
-  const previousMessages = await db.supportMessage.count({
-    where: { threadId: thread.id },
-  });
-
-  const message = await db.supportMessage.create({
-    data: {
-      threadId: thread.id,
-      author: "client",
-      body: parsed.data.message,
-      ...(attachments.length > 0 ? { attachments } : {}),
-    },
-    select: {
-      id: true,
-      author: true,
-      body: true,
-      operatorName: true,
-      attachments: true,
-      createdAt: true,
-    },
-  });
-
-  const attachmentsNote =
-    attachments.length > 0
-      ? `\n📎 ${attachments.map((a) => a.filename).join(", ")}`
-      : "";
-  const adminText = composeSupportChatAdminMessage({
+  const thread = await getOrCreateOrgThread(orgId, snapshot);
+  const posted = await postClientMessage({
     threadId: thread.id,
-    body: (parsed.data.message || "(вложение без текста)") + attachmentsNote,
-    userName: profile?.name ?? null,
-    userEmail: profile?.email ?? null,
-    organizationName: profile?.organization?.name ?? null,
-    phone: profile?.phone ?? null,
-    previousMessages,
-    escape: escapeTelegramHtml,
-    appUrl: APP_URL,
+    body: parsed.data.message,
+    attachments,
+    author: { userId, name: user?.name ?? null },
+    snapshot,
   });
 
   // Доставку выносим за ответ: клиент не должен ждать Telegram и SMTP,
   // а упавший канал не должен терять уже сохранённую реплику.
-  after(async () => {
-    const emailAtts = emailAttachmentPayload(attachments);
-    await Promise.all([
-      notifyPlatformAdmin(adminText, { kind: "support-chat" }),
-      // Файлы — отдельными сообщениями с якорем ветки в подписи: реплай
-      // на текст уже работает, файлы оператор просто видит рядом.
-      sendAttachmentsToPlatformAdmins(
-        attachments,
-        `Вложения к чату #chat_${thread.id}`,
-        "support-chat"
-      ),
-      (async () => {
-        const adminEmail = getPlatformAdminEmail();
-        if (!adminEmail) return false;
-        return sendFeedbackAdminEmail({
-          to: adminEmail,
-          type: "support",
-          message: parsed.data.message || "(вложение без текста)",
-          userName: profile?.name ?? null,
-          userEmail: profile?.email ?? null,
-          organizationName: profile?.organization?.name ?? null,
-          phone: profile?.phone ?? null,
-          submittedAt: message.createdAt,
-          attachmentLinks: emailAtts.links,
-          attachments: emailAtts.files,
-        });
-      })(),
-    ]);
-  });
+  after(() =>
+    deliverClientMessage(posted).catch((error) =>
+      console.error("[support-chat] delivery failed:", error)
+    )
+  );
 
-  return NextResponse.json({
-    threadId: thread.id,
-    message: {
-      ...message,
-      attachments: parseStoredAttachments(message.attachments),
-    },
-  });
+  return NextResponse.json({ threadId: thread.id, message: posted.message });
 }

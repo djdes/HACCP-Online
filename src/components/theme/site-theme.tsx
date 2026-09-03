@@ -242,6 +242,10 @@ export function SiteThemeProvider({
     setModeState(next);
     try {
       window.localStorage.setItem(STORAGE_MODE_KEY, next);
+      // Явный выбор режима = авто по времени выключено. Кнопки режимов и так
+      // недоступны при включённом авто, но публичные страницы считают
+      // отсутствие ключа «авто ещё не выключали» — фиксируем решение.
+      window.localStorage.setItem(STORAGE_AUTO_KEY, "0");
     } catch {
       /* ignore */
     }
@@ -368,6 +372,101 @@ export function SiteThemeBootstrap() {
       var m=document.querySelector('meta[name="theme-color"]');
       if(m&&t==='dark'){m.setAttribute('content','#0b0d1a');}
     }
+  }catch(e){}})();`;
+  return <script dangerouslySetInnerHTML={{ __html: code }} />;
+}
+
+/* ======================================================================
+ * Публичные страницы: лендинг, блог, каталог журналов, тарифы.
+ *
+ * Тема вешается на <body> (класс `app-shell public-theme` + data-атрибут):
+ * у публичных страниц нет общего layout-обёртки, а body есть у всех.
+ * Правило: авто по времени суток, пока пользователь явно не выключил
+ * авто в кабинете; тогда — выбранный там режим. Переключателя на
+ * публичных страницах нет — решение владельца.
+ * ==================================================================== */
+
+const PUBLIC_BODY_CLASSES = ["app-shell", "public-theme"] as const;
+
+/** Авто по времени — по умолчанию; "0" пишется только явным выбором в кабинете. */
+function readPublicAuto(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(STORAGE_AUTO_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+function computePublicTheme(): SiteTheme {
+  return computeEffective(readStoredMode() ?? "system", readPublicAuto(), "light");
+}
+
+/**
+ * Держит тему публичной страницы актуальной: применяет при монтировании,
+ * пересчитывает раз в 5 минут (граница 7:00/19:00), слушает изменения
+ * из кабинета в соседней вкладке и системную тему. При уходе со страницы
+ * снимает классы с body — кабинет и форма входа живут своей темой.
+ */
+export function usePublicAutoTheme(): void {
+  useEffect(() => {
+    const body = document.body;
+    body.classList.add(...PUBLIC_BODY_CLASSES);
+    const apply = () => applyThemeToDOM(computePublicTheme());
+    apply();
+
+    const interval = setInterval(apply, 5 * 60 * 1000);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key.startsWith("wesetup-theme")) apply();
+    };
+    const mql = window.matchMedia?.("(prefers-color-scheme: dark)");
+    window.addEventListener("storage", onStorage);
+    mql?.addEventListener?.("change", apply);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", onStorage);
+      mql?.removeEventListener?.("change", apply);
+      body.classList.remove(...PUBLIC_BODY_CLASSES);
+      body.removeAttribute(ATTRIBUTE);
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", "#0b1024");
+    };
+  }, []);
+}
+
+/** Клиентская часть: хук выше, разметки не рисует. */
+export function PublicThemeScope() {
+  usePublicAutoTheme();
+  return null;
+}
+
+/**
+ * Inline-скрипт до гидрации для публичных страниц — чтобы ночью не было
+ * вспышки светлого. Рендерить в начале body (шапка), не в подвале:
+ * браузер успевает отрисовать первый экран раньше, чем дойдёт до конца.
+ */
+export function PublicThemeBootstrap() {
+  const code = `(function(){try{
+    var modeKey=${JSON.stringify(STORAGE_MODE_KEY)};
+    var autoKey=${JSON.stringify(STORAGE_AUTO_KEY)};
+    var attr=${JSON.stringify(ATTRIBUTE)};
+    var mode=localStorage.getItem(modeKey);
+    var t;
+    if(localStorage.getItem(autoKey)!=='0'){
+      var h=new Date().getHours();
+      t=(h>=${DAY_HOUR_START}&&h<${DAY_HOUR_END})?'light':'dark';
+    } else if(mode==='light'||mode==='dark'){
+      t=mode;
+    } else {
+      try{
+        t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+      }catch(_){t='light';}
+    }
+    var b=document.body;
+    b.classList.add('app-shell','public-theme');
+    b.setAttribute(attr,t);
+    var m=document.querySelector('meta[name="theme-color"]');
+    if(m){m.setAttribute('content',t==='dark'?'#0b0d1a':'#ffffff');}
   }catch(e){}})();`;
   return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }

@@ -226,3 +226,15 @@ export const innLookupRateLimiter = createRateLimiter({
   tokensPerInterval: 30,
   intervalMs: 60 * 1000,
 });
+
+/** Ответы оператора в онлайн-чат (партнёр, ROOT): по userId. */
+export const supportOperatorLimiter = createRateLimiter({
+  tokensPerInterval: 60,
+  intervalMs: 10 * 60_000,
+});
+
+/** Рассылка ROOT «всем организациям»: не чаще раза в 10 минут. */
+export const supportBroadcastLimiter = createRateLimiter({
+  tokensPerInterval: 1,
+  intervalMs: 10 * 60_000,
+});
