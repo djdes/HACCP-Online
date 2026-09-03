@@ -3,7 +3,7 @@
  * /journals-info (list) and /journals-info/[code] (detail) to explain to
  * prospective customers what each journal covers, what gets recorded, and
  * which norm requires it. The content is original — written from the public
- * norm SanPiN 2.3/2.4.3590-20 и общеизвестных отраслевых практик; никаких
+ * norm SanPiN 2.3/2.4.4282-26 и общеизвестных отраслевых практик; никаких
  * цитат с конкурентных сайтов.
  *
  * Kept deliberately as a TS module (not DB) because the list is stable —
@@ -33,7 +33,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Подпись ответственного лица",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.22, приложение 1" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Заводим по одному журналу в 15 календарных дней — так просят инспекторы.",
@@ -53,7 +53,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Принятое решение (допущен / отстранён / на обследование)",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.22" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Если заполняете ЗОЖ, гигиенический можно не вести — информация дублируется.",
@@ -73,7 +73,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
     ],
     normative: [
       { title: "ТР ТС 021/2011 «О безопасности пищевой продукции»" },
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.17" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Подключение IoT-датчика (Tuya) закрывает журнал автоматически — значения подтягиваются каждые 15 минут.",
@@ -92,7 +92,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Действия при отклонении",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 3.3" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Для ХАССП обязательна поверка термометра — планируется в отдельном журнале калибровки.",
@@ -110,7 +110,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Ответственный и контролирующий",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.15, 2.16" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Периодичность берётся из настроек документа — не придётся руками вводить её каждый день.",
@@ -128,7 +128,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Ответственный за уборку и за контроль",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 3.12–3.18" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Отдельный список «глубокой» уборки помещений (стены, вентиляция) заполняется раз в период.",
@@ -147,7 +147,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Отметка о выполнении и контроле",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 3.16" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "График составляется на месяц вперёд — сервис напоминает, когда подходит дата.",
@@ -183,7 +183,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Подпись комиссии (минимум 2 человека)",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.8, приложение 2" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Можно собирать бракеражную комиссию из 2 сотрудников — оба подписывают запись.",
@@ -203,7 +203,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
     ],
     normative: [
       { title: "ТР ТС 033/2013 «О безопасности молока»" },
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.6" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Если температура партии выше допустимой — запись автоматически попадает в список нарушений.",
@@ -220,7 +220,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Отметка о соответствии",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.6, 2.7" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Синхронизация с iiko подтягивает поставщиков и накладные — руками вводить не нужно.",
@@ -238,7 +238,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Дата замены",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 2.18" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Рекомендованная замена — каждые 7 смен или когда кислотное число превышает норму.",
@@ -312,7 +312,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Остаток на конец периода",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 3.14" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Остаток пересчитывается автоматически при каждой записи о применении.",
@@ -329,7 +329,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Ответственный по каждому пункту",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 3.16" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Чек-лист наследуется из шаблона организации — не надо каждый раз придумывать список.",
@@ -579,7 +579,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Подпись ответственного",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "п. 3.13" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Разная периодичность для разных типов оборудования — настраивается в шаблоне организации.",
@@ -597,7 +597,7 @@ export const JOURNAL_INFO: Record<string, JournalInfo> = {
       "Ответственный",
     ],
     normative: [
-      { title: "СанПиН 2.3/2.4.3590-20", pointer: "приложение 5" },
+      { title: "СанПиН 2.3/2.4.4282-26", pointer: "" },
     ],
     tips: [
       "Для IoT-термометров в шоковой камере охлаждение подтверждается автоматически.",

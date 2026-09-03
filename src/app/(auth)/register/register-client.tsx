@@ -1,12 +1,20 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
 import { ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { EmailHint, useEmailField } from "@/components/ui/email-field";
+import {
+  readSignupSource,
+  rememberSignupSource,
+  ymGoal,
+} from "@/lib/signup-source";
+
+/** Те же цели Метрики, что у форм на лендинге, с местом «register». */
+const GOAL_PARAMS = { place: "register" };
 
 /**
  * Регистрация в один экран: только почта.
@@ -51,6 +59,10 @@ function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    rememberSignupSource();
+  }, []);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     field.setTouched(true);
@@ -60,27 +72,36 @@ function RegisterScreen() {
 
     setError(null);
     setLoading(true);
+    ymGoal("hero_email_submit", GOAL_PARAMS);
     try {
       const res = await fetch("/api/auth/instant-register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value }),
+        body: JSON.stringify({
+          email: value,
+          source: readSignupSource("register"),
+        }),
       });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.created) {
+        ymGoal("instant_register_done", GOAL_PARAMS);
+        ymGoal("signup_created", GOAL_PARAMS);
         router.push(nextPath ?? "/dashboard?welcome=1");
         router.refresh();
         return;
       }
       if (res.ok && data.exists) {
+        ymGoal("signup_exists", GOAL_PARAMS);
         router.push(
           `/login?email=${encodeURIComponent(value)}&exists=1${nextPath ? `&next=${encodeURIComponent(nextPath)}` : ""}`,
         );
         return;
       }
+      ymGoal("signup_error", { ...GOAL_PARAMS, code: String(res.status) });
       setError(data.error ?? "Не получилось — попробуйте ещё раз");
     } catch {
+      ymGoal("signup_error", { ...GOAL_PARAMS, code: "network" });
       setError("Сеть недоступна. Попробуйте ещё раз");
     } finally {
       setLoading(false);

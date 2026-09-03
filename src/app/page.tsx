@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Bell,
   BellRing,
-  Building2,
   Check,
   CheckCircle2,
   LogIn,
@@ -12,12 +11,9 @@ import {
   Gift,
   Handshake,
   HelpCircle,
-  ImageIcon,
   Leaf,
-  Network,
   NotebookText,
   Plug,
-  Rocket,
   RotateCcw,
   Send,
   ShieldCheck,
@@ -26,7 +22,6 @@ import {
   Store,
   Timer,
   UserCheck,
-  Users,
   Wand2,
   Wifi,
 } from "lucide-react";
@@ -47,7 +42,6 @@ import {
   LARGE_TEAM_NOTE,
   SUBSCRIPTION_MAX_USERS,
 } from "@/lib/plan-catalog";
-import { TestimonialsCarousel } from "@/components/landing/testimonials-carousel";
 import { BrandLogo } from "@/components/brand/logo";
 import {
   HARDWARE_BUNDLES,
@@ -58,9 +52,9 @@ import { ProductShowcase } from "@/components/public/screenshot-fan";
 import { LandingMotion } from "@/components/public/landing-motion";
 import { CursorGlow } from "@/components/public/cursor-glow";
 import { AnchorScrollLink } from "@/components/public/anchor-scroll-link";
-import { RoiCalculator } from "@/components/landing/roi-calculator";
 import { DemoJournalWidget } from "@/components/landing/demo-journal-widget";
 import { HeroEmailStart } from "@/components/landing/hero-email-start";
+import { NavStartButton } from "@/components/landing/nav-start-button";
 import { JournalAutoplayVideo } from "@/components/landing/journal-autoplay-video";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
@@ -154,55 +148,6 @@ const JOURNAL_PREVIEW: Array<{ code: string; name: string }> = [
 ];
 
 /**
- * Шаги подключения. Заявка и созвон убраны: их не существует —
- * регистрация открыта, аккаунт создаётся мгновенно. Пункты, которых
- * человек не делает, только оттягивают старт и выглядят как «сначала
- * поговорим с менеджером».
- */
-const STEPS = [
-  {
-    title: "Бесплатный тариф",
-    text: "Регистрируетесь и сразу ведёте настоящие журналы — без пробного периода и карты. До 3 сотрудников бесплатно навсегда.",
-  },
-  {
-    title: "Ведение журналов",
-    text: "Смена за сменой — сервис напоминает, подставляет автозначения, хранит историю для проверок.",
-  },
-  {
-    title: "Переход на платный тариф",
-    text: "Если сотрудников больше пяти — платный тариф и индивидуальная консультация по настройке под ваше заведение.",
-  },
-];
-
-const AUDIENCE = [
-  {
-    icon: Store,
-    title: "Одно или несколько заведений",
-    text: "Кафе, ресторан, столовая — один владелец видит все точки в одном окне.",
-  },
-  {
-    icon: Network,
-    title: "Сетевые и производственные площадки",
-    text: "Единые шаблоны на все филиалы, понятный периметр проверок Роспотребнадзора.",
-  },
-  {
-    icon: Building2,
-    title: "Объединения рестораторов",
-    text: "Общий доступ к корпоративным настройкам и централизованная отчётность.",
-  },
-  {
-    icon: Users,
-    title: "Консалтинг по ХАССП / HoReCa",
-    text: "Приводите клиентов в готовую инфраструктуру, закрывайте проекты быстрее.",
-  },
-  {
-    icon: Rocket,
-    title: "IT-компании",
-    text: "Интегрируетесь в наш API, добавляете электронные журналы как модуль вашей экосистемы.",
-  },
-];
-
-/**
  * Что входит в подписку — чипами на блоке гарантии.
  *
  * Раньше здесь был «бонусный стек» с зачёркнутыми ценами и итогом
@@ -224,7 +169,7 @@ const FAQ = [
   },
   {
     q: "Что такое электронный журнал для общепита?",
-    a: "Веб-сервис, куда сотрудники вносят те же записи, что раньше делали в бумажных журналах — гигиена, температура, бракераж и так далее. С 1 января 2021 года такой формат разрешён СанПиН 2.3/2.4.3590-20.",
+    a: "Веб-сервис, куда сотрудники вносят те же записи, что раньше делали в бумажных журналах — гигиена, температура, бракераж и так далее. Такой формат прямо разрешён СанПиН 2.3/2.4.4282-26, который действует с 1 сентября 2026 года.",
   },
   {
     q: "Как проходит проверка Роспотребнадзором?",
@@ -236,7 +181,7 @@ const FAQ = [
   },
   {
     q: "Где указано, что можно вести журналы в электронном виде?",
-    a: "СанПиН 2.3/2.4.3590-20 «Санитарно-эпидемиологические требования к организации общественного питания населения», действует с 1 января 2021 года. Электронная форма прямо разрешена.",
+    a: "СанПиН 2.3/2.4.4282-26 «Санитарно-эпидемиологические требования к организации общественного питания населения», действует с 1 сентября 2026 года и заменил прежний 2.3/2.4.3590-20. Электронная форма прямо разрешена.",
   },
   {
     q: "Можно попробовать бесплатно?",
@@ -486,7 +431,7 @@ export default async function LandingPage() {
                 отдельная страница: тарифы тут же, ниже по этой же. */}
             <AnchorScrollLink
               href="#pricing"
-              className="text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
+              className="nav-tariffs text-[14px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
             >
               Тарифы
             </AnchorScrollLink>
@@ -510,9 +455,11 @@ export default async function LandingPage() {
               </>
             ) : (
               <>
-                {/* Кнопка «Начать» из шапки убрана: регистрация теперь
-                    полем почты в самом hero, и вторая точка входа
-                    конкурировала с ней за то же действие. */}
+                {/* Кнопка «Начать бесплатно» показывается, только когда hero
+                    с формой ушёл из вьюпорта: на первом экране она бы
+                    конкурировала с полем почты, а ниже по странице без
+                    неё единственное действие в шапке — «Войти». */}
+                <NavStartButton />
                 <Link
                   href="/login"
                   className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3.5 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:px-4"
@@ -679,6 +626,7 @@ export default async function LandingPage() {
                 {/* Почта спрашивается прямо здесь: так первый шаг —
                     одно поле, а не переход на отдельную страницу. */}
                 <HeroEmailStart
+                  place="hero"
                   layout="stack"
                   buttonLabel="Попробовать бесплатно"
                   showLoginLink={false}
@@ -720,37 +668,6 @@ export default async function LandingPage() {
         </div>
         <AutomationScene />
       </section>
-
-      {/* ПОДХОДИТ ДЛЯ — было рядом чипов в герое. Слова «Рестораны,
-          Кафе, Пекарни» говорили, кому продают, но не говорили, что у
-          человека меняется; карточки «было / стало» отвечают именно на
-          это. Секция вынесена из героя: карусель на первом экране
-          отодвигала бы кнопку регистрации. */}
-      {/* Секция во всю ширину экрана: карусель должна доходить до краёв,
-          чтобы боковые карточки уходили за границу кадра — так видно,
-          что ряд продолжается. Заголовок при этом остаётся в общей
-          колонке 1200px, иначе он оторвётся от остального лендинга. */}
-      <section className="pb-20">
-        <div className="mx-auto mb-10 max-w-[1200px] px-4 sm:px-6">
-          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            <Store className="size-4" />
-            Подходит для
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Кухня любого размера — от одной точки до сети
-          </h2>
-          <p className="mt-3 text-[15px] text-[#6f7282]">
-            Найдите своё заведение и посмотрите, что меняется в первую
-            неделю после перехода с бумаги.
-          </p>
-        </div>
-        <AudienceCarousel />
-      </section>
-
-      {/* КОМУ ПОДХОДИТ — полный список сфер/типов бизнеса со ссылками на
-          посадочные /dlya-*. Стоит под каруселью «Подходит для»: та
-          показывает «было/стало», а эта — навигацию по всем нишам. */}
-      <IndustriesGrid />
 
       {/* FEATURES */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 py-20">
@@ -832,13 +749,27 @@ export default async function LandingPage() {
                 рабочих мест или автоматизация.
               </p>
             </div>
-            <Link
-              href="/register"
-              className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
-            >
-              Начать бесплатно
-              <ArrowRight className="size-4 text-[#5566f6]" />
-            </Link>
+            {/* Та же форма в одно поле, что и в hero: ссылка на
+                /register была лишним переходом на самом мотивированном
+                участке страницы. */}
+            {isAuthed ? (
+              <Link
+                href={homeHref}
+                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-[15px] font-medium text-[#0b1024] transition-colors hover:bg-white/90"
+              >
+                Открыть кабинет
+                <ArrowRight className="size-4 text-[#5566f6]" />
+              </Link>
+            ) : (
+              <div className="w-full md:max-w-[520px]">
+                <HeroEmailStart
+                  tone="dark"
+                  place="banner"
+                  buttonLabel="Начать бесплатно"
+                  showLoginLink={false}
+                />
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -926,7 +857,7 @@ export default async function LandingPage() {
               "PDF для проверок, без карты",
             ]}
             ctaLabel={viewerOnFreePlan ? "Текущий" : "Начать бесплатно"}
-            ctaHref="/register"
+            ctaHref="#start"
             ctaDisabled={viewerOnFreePlan}
             note={FREE_PLAN_TEST_NOTE}
           />
@@ -1019,261 +950,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* C5 — D11+D12 поднимаются после PRICING: безопасность и ROI это
-          trust-сигналы которые усиливают тарифное решение, и они не
-          должны прятаться в самый низ страницы. */}
-
-      {/* D11 — БЕЗОПАСНОСТЬ ДАННЫХ */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            <ShieldCheck className="size-4" />
-            Безопасность данных
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Журналы не пропадут — это первое что мы продумали
-          </h2>
-          <p className="mt-3 text-[15px] text-[#6f7282]">
-            Общепит боится потерять год записей перед проверкой. Мы храним
-            ваши данные как банк хранит транзакции — с дублированием,
-            шифрованием и аудитом доступа.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              icon: ShieldCheck,
-              title: "Серверы в России",
-              text: "152-ФЗ. PostgreSQL хостится в РФ-датацентре с суточной репликацией.",
-            },
-            {
-              icon: Network,
-              title: "TLS 1.3 + HMAC",
-              text: "Передача только по HTTPS, межсервисные запросы подписаны HMAC-SHA256.",
-            },
-            {
-              icon: Timer,
-              title: "Бэкапы каждые 6 часов",
-              text: "Снапшоты держим 30 дней, ежедневно проверяем валидность восстановления.",
-            },
-            {
-              icon: UserCheck,
-              title: "Ролевой доступ",
-              text: "У каждого сотрудника свой логин. Каждое действие видно в audit-логе.",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="rounded-2xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
-            >
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-                <item.icon className="size-5" />
-              </div>
-              <div className="mt-3 text-[14px] font-semibold text-[#0b1024]">
-                {item.title}
-              </div>
-              <p className="mt-1 text-[13px] leading-[1.5] text-[#6f7282]">
-                {item.text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* D12 — ROI КАЛЬКУЛЯТОР */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <RoiCalculator subscriptionMonthly={monthly.priceRub} />
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            Как подключиться
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Старт — за 5 минут, без заявок и созвонов
-          </h2>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {STEPS.map((step, idx) => (
-            <div
-              key={step.title}
-              className="relative rounded-2xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
-            >
-              <div className="mb-4 flex items-center gap-3">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[#5566f6] text-[13px] font-semibold text-white">
-                  {idx + 1}
-                </span>
-                <span className="text-[15px] font-semibold text-[#0b1024]">
-                  {step.title}
-                </span>
-              </div>
-              <p className="text-[13px] leading-[1.55] text-[#6f7282]">
-                {step.text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* D13 — illustrative cases (типовые сценарии, не реальные клиенты).
-          Реальные брендированные кейсы вернутся когда появятся подписанные
-          разрешения на показ — пока даём «вилки» на основе наблюдений.   */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            <Sparkles className="size-4" />
-            До и после
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Типичные результаты перехода с бумаги
-          </h2>
-          <p className="mt-3 text-[15px] text-[#6f7282]">
-            Цифры — на основе наблюдений за заведениями, которые перешли с
-            бумажных журналов. Точная экономия зависит от количества журналов
-            и сотрудников.
-          </p>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {[
-            {
-              title: "Кафе на 10 сотрудников",
-              before:
-                "Шеф 30 минут утром тратит на бракераж и проверку гигиены. Журналы заполняются вечером «задним числом».",
-              after:
-                "Бракераж и гигиена через Telegram-бот за 3 минуты. Перед проверкой РПН — PDF одной кнопкой.",
-              metric: "≈15 ч/мес",
-              metricLabel: "экономия времени",
-            },
-            {
-              title: "Школьная столовая",
-              before:
-                "9 бумажных журналов, директор переписывает их перед каждым визитом надзора.",
-              after:
-                "Все журналы в одном кабинете. Повара заполняют с планшета, директор — отчёт по расписанию.",
-              metric: "0 замечаний",
-              metricLabel: "при последних проверках",
-            },
-            {
-              title: "Пекарня с прослеживаемостью",
-              before:
-                "Партии муки и заквасок учитываются в Excel-таблице, при претензии непонятно от какого поставщика дефект.",
-              after:
-                "Каждая партия в lot-tracking, история от поставщика до полки доступна за 2 клика.",
-              metric: "100% lot-coverage",
-              metricLabel: "после 2 недель",
-            },
-          ].map((c) => (
-            <div
-              key={c.title}
-              className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
-            >
-              <div className="text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024]">
-                {c.title}
-              </div>
-              <div className="mt-5">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a13a32]">
-                  Было
-                </div>
-                <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
-                  {c.before}
-                </p>
-              </div>
-              <div className="mt-4">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                  Стало
-                </div>
-                <p className="mt-1 text-[13px] leading-[1.55] text-[#0b1024]">
-                  {c.after}
-                </p>
-              </div>
-              <div className="mt-5 rounded-2xl bg-[#f5f6ff] p-4">
-                <div className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-[#3848c7]">
-                  {c.metric}
-                </div>
-                <div className="text-[12px] text-[#6f7282]">
-                  {c.metricLabel}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 text-[12px] text-[#9b9fb3]">
-          * Это типичные сценарии, а не реальные клиенты. Брендированные
-          кейс-стади появятся, когда подписанные клиенты дадут разрешение на
-          показ.
-        </div>
-      </section>
-
-      {/* ОТЗЫВЫ — секция сама себя прячет, пока нет ни одного
-          подтверждённого отзыва (src/content/testimonials.ts). */}
-      <TestimonialsCarousel />
-
-      {/* AUDIENCE */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            Кому полезно
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            WeSetup подойдёт, если у вас…
-          </h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {AUDIENCE.map((a) => (
-            <div
-              key={a.title}
-              className="flex items-start gap-4 rounded-2xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
-            >
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-                <a.icon className="size-5" />
-              </div>
-              <div>
-                <div className="text-[15px] font-semibold leading-tight text-[#0b1024]">
-                  {a.title}
-                </div>
-                <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
-                  {a.text}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* PARTNERSHIP */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="relative overflow-hidden rounded-3xl border border-[#ececf4] bg-white px-5 py-8 sm:px-8 sm:py-10 md:px-12">
-          <div className="relative z-10 flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-5">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-                <Handshake className="size-6" />
-              </div>
-              <div className="max-w-[620px]">
-                <h3 className="text-[22px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024]">
-                  Работаете с общепитом? Станьте партнёром.
-                </h3>
-                <p className="mt-2 text-[14px] leading-[1.55] text-[#6f7282]">
-                  Консалтинг по ХАССП, интеграторы учётных систем, поставщики
-                  оборудования — расскажем, как подключить ваших клиентов и
-                  зарабатывать на продлениях.
-                </p>
-              </div>
-            </div>
-            <a
-              href="https://t.me/wesetupbot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-5 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
-            >
-              Написать в Telegram
-              <ArrowRight className="size-4 text-[#5566f6]" />
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* C10 — синтетическое «видео»: auto-playing цикличная анимация
           планшета с заполнением журнала. Замена реальной съёмки повара
           на кухне до тех пор, пока не появится исходник. */}
@@ -1320,140 +996,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* MOBILE + TELEGRAM SCREENSHOTS — placeholder carousel */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[640px]">
-          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
-            <Smartphone className="size-4" />
-            Мобильный доступ
-          </div>
-          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-            Журналы с планшета повара и бота в Telegram
-          </h2>
-          <p className="mt-4 text-[15px] text-[#6f7282]">
-            Повар заполняет на планшете прямо в цехе, управляющий видит
-            статус в Telegram, руководитель — полную картину на компьютере.
-          </p>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {[
-            {
-              icon: Smartphone,
-              label: "Планшет на кухне",
-              caption: "Гигиена / температура в один тап",
-              accent: "from-[#eef1ff] to-[#dde2ff]",
-              ring: "ring-[#5566f6]/30",
-              iconColor: "text-[#5566f6]",
-              mock: (
-                <div className="space-y-1.5">
-                  <div className="rounded-lg bg-white px-2 py-1.5 text-[10px] shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-[#0b1024]">
-                        Гигиена · 29.04
-                      </span>
-                      <span className="rounded-full bg-emerald-100 px-1.5 text-[8px] text-emerald-700">
-                        ✓
-                      </span>
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-white px-2 py-1.5 text-[10px] shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-[#0b1024]">
-                        Темп. -18°C
-                      </span>
-                      <span className="rounded-full bg-emerald-100 px-1.5 text-[8px] text-emerald-700">
-                        OK
-                      </span>
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-rose-50 px-2 py-1.5 text-[10px] shadow-sm">
-                    <span className="font-semibold text-rose-700">
-                      Уборка · ждёт ↺
-                    </span>
-                  </div>
-                </div>
-              ),
-            },
-            {
-              icon: Send,
-              label: "Telegram-бот",
-              caption: "Напоминания и алерты о нарушениях",
-              accent: "from-[#dbeafe] to-[#c5d4fb]",
-              ring: "ring-blue-400/30",
-              iconColor: "text-blue-600",
-              mock: (
-                <div className="space-y-2">
-                  <div className="rounded-2xl rounded-bl-sm bg-white px-2 py-1.5 text-[10px] shadow-sm">
-                    🔔 Иванов не заполнил гигиену до 12:00
-                  </div>
-                  <div className="self-end rounded-2xl rounded-br-sm bg-blue-500 px-2 py-1.5 text-[10px] text-white shadow-sm">
-                    Заполнить
-                  </div>
-                  <div className="rounded-2xl rounded-bl-sm bg-white px-2 py-1.5 text-[10px] shadow-sm">
-                    📊 На неделе: 95% журналов закрыты
-                  </div>
-                </div>
-              ),
-            },
-            {
-              icon: ImageIcon,
-              label: "Компьютер руководителя",
-              caption: "Отчёты и PDF для Роспотребнадзора",
-              accent: "from-[#fef3c7] to-[#fde68a]",
-              ring: "ring-amber-400/30",
-              iconColor: "text-amber-600",
-              mock: (
-                <div className="space-y-1.5">
-                  <div className="rounded-lg bg-white px-2 py-2 text-[10px] shadow-sm">
-                    <div className="font-semibold text-[#0b1024]">
-                      Сводка за неделю
-                    </div>
-                    <div className="mt-1 grid grid-cols-2 gap-1">
-                      <div className="rounded bg-emerald-50 px-1 text-emerald-700">
-                        ✓ 95%
-                      </div>
-                      <div className="rounded bg-amber-50 px-1 text-amber-700">
-                        ⚠ 3
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-white px-2 py-1.5 text-[10px] shadow-sm">
-                    📄 Скачать PDF за апрель
-                  </div>
-                </div>
-              ),
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className={`group flex aspect-[3/4] flex-col rounded-3xl bg-gradient-to-br ${item.accent} p-5 ring-1 ${item.ring} transition-transform hover:-translate-y-1`}
-            >
-              <div
-                className={`flex size-12 items-center justify-center rounded-2xl bg-white/80 ${item.iconColor} backdrop-blur shadow-[0_0_0_1px_rgba(220,223,237,0.5)]`}
-              >
-                <item.icon className="size-6" />
-              </div>
-              <div className="mt-4 text-[15px] font-semibold text-[#0b1024]">
-                {item.label}
-              </div>
-              <div className="mt-1 text-[12px] text-[#3c4053]">
-                {item.caption}
-              </div>
-              <div className="mt-auto flex flex-col">{item.mock}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CLIENTS section убрана — реальных логотипов пока нет, лучше */}
-      {/* пустого грязного блока (UX 2026-04-30). Вернётся когда */}
-      {/* появятся подписанные клиенты с разрешением показа. */}
-
-      {/* TESTIMONIALS section убрана — без реальных отзывов. */}
-      {/* Вернётся когда появятся клиенты, готовые подписать кейс. */}
-
-      {/* C5 — final reorder: FAQ → BLOG → CTA (recommended pattern). */}
-
       {/* FAQ */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
         <div className="mb-10 max-w-[640px]">
@@ -1489,6 +1031,73 @@ export default async function LandingPage() {
               </div>
             </details>
           ))}
+        </div>
+      </section>
+
+      {/* ПОДХОДИТ ДЛЯ — было рядом чипов в герое. Слова «Рестораны,
+          Кафе, Пекарни» говорили, кому продают, но не говорили, что у
+          человека меняется; карточки «было / стало» отвечают именно на
+          это. Секция вынесена из героя: карусель на первом экране
+          отодвигала бы кнопку регистрации. */}
+      {/* Секция во всю ширину экрана: карусель должна доходить до краёв,
+          чтобы боковые карточки уходили за границу кадра — так видно,
+          что ряд продолжается. Заголовок при этом остаётся в общей
+          колонке 1200px, иначе он оторвётся от остального лендинга. */}
+      <section className="pb-20">
+        <div className="mx-auto mb-10 max-w-[1200px] px-4 sm:px-6">
+          <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
+            <Store className="size-4" />
+            Подходит для
+          </div>
+          <h2 className="text-[clamp(1.625rem,2.2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
+            Кухня любого размера — от одной точки до сети
+          </h2>
+          <p className="mt-3 text-[15px] text-[#6f7282]">
+            Найдите своё заведение и посмотрите, что меняется в первую
+            неделю после перехода с бумаги.
+          </p>
+        </div>
+        <AudienceCarousel />
+      </section>
+
+      {/* КОМУ ПОДХОДИТ — полный список сфер/типов бизнеса со ссылками на
+          посадочные /dlya-*. Стоит под каруселью «Подходит для»: та
+          показывает «было/стало», а эта — навигацию по всем нишам. */}
+      <IndustriesGrid />
+
+      {/* FINAL CTA */}
+      <section
+        id="start"
+        className="mx-auto max-w-[1200px] scroll-mt-[72px] px-4 pb-20 sm:scroll-mt-24 sm:px-6"
+      >
+        <div className="rounded-3xl border border-[#ececf4] bg-[#f5f6ff] p-6 text-center sm:p-10 md:p-14">
+          <div className="mx-auto mb-5 inline-flex size-14 items-center justify-center rounded-2xl bg-[#5566f6] text-white shadow-[0_14px_36px_-14px_rgba(85,102,246,0.6)]">
+            <Sparkles className="size-7" />
+          </div>
+          <h3 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
+            Готовы избавиться от бумаги?
+          </h3>
+          <p className="mx-auto mt-3 max-w-[480px] text-[15px] leading-[1.55] text-[#6f7282]">
+            Зарегистрируйте организацию за 3 шага и начните заполнять журналы
+            уже сегодня. Бесплатный тариф — без срока, без карты.
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            {isAuthed ? (
+              <Link
+                href={homeHref}
+                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
+              >
+                Открыть кабинет
+                <ArrowRight className="size-4" />
+              </Link>
+            ) : (
+              <>
+                {/* Тот же одношаговый старт, что и в hero — человек
+                    дочитал страницу, не надо снова вести его на форму. */}
+                <HeroEmailStart place="final" />
+              </>
+            )}
+          </div>
         </div>
       </section>
 
@@ -1552,39 +1161,6 @@ export default async function LandingPage() {
           </div>
         </section>
       )}
-
-      {/* FINAL CTA */}
-      <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="rounded-3xl border border-[#ececf4] bg-[#f5f6ff] p-6 text-center sm:p-10 md:p-14">
-          <div className="mx-auto mb-5 inline-flex size-14 items-center justify-center rounded-2xl bg-[#5566f6] text-white shadow-[0_14px_36px_-14px_rgba(85,102,246,0.6)]">
-            <Sparkles className="size-7" />
-          </div>
-          <h3 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
-            Готовы избавиться от бумаги?
-          </h3>
-          <p className="mx-auto mt-3 max-w-[480px] text-[15px] leading-[1.55] text-[#6f7282]">
-            Зарегистрируйте организацию за 3 шага и начните заполнять журналы
-            уже сегодня. Бесплатный тариф — без срока, без карты.
-          </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            {isAuthed ? (
-              <Link
-                href={homeHref}
-                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
-              >
-                Открыть кабинет
-                <ArrowRight className="size-4" />
-              </Link>
-            ) : (
-              <>
-                {/* Тот же одношаговый старт, что и в hero — человек
-                    дочитал страницу, не надо снова вести его на форму. */}
-                <HeroEmailStart />
-              </>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* FOOTER */}
       <PublicFooter />

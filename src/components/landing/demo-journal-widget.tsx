@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { HeroEmailStart } from "@/components/landing/hero-email-start";
 
 /**
  * Интерактивное демо: посетитель «трогает» форму журнала без
@@ -404,6 +405,17 @@ export function DemoJournalWidget() {
                 </ul>
               ) : null}
             </div>
+          </div>
+          {/* Пик интереса: человек только что заполнил журнал — здесь и
+              предлагаем завести свой. Та же форма в одно поле, что и в
+              hero, со своим местом для целей Метрики. */}
+          <div className="mt-4 border-t border-[#5566f6]/15 pt-4">
+            <HeroEmailStart
+              layout="stack"
+              place="demo"
+              buttonLabel="Продолжить в своём журнале"
+              showLoginLink={false}
+            />
           </div>
         </div>
       ) : null}

@@ -60,6 +60,9 @@ export async function POST(request: Request) {
     typeof (body as { email?: unknown } | null)?.email === "string"
       ? (body as { email: string }).email.trim().toLowerCase()
       : "";
+  // Откуда пришла регистрация: место формы, посадочная, referrer, utm.
+  // Собирает клиент (lib/signup-source.ts), здесь только режем длину.
+  const source = readSource((body as { source?: unknown } | null)?.source);
 
   // Мусор отсекаем ДО расхода лимита, чтобы бот пустыми запросами не
   // выжигал квоту живому пользователю с того же IP (общий офисный NAT).
@@ -179,7 +182,7 @@ export async function POST(request: Request) {
   }).catch((err) =>
     console.error("sendAccountPasswordEmail failed", err),
   );
-  notifyOwner(email).catch((err) =>
+  notifyOwner(email, source).catch((err) =>
     console.error("instant-register telegram notify failed", err),
   );
   // Пришёл по ссылке партнёра (/p/<slug>) — организация сразу под его
@@ -197,14 +200,51 @@ export async function POST(request: Request) {
   );
 }
 
-async function notifyOwner(email: string): Promise<void> {
+type SignupSource = {
+  place: string;
+  landing: string;
+  referrer: string;
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+};
+
+function str(value: unknown, max = 200): string {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+function readSource(raw: unknown): SignupSource {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<
+    string,
+    unknown
+  >;
+  return {
+    place: str(o.place, 40),
+    landing: str(o.landing),
+    referrer: str(o.referrer, 500),
+    utmSource: str(o.utmSource),
+    utmMedium: str(o.utmMedium),
+    utmCampaign: str(o.utmCampaign),
+  };
+}
+
+async function notifyOwner(email: string, source: SignupSource): Promise<void> {
   // Единая точка админ-уведомлений: регистрации и обращения больше не
   // разъезжаются по двум разным chat id из разных env-переменных.
+  const utm = [source.utmSource, source.utmMedium, source.utmCampaign]
+    .filter(Boolean)
+    .join(" / ");
   await notifyPlatformAdmin(
     [
       "🆕 Новая регистрация с лендинга",
       `Почта: ${escapeTelegramHtml(email)}`,
-    ].join("\n"),
+      source.place ? `Форма: ${escapeTelegramHtml(source.place)}` : "",
+      source.landing ? `Страница: ${escapeTelegramHtml(source.landing)}` : "",
+      source.referrer ? `Откуда: ${escapeTelegramHtml(source.referrer)}` : "",
+      utm ? `UTM: ${escapeTelegramHtml(utm)}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
     { kind: "registration" },
   );
 }

@@ -1,4 +1,4 @@
-// СанПиН 2.3/2.4.3590-20, ГОСТ Р 51705.1-2024, ТР ТС 021/2011
+// СанПиН 2.3/2.4.4282-26, ГОСТ Р 51705.1-2024, ТР ТС 021/2011
 // Справочник нормативов для пищевых производств
 
 export interface SanPinNorm {
@@ -17,7 +17,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "temp_fridge",
     title: "Температура в холодильных камерах",
-    document: "СанПиН 2.3/2.4.3590-20, п. 3.5.1",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Температурный режим",
     category: "temperature",
     description: "Хранение скоропортящихся продуктов должно осуществляться при температуре +2...+6°C",
@@ -26,7 +26,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "temp_freezer",
     title: "Температура в морозильных камерах",
-    document: "СанПиН 2.3/2.4.3590-20, п. 3.5.2",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Температурный режим",
     category: "temperature",
     description: "Хранение замороженных продуктов при температуре не выше -18°C",
@@ -35,7 +35,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "temp_hot_food",
     title: "Температура горячих блюд при раздаче",
-    document: "СанПиН 2.3/2.4.3590-20, п. 8.7.2",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Температурный режим",
     category: "temperature",
     description: "Температура горячих блюд при раздаче должна быть не ниже +65°C",
@@ -44,7 +44,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "temp_cold_food",
     title: "Температура холодных блюд при раздаче",
-    document: "СанПиН 2.3/2.4.3590-20, п. 8.7.2",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Температурный режим",
     category: "temperature",
     description: "Температура холодных блюд и закусок при раздаче не выше +15°C",
@@ -53,7 +53,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "temp_cooking_meat",
     title: "Температура в толще мясных изделий",
-    document: "СанПиН 2.3/2.4.3590-20, п. 8.5",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Термическая обработка",
     category: "temperature",
     description: "Температура в толще мяса и мясных изделий при тепловой обработке должна быть не ниже +85°C",
@@ -62,7 +62,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "temp_cooking_poultry",
     title: "Температура в толще птицы",
-    document: "СанПиН 2.3/2.4.3590-20, п. 8.5",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Термическая обработка",
     category: "temperature",
     description: "Температура в толще тушки птицы не ниже +85°C",
@@ -80,7 +80,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "temp_transport",
     title: "Температура при транспортировке",
-    document: "СанПиН 2.3/2.4.3590-20, п. 3.3",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Транспортировка",
     category: "temperature",
     description: "Скоропортящиеся продукты перевозятся охлаждаемым транспортом при +2...+6°C",
@@ -91,7 +91,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "shelf_salads",
     title: "Срок хранения салатов",
-    document: "СанПиН 2.3/2.4.3590-20, Прил. 1",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Сроки годности",
     category: "shelf_life",
     description: "Салаты заправленные — не более 1 часа, незаправленные — не более 6 часов при +2...+6°C",
@@ -100,7 +100,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "shelf_cooked_meat",
     title: "Срок хранения готового мяса",
-    document: "СанПиН 2.3/2.4.3590-20, Прил. 1",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Сроки годности",
     category: "shelf_life",
     description: "Мясо отварное, жареное — не более 24 часов при +2...+6°C",
@@ -128,7 +128,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "incoming_packaging",
     title: "Контроль упаковки",
-    document: "СанПиН 2.3/2.4.3590-20, п. 3.2",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Входной контроль",
     category: "incoming",
     description: "Не допускается приёмка продукции с нарушенной упаковкой, без маркировки, с истёкшим сроком годности, при несоблюдении температурного режима",
@@ -136,7 +136,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "incoming_temp_check",
     title: "Замер температуры при приёмке",
-    document: "СанПиН 2.3/2.4.3590-20, п. 3.2.3",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Входной контроль",
     category: "incoming",
     description: "При приёмке скоропортящейся продукции обязателен замер температуры: мясо ≤ +4°C, рыба ≤ -18°C, молочная ≤ +6°C",
@@ -155,7 +155,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "hygiene_daily_check",
     title: "Ежедневный осмотр перед сменой",
-    document: "СанПиН 2.3/2.4.3590-20, п. 2.3",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Гигиена персонала",
     category: "hygiene",
     description: "Перед началом работы — осмотр на наличие гнойничковых заболеваний кожи рук, ОРЗ, кишечных инфекций. Лица с признаками заболеваний к работе не допускаются",
@@ -163,7 +163,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "hygiene_hands",
     title: "Мытьё рук",
-    document: "СанПиН 2.3/2.4.3590-20, п. 2.5",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Гигиена персонала",
     category: "hygiene",
     description: "Мытьё рук обязательно: при входе в производственный цех, после посещения туалета, после работы с сырыми продуктами, при переходе от одной операции к другой",
@@ -173,7 +173,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "cleaning_routine",
     title: "Текущая уборка",
-    document: "СанПиН 2.3/2.4.3590-20, п. 2.11",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Уборка и дезинфекция",
     category: "cleaning",
     description: "Текущая влажная уборка производственных помещений — не менее 2 раз в смену. Полы — по мере загрязнения, стены и оборудование — ежедневно",
@@ -181,7 +181,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "cleaning_general",
     title: "Генеральная уборка",
-    document: "СанПиН 2.3/2.4.3590-20, п. 2.12",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Уборка и дезинфекция",
     category: "cleaning",
     description: "Генеральная уборка всех помещений — не реже 1 раза в месяц с применением моющих и дезинфицирующих средств",
@@ -189,7 +189,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "cleaning_equipment",
     title: "Санитарная обработка оборудования",
-    document: "СанПиН 2.3/2.4.3590-20, п. 2.13",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Уборка и дезинфекция",
     category: "cleaning",
     description: "Производственное оборудование, инвентарь, тара подлежат мойке с применением моющих средств после каждой производственной операции",
@@ -256,7 +256,7 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "writeoff_procedure",
     title: "Порядок списания",
-    document: "СанПиН 2.3/2.4.3590-20, п. 3.8",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Списание продукции",
     category: "writeoff",
     description: "Продукция с истёкшим сроком годности или явными признаками порчи подлежит немедленному изъятию из оборота и утилизации. Списание оформляется актом с указанием причины и способа утилизации",
@@ -266,10 +266,10 @@ export const SANPIN_NORMS: SanPinNorm[] = [
   {
     id: "electronic_journals",
     title: "Допустимость электронных журналов",
-    document: "СанПиН 2.3/2.4.3590-20, изменения от 01.03.2025",
+    document: "СанПиН 2.3/2.4.4282-26",
     section: "Документация",
     category: "general",
-    description: "С 1 марта 2025 года официально разрешено ведение электронных журналов производственного контроля при условии обеспечения идентификации лица, вносящего записи, и невозможности несанкционированного изменения данных",
+    description: "Ведение электронных журналов производственного контроля разрешено при условии обеспечения идентификации лица, вносящего записи, и невозможности несанкционированного изменения данных",
   },
 ];
 
@@ -285,15 +285,15 @@ export interface FieldHint {
 
 export const FIELD_HINTS: FieldHint[] = [
   // temp_control
-  { fieldKey: "temperature", templateCode: "temp_control", hint: "Холодильник: +2...+6°C, Морозильник: ≤ -18°C. Замер термометром из центра камеры.", norm: "СанПиН 2.3/2.4.3590-20, п. 3.5" },
+  { fieldKey: "temperature", templateCode: "temp_control", hint: "Холодильник: +2...+6°C, Морозильник: ≤ -18°C. Замер термометром из центра камеры.", norm: "СанПиН 2.3/2.4.4282-26" },
 
   // incoming_control
   { fieldKey: "productName", templateCode: "incoming_control", hint: "Указывайте полное наименование из накладной или маркировки", norm: "ТР ТС 021/2011, ст. 5" },
   { fieldKey: "supplier", templateCode: "incoming_control", hint: "Название организации-поставщика из товарно-транспортной накладной" },
   { fieldKey: "manufactureDate", templateCode: "incoming_control", hint: "Дата изготовления с маркировки. Проверьте читаемость!" },
-  { fieldKey: "expiryDate", templateCode: "incoming_control", hint: "Срок годности с маркировки. Не принимайте продукцию, если до истечения срока осталось менее 1/3 от общего срока", norm: "СанПиН 2.3/2.4.3590-20, п. 3.2" },
-  { fieldKey: "temperatureOnArrival", templateCode: "incoming_control", hint: "Мясо ≤ +4°C, рыба ≤ -18°C, молоко ≤ +6°C, овощи +2...+10°C", norm: "СанПиН 2.3/2.4.3590-20, п. 3.2.3" },
-  { fieldKey: "packagingCondition", templateCode: "incoming_control", hint: "Повреждённая упаковка = основание для отказа в приёмке", norm: "СанПиН 2.3/2.4.3590-20, п. 3.2" },
+  { fieldKey: "expiryDate", templateCode: "incoming_control", hint: "Срок годности с маркировки. Не принимайте продукцию, если до истечения срока осталось менее 1/3 от общего срока", norm: "СанПиН 2.3/2.4.4282-26" },
+  { fieldKey: "temperatureOnArrival", templateCode: "incoming_control", hint: "Мясо ≤ +4°C, рыба ≤ -18°C, молоко ≤ +6°C, овощи +2...+10°C", norm: "СанПиН 2.3/2.4.4282-26" },
+  { fieldKey: "packagingCondition", templateCode: "incoming_control", hint: "Повреждённая упаковка = основание для отказа в приёмке", norm: "СанПиН 2.3/2.4.4282-26" },
   { fieldKey: "decision", templateCode: "incoming_control", hint: "Отклонить при: нарушенной упаковке, превышении температуры, отсутствии маркировки/документов, истёкшем сроке" },
 
   // finished_product
@@ -301,11 +301,11 @@ export const FIELD_HINTS: FieldHint[] = [
   { fieldKey: "taste", templateCode: "finished_product", hint: "Оцените вкус, послевкусие, наличие посторонних привкусов" },
   { fieldKey: "smell", templateCode: "finished_product", hint: "Оцените запах — должен быть характерным для данного продукта, без посторонних запахов" },
   { fieldKey: "consistency", templateCode: "finished_product", hint: "Оцените текстуру, однородность, плотность" },
-  { fieldKey: "servingTemperature", templateCode: "finished_product", hint: "Горячие блюда ≥ +65°C, холодные ≤ +15°C", norm: "СанПиН 2.3/2.4.3590-20, п. 8.7.2", warnBelow: 65 },
+  { fieldKey: "servingTemperature", templateCode: "finished_product", hint: "Горячие блюда ≥ +65°C, холодные ≤ +15°C", norm: "СанПиН 2.3/2.4.4282-26", warnBelow: 65 },
 
   // hygiene
-  { fieldKey: "noRespiratorySymptoms", templateCode: "hygiene", hint: "Проверить: кашель, насморк, боль в горле, повышенная температура", norm: "СанПиН 2.3/2.4.3590-20, п. 2.3" },
-  { fieldKey: "noSkinDiseases", templateCode: "hygiene", hint: "Осмотреть руки, лицо на наличие гнойничковых заболеваний, порезов, ожогов", norm: "СанПиН 2.3/2.4.3590-20, п. 2.3" },
+  { fieldKey: "noRespiratorySymptoms", templateCode: "hygiene", hint: "Проверить: кашель, насморк, боль в горле, повышенная температура", norm: "СанПиН 2.3/2.4.4282-26" },
+  { fieldKey: "noSkinDiseases", templateCode: "hygiene", hint: "Осмотреть руки, лицо на наличие гнойничковых заболеваний, порезов, ожогов", norm: "СанПиН 2.3/2.4.4282-26" },
   { fieldKey: "noGastrointestinalIssues", templateCode: "hygiene", hint: "Опросить: боли в животе, диарея, рвота. При наличии — не допускать к работе" },
   { fieldKey: "cleanUniform", templateCode: "hygiene", hint: "Чистая спецодежда, головной убор, нескользящая обувь. Личные вещи в шкафчике" },
 
@@ -315,13 +315,13 @@ export const FIELD_HINTS: FieldHint[] = [
   { fieldKey: "exposureTime", templateCode: "cleaning", hint: "Время воздействия согласно инструкции. Обычно 15-30 минут для дезинфекции" },
 
   // cooking_temp
-  { fieldKey: "targetTemp", templateCode: "cooking_temp", hint: "Мясо: +85°C, птица: +85°C, рыба: +80°C, овощи: +80°C", norm: "СанПиН 2.3/2.4.3590-20, п. 8.5" },
-  { fieldKey: "actualTemp", templateCode: "cooking_temp", hint: "Замерьте фактическую температуру термощупом", norm: "СанПиН 2.3/2.4.3590-20, п. 8.5" },
-  { fieldKey: "coreTemp", templateCode: "cooking_temp", hint: "Температура в толще (центре) продукта. Для мяса ≥ +85°C", norm: "СанПиН 2.3/2.4.3590-20, п. 8.5", warnBelow: 85 },
+  { fieldKey: "targetTemp", templateCode: "cooking_temp", hint: "Мясо: +85°C, птица: +85°C, рыба: +80°C, овощи: +80°C", norm: "СанПиН 2.3/2.4.4282-26" },
+  { fieldKey: "actualTemp", templateCode: "cooking_temp", hint: "Замерьте фактическую температуру термощупом", norm: "СанПиН 2.3/2.4.4282-26" },
+  { fieldKey: "coreTemp", templateCode: "cooking_temp", hint: "Температура в толще (центре) продукта. Для мяса ≥ +85°C", norm: "СанПиН 2.3/2.4.4282-26", warnBelow: 85 },
   { fieldKey: "duration", templateCode: "cooking_temp", hint: "Минимальное время: варка мяса — 1.5 ч, жарка — до готовности (не менее 10 мин порционно)" },
 
   // shipment
-  { fieldKey: "vehicleTemp", templateCode: "shipment", hint: "Скоропортящиеся: +2...+6°C. Замороженные: ≤ -18°C", norm: "СанПиН 2.3/2.4.3590-20, п. 3.3" },
+  { fieldKey: "vehicleTemp", templateCode: "shipment", hint: "Скоропортящиеся: +2...+6°C. Замороженные: ≤ -18°C", norm: "СанПиН 2.3/2.4.4282-26" },
   { fieldKey: "vehicleCondition", templateCode: "shipment", hint: "Проверить: чистоту кузова, наличие санитарного паспорта, работу холодильной установки" },
 
   // equipment_calibration
@@ -333,7 +333,7 @@ export const FIELD_HINTS: FieldHint[] = [
 
   // product_writeoff
   { fieldKey: "reason", templateCode: "product_writeoff", hint: "Укажите точную причину. При нарушении температуры — приложите данные из журнала температурного режима" },
-  { fieldKey: "disposalMethod", templateCode: "product_writeoff", hint: "Утилизация с оформлением акта. Возврат — при наличии договора. Переработка — только если допускается технологией", norm: "СанПиН 2.3/2.4.3590-20, п. 3.8" },
+  { fieldKey: "disposalMethod", templateCode: "product_writeoff", hint: "Утилизация с оформлением акта. Возврат — при наличии договора. Переработка — только если допускается технологией", norm: "СанПиН 2.3/2.4.4282-26" },
 ];
 
 // Получить подсказку для конкретного поля и шаблона

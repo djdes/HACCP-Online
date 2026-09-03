@@ -522,7 +522,7 @@ export function NicheLanding({ slug }: { slug: string }) {
             </div>
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-[12px] font-medium text-white/85 backdrop-blur">
               <ShieldCheck className="size-3.5 text-emerald-300" />
-              Законно с 2021 г. — СанПиН 2.3/2.4.3590-20
+              Разрешено СанПиН 2.3/2.4.4282-26
             </div>
           </div>
         </div>

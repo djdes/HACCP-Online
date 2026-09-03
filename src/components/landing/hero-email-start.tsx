@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 import { EmailHint, useEmailField } from "@/components/ui/email-field";
+import {
+  readSignupSource,
+  rememberSignupSource,
+  ymGoal,
+} from "@/lib/signup-source";
 
 /**
  * Стартовая форма лендинга: посетитель вводит почту — и аккаунт
@@ -20,7 +25,12 @@ export function HeroEmailStart({
   buttonLabel = "Начать бесплатно",
   layout = "row",
   showLoginLink = true,
+  place = "hero",
 }: {
+  /// Где стоит форма: hero | banner | demo | final. Уходит параметром в
+  /// цели Метрики и в instant-register, а также даёт полю уникальный
+  /// id — на странице таких форм несколько.
+  place?: string;
   /// "dark" — для размещения на тёмной секции (финальный CTA).
   tone?: "light" | "dark";
   buttonLabel?: string;
@@ -36,25 +46,14 @@ export function HeroEmailStart({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dark = tone === "dark";
+  const inputId = `${place}-email`;
+  const goalParams = { place };
 
-  /**
-   * Метрика: счётчик берём из той же переменной, что и сам скрипт
-   * Метрики, — хардкодить номер нельзя.
-   */
-  function goal(name: string) {
-    try {
-      const counter = Number(process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID);
-      if (Number.isFinite(counter) && counter > 0) {
-        (
-          window as unknown as {
-            ym?: (id: number, action: string, goal: string) => void;
-          }
-        ).ym?.(counter, "reachGoal", name);
-      }
-    } catch {
-      /* метрика недоступна — не мешаем сценарию */
-    }
-  }
+  // Первое касание (посадочная, referrer, utm) запоминается при показе
+  // формы — к моменту отправки человек мог уйти с исходной страницы.
+  useEffect(() => {
+    rememberSignupSource();
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,18 +65,24 @@ export function HeroEmailStart({
 
     setError(null);
     setLoading(true);
-    goal("hero_email_submit");
+    // Имя цели прежнее — на него уже настроена Метрика; место формы
+    // уходит параметром.
+    ymGoal("hero_email_submit", goalParams);
 
     try {
       const res = await fetch("/api/auth/instant-register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value }),
+        body: JSON.stringify({
+          email: value,
+          source: readSignupSource(place),
+        }),
       });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.created) {
-        goal("instant_register_done");
+        ymGoal("instant_register_done", goalParams);
+        ymGoal("signup_created", goalParams);
         router.push("/dashboard?welcome=1");
         router.refresh();
         return;
@@ -85,11 +90,14 @@ export function HeroEmailStart({
       if (res.ok && data.exists) {
         // Аккаунт уже есть — уводим на вход с подсказкой и заполненной
         // почтой, чтобы человек не гадал, почему «не регистрируется».
+        ymGoal("signup_exists", goalParams);
         router.push(`/login?email=${encodeURIComponent(value)}&exists=1`);
         return;
       }
+      ymGoal("signup_error", { ...goalParams, code: String(res.status) });
       setError(data.error ?? "Не получилось — попробуйте ещё раз");
     } catch {
+      ymGoal("signup_error", { ...goalParams, code: "network" });
       setError("Сеть недоступна. Попробуйте ещё раз");
     } finally {
       setLoading(false);
@@ -106,7 +114,7 @@ export function HeroEmailStart({
             : "flex flex-col gap-2.5 sm:flex-row sm:gap-2"
         }
       >
-        <label htmlFor="hero-email" className="sr-only">
+        <label htmlFor={inputId} className="sr-only">
           Электронная почта
         </label>
         {/* Поле в обёртке с иконкой: голая рамка на светлом фоне первого
@@ -122,10 +130,11 @@ export function HeroEmailStart({
             }
           />
           <input
-            id="hero-email"
+            id={inputId}
             type="email"
             value={field.value}
             onChange={(e) => field.setValue(e.target.value)}
+            onFocus={() => ymGoal("email_field_focus", goalParams)}
             placeholder="Ваш e-mail"
             autoComplete="email"
             inputMode="email"

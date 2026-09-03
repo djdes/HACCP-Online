@@ -1814,3 +1814,12 @@ html, body {
     page: journal-portrait;
   }
 }
+
+/* Кнопка «Начать бесплатно» в шапке лендинга появляется после ухода
+   hero из вьюпорта (см. nav-start-button.tsx). На телефоне рядом с ней
+   не помещается пункт «Тарифы» — он уступает место. */
+@media (max-width: 639px) {
+  html.landing-nav-cta .landing-nav .nav-tariffs {
+    display: none;
+  }
+}
