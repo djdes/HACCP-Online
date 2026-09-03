@@ -1,0 +1,51 @@
+{
+  "taskId": "org-balance-referrals-reviews",
+  "date": "2026-09-03",
+  "verdict": "PASS",
+  "commits": {
+    "implementation": "33d6d1c2",
+    "notesSha": "a905b18d"
+  },
+  "production": {
+    "buildSha": "a905b18d830d37e43cb7b5574c850ecd4ba2fac5",
+    "buildTime": "2026-09-03T20:35:06Z",
+    "pm2": "haccp-online online",
+    "deployRuns": [33802040956, 33802062340]
+  },
+  "checks": [
+    { "name": "typecheck", "command": "npx tsc --noEmit --skipLibCheck", "result": "PASS", "detail": "0 ошибок в src/" },
+    { "name": "tests", "command": "npm test", "result": "PASS", "detail": "456 passed, 0 failed" },
+    { "name": "lint", "command": "npx eslint <changed files>", "result": "PASS", "detail": "0 ошибок, 1 предсуществующее предупреждение" },
+    { "name": "build", "command": "npm run build", "result": "PASS", "detail": "exit 0" },
+    { "name": "ci-gate", "command": "bash scripts/verify-before-push.sh", "result": "PASS", "detail": "Можно пушить" }
+  ],
+  "acceptanceCriteria": [
+    { "id": "AC1", "title": "Леджер без минуса и без дублей", "result": "PASS" },
+    { "id": "AC2", "title": "Частичное списание, холд и возврат", "result": "PASS" },
+    { "id": "AC3", "title": "100 % баллами без Робокассы", "result": "PASS" },
+    { "id": "AC4", "title": "Тумблер и права", "result": "PASS" },
+    { "id": "AC5", "title": "Реферальная программа", "result": "PASS" },
+    { "id": "AC6", "title": "Отзывы за баллы", "result": "PASS" },
+    { "id": "AC7", "title": "ROOT: метрики, корректировка, модерация", "result": "PASS" },
+    { "id": "AC8", "title": "Mini App", "result": "PASS" },
+    { "id": "AC9", "title": "Типы, тесты, линтер, сборка", "result": "PASS" }
+  ],
+  "prodSmoke": [
+    { "path": "/", "status": 200 },
+    { "path": "/settings/balance", "status": 307 },
+    { "path": "/mini/balance", "status": 307 },
+    { "path": "/api/balance", "status": 307 },
+    { "path": "/r/TESTTEST", "status": 307 },
+    { "path": "/root/reviews", "status": 404 },
+    { "path": "/api/cron/expire-point-orders", "status": 401 },
+    { "path": "/api/cron/expire-point-orders?secret=nope", "status": 401 }
+  ],
+  "schemaOnProd": {
+    "tables": ["BalanceTransaction", "CustomerReview", "ReferralInvite"],
+    "organizationColumns": ["balanceRub", "referralCode", "referredAt", "referredByOrganizationId"],
+    "paymentOrderColumns": ["pointsSpent", "referrerOrganizationId"]
+  },
+  "followUp": [
+    "Внешний планировщик: GET /api/cron/expire-point-orders?secret=$CRON_SECRET каждые 10 минут"
+  ]
+}
