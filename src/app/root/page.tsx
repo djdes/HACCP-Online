@@ -28,6 +28,9 @@ export default async function RootMetricsPage() {
   const totalActiveUsers = sorted.reduce((s, m) => s + m.activeUsers, 0);
   const totalEntries7d = sorted.reduce((s, m) => s + m.entries7d, 0);
   const activeOrgs = sorted.filter((m) => m.entries7d > 0).length;
+  // Баллы на всех балансах — обязательство платформы: эти рубли уже
+  // «обещаны» клиентам и уменьшат будущие поступления.
+  const totalBalance = sorted.reduce((s, m) => s + m.balanceRub, 0);
 
   return (
     <div className="space-y-6">
@@ -62,7 +65,7 @@ export default async function RootMetricsPage() {
       </div>
 
       {/* Aggregate stats */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <StatCard label="Организаций" value={sorted.length} />
         <StatCard
           label="Активных за 7 дней"
@@ -71,6 +74,11 @@ export default async function RootMetricsPage() {
         />
         <StatCard label="Сотрудников всего" value={totalActiveUsers} />
         <StatCard label="Записей за 7 дней" value={totalEntries7d} />
+        <StatCard
+          label="Баллов на балансах"
+          value={`${totalBalance.toLocaleString("ru-RU")} ₽`}
+          hint="обязательства платформы"
+        />
         <StatCard
           label="MRR"
           value={`${totalActualMrr.toLocaleString("ru-RU")} ₽`}

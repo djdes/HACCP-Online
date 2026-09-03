@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
+import { Toaster } from "@/components/ui/sonner";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
 import { MiniTour } from "./_components/mini-tour";
 import { SanpinChatWidget } from "@/components/ai/sanpin-chat-widget";
@@ -125,6 +126,10 @@ export default async function MiniLayout({
             >
               {children}
             </main>
+            {/* Тосты: в Mini App контейнера не было вовсе, и любой
+                toast.success/error (смена, отзыв, приглашение) уходил в
+                никуда. Позиция «сверху по центру» — из общего компонента. */}
+            <Toaster />
             <OfflineIndicator />
             <MiniNav />
             <MiniTour />

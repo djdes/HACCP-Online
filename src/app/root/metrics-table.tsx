@@ -38,7 +38,8 @@ type SortKey =
   | "entries7d"
   | "weeklyTrendPct"
   | "lastEntryAt"
-  | "actualMrrRub";
+  | "actualMrrRub"
+  | "balanceRub";
 
 type SortDir = "asc" | "desc";
 
@@ -61,6 +62,7 @@ const COLUMNS: {
   { key: "weeklyTrendPct", label: "Trend", align: "right" },
   { key: "lastEntryAt", label: "Last activity", align: "right" },
   { key: "actualMrrRub", label: "MRR ₽", align: "right" },
+  { key: "balanceRub", label: "Баланс ₽", align: "right" },
 ];
 
 /** «ООО · Кафе» — форма собственности и сфера одной строкой. */
@@ -376,6 +378,17 @@ export function MetricsTable({
                           ? `(${m.potentialMrrRub.toLocaleString("ru-RU")})`
                           : "—"}
                       </span>
+                    )}
+                  </td>
+                  {/* Баллы — обязательство платформы: их потратят вместо
+                      денег при следующей оплате. Ноль не подсвечиваем. */}
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    {m.balanceRub > 0 ? (
+                      <span className="font-medium text-[#3848c7]">
+                        {m.balanceRub.toLocaleString("ru-RU")}
+                      </span>
+                    ) : (
+                      <span className="text-[#9b9fb3]">—</span>
                     )}
                   </td>
                   <td className="px-5 py-3 text-right">

@@ -67,8 +67,52 @@ export async function fulfillPaidOrder(order: {
   recurringConsent?: boolean;
   /** Заполнено у автосписаний серии — родительский заказ. */
   recurringChargeOf?: number | null;
+  /**
+   * Организация, из кабинета которой оформили заказ. Заполнена, когда
+   * платил вошедший пользователь.
+   */
+  organizationId?: string | null;
+  userId?: string | null;
+  /** Сколько баллов ушло в счёт этого заказа (для писем и уведомлений). */
+  pointsSpent?: number | null;
 }): Promise<FulfillmentResult> {
   const periodDays = await readPeriodDays(order.tariffKey);
+
+  // Организация в заказе — источник правды: платили из её кабинета,
+  // продлевать надо именно её. Поиск по почте здесь опасен: у владельца
+  // сети «домашняя» организация может быть не той, за которую он платит,
+  // и подписка ушла бы не на ту точку.
+  if (order.organizationId) {
+    const org = await db.organization.findUnique({
+      where: { id: order.organizationId },
+      select: { id: true, subscriptionEnd: true },
+    });
+    if (org) {
+      const subscriptionEnd = await extendOrganization({
+        organizationId: org.id,
+        currentEnd: org.subscriptionEnd,
+        periodDays,
+        order,
+      });
+      const userId =
+        order.userId ??
+        (
+          await db.user.findUnique({
+            where: { email: order.email },
+            select: { id: true },
+          })
+        )?.id ??
+        null;
+      return {
+        organizationId: org.id,
+        userId: userId ?? "",
+        completeToken: null,
+        isNewClient: false,
+        subscriptionEnd,
+      };
+    }
+  }
+
   const existing = await db.user.findUnique({
     where: { email: order.email },
     select: { id: true, organizationId: true },
@@ -79,28 +123,11 @@ export async function fulfillPaidOrder(order: {
       where: { id: existing.organizationId },
       select: { subscriptionEnd: true },
     });
-    const subscriptionEnd = extendFrom(org?.subscriptionEnd ?? null, periodDays);
-    await db.organization.update({
-      where: { id: existing.organizationId },
-      data: {
-        subscriptionPlan: "paid",
-        subscriptionEnd,
-        ...(order.recurringConsent
-          ? { recurringActive: true, recurringParentOrderId: order.id }
-          : {}),
-        // Автопродление включает только платёж-РОДИТЕЛЬ серии: у него
-        // касса и запоминает карту. Списание внутри серии (`chargeOf`)
-        // ничего не переключает — иначе оно бы каждый месяц заново
-        // «включало» то, что человек мог отключить.
-        ...(order.recurringConsent && !order.recurringChargeOf
-          ? {
-              recurringActive: true,
-              recurringParentOrderId: order.id,
-              recurringDisabledAt: null,
-              recurringFailedAttempts: 0,
-            }
-          : {}),
-      },
+    const subscriptionEnd = await extendOrganization({
+      organizationId: existing.organizationId,
+      currentEnd: org?.subscriptionEnd ?? null,
+      periodDays,
+      order,
     });
     await db.paymentOrder.update({
       where: { id: order.id },
@@ -179,6 +206,38 @@ export async function fulfillPaidOrder(order: {
   };
 }
 
+/**
+ * Продление подписки существующей организации. Автопродление включает
+ * только платёж-РОДИТЕЛЬ серии: у него касса и запоминает карту. Списание
+ * внутри серии (`recurringChargeOf`) ничего не переключает — иначе оно бы
+ * каждый месяц заново «включало» то, что человек мог отключить.
+ */
+async function extendOrganization(args: {
+  organizationId: string;
+  currentEnd: Date | null;
+  periodDays: number;
+  order: { id: number; recurringConsent?: boolean; recurringChargeOf?: number | null };
+}): Promise<Date> {
+  const subscriptionEnd = extendFrom(args.currentEnd, args.periodDays);
+  const { order } = args;
+  await db.organization.update({
+    where: { id: args.organizationId },
+    data: {
+      subscriptionPlan: "paid",
+      subscriptionEnd,
+      ...(order.recurringConsent && !order.recurringChargeOf
+        ? {
+            recurringActive: true,
+            recurringParentOrderId: order.id,
+            recurringDisabledAt: null,
+            recurringFailedAttempts: 0,
+          }
+        : {}),
+    },
+  });
+  return subscriptionEnd;
+}
+
 async function readPeriodDays(tariffKey: string): Promise<number> {
   const tariff = await db.platformTariff.findUnique({
     where: { key: tariffKey },
@@ -200,11 +259,13 @@ export async function notifyAboutPayment(args: {
     amountRub: unknown;
     bundleConfig: unknown;
     isTest: boolean;
+    pointsSpent?: number | null;
   };
   result: FulfillmentResult;
 }): Promise<void> {
   const { order, result } = args;
   const amount = Number(order.amountRub);
+  const pointsSpent = Math.max(0, Number(order.pointsSpent ?? 0));
   const completeUrl = result.completeToken
     ? `${APP_URL}/order?complete=${result.completeToken}`
     : `${APP_URL}/login`;
@@ -217,14 +278,24 @@ export async function notifyAboutPayment(args: {
     isNewClient: result.isNewClient,
     subscriptionEnd: result.subscriptionEnd,
     organizationId: result.organizationId,
+    pointsSpent,
   }).catch((err) => console.error("sendPaymentReceiptEmail failed", err));
 
   const hardware = describeHardwareConfig(
     (order.bundleConfig as Record<string, number>) ?? {},
   );
+  // «Сумма» показывает то, что реально пришло деньгами, а списанные
+  // баллы стоят рядом: иначе платёж на 1 490 ₽ при цене 1 990 ₽ выглядел
+  // бы недоплатой.
+  const amountLine =
+    amount <= 0 && pointsSpent > 0
+      ? `Сумма: оплачено баллами (${formatRub(pointsSpent)})`
+      : pointsSpent > 0
+        ? `Сумма: ${formatRub(amount)} (+ ${formatRub(pointsSpent)} баллами)`
+        : `Сумма: ${formatRub(amount)}`;
   const lines = [
     order.isTest ? "🧪 ТЕСТОВЫЙ платёж" : "💰 Оплата получена",
-    `Сумма: ${formatRub(amount)}`,
+    amountLine,
     `Тариф: ${order.description}`,
     `Почта: ${order.email}`,
     result.isNewClient
@@ -241,4 +312,83 @@ export async function notifyAboutPayment(args: {
   await notifyPlatformAdmin(lines.join("\n"), { kind: "payment" }).catch((err) =>
     console.error("payment telegram notify failed", err),
   );
+}
+
+/**
+ * Всё, что происходит после подтверждённой оплаты, в одном месте.
+ *
+ * Раньше эта цепочка жила прямо в вебхуке. Теперь у неё два вызывающих:
+ * вебхук Робокассы и ветка «заказ полностью закрыт баллами», где кассы
+ * вообще нет. Каждый шаг в своём try/catch: деньги уже получены, и
+ * упавшая почта или недоступный Telegram не должны ломать ответ кассе.
+ */
+export async function completePaidOrder(order: {
+  id: number;
+  email: string;
+  tariffKey: string;
+  description: string;
+  bundleConfig: unknown;
+  amountRub: unknown;
+  isTest: boolean;
+  recurringConsent?: boolean;
+  recurringChargeOf?: number | null;
+  organizationId?: string | null;
+  userId?: string | null;
+  pointsSpent?: number | null;
+  partnerSlug?: string | null;
+  referrerOrganizationId?: string | null;
+}): Promise<{ organizationId: string | null; isNewClient: boolean }> {
+  const { accrueForPaidOrder } = await import("@/lib/partners/accruals");
+  const { attachOrganizationByRef, parsePartnerRef } = await import(
+    "@/lib/partners/referral"
+  );
+  const { accrueReferralReward, attachReferral } = await import(
+    "@/lib/balance/referral"
+  );
+
+  let organizationId: string | null = null;
+  let isNewClient = false;
+  try {
+    const result = await fulfillPaidOrder(order);
+    organizationId = result.organizationId;
+    isNewClient = result.isNewClient;
+    await notifyAboutPayment({ order, result });
+  } catch (error) {
+    // Заказ уже помечен оплаченным — откатывать статус нельзя, иначе
+    // повторное уведомление создаст вторую организацию. Разбор руками
+    // через /root по номеру заказа.
+    console.error(`fulfillment failed for order ${order.id}`, error);
+  }
+
+  // Партнёрская программа: метка /p/<slug> привязывает новую организацию
+  // к партнёру, затем считается вознаграждение с реально уплаченных денег.
+  try {
+    if (organizationId) {
+      await attachOrganizationByRef({
+        ref: parsePartnerRef(order.partnerSlug ?? null),
+        organizationId,
+        actorUserId: null,
+      });
+    }
+    await accrueForPaidOrder(order.id);
+  } catch (error) {
+    console.error(`partner accrual failed for order ${order.id}`, error);
+  }
+
+  // Реферальная программа клиент → клиент. Привязку по метке из заказа
+  // делаем только для НОВОЙ организации: у существующей атрибуция либо
+  // уже есть, либо она пришла своим путём.
+  try {
+    if (organizationId && isNewClient) {
+      await attachReferral({
+        organizationId,
+        referrerOrganizationId: order.referrerOrganizationId ?? null,
+      });
+    }
+    await accrueReferralReward(order.id);
+  } catch (error) {
+    console.error(`referral reward failed for order ${order.id}`, error);
+  }
+
+  return { organizationId, isNewClient };
 }

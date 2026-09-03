@@ -54,6 +54,9 @@ export type OrgMetrics = {
   /// Реальный MRR — 0 для trial, иначе potentialMrrRub. Простая
   /// эвристика, потом заменим на честный billing.
   actualMrrRub: number;
+  /// Баллы на балансе организации (1 балл = 1 ₽) — обязательство
+  /// платформы: их можно потратить на подписку вместо денег.
+  balanceRub: number;
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -157,6 +160,7 @@ export async function getAllOrgMetrics(
       subscriptionPlan: true,
       subscriptionEnd: true,
       createdAt: true,
+      balanceRub: true,
       _count: { select: { journalDocuments: true } },
     },
   });
@@ -319,6 +323,7 @@ export async function getAllOrgMetrics(
       lastEntryAt: lastEntryAt?.toISOString() ?? null,
       potentialMrrRub: calc.monthlyRub,
       actualMrrRub: isPaid ? calc.monthlyRub : 0,
+      balanceRub: org.balanceRub,
     };
   });
 }

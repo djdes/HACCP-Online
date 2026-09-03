@@ -1,4 +1,5 @@
 import { Coins, FlaskConical, Users } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -41,6 +42,7 @@ export default async function SubscriptionPage() {
       subscriptionEnd: true,
       recurringActive: true,
       isDemo: true,
+      balanceRub: true,
       _count: { select: { users: { where: { isActive: true } } } },
     },
   });
@@ -91,6 +93,7 @@ export default async function SubscriptionPage() {
       isTest: true,
       paidAt: true,
       createdAt: true,
+      pointsSpent: true,
     },
   });
   const paidTotalRub = payments
@@ -111,6 +114,25 @@ export default async function SubscriptionPage() {
             Тариф общий для аккаунта и настраивается из вашей организации.
           </span>
         </div>
+      ) : null}
+
+      {/* Баллы над тарифами: их спишут при оплате автоматически, и
+          человек должен видеть это ДО того, как выберет тариф. */}
+      {(org?.balanceRub ?? 0) > 0 ? (
+        <Link
+          href="/settings/balance"
+          className="flex items-start gap-3 rounded-2xl border border-[#dcdfed] bg-[#f5f6ff] px-4 py-3 text-[13.5px] leading-[1.5] text-[#3848c7] transition-colors hover:border-[#5566f6]/40"
+        >
+          <Coins className="mt-0.5 size-4 shrink-0" />
+          <span>
+            На балансе{" "}
+            <strong className="tabular-nums">
+              {(org?.balanceRub ?? 0).toLocaleString("ru-RU")} ₽
+            </strong>{" "}
+            — спишутся при оплате подписки. Как заработать ещё — в разделе
+            «Баланс и бонусы».
+          </span>
+        </Link>
       ) : null}
 
       {/* Витрина тарифов — главное на странице, поэтому первым блоком.
@@ -187,11 +209,20 @@ export default async function SubscriptionPage() {
                             : "rounded-full bg-[#f5f6ff] px-2.5 py-0.5 text-[12px] text-[#6f7282]"
                         }
                       >
-                        {payment.status === "paid" ? "оплачен" : payment.status}
+                        {payment.status === "paid"
+                          ? "оплачен"
+                          : payment.status === "expired"
+                            ? "истёк"
+                            : payment.status}
                       </span>
                     </td>
                     <td className="py-2.5 text-right tabular-nums text-[#0b1024]">
                       {Number(payment.amountRub).toLocaleString("ru-RU")} ₽
+                      {payment.pointsSpent > 0 ? (
+                        <div className="text-[12px] text-[#3848c7]">
+                          баллами −{payment.pointsSpent.toLocaleString("ru-RU")}
+                        </div>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

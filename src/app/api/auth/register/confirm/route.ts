@@ -17,6 +17,8 @@ import {
   attachOrganizationByRef,
   readPartnerRefFromRequest,
 } from "@/lib/partners/referral";
+import { REFERRAL_COOKIE, readCookie } from "@/lib/balance/constants";
+import { attachReferral, resolveReferrerByCode } from "@/lib/balance/referral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -229,6 +231,16 @@ export async function POST(request: Request) {
   await attachOrganizationByRef({
     ref: readPartnerRefFromRequest(request),
     organizationId: result.organization.id,
+    actorUserId: result.user.id,
+  });
+
+  // Реферальная ссылка клиента (/r/<code>): кто привёл эту организацию.
+  // Баллы рекомендателю начислим, когда она оплатит подписку.
+  await attachReferral({
+    organizationId: result.organization.id,
+    referrerOrganizationId:
+      (await resolveReferrerByCode(readCookie(request, REFERRAL_COOKIE)))?.id ??
+      null,
     actorUserId: result.user.id,
   });
 

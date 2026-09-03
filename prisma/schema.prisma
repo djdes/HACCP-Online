@@ -300,6 +300,21 @@ model Organization {
   /// Для новых организаций hygiene включён по умолчанию (см.
   /// defaultJournalAutomationJson в src/lib/journal-automation.ts).
   journalAutomationJson         Json                       @default("{}")
+  /// Баланс бонусных баллов организации, 1 балл = 1 ₽. Меняется только
+  /// вместе со вставкой строки в BalanceTransaction — см.
+  /// src/lib/balance/ledger.ts. Отрицательным не бывает: списание идёт
+  /// условным updateMany с проверкой `gte`.
+  balanceRub                    Int                        @default(0)
+  /// Реферальный код организации для ссылки /r/<code>. Создаётся лениво
+  /// при первом заходе в «Баланс и бонусы».
+  referralCode                  String?                    @unique
+  /// Кто пригласил эту организацию (реферальная программа клиент → клиент).
+  /// Ставится один раз при регистрации или первой оплате.
+  referredByOrganizationId      String?
+  referredAt                    DateTime?
+  balanceTransactions           BalanceTransaction[]
+  customerReviews               CustomerReview[]
+  referralInvites               ReferralInvite[]
   users                         User[]
   areas                         Area[]
   journalEntries                JournalEntry[]
@@ -2303,6 +2318,11 @@ model PaymentOrder {
   shippedAt              DateTime?
   /// Возврат платежа — ROOT отмечает вручную; начисления сторнируются.
   refundedAt             DateTime?
+  /// Сколько баллов организации списано в счёт этого заказа.
+  /// gross = amountRub + pointsSpent; amountRub — то, что уходит в кассу.
+  pointsSpent            Int       @default(0)
+  /// Организация-реферер из cookie `wesetup.ref` на момент оформления.
+  referrerOrganizationId String?
   partnerAccruals        PartnerAccrual[]
 
   @@index([email])
@@ -2612,4 +2632,72 @@ model PartnerAccrual {
   @@index([partnerId, status])
   @@index([partnerId, periodMonth])
   @@index([organizationId])
+}
+
+/// Леджер баллов: строки только добавляются. Баланс — Organization.balanceRub,
+/// меняется атомарно вместе со вставкой строки (src/lib/balance/ledger.ts).
+model BalanceTransaction {
+  id                     String   @id @default(cuid())
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// + начисление, − списание.
+  amount                 Int
+  /// referral_reward | review_reward | order_spend | order_release | manual_adjust
+  kind                   String
+  description            String
+  /// Идемпотентность одной колонкой (NULL для manual_adjust):
+  /// "order_spend:123", "order_release:123", "referral_reward:<orgId>",
+  /// "review_reward:<reviewId>".
+  dedupeKey              String?  @unique
+  paymentOrderId         Int?
+  referredOrganizationId String?
+  customerReviewId       String?
+  actorUserId            String?
+  createdAt              DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+/// Лог отправленных приглашений (антиспам + список в кабинете).
+/// Статус НЕ хранится — выводится при чтении: email → User → Organization
+/// .referredByOrganizationId === наша → «зарегистрировался»; есть
+/// BalanceTransaction referral_reward с этой организацией → «оплатил».
+model ReferralInvite {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedByUserId String
+  email           String
+  createdAt       DateTime @default(now())
+
+  @@unique([organizationId, email])
+}
+
+/// Отзыв клиента за баллы. Тариф определяется по вложению, начисление —
+/// после одобрения ROOT'ом (src/lib/balance/reviews.ts).
+model CustomerReview {
+  id                String   @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId            String
+  authorName        String
+  place             String
+  text              String
+  /// text | photo | video — по вложению.
+  kind              String
+  mediaUrl          String?
+  mediaMime         String?
+  rating            Int?
+  consentPublic     Boolean  @default(true)
+  /// pending | approved | rejected
+  status            String   @default("pending")
+  rewardRub         Int      @default(0)
+  rejectReason      String?
+  showOnLanding     Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  moderatedAt       DateTime?
+  moderatedByUserId String?
+
+  @@index([organizationId])
+  @@index([status, showOnLanding, createdAt])
 }

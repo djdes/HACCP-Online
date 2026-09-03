@@ -6,6 +6,7 @@ import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   ArrowLeft,
+  Coins,
   LogOut,
   MessageCircleMore,
   Moon,
@@ -212,6 +213,28 @@ export function MiniMeClient({
             Светлая
           </button>
         </div>
+      </section>
+
+      {/* Баланс и бонусы — паритет с сайтом (П-3). Карточка ведёт на
+          тот же экран, что и /settings/balance в кабинете. */}
+      <section>
+        <Link
+          href="/mini/balance"
+          className="mini-press flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-[14px] font-medium"
+          style={{
+            background: "var(--mini-card-solid-bg)",
+            color: "var(--mini-text)",
+            border: "1px solid var(--mini-divider)",
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <Coins className="size-4" style={{ color: "var(--mini-text-muted)" }} />
+            Баланс и бонусы
+          </span>
+          <span className="text-[11px]" style={{ color: "var(--mini-text-faint)" }}>
+            отзыв и приглашения
+          </span>
+        </Link>
       </section>
 
       {/* Обратная связь — паритет с сайтом (П-3): на сайте форма живёт

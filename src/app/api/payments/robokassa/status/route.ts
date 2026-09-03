@@ -44,6 +44,9 @@ export async function GET(request: NextRequest) {
     status: order.status,
     email: order.email,
     amountRub: Number(order.amountRub),
+    // Сколько закрыли баллами — страница показывает это рядом с суммой,
+    // иначе «оплата 1 490 ₽» при цене 1 990 ₽ читается как недоплата.
+    pointsSpent: order.pointsSpent,
     description: order.description,
     isTest: order.isTest,
     // Новому клиенту показываем форму достройки профиля; существующему —

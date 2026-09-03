@@ -27,6 +27,8 @@ test("staff web access is limited to journals", () => {
   assert.equal(canAccessWebPath(staff, "/journals/hygiene"), true);
   assert.equal(canAccessWebPath(staff, "/settings"), false);
   assert.equal(canAccessWebPath(staff, "/settings/users"), false);
+  // Исключение: страница баллов — сотрудник оставляет там отзыв.
+  assert.equal(canAccessWebPath(staff, "/settings/balance"), true);
   assert.equal(canAccessWebPath(staff, "/dashboard"), false);
   assert.equal(canAccessWebPath(staff, "/reports"), false);
   assert.equal(getWebHomeHref(staff), "/journals");

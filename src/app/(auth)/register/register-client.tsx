@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
-import { ArrowRight, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Gift, Loader2, Sparkles } from "lucide-react";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { EmailHint, useEmailField } from "@/components/ui/email-field";
 import {
@@ -196,6 +196,16 @@ function RegisterScreen() {
               <BrandLogo height={24} title="" />
             </Link>
           </div>
+
+          {/* Пришли по ссылке «порекомендуй другу». Сам код лежит в
+              cookie, здесь только объясняем, что происходит: человек
+              должен понимать, почему его пригласили именно так. */}
+          {searchParams.get("ref") === "1" ? (
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#dcdfed] bg-[#f5f6ff] px-3 py-1.5 text-[12.5px] font-medium text-[#3848c7]">
+              <Gift className="size-3.5" />
+              Вас пригласили: 14 дней теста для вас, бонус — другу
+            </div>
+          ) : null}
 
           <h2 className="text-[clamp(1.5rem,2vw+1rem,2rem)] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
             Начать бесплатно

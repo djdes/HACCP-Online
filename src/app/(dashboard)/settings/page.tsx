@@ -265,6 +265,13 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
+    description: "Баллы за отзывы и рекомендации — скидка на подписку",
+    href: "/settings/balance",
+    icon: Coins,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
+  },
+  {
     description: "Тариф, история платежей, автопродление",
     href: "/settings/subscription",
     icon: CreditCard,
@@ -556,6 +563,7 @@ export default async function SettingsPage() {
 }
 
 const GROUP_START = new Set([
+  "/settings/balance",
   "/settings/onboarding",
   "/settings/organization",
   "/settings/users",

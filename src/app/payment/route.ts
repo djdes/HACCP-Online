@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { formatOutSum, verifyResultSignature } from "@/lib/robokassa";
-import {
-  fulfillPaidOrder,
-  notifyAboutPayment,
-} from "@/lib/payment-fulfillment";
-import { accrueForPaidOrder } from "@/lib/partners/accruals";
-import { attachOrganizationByRef, parsePartnerRef } from "@/lib/partners/referral";
+import { completePaidOrder } from "@/lib/payment-fulfillment";
+import { notifyPlatformAdmin } from "@/lib/platform-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -93,35 +89,28 @@ export async function POST(request: NextRequest) {
     where: { id: invId, status: "pending" },
     data: { status: "paid", paidAt: new Date(), rawResult: raw },
   });
-  if (claimed.count === 0) return ok(invIdRaw);
-
-  let organizationId: string | null = null;
-  try {
-    const result = await fulfillPaidOrder(order);
-    organizationId = result.organizationId;
-    await notifyAboutPayment({ order, result });
-  } catch (error) {
-    // Деньги получены и заказ уже помечен оплаченным — откатывать статус
-    // нельзя, иначе повторное уведомление создаст вторую организацию.
-    // Логируем и подтверждаем: разбор руками через /root по номеру заказа.
-    console.error(`robokassa: fulfillment failed for order ${invId}`, error);
-  }
-
-  // Партнёрская программа: заказ с меткой /p/<slug> привязывает новую
-  // организацию к партнёру, затем считается вознаграждение с платежа.
-  // Начисление идемпотентно по (заказ, вид), ошибки не мешают ответу кассе.
-  try {
-    if (organizationId) {
-      await attachOrganizationByRef({
-        ref: parsePartnerRef(order.partnerSlug),
-        organizationId,
-        actorUserId: null,
-      });
+  if (claimed.count === 0) {
+    // Заказ уже не «ожидает». Обычно это повторное уведомление по
+    // оплаченному заказу — подтверждаем молча. Но если холд баллов
+    // истёк и заказ закрыт как `expired`, а деньги всё-таки пришли,
+    // разбирать это должен человек: баллы уже вернулись на баланс.
+    const fresh = await db.paymentOrder.findUnique({
+      where: { id: invId },
+      select: { status: true },
+    });
+    if (fresh?.status === "expired") {
+      await notifyPlatformAdmin(
+        `⚠️ Оплата по истёкшему заказу №${invId} — разобрать вручную. Баллы по нему уже вернулись на баланс организации.`,
+        { kind: "payment", dedupeKey: `expired-paid:${invId}` },
+      ).catch((err) => console.error("expired order notify failed", err));
     }
-    await accrueForPaidOrder(order.id);
-  } catch (error) {
-    console.error(`robokassa: partner accrual failed for order ${invId}`, error);
+    return ok(invIdRaw);
   }
+
+  // Продление подписки, письма, партнёрские и реферальные начисления —
+  // одной точкой, общей с оплатой баллами. Внутри всё best-effort:
+  // деньги уже получены, и упавшая почта не должна ломать ответ кассе.
+  await completePaidOrder(order);
 
   return ok(invIdRaw);
 }

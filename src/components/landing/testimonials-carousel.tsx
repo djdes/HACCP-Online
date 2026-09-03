@@ -1,10 +1,6 @@
 import { Star } from "lucide-react";
 import { AutoCarousel } from "@/components/landing/auto-carousel";
-import {
-  HAS_ILLUSTRATIVE_TESTIMONIALS,
-  TESTIMONIALS,
-  type Testimonial,
-} from "@/content/testimonials";
+import type { PublicReview } from "@/lib/balance/review-view";
 
 /**
  * «Что говорят заведения».
@@ -14,12 +10,14 @@ import {
  * Отзыв читают целиком, а не сравнивают три штуки одновременно,
  * поэтому центральной отдана вся ширина, какую можно.
  *
- * Пока подписанных разрешений на публикацию нет, реплики
- * иллюстративные — подпись без выдуманных ФИО, а под секцией
- * оговорка. Подробности — в `src/content/testimonials.ts`.
+ * Раньше здесь лежали иллюстративные реплики из `content/testimonials.ts`
+ * с оговоркой «это не слова конкретных клиентов». Теперь секция
+ * показывает настоящие отзывы: клиент пишет его в кабинете, ROOT
+ * одобряет, за это начисляются баллы. Нет одобренных отзывов — секции
+ * нет вовсе, выдуманные реплики не нужны.
  */
-export function TestimonialsCarousel() {
-  if (TESTIMONIALS.length === 0) return null;
+export function TestimonialsCarousel({ reviews }: { reviews: PublicReview[] }) {
+  if (reviews.length === 0) return null;
 
   return (
     <section className="pb-20 pt-4">
@@ -41,24 +39,16 @@ export function TestimonialsCarousel() {
         gapClassName="gap-3 sm:gap-8"
         slideClassName="flex-[0_0_90%] sm:flex-[0_0_62%] lg:flex-[0_0_46%]"
         autoplayMs={7000}
-        items={TESTIMONIALS.map((t) => (
-          <TestimonialCard key={t.id} testimonial={t} />
+        items={reviews.map((review) => (
+          <TestimonialCard key={review.id} review={review} />
         ))}
       />
-
-      {HAS_ILLUSTRATIVE_TESTIMONIALS ? (
-        <div className="mx-auto mt-6 max-w-[1200px] px-4 text-center text-[12px] text-[#9b9fb3] sm:px-6">
-          * Часть реплик — иллюстративные примеры, а не слова конкретных
-          клиентов. Именные отзывы появятся, когда заведения дадут
-          разрешение на публикацию.
-        </div>
-      ) : null}
     </section>
   );
 }
 
-function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
-  const initials = testimonial.author
+function TestimonialCard({ review }: { review: PublicReview }) {
+  const initials = review.author
     .split(/\s+/)
     .map((w) => w[0])
     .filter(Boolean)
@@ -78,16 +68,16 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         «
       </span>
 
-      {testimonial.rating ? (
+      {review.rating ? (
         <div
           className="relative flex gap-1 text-[#5566f6]"
-          aria-label={`Оценка ${testimonial.rating} из 5`}
+          aria-label={`Оценка ${review.rating} из 5`}
         >
           {Array.from({ length: 5 }, (_, i) => (
             <Star
               key={i}
               className={
-                i < testimonial.rating!
+                i < (review.rating ?? 0)
                   ? "size-[18px] fill-current"
                   : "size-[18px] text-[#dcdfed]"
               }
@@ -96,8 +86,28 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         </div>
       ) : null}
 
+      {/* Вложение показываем до цитаты: фото кухни или короткое видео
+          убеждает сильнее текста, ради него и платим больше. */}
+      {review.mediaUrl && review.mediaKind === "photo" ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={review.mediaUrl}
+          alt=""
+          loading="lazy"
+          className="relative mt-5 max-h-[220px] w-full rounded-2xl object-cover"
+        />
+      ) : null}
+      {review.mediaUrl && review.mediaKind === "video" ? (
+        <video
+          controls
+          preload="metadata"
+          src={review.mediaUrl}
+          className="relative mt-5 max-h-[240px] w-full rounded-2xl bg-black"
+        />
+      ) : null}
+
       <blockquote className="relative mt-5 flex-1 text-[18px] leading-[1.5] tracking-[-0.01em] text-[#0b1024] sm:mt-6 sm:text-[23px]">
-        {testimonial.quote}
+        {review.quote}
       </blockquote>
 
       <figcaption className="relative mt-6 flex items-center gap-3 sm:mt-8 sm:gap-3.5">
@@ -106,9 +116,9 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         </span>
         <div className="min-w-0">
           <div className="text-[15px] font-semibold text-[#0b1024]">
-            {testimonial.author}
+            {review.author}
           </div>
-          <div className="text-[13px] text-[#6f7282]">{testimonial.place}</div>
+          <div className="text-[13px] text-[#6f7282]">{review.place}</div>
         </div>
       </figcaption>
     </figure>

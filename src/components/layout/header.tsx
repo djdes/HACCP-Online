@@ -119,6 +119,11 @@ type HeaderProps = {
   isRoot: boolean;
   /** `Organization.subscriptionPlan`: trial | paid | paused | cancelled. */
   subscriptionPlan: string;
+  /**
+   * Баллы организации. `null` — у пользователя нет прав на деньги
+   * организации: пункт меню он видит, сумму — нет.
+   */
+  balanceRub?: number | null;
   /** Организации аккаунта — для переключателя в меню профиля. */
   organizations: AccessibleOrganization[];
   activeOrganizationId: string;
@@ -148,6 +153,7 @@ export function Header({
   positionTitle,
   isRoot,
   subscriptionPlan,
+  balanceRub = null,
   organizations,
   activeOrganizationId,
   canCreateOrganization,
@@ -694,6 +700,19 @@ export function Header({
                     <DropdownMenuSeparator className="my-1" />
                   </>
                 ) : null}
+                {/* Баланс и бонусы — над «Тарифами и оплатой»: баллы
+                    тратятся именно там, и порядок повторяет сценарий. */}
+                <DropdownMenuItem asChild className="focus:bg-[#f5f6ff]">
+                  <Link href="/settings/balance">
+                    <Coins className="mr-2 size-4 text-[#5566f6]" />
+                    <span className="flex-1">Баланс и бонусы</span>
+                    {balanceRub !== null ? (
+                      <span className="text-[11px] tabular-nums text-[#3848c7]">
+                        {balanceRub.toLocaleString("ru-RU")} ₽
+                      </span>
+                    ) : null}
+                  </Link>
+                </DropdownMenuItem>
                 {canManagePlan ? (
                   <DropdownMenuItem
                     asChild

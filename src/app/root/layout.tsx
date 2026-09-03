@@ -7,6 +7,7 @@ import {
   NotebookText,
   ScrollText,
   Settings2,
+  Star,
   Wallet,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
@@ -83,6 +84,13 @@ export default async function RootAreaLayout({
             >
               <MessageSquareText className="size-4" />
               Обратная связь
+            </Link>
+            <Link
+              href="/root/reviews"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Star className="size-4" />
+              Отзывы
             </Link>
             <Link
               href="/root/assistant"

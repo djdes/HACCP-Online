@@ -17,6 +17,8 @@ import { SupportWidget } from "@/components/support/support-widget";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { hasCapability } from "@/lib/permission-presets";
+import { getBalance } from "@/lib/balance/ledger";
 import { db } from "@/lib/db";
 import { DEFAULT_ORG_NAME } from "@/lib/org-profile";
 import { listAccessibleOrganizations } from "@/lib/organization-access";
@@ -148,6 +150,13 @@ export default async function DashboardLayout({
     brandedOrg?.subscriptionPlan ??
     "trial";
 
+  // Баллы в шапке видит только тот, кто может ими распорядиться:
+  // сумма — это деньги организации. Остальным пункт меню всё равно
+  // показываем: отзыв пишет и повар, просто без цифры.
+  const balanceRub = hasCapability(session.user, "admin.full")
+    ? await getBalance(activeOrgId).catch(() => null)
+    : null;
+
   const impersonatedName = impersonatedOrg?.name ?? null;
   const initialTheme: "light" | "dark" =
     profile?.themePreference === "dark" ? "dark" : "light";
@@ -255,6 +264,7 @@ export default async function DashboardLayout({
             positionTitle={profile?.positionTitle ?? ""}
             isRoot={session.user.isRoot === true}
             subscriptionPlan={accountPlan}
+            balanceRub={balanceRub}
             activeUsers={accountUsers}
             freeUserLimit={FREE_MAX_USERS}
             billingTestMode={BILLING_TEST_MODE}

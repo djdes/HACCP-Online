@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Coins,
+  Loader2,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   HARDWARE_DEVICES,
   type HardwareDevice,
@@ -28,10 +36,17 @@ type OrderStatus = {
   status: string;
   email: string;
   amountRub: number;
+  /** Сколько рублей закрыли баллами. */
+  pointsSpent?: number;
   description: string;
   isTest: boolean;
   needsCompletion: boolean;
 };
+
+/** Оплачен ли заказ. `expired` — истёкший холд баллов, это не оплата. */
+function isPaidStatus(status: string): boolean {
+  return status === "paid" || status === "completed";
+}
 
 declare global {
   interface Window {
@@ -64,6 +79,8 @@ export function OrderClient({
   returnParams,
   sessionEmail = "",
   recurringDefault = false,
+  pointsAvailable = 0,
+  pointsCap = 0,
 }: {
   tariff: Tariff | null;
   bundleConfig: Record<string, number> | null;
@@ -76,6 +93,10 @@ export function OrderClient({
   /// Это не нарушает требование Робокассы «не проставлено по умолчанию»:
   /// человек сам нажал кнопку с этим смыслом, а снять отметку он может.
   recurringDefault?: boolean;
+  /// Баллы организации. Ноль — блок списания не показываем вовсе.
+  pointsAvailable?: number;
+  /// Потолок списания — цена подписки без оборудования.
+  pointsCap?: number;
 }) {
   const isReturn = Boolean(
     (returnParams.invId && returnParams.signature) || returnParams.completeToken,
@@ -89,6 +110,8 @@ export function OrderClient({
       amountRub={amountRub}
       sessionEmail={sessionEmail}
       recurringDefault={recurringDefault}
+      pointsAvailable={pointsAvailable}
+      pointsCap={pointsCap}
     />
   );
 }
@@ -101,19 +124,29 @@ function Checkout({
   amountRub,
   sessionEmail,
   recurringDefault = false,
+  pointsAvailable = 0,
+  pointsCap = 0,
 }: {
   tariff: Tariff | null;
   bundleConfig: Record<string, number> | null;
   amountRub: number;
   sessionEmail: string;
   recurringDefault?: boolean;
+  pointsAvailable?: number;
+  pointsCap?: number;
 }) {
   const [email, setEmail] = useState(sessionEmail);
   // По умолчанию выключено — этого требует Робокасса: согласие на
   // автосписание человек даёт сам, а не получает вместе с формой.
   const [recurringConsent, setRecurringConsent] = useState(recurringDefault);
+  // Баллы, наоборот, списываем по умолчанию: они уже принадлежат
+  // организации, и «забыл включить» — это переплата на ровном месте.
+  const [usePoints, setUsePoints] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Заказ, оформленный раньше, протух вместе с холдом баллов — их уже
+  // вернули на баланс, оформлять надо заново.
+  const [expired, setExpired] = useState(false);
   const scriptReady = useRobokassaScript();
   // Пока клиент платит в iFrame, следим за заказом здесь: возврат на
   // SuccessURL происходит внутри рамки, и внешняя страница иначе так и
@@ -135,8 +168,17 @@ function Checkout({
         );
         if (res.ok) {
           const data = (await res.json()) as OrderStatus;
-          if (data.status !== "pending") {
+          if (isPaidStatus(data.status)) {
             if (!stopped) setPaid(data);
+            return;
+          }
+          if (data.status !== "pending") {
+            // «expired» — холд баллов истёк и заказ закрыт. Это не оплата,
+            // и показывать «Оплата получена» здесь было бы обманом.
+            if (!stopped) {
+              setExpired(true);
+              setWatch(null);
+            }
             return;
           }
         }
@@ -152,6 +194,37 @@ function Checkout({
       if (timer) clearTimeout(timer);
     };
   }, [watch, paid]);
+
+  if (expired && !paid) {
+    return (
+      <Card>
+        <div className="flex items-center gap-3">
+          <XCircle className="size-7 text-[#a13a32]" />
+          <h1 className="text-[26px] font-semibold tracking-[-0.02em]">
+            Заказ истёк
+          </h1>
+        </div>
+        <p className="mt-3 text-[15px] leading-[1.7] text-[#3c4053]">
+          Оплату мы так и не получили, поэтому заказ закрыт, а списанные
+          баллы вернулись на баланс организации. Оформите оплату заново —
+          баллы спишутся снова.
+        </p>
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => {
+              setExpired(false);
+              setError(null);
+            }}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-6 text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0]"
+          >
+            Оформить заново
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
+      </Card>
+    );
+  }
 
   if (paid) {
     return (
@@ -207,6 +280,16 @@ function Checkout({
       }))
     : [];
 
+  // Сколько спишется баллами. Та же формула, что на сервере
+  // (`pointsToSpend`): не больше баланса и не больше цены подписки.
+  // Здесь она нужна только чтобы показать честный итог до нажатия.
+  const pointsSpent =
+    usePoints && !recurringConsent
+      ? Math.min(pointsAvailable, Math.min(pointsCap, amountRub))
+      : 0;
+  const netRub = Math.max(0, amountRub - pointsSpent);
+  const showPointsBlock = pointsAvailable > 0;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -220,11 +303,19 @@ function Checkout({
           tariffKey: tariff!.key,
           bundleConfig: bundleConfig ?? undefined,
           recurringConsent,
+          usePoints: pointsSpent > 0,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? "Не удалось создать заказ");
+        setLoading(false);
+        return;
+      }
+      // Заказ полностью закрыт баллами — кассы в этой дороге нет,
+      // сервер уже провёл оплату и вернул готовый статус заказа.
+      if (data.paidByPoints) {
+        setPaid(data as OrderStatus);
         setLoading(false);
         return;
       }
@@ -260,10 +351,10 @@ function Checkout({
             К оплате
           </span>
           <span className="text-[26px] font-semibold tabular-nums tracking-[-0.01em]">
-            {formatRub(amountRub)}
+            {formatRub(netRub)}
           </span>
         </div>
-        {items.length > 0 ? (
+        {items.length > 0 || pointsSpent > 0 ? (
           <ul className="mt-4 space-y-1.5 border-t border-[#ececf4] pt-4">
             <li className="flex justify-between gap-3 text-[13px] text-[#3c4053]">
               <span>Подписка на {tariff.periodDays} дн.</span>
@@ -283,9 +374,55 @@ function Checkout({
                 </span>
               </li>
             ))}
+            {pointsSpent > 0 ? (
+              <li className="flex justify-between gap-3 text-[13px] font-medium text-[#116b2a]">
+                <span>Баллами</span>
+                <span className="tabular-nums">−{formatRub(pointsSpent)}</span>
+              </li>
+            ) : null}
           </ul>
         ) : null}
       </div>
+
+      {showPointsBlock ? (
+        <div className="mt-4 rounded-2xl border border-[#dcdfed] bg-white p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[15px] font-medium text-[#0b1024]">
+                <Coins className="size-4 text-[#5566f6]" />
+                Списать баллы
+              </div>
+              <p className="mt-1 text-[13px] leading-[1.5] text-[#6f7282]">
+                На балансе организации {formatRub(pointsAvailable)}. 1 балл =
+                1 ₽, баллами оплачивается подписка — оборудование нет.
+              </p>
+            </div>
+            <Switch
+              checked={usePoints && !recurringConsent}
+              disabled={recurringConsent}
+              onCheckedChange={(next) => setUsePoints(next)}
+              aria-label="Списать баллы"
+            />
+          </div>
+          {recurringConsent ? (
+            <p className="mt-3 rounded-xl bg-[#fff8eb] px-3 py-2 text-[12px] leading-[1.5] text-[#a16d32]">
+              При автопродлении баллы не списываются: касса запомнит карту с
+              уменьшенной суммой, и следующие списания пошли бы не по цене
+              тарифа. Снимите галочку автосписаний, чтобы использовать баллы.
+            </p>
+          ) : pointsSpent > 0 ? (
+            <p className="mt-3 text-[12px] text-[#6f7282]">
+              Спишется {formatRub(pointsSpent)}, останется{" "}
+              {formatRub(pointsAvailable - pointsSpent)}.
+            </p>
+          ) : (
+            <p className="mt-3 text-[12px] text-[#6f7282]">
+              Тумблер выключен — платите полную сумму, баллы остаются на
+              балансе.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <form onSubmit={submit} className="mt-6">
         <label
@@ -297,15 +434,21 @@ function Checkout({
         <p className="mt-1 text-[12px] text-[#9b9fb3]">
           На неё придёт чек и ссылка для входа в кабинет.
         </p>
+        {/* У вошедшего адрес не редактируется: сервер всё равно возьмёт
+            почту из сессии, иначе баллы организации ушли бы на заказ с
+            чужим адресом. Показываем то же, что уйдёт в чек. */}
         <input
           id="order-email"
           type="email"
           required
           autoComplete="email"
           value={email}
+          readOnly={Boolean(sessionEmail)}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.ru"
-          className="mt-2 h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          className={`mt-2 h-12 w-full rounded-2xl border border-[#dcdfed] px-4 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15 ${
+            sessionEmail ? "bg-[#fafbff]" : "bg-white"
+          }`}
         />
 
         {error ? (
@@ -322,7 +465,13 @@ function Checkout({
           <input
             type="checkbox"
             checked={recurringConsent}
-            onChange={(event) => setRecurringConsent(event.target.checked)}
+            onChange={(event) => {
+              setRecurringConsent(event.target.checked);
+              // Автосписания и баллы взаимоисключающи — включаем одно,
+              // гасим другое, чтобы итог в карточке не врал.
+              if (event.target.checked) setUsePoints(false);
+              else setUsePoints(true);
+            }}
             className="mt-0.5 size-4 shrink-0 accent-[#5566f6]"
           />
           <span className="text-[13px] leading-[1.5] text-[#3c4053]">
@@ -353,7 +502,12 @@ function Checkout({
           {loading ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Открываем оплату…
+              {netRub === 0 ? "Проводим оплату…" : "Открываем оплату…"}
+            </>
+          ) : netRub === 0 ? (
+            <>
+              <Coins className="size-4" />
+              Оплатить баллами
             </>
           ) : (
             <>
@@ -500,6 +654,30 @@ function ReturnFlow({ params }: { params: ReturnParams }) {
     );
   }
 
+  // Заказ закрыт по истечении холда баллов. Раньше любой не-pending
+  // статус считался успехом, и человек видел «Оплата получена» на
+  // неоплаченном заказе.
+  if (!isPaidStatus(order.status)) {
+    return (
+      <Card>
+        <div className="flex items-center gap-3">
+          <XCircle className="size-7 text-[#a13a32]" />
+          <h1 className="text-[26px] font-semibold tracking-[-0.02em]">
+            Заказ истёк
+          </h1>
+        </div>
+        <p className="mt-3 text-[15px] leading-[1.7] text-[#3c4053]">
+          Оплату по заказу №{order.invId} мы не получили, поэтому он закрыт,
+          а списанные баллы вернулись на баланс организации. Оформите оплату
+          заново.
+        </p>
+        <div className="mt-6">
+          <PrimaryLink href="/pricing">Выбрать тариф</PrimaryLink>
+        </div>
+      </Card>
+    );
+  }
+
   if (order.needsCompletion && params.completeToken) {
     return <CompleteForm token={params.completeToken} order={order} />;
   }
@@ -549,9 +727,19 @@ function Paid({ order }: { order: OrderStatus }) {
         <div className="flex justify-between gap-3">
           <span>{order.description}</span>
           <span className="tabular-nums font-semibold text-[#0b1024]">
-            {formatRub(order.amountRub)}
+            {order.amountRub === 0 && (order.pointsSpent ?? 0) > 0
+              ? "оплачено баллами"
+              : formatRub(order.amountRub)}
           </span>
         </div>
+        {(order.pointsSpent ?? 0) > 0 && order.amountRub > 0 ? (
+          <div className="mt-1 flex justify-between gap-3 text-[13px] text-[#116b2a]">
+            <span>Списано баллами</span>
+            <span className="tabular-nums">
+              −{formatRub(order.pointsSpent ?? 0)}
+            </span>
+          </div>
+        ) : null}
         <div className="mt-2 text-[12px] text-[#9b9fb3]">
           Заказ №{order.invId}
           {order.isTest ? " · тестовый платёж" : ""}

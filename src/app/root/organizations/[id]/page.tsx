@@ -7,6 +7,7 @@ import { getUserRoleLabel } from "@/lib/user-roles";
 import { ImpersonateButton } from "./impersonate-button";
 import { DeleteOrgButton } from "./delete-org-button";
 import { OrgSettingsForm } from "./org-settings-form";
+import { BalanceCard } from "./balance-card";
 
 export const dynamic = "force-dynamic";
 
@@ -63,11 +64,36 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
       status: true,
       paidAt: true,
       createdAt: true,
+      pointsSpent: true,
     },
   });
   const paidTotalRub = payments
     .filter((payment) => payment.status === "paid")
     .reduce((sum, payment) => sum + Number(payment.amountRub), 0);
+
+  // Баллы: движения, кто привёл организацию и скольких привела она.
+  // Всё читается здесь, чтобы карточка была чистым представлением.
+  const [transactions, referredBy, referredCount] = await Promise.all([
+    db.balanceTransaction.findMany({
+      where: { organizationId: id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        amount: true,
+        kind: true,
+        description: true,
+        createdAt: true,
+      },
+    }),
+    org.referredByOrganizationId
+      ? db.organization.findUnique({
+          where: { id: org.referredByOrganizationId },
+          select: { name: true },
+        })
+      : Promise.resolve(null),
+    db.organization.count({ where: { referredByOrganizationId: id } }),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -140,6 +166,21 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
         </div>
       </div>
 
+      <BalanceCard
+        organizationId={org.id}
+        organizationName={org.name}
+        balanceRub={org.balanceRub}
+        referredByName={referredBy?.name ?? null}
+        referredCount={referredCount}
+        transactions={transactions.map((t) => ({
+          id: t.id,
+          amount: t.amount,
+          kind: t.kind,
+          description: t.description,
+          createdAt: t.createdAt.toISOString(),
+        }))}
+      />
+
       <div className="rounded-2xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
         <div className="mb-4 flex items-baseline gap-3">
           <span className="text-[18px] font-semibold">История оплат</span>
@@ -184,6 +225,11 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
                   </td>
                   <td className="py-2.5 text-right tabular-nums text-[#0b1024]">
                     {Number(payment.amountRub).toLocaleString("ru-RU")} ₽
+                    {payment.pointsSpent > 0 ? (
+                      <span className="ml-1 text-[12px] text-[#3848c7]">
+                        баллами −{payment.pointsSpent.toLocaleString("ru-RU")}
+                      </span>
+                    ) : null}
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,9 @@
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId, isImpersonating } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { getBalance } from "@/lib/balance/ledger";
 import { readTariffs, fallbackTariffs, TARIFF_BUNDLE } from "@/lib/tariffs";
 import { normalizeHardwareConfig, hardwareTotal } from "@/lib/hardware-pricing";
 import { OrderClient } from "./order-client";
@@ -56,6 +59,17 @@ export default async function OrderPage({
     ? tariff.priceRub + (bundleConfig ? hardwareTotal(bundleConfig) : 0)
     : 0;
 
+  // Баллы показываем только тому, кто может распоряжаться деньгами
+  // организации. ROOT в режиме «войти как» баллы клиента не тратит —
+  // ни тумблера, ни списания (сервер откажет так же).
+  const canSpendPoints =
+    Boolean(session?.user) &&
+    hasFullWorkspaceAccess(session!.user) &&
+    !isImpersonating(session!);
+  const pointsAvailable = canSpendPoints
+    ? await getBalance(getActiveOrgId(session!)).catch(() => 0)
+    : 0;
+
   return (
     <div className="min-h-screen bg-white text-[#0b1024]">
       <PublicHeader />
@@ -65,6 +79,10 @@ export default async function OrderPage({
           bundleConfig={bundleConfig}
           amountRub={amountRub}
           sessionEmail={sessionEmail}
+          pointsAvailable={pointsAvailable}
+          // Баллами оплачивается только подписка: оборудование —
+          // физический товар с себестоимостью.
+          pointsCap={tariff?.priceRub ?? 0}
           // Пришли из кабинета по кнопке «Включить автопродление».
           recurringDefault={first("recurring") === "1"}
           returnParams={{

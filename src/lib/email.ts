@@ -411,14 +411,26 @@ export async function sendPaymentReceiptEmail(params: {
   isNewClient: boolean;
   subscriptionEnd: Date;
   organizationId?: string | null;
+  /** Сколько рублей закрыли баллами — показываем рядом с суммой. */
+  pointsSpent?: number | null;
 }) {
   const { to, amountRub, description, actionUrl, isNewClient, subscriptionEnd, organizationId } =
     params;
+  const points = Math.max(0, Number(params.pointsSpent ?? 0));
   const brand = await emailBrandForOrganization(organizationId);
   const subject = isNewClient
     ? "Оплата получена — завершите настройку"
     : "Оплата получена — подписка продлена";
-  const amount = new Intl.NumberFormat("ru-RU").format(amountRub) + " ₽";
+  const rub = (value: number) =>
+    new Intl.NumberFormat("ru-RU").format(value) + " ₽";
+  // Чек показывает и деньги, и баллы: строка «Сумма: 1 490 ₽» при цене
+  // 1 990 ₽ без пояснения выглядит как ошибка списания.
+  const amount =
+    amountRub <= 0 && points > 0
+      ? `оплачено баллами (${rub(points)})`
+      : points > 0
+        ? `${rub(amountRub)} (+ ${rub(points)} баллами)`
+        : rub(amountRub);
   const until = subscriptionEnd.toLocaleDateString("ru-RU");
 
   const body = `

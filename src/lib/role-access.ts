@@ -5,7 +5,10 @@ export type RoleAccessActor = {
   isRoot?: boolean | null;
 };
 
-const STAFF_WEB_ALLOWED_PREFIXES = ["/journals"] as const;
+// «Баланс и бонусы» открыт линейному сотруднику намеренно: отзыв за
+// баллы пишет и повар, и ему важно видеть, сколько за это начислят.
+// Сам баланс организации внутри страницы виден только `admin.full`.
+const STAFF_WEB_ALLOWED_PREFIXES = ["/journals", "/settings/balance"] as const;
 const STAFF_MINI_ALLOWED_PREFIXES = ["/mini", "/mini/journals"] as const;
 
 function normalizePathname(pathname: string): string {

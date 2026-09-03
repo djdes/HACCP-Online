@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getServerSession } from "@/lib/server-session";
+import { authOptions } from "@/lib/auth";
+import { getActiveOrgId, isImpersonating } from "@/lib/auth-helpers";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { readTariff, TARIFF_BUNDLE } from "@/lib/tariffs";
 import {
   hardwareTotal,
@@ -19,17 +23,22 @@ import {
   RECURRING_CONSENT_TEXT,
 } from "@/lib/recurring-consent";
 import { encodePartnerRef, readPartnerRefFromRequest } from "@/lib/partners/referral";
+import { REFERRAL_COOKIE, readCookie } from "@/lib/balance/constants";
+import { createOrderWithPoints } from "@/lib/balance/checkout";
+import { resolveReferrerByCode } from "@/lib/balance/referral";
+import { completePaidOrder } from "@/lib/payment-fulfillment";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Создание заказа на оплату. Публичный endpoint — вызывается со страницы
- * /order до какой-либо авторизации (клиента ещё нет, он появится после
- * оплаты), поэтому здесь только почта и ключ тарифа.
+ * Создание заказа на оплату. Endpoint публичный — вызывается со страницы
+ * /order и до какой-либо авторизации (клиента ещё нет, он появится после
+ * оплаты), но у вошедшего пользователя работает и списание баллов.
  *
  * Сумма считается ТОЛЬКО на сервере: с клиента приходит состав корзины
- * (`{ deviceId: qty }`), а рубли берутся из БД-тарифа и прайса железа.
- * Иначе можно было бы прислать «оплачу за 1 ₽».
+ * (`{ deviceId: qty }`) и тумблер «списать баллы», а рубли берутся из
+ * БД-тарифа, прайса железа и баланса организации. Иначе можно было бы
+ * прислать «оплачу за 1 ₽».
  */
 
 const createOrderRateLimiter = createRateLimiter({
@@ -41,20 +50,31 @@ const createOrderRateLimiter = createRateLimiter({
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/** Робокасса не должна держать ссылку дольше холда баллов. */
+const EXPIRATION_HOURS = 23;
+
 function clientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
-export async function POST(request: NextRequest) {
-  if (!isConfigured()) {
-    return NextResponse.json(
-      { error: "Приём оплаты пока не настроен. Напишите на support@wesetup.ru" },
-      { status: 503 },
-    );
-  }
+/**
+ * `ExpirationDate` Робокассы: «YYYY-MM-DDTHH:mm:ss.0000000+03:00».
+ * В подпись не входит — добавляется после SignatureValue, как Recurring.
+ */
+function expirationDate(from: Date): string {
+  const MSK_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const msk = new Date(from.getTime() + EXPIRATION_HOURS * 3600_000 + MSK_OFFSET_MS);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${msk.getUTCFullYear()}-${pad(msk.getUTCMonth() + 1)}-${pad(msk.getUTCDate())}` +
+    `T${pad(msk.getUTCHours())}:${pad(msk.getUTCMinutes())}:${pad(msk.getUTCSeconds())}` +
+    ".0000000+03:00"
+  );
+}
 
+export async function POST(request: NextRequest) {
   if (!createOrderRateLimiter.consume(clientIp(request))) {
     return NextResponse.json(
       { error: "Слишком много попыток. Попробуйте через несколько минут" },
@@ -69,8 +89,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Некорректный запрос" }, { status: 400 });
   }
 
-  const email =
-    typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const session = await getServerSession(authOptions).catch(() => null);
+  // Почта вошедшего берётся из сессии принудительно. Иначе баллы
+  // организации ушли бы на заказ с чужим адресом, а вебхук по этому
+  // адресу завёл бы ещё одну организацию.
+  const email = session?.user?.email
+    ? session.user.email.trim().toLowerCase()
+    : typeof body.email === "string"
+      ? body.email.trim().toLowerCase()
+      : "";
   const tariffKey = typeof body.tariffKey === "string" ? body.tariffKey : "";
 
   if (!EMAIL_RE.test(email) || email.length > 200) {
@@ -82,20 +109,19 @@ export async function POST(request: NextRequest) {
 
   const tariff = await readTariff(tariffKey);
   if (!tariff) {
-    return NextResponse.json(
-      { error: "Тариф недоступен" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Тариф недоступен" }, { status: 400 });
   }
 
   const bundleConfig =
     tariff.key === TARIFF_BUNDLE
       ? normalizeHardwareConfig(body.bundleConfig)
       : null;
-  const amountRub =
+  const grossRub =
     tariff.priceRub + (bundleConfig ? hardwareTotal(bundleConfig) : 0);
 
-  if (amountRub <= 0) {
+  // Проверка по ПОЛНОЙ сумме: заказ, полностью закрытый баллами, —
+  // нормальный сценарий, а вот пустая корзина без подписки — нет.
+  if (grossRub <= 0) {
     return NextResponse.json(
       { error: "Сумма заказа получилась нулевой — выберите оборудование" },
       { status: 400 },
@@ -108,27 +134,41 @@ export async function POST(request: NextRequest) {
 
   // Галочка автосписаний. Не проставлена — платёж разовый: нажатие
   // «Оплатить» без галочки обязано просто провести оплату, а не требовать
-  // согласия. Значение приводим строго к boolean: любая правда, кроме
-  // явного true, не должна включать рекуррент.
+  // согласия. Значение приводим строго к boolean.
   const recurringConsent = body.recurringConsent === true;
 
-  // Метка партнёра (cookie с /p/<slug>) едет в заказ: после оплаты
-  // организация нового клиента привяжется к партнёру, а начисление
-  // посчитается от этого платежа. Уровень доступа хранится в той же метке.
-  const partnerRef = readPartnerRefFromRequest(request);
+  // Баллы и автосписания несовместимы: касса запомнила бы карту с
+  // уменьшенным OutSum, и будущие списания шли бы не по цене тарифа.
+  const organizationId =
+    session?.user && hasFullWorkspaceAccess(session.user) && !isImpersonating(session)
+      ? getActiveOrgId(session)
+      : null;
+  const usePoints =
+    body.usePoints !== false && !recurringConsent && Boolean(organizationId);
 
-  const order = await db.paymentOrder.create({
-    data: {
-      email,
-      tariffKey: tariff.key,
-      amountRub,
-      description,
-      bundleConfig: bundleConfig ?? undefined,
-      isTest: isTestMode(),
-      recurringConsent,
-      partnerSlug: partnerRef ? encodePartnerRef(partnerRef) : undefined,
-    },
-    select: { id: true, amountRub: true, isTest: true },
+  // Метка партнёра (cookie с /p/<slug>) едет в заказ: после оплаты
+  // организация нового клиента привяжется к партнёру.
+  const partnerRef = readPartnerRefFromRequest(request);
+  // Реферальная метка клиента (cookie с /r/<code>) — для оплаты без
+  // предварительной регистрации: организацию создаст вебхук.
+  const referrer = await resolveReferrerByCode(
+    readCookie(request, REFERRAL_COOKIE),
+  );
+
+  const order = await createOrderWithPoints({
+    organizationId,
+    userId: session?.user?.id ?? null,
+    email,
+    tariffKey: tariff.key,
+    description,
+    grossRub,
+    subscriptionRub: tariff.priceRub,
+    bundleConfig,
+    isTest: isTestMode(),
+    recurringConsent,
+    partnerSlug: partnerRef ? encodePartnerRef(partnerRef) : null,
+    referrerOrganizationId: referrer?.id ?? null,
+    usePoints,
   });
 
   if (recurringConsent) {
@@ -148,12 +188,40 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Полностью закрыт баллами — кассы в этой дороге нет вообще.
+  if (order.paidByPoints) {
+    const stored = await db.paymentOrder.findUnique({ where: { id: order.id } });
+    if (stored) {
+      await completePaidOrder(stored);
+    }
+    return NextResponse.json({
+      paidByPoints: true,
+      invId: order.id,
+      status: "paid",
+      email,
+      amountRub: 0,
+      pointsSpent: order.pointsSpent,
+      description,
+      isTest: false,
+      needsCompletion: false,
+    });
+  }
+
+  // Дальше нужна касса. Проверку настроек делаем здесь, а не на входе:
+  // оплата баллами обязана работать и на стенде без ключей Робокассы.
+  if (!isConfigured()) {
+    return NextResponse.json(
+      { error: "Приём оплаты пока не настроен. Напишите на support@wesetup.ru" },
+      { status: 503 },
+    );
+  }
+
   const receiptItems: ReceiptItem[] | undefined = sendReceipt()
     ? [
         {
           name: description.slice(0, 128),
           quantity: 1,
-          sum: amountRub,
+          sum: order.amountRub,
           payment_method: "full_payment",
           payment_object: "service",
           tax: "none",
@@ -163,20 +231,29 @@ export async function POST(request: NextRequest) {
 
   const params = buildPaymentParams({
     id: order.id,
-    amountRub,
+    amountRub: order.amountRub,
     description,
     email,
     isTest: order.isTest,
     receiptItems,
     recurring: recurringConsent,
   });
+  // Ссылка живёт на час меньше холда баллов: оплата в последнюю минуту
+  // не должна пересечься с возвратом баллов по крону.
+  const paymentParams = {
+    ...params,
+    ...(order.pointsSpent > 0
+      ? { ExpirationDate: expirationDate(new Date()) }
+      : {}),
+  };
 
   return NextResponse.json({
     invId: order.id,
-    amountRub,
+    amountRub: order.amountRub,
+    pointsSpent: order.pointsSpent,
     description,
-    params,
+    params: paymentParams,
     // Фолбэк на обычную форму оплаты, если iframe-скрипт не загрузился.
-    paymentUrl: buildPaymentUrl(params),
+    paymentUrl: buildPaymentUrl(paymentParams),
   });
 }
