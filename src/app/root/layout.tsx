@@ -17,6 +17,7 @@ import {
   SiteThemeBootstrap,
   SiteThemeProvider,
 } from "@/components/theme/site-theme";
+import { Toaster } from "@/components/ui/sonner";
 import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
@@ -140,6 +141,9 @@ export default async function RootAreaLayout({
 
         <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-8 sm:py-8">{children}</main>
       </div>
+      {/* Тосты ответов из админки (чаты, обращения): без тостера они
+          молча пропадали, и было непонятно, ушёл ли ответ. */}
+      <Toaster />
     </SiteThemeProvider>
     </AuthSessionProvider>
   );
