@@ -1,0 +1,75 @@
+{
+  "login": "http://localhost:3020/dashboard",
+  "hygiene": {
+    "docId": "cmt6j45i60htw82tsj2nnpgzw"
+  },
+  "climate": {
+    "docId": "cmt6j45ne0hy482ts2ii5wkkd"
+  },
+  "note": "ONLY=mini: desktop flows reused from previous run",
+  "miniListButton": true,
+  "miniDialog": {
+    "top": 84.40625,
+    "bottom": 844,
+    "height": 759.59375,
+    "vh": 844,
+    "fits": true
+  },
+  "miniDocFab": true,
+  "miniFabAboveNav": {
+    "fabBottom": 696,
+    "navTop": 1000.1875,
+    "navPosition": "relative",
+    "above": true
+  },
+  "miniDocTour": {
+    "steps": [
+      {
+        "open": true,
+        "counter": "Шаг 1 из 5",
+        "title": "Раскройте карточку сотрудника",
+        "anchor": "staff-card",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      },
+      {
+        "open": true,
+        "counter": "Шаг 2 из 5",
+        "title": "Отметьте осмотр за сегодня",
+        "anchor": "staff-card",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      },
+      {
+        "open": true,
+        "counter": "Шаг 3 из 5",
+        "title": "Температура выше 37°?",
+        "anchor": "staff-card",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      },
+      {
+        "open": true,
+        "counter": "Шаг 4 из 5",
+        "title": "Включите автозаполнение",
+        "anchor": "autofill",
+        "delta": 0,
+        "ringInViewport": false,
+        "hasCutout": true
+      },
+      {
+        "open": true,
+        "counter": "Шаг 5 из 5",
+        "title": "Сохранять не нужно",
+        "anchor": "more-actions",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      }
+    ],
+    "closedAfter": true
+  }
+}

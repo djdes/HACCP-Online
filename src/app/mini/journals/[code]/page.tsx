@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
 import { PhotoUploader, PhotoFile } from "../../_components/photo-uploader";
 import { PhotoLightbox } from "../../_components/photo-lightbox";
 import { JournalTaskPool } from "../../_components/task-pool";
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
 
 /**
  * Журналы где работает task-pool с race-claim'ами. Если шаблон в этом
@@ -335,18 +336,23 @@ function DocumentJournalBody({
 }) {
   return (
     <>
-      <div
-        className="rounded-2xl px-4 py-3 text-[13px] leading-5"
+      {/* «Как заполнить?» — то же окно и спотлайт-тур, что на сайте (П-3).
+          Прежний info-box «заполнение доступно на сайте» устарел: документ
+          открывается прямо здесь. Рендерится только у журналов с
+          walkthrough (journal-ui-walkthroughs.ts). */}
+      <FillGuideLauncher
+        code={code}
+        page="list"
+        variant="button"
+        basePath="mini"
+        firstDocumentId={documents.find((d) => d.status !== "closed")?.id}
+        className="mini-press inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold"
         style={{
           background: "var(--mini-ice-soft)",
           border: "1px solid var(--mini-divider-strong)",
           color: "var(--mini-ice)",
         }}
-      >
-        Этот журнал ведётся таблицей за период. В v1 заполнение таблицы
-        доступно на сайте — в один тап по кнопке ниже. Список ваших смен
-        синхронизирован с сайтом.
-      </div>
+      />
 
       <section className="space-y-2">
         <h2

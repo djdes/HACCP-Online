@@ -101,3 +101,4 @@ dispatcher/logs/
 /*.jpg
 /*-snapshot.yml
 /.dev-server*.log
+.agent/tasks/*/e2e/creds.json

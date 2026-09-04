@@ -1,0 +1,68 @@
+{
+  "login": "http://localhost:3020/dashboard",
+  "ac5": {
+    "autoOpen": true,
+    "seenWhileOpen": {
+      "seen": true
+    },
+    "reopenAfterLeaving": false,
+    "reopenAfterReload": false,
+    "otherBrowserAutoOpen": false
+  },
+  "ac1": {
+    "hygiene": {
+      "found": true,
+      "button": true,
+      "rightOf": true,
+      "instr": {
+        "left": 32,
+        "right": 166.234375,
+        "top": 419.296875
+      },
+      "btn": {
+        "left": 174.234375,
+        "right": 333.1875,
+        "top": 419.296875
+      }
+    },
+    "climate_control": {
+      "found": true,
+      "button": true,
+      "rightOf": true,
+      "instr": {
+        "left": 789.28125,
+        "right": 923.515625,
+        "top": 381.296875
+      },
+      "btn": {
+        "left": 931.515625,
+        "right": 1063.53125,
+        "top": 381.296875
+      }
+    },
+    "cleaningButtonCount": 0
+  },
+  "ac2desktop": {
+    "stepTitles": [
+      "Создайте документ",
+      "Откройте документ",
+      "Добавьте сотрудников",
+      "Отметьте осмотр за сегодня",
+      "Температура выше 37°?",
+      "Включите автозаполнение",
+      "Сохранять не нужно"
+    ],
+    "previewCount": 4,
+    "hasRulesTab": true,
+    "rulesHeadings": [
+      "Что подготовить",
+      "Пошаговая инструкция",
+      "Примеры заполнения",
+      "Типичные ошибки",
+      "Что делать если что-то не так"
+    ]
+  },
+  "ac2desktopEscClosesDialog": true,
+  "error": "Error: page.evaluate: ReferenceError: __name is not defined\n    at eval (eval at evaluate (:302:30), <anonymous>:1:1234)\n    at UtilityScript.evaluate (<anonymous>:304:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+  "pageErrors": []
+}

@@ -2,6 +2,7 @@
 
 import { LayoutGrid, Rows3 } from "lucide-react";
 import type { MobileView } from "@/lib/use-mobile-view";
+import type { TourAnchor } from "@/lib/tour-anchors";
 
 /**
  * Shared mobile-only «Карточки / Таблица» switcher. Renders a pill-group
@@ -14,16 +15,20 @@ export function MobileViewToggle({
   onChange,
   cardsLabel = "Карточки",
   tableLabel = "Таблица",
+  dataTour,
 }: {
   mobileView: MobileView;
   onChange: (next: MobileView) => void;
   cardsLabel?: string;
   tableLabel?: string;
+  /** Анкор спотлайт-тура «Как заполнить?» (шаг «Переключитесь на Таблица»). */
+  dataTour?: TourAnchor;
 }) {
   return (
     <div
       role="tablist"
       aria-label="Режим отображения"
+      data-tour={dataTour}
       className="flex w-full rounded-2xl border border-[#ececf4] bg-white p-1 text-[13px] font-medium sm:hidden print:hidden"
     >
       <button

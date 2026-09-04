@@ -3,35 +3,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import {
-  AlertTriangle,
-  BookOpen,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  ExternalLink,
-  Lightbulb,
-  ListChecks,
-  Package,
-  Sparkles,
-  Users,
-  X,
-  XCircle,
-} from "lucide-react";
+import { BookOpen, X } from "lucide-react";
 import {
   getJournalDocGuide,
   type JournalDocGuide,
 } from "@/lib/journal-doc-guides";
+import { hasJournalWalkthrough } from "@/lib/journal-ui-walkthroughs";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+import { JournalDocGuideBody } from "@/components/journals/journal-doc-guide-body";
+import { JournalGuideFab } from "@/components/journals/journal-guide-fab";
+import { PORTAL_FONT_FAMILY } from "@/components/ui/spotlight-tour";
 
 /**
- * Inline floating-кнопка «Как заполнять» + sheet с подробным гайдом
- * для текущего журнала. Монтируется в layout документа, читает code
- * из URL — поэтому добавлять её в каждый document-client не нужно.
+ * Inline floating-кнопка внизу справа на странице документа.
  *
- * Если у журнала нет гайда — кнопка не рендерится (тихо).
+ * Журналы с walkthrough (`journal-ui-walkthroughs.ts`) получают окно
+ * «Как заполнить?» — вкладки «Куда нажимать» / «Правила» и спотлайт-тур
+ * (`FillGuideLauncher`). Остальные — прежний sheet с правилами из
+ * `journal-doc-guides.ts`. Если у журнала нет ни того, ни другого —
+ * кнопка не рендерится (тихо).
+ *
+ * На сайте монтируется в layout раздела и читает code из URL. Mini App
+ * (`/mini/documents/[id]`) передаёт `code` явно — в его URL кода нет —
+ * и `bottomOffset` над нижней навигацией.
  */
-export function JournalDocGuideOverlay() {
+export function JournalDocGuideOverlay({
+  code: explicitCode,
+  basePath = "site",
+  bottomOffset = 72,
+}: {
+  code?: string;
+  basePath?: "site" | "mini";
+  bottomOffset?: number;
+} = {}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   // Портал в body доступен только после гидрации — иначе SSR и клиент
@@ -41,15 +46,17 @@ export function JournalDocGuideOverlay() {
 
   // Detect /journals/<code>/documents/... and extract code.
   const code = useMemo(() => {
+    if (explicitCode) return resolveJournalCodeAlias(explicitCode);
     const m = /^\/journals\/([^/]+)\/documents\/[^/]+/.exec(pathname ?? "");
     if (!m) return null;
     return resolveJournalCodeAlias(decodeURIComponent(m[1]));
-  }, [pathname]);
+  }, [pathname, explicitCode]);
 
   const guide = useMemo(
     () => (code ? getJournalDocGuide(code) : null),
     [code]
   );
+  const walkthrough = code ? hasJournalWalkthrough(code) : false;
 
   // Lock body scroll when sheet is open.
   useEffect(() => {
@@ -71,56 +78,32 @@ export function JournalDocGuideOverlay() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (!code || !guide) return null;
+  if (!code || (!guide && !walkthrough)) return null;
   if (!mounted || typeof document === "undefined") return null;
+
+  if (walkthrough) {
+    return (
+      <FillGuideLauncher
+        code={code}
+        page="document"
+        variant="fab"
+        basePath={basePath}
+        bottomOffset={bottomOffset}
+      />
+    );
+  }
 
   return (
     <>
-      {/* Q3: кнопка ПОРТАЛИТСЯ в body. Раньше она рендерилась внутри
-          обёртки раздела журналов (`journals/[code]/layout.tsx`), у
-          которой стоит `-translate-x-1/2` — а любой transform создаёт
-          containing block для `position: fixed`. Из-за этого `bottom-5`
-          отсчитывался не от окна, а от НИЗА всей длинной страницы
-          документа: кнопка была видна только на коротких журналах
-          (3 из 13), на остальных уезжала на несколько экранов вниз. */}
-      {/* A13 аудита: кнопка стояла в ЛЕВОМ нижнем углу (`bottom-5 left-5`)
-          и накрывала первые колонки таблиц журналов — «Дата» и чекбоксы
-          выделения, ровно там, где идёт заполнение. Переезжает в ПРАВЫЙ
-          нижний угол, в один столбик над двумя существующими FAB'ами:
-          поддержка (`fixed bottom-5 right-[68px]`) и AI-помощник по
-          СанПиН (`fixed bottom-5 right-5`), оба высотой 44px (size-11).
-          20 + 44 + 8 = 72px, поэтому `bottom-[72px] right-5` — ровно над
-          ними, с зазором 8px и по общему правому краю. z-30 — как у
-          поддержки, ниже раскрытой панели поддержки (z-40), так что она
-          кнопку перекрывает, а не наоборот. */}
-      {createPortal(
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="group fixed bottom-[72px] right-5 z-30 inline-flex size-11 items-center justify-center rounded-full border border-[#ececf4] bg-white text-[#0b1024] shadow-[0_12px_30px_-10px_rgba(11,16,36,0.25)] transition-all duration-150 hover:scale-105 hover:border-[#5566f6]/40 hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden"
-          aria-label="Как заполнять этот журнал"
-        >
-          <span className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white">
-            <BookOpen className="size-4" />
-          </span>
-          {/* R5-15: подпись «Как заполнять» была ВНУТРИ кнопки, из-за чего
-              пилюля вырастала до ~190px и накрывала ПРАВЫЙ край широких
-              таблиц (климат, холодильники, приёмка) — ровно ту зону, куда
-              уезжают последние колонки бланка. Теперь кнопка — такой же
-              круг 44px, как соседние FAB'ы поддержки и AI-помощника, а
-              подпись живёт в tooltip'е, который всплывает ВЛЕВО от кнопки
-              и в поток не попадает (`pointer-events-none`). */}
-          <span
-            role="tooltip"
-            className="pointer-events-none absolute right-[calc(100%+10px)] whitespace-nowrap rounded-lg bg-[#0b1024] px-2.5 py-1.5 text-[12.5px] font-medium text-white opacity-0 shadow-[0_8px_24px_-8px_rgba(11,16,36,0.45)] transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-          >
-            Как заполнять
-          </span>
-        </button>,
-        document.body
-      )}
-
-      {open ? <GuideSheet guide={guide} onClose={() => setOpen(false)} /> : null}
+      <JournalGuideFab
+        onClick={() => setOpen(true)}
+        label="Как заполнять"
+        ariaLabel="Как заполнять этот журнал"
+        bottomOffset={bottomOffset}
+      />
+      {open && guide ? (
+        <GuideSheet guide={guide} onClose={() => setOpen(false)} />
+      ) : null}
     </>
   );
 }
@@ -141,6 +124,7 @@ function GuideSheet({
   return createPortal(
     <div
       className="fixed inset-0 z-[60] flex"
+      style={{ fontFamily: PORTAL_FONT_FAMILY }}
       data-app-theme="light"
       role="dialog"
       aria-modal="true"
@@ -188,170 +172,8 @@ function GuideSheet({
 
         {/* Body — scrollable */}
         <div className="flex-1 overflow-y-auto">
-          <div className="space-y-5 p-5 sm:p-7">
-            {/* Intro */}
-            <p className="text-[14px] leading-[1.7] text-[#3c4053]">
-              {guide.intro}
-            </p>
-
-            {/* Meta block: who + when */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <MetaCard
-                icon={<Users className="size-4" />}
-                label="Кто заполняет"
-                value={guide.whoFills}
-              />
-              <MetaCard
-                icon={<Clock className="size-4" />}
-                label="Когда"
-                value={guide.whenToFill}
-              />
-            </div>
-
-            {/* Prepare */}
-            {guide.prepare && guide.prepare.length > 0 ? (
-              <Section
-                title="Что подготовить"
-                icon={<Package className="size-4" />}
-                tone="info"
-              >
-                <ul className="space-y-1.5">
-                  {guide.prepare.map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-[13px] leading-[1.55] text-[#3c4053]"
-                    >
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            ) : null}
-
-            {/* Steps */}
-            <Section
-              title="Пошаговая инструкция"
-              icon={<ListChecks className="size-4" />}
-              tone="primary"
-            >
-              <ol className="space-y-3">
-                {guide.steps.map((step, i) => (
-                  <li
-                    key={i}
-                    className="flex gap-3 rounded-2xl border border-[#ececf4] bg-white p-3.5"
-                  >
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-[12px] font-semibold text-white">
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[14px] font-semibold leading-tight text-[#0b1024]">
-                        {step.title}
-                      </div>
-                      <p className="mt-1 text-[13px] leading-[1.6] text-[#3c4053]">
-                        {step.body}
-                      </p>
-                      {step.tip ? (
-                        <div className="mt-2 flex items-start gap-2 rounded-xl bg-[#fff8eb] px-3 py-2">
-                          <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-[#a13a32]" />
-                          <span className="text-[12px] leading-[1.55] text-[#7a4a00]">
-                            {step.tip}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </Section>
-
-            {/* Examples */}
-            {guide.examples && guide.examples.length > 0 ? (
-              <Section
-                title="Примеры заполнения"
-                icon={<Sparkles className="size-4" />}
-                tone="success"
-              >
-                <div className="space-y-2">
-                  {guide.examples.map((ex, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-[#c8f0d5] bg-[#ecfdf5]/50 px-3 py-2.5"
-                    >
-                      <div className="text-[11px] font-semibold uppercase tracking-wider text-[#136b2a]">
-                        {ex.label}
-                      </div>
-                      <div className="mt-1 text-[13px] leading-[1.55] text-[#0b1024]">
-                        {ex.value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            ) : null}
-
-            {/* Common mistakes */}
-            {guide.mistakes && guide.mistakes.length > 0 ? (
-              <Section
-                title="Типичные ошибки"
-                icon={<XCircle className="size-4" />}
-                tone="warn"
-              >
-                <ul className="space-y-1.5">
-                  {guide.mistakes.map((m, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-[13px] leading-[1.55] text-[#3c4053]"
-                    >
-                      <span className="mt-0.5 inline-flex size-1.5 shrink-0 rounded-full bg-[#a13a32]" />
-                      <span>{m}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            ) : null}
-
-            {/* Red flags */}
-            {guide.redFlags && guide.redFlags.length > 0 ? (
-              <Section
-                title="Что делать если что-то не так"
-                icon={<AlertTriangle className="size-4" />}
-                tone="warn"
-              >
-                <div className="space-y-2">
-                  {guide.redFlags.map((rf, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-[#ffd2cd] bg-[#fff4f2] p-3"
-                    >
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-[#a13a32]" />
-                        <div className="text-[13px] font-semibold text-[#a13a32]">
-                          {rf.trigger}
-                        </div>
-                      </div>
-                      <div className="mt-1.5 flex items-start gap-2 pl-5">
-                        <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-[#3c4053]" />
-                        <div className="text-[13px] leading-[1.55] text-[#3c4053]">
-                          {rf.action}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            ) : null}
-
-            {/* Legal ref */}
-            {guide.legalRef ? (
-              <div className="flex items-start gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5">
-                <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-[#6f7282]" />
-                <div className="text-[12px] leading-[1.55] text-[#6f7282]">
-                  <span className="font-semibold text-[#3c4053]">Норматив:</span>{" "}
-                  {guide.legalRef}
-                </div>
-              </div>
-            ) : null}
+          <div className="p-5 sm:p-7">
+            <JournalDocGuideBody guide={guide} />
           </div>
         </div>
 
@@ -368,59 +190,5 @@ function GuideSheet({
       </div>
     </div>,
     document.body
-  );
-}
-
-function MetaCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3.5">
-      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[#6f7282]">
-        <span className="text-[#5566f6]">{icon}</span>
-        {label}
-      </div>
-      <div className="mt-1.5 text-[13px] leading-[1.55] text-[#0b1024]">
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function Section({
-  title,
-  icon,
-  tone,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  tone: "info" | "primary" | "success" | "warn";
-  children: React.ReactNode;
-}) {
-  const accent =
-    tone === "primary"
-      ? "text-[#5566f6]"
-      : tone === "success"
-        ? "text-[#136b2a]"
-        : tone === "warn"
-          ? "text-[#a13a32]"
-          : "text-[#3848c7]";
-  return (
-    <section>
-      <div
-        className={`mb-2.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em] ${accent}`}
-      >
-        {icon}
-        <span>{title}</span>
-      </div>
-      {children}
-    </section>
   );
 }

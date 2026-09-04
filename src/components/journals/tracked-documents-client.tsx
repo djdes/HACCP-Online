@@ -1,5 +1,8 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+import { TOUR } from "@/lib/tour-anchors";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -381,16 +384,27 @@ function TrackedDocumentsClientImpl({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className={JOURNAL_LIST_HEADING_CLASS}>{heading}</h1>
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-            <Button
-              variant="outline"
-              className="h-9 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
-              asChild
-            >
-              <Link href={`/journals/${templateCode}/guide`}>
-                <BookOpenText className="size-4" />
-                Инструкция
-              </Link>
-            </Button>
+            {/* «Инструкция» + «Как заполнить?» — как в JournalTopBar:
+                общий ряд, вторая кнопка только у журналов с walkthrough. */}
+            <div className="flex w-full gap-2 sm:w-auto">
+              <Button
+                variant="outline"
+                className="h-9 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
+                asChild
+              >
+                <Link href={`/journals/${templateCode}/guide`}>
+                  <BookOpenText className="size-4" />
+                  Инструкция
+                </Link>
+              </Button>
+              <FillGuideLauncher
+                code={templateCode}
+                journalName={templateName}
+                page="list"
+                variant="button"
+                firstDocumentId={activeTab === "active" ? documents[0]?.id : undefined}
+              />
+            </div>
             {activeTab === "active" && (
               <CreateDocumentDialog
                 templateCode={templateCode}
@@ -399,6 +413,7 @@ function TrackedDocumentsClientImpl({
                 triggerClassName="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
                 triggerLabel="Создать документ"
                 triggerIcon={<Plus className="size-4" />}
+                triggerDataTour={TOUR.createDocument}
               />
             )}
           </div>
@@ -443,6 +458,7 @@ function TrackedDocumentsClientImpl({
               <div
                 key={document.id}
                 className={JOURNAL_LIST_CARD_CLASS}
+                data-tour={TOUR.documentCard}
               >
                 <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                   {document.title}

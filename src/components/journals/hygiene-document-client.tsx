@@ -1,5 +1,7 @@
 "use client";
 
+import { TOUR } from "@/lib/tour-anchors";
+
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lock } from "lucide-react";
@@ -358,6 +360,16 @@ export function HygieneDocumentClient({
     rosterUsers,
     Math.max(rosterUsers.length, 7)
   );
+  // Анкоры спотлайт-тура «Как заполнить?»: одна клетка осмотра и одна
+  // температуры — у строки текущего пользователя (линейному сотруднику
+  // чужие строки закрыты), иначе у первого сотрудника с именем (список
+  // дополнен безымянными строками-заглушками); дата — сегодняшняя, если
+  // она внутри периода, иначе первая.
+  const tourEmployeeId =
+    printableEmployees.find((employee) => employee.name && employee.id === viewer?.id)?.id ??
+    printableEmployees.find((employee) => employee.name)?.id ??
+    null;
+  const tourDateKey = dateKeys.includes(todayKey) ? todayKey : dateKeys[0];
   const organizationLabel = organizationName || 'ООО "Тест"';
   const responsibleLabel = responsibleTitle || getHygieneDefaultResponsibleTitle(employees);
   const documentTitle = title || "Гигиенический журнал";
@@ -1009,7 +1021,11 @@ export function HygieneDocumentClient({
         {/* Mobile-only view toggle. Cards is the default — vertical list
             of employees with day-by-day accordion — far more usable on a
             phone than a 1100-px-wide table behind horizontal scroll. */}
-        <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        <MobileViewToggle
+          mobileView={mobileView}
+          onChange={switchMobileView}
+          dataTour={TOUR.viewToggle}
+        />
       </div>
 
       {/* Mobile cards view — rendered outside the scroll wrapper so it
@@ -1054,6 +1070,7 @@ export function HygieneDocumentClient({
                       onClick={() =>
                         setExpandedEmployeeId(expanded ? null : employee.id)
                       }
+                      data-tour={employee.id === tourEmployeeId ? TOUR.staffCard : undefined}
                       className="flex min-w-0 flex-1 items-center gap-2 text-left"
                     >
                       <div className="min-w-0 flex-1">
@@ -1115,6 +1132,11 @@ export function HygieneDocumentClient({
                               }}
                               disabled={!isActive || locked}
                               title={lockReason ?? undefined}
+                              data-tour={
+                                employee.id === tourEmployeeId && dateKey === tourDateKey
+                                  ? TOUR.statusCell
+                                  : undefined
+                              }
                               className="min-w-0 flex-1 rounded-lg border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-left text-[12px] font-medium text-[#0b1024] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {statusMeta?.code ? (
@@ -1141,6 +1163,11 @@ export function HygieneDocumentClient({
                               }}
                               disabled={!isActive || locked}
                               title={lockReason ?? "Температура >37°C"}
+                              data-tour={
+                                employee.id === tourEmployeeId && dateKey === tourDateKey
+                                  ? TOUR.temperatureCell
+                                  : undefined
+                              }
                               className="shrink-0 rounded-lg border border-[#ececf4] bg-[#fafbff] px-2 py-2 text-[12px] text-[#6f7282] hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               T°: {tempLabel || "—"}
@@ -1314,6 +1341,11 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:status`}
+                            data-tour={
+                              employee.id === tourEmployeeId && dateKey === tourDateKey
+                                ? TOUR.statusCell
+                                : undefined
+                            }
                             data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
                             title={lockReason ?? undefined}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(
@@ -1360,6 +1392,11 @@ export function HygieneDocumentClient({
                         return (
                           <td
                             key={`${employee.id}:${dateKey}:temp`}
+                            data-tour={
+                              employee.id === tourEmployeeId && dateKey === tourDateKey
+                                ? TOUR.temperatureCell
+                                : undefined
+                            }
                             data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
                             title={lockReason ?? undefined}
                             className={`${GRID_CELL_CLASS} h-6 px-2 py-0.5 text-center align-middle leading-tight ${getDayColumnBgClass(

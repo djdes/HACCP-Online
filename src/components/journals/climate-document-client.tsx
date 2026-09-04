@@ -1,5 +1,7 @@
 "use client";
 
+import { TOUR } from "@/lib/tour-anchors";
+
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -1014,6 +1016,9 @@ export function ClimateDocumentClient({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
   const [rows, setRows] = useState(getSortedRows(initialEntries));
+  // Анкор спотлайт-тура «Впишите показания»: инпуты строки «сегодня»,
+  // если её нет в документе — первой строки. Тур берёт первый видимый.
+  const tourRowId = rows.find((row) => row.date === todayKey)?.id ?? rows[0]?.id;
   const [documentTitle, setDocumentTitle] = useState(title);
   const [defaultResponsibleTitle, setDefaultResponsibleTitle] = useState(
     responsibleTitle
@@ -1560,6 +1565,7 @@ export function ClimateDocumentClient({
           setPickerOpen(true);
         }}
         title="Добавить помещение с нормами температуры и влажности"
+          data-tour={TOUR.addRoom}
         className={GRID_ADD_CELL_SOLID_CLASS}
       >
         <Plus className="size-4" strokeWidth={2.5} />
@@ -1685,6 +1691,7 @@ export function ClimateDocumentClient({
                     setPickerOpen(true);
                   }}
                   title="Добавить помещение с нормами температуры и влажности"
+          data-tour={TOUR.addRoom}
                   className={GRID_ADD_CELL_SOLID_CLASS}
                 >
                   <Plus className="size-4" strokeWidth={2.5} />
@@ -1745,7 +1752,7 @@ export function ClimateDocumentClient({
             контроля» уехали строками в бумажную шапку (C1), чекбокс
             «Не заполнять в выходные дни» — в «Настройки журнала» (C3). */}
         {/* Q3: единый токен-лента вместо локального r24 + py-5. */}
-        <div className={DOC_AUTOFILL_STRIP_CLASS}>
+        <div className={DOC_AUTOFILL_STRIP_CLASS} data-tour={TOUR.autofill}>
           <Switch
             checked={checkedAutoFill}
             onCheckedChange={handleAutoFillChange}
@@ -1930,6 +1937,7 @@ export function ClimateDocumentClient({
             <Button
               type="button"
               onClick={() => setRowDialogOpen(true)}
+              data-tour={TOUR.addRow}
               className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-5" strokeWidth={2.5} />
@@ -1949,7 +1957,11 @@ export function ClimateDocumentClient({
         ) : null}
 
         <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+          <MobileViewToggle
+            mobileView={mobileView}
+            onChange={switchMobileView}
+            dataTour={TOUR.viewToggle}
+          />
         </div>
 
         {mobileView === "cards" ? (
@@ -2117,6 +2129,7 @@ export function ClimateDocumentClient({
                               <Input
                                 type="number"
                                 step="0.1"
+                                data-tour={row.id === tourRowId ? TOUR.measureInput : undefined}
                                 value={row.data.measurements[room.id]?.[time]?.temperature ?? ""}
                                 onChange={(event) =>
                                   handleMeasurementChange(
@@ -2158,6 +2171,7 @@ export function ClimateDocumentClient({
                               <Input
                                 type="number"
                                 step="0.1"
+                                data-tour={row.id === tourRowId ? TOUR.measureInput : undefined}
                                 value={row.data.measurements[room.id]?.[time]?.humidity ?? ""}
                                 onChange={(event) =>
                                   handleMeasurementChange(

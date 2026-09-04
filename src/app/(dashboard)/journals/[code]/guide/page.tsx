@@ -11,6 +11,8 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { loadGuideNodesForUI } from "@/lib/journal-guide-tree";
+import { isDocumentTemplate } from "@/lib/journal-document-helpers";
+import { isScanOnlyDocumentTemplate } from "@/lib/scan-journal-config";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,13 @@ export default async function JournalGuidePage({
     ? await getJournalCrumbMenu(session, resolvedCode)
     : undefined;
 
+  // «К заполнению» у document-журналов ведёт в список документов: у них
+  // нет формы /new (new/page.tsx отдаёт 404), заполнение идёт в таблице.
+  const fillHref =
+    isDocumentTemplate(resolvedCode) || isScanOnlyDocumentTemplate(resolvedCode)
+      ? `/journals/${resolvedCode}`
+      : `/journals/${resolvedCode}/new`;
+
   return (
     <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
       <JournalPageCrumbs
@@ -68,7 +77,7 @@ export default async function JournalGuidePage({
         description="Прочитай эту страницу до того как начнёшь заполнять журнал. Она объясняет шаги, что взять с собой, типичные ошибки и требования СанПиН."
         actions={
           <Link
-            href={`/journals/${resolvedCode}/new`}
+            href={fillHref}
             className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
           >
             К заполнению →

@@ -1,5 +1,7 @@
 "use client";
 
+import { TOUR } from "@/lib/tour-anchors";
+
 import type { ReactNode } from "react";
 import {
   MoreHorizontal,
@@ -176,6 +178,7 @@ export function DocumentActionsBar({
               type="button"
               variant="outline"
               onClick={onSettings}
+              data-tour={TOUR.journalSettings}
               className={ACTION_BUTTON_CLASS}
             >
               <Settings2 className="size-4" />
@@ -189,6 +192,7 @@ export function DocumentActionsBar({
                   type="button"
                   aria-label="Ещё действия"
                   title="Ещё действия"
+                  data-tour={TOUR.moreActions}
                   className="flex size-9 items-center justify-center rounded-lg border-0 bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors hover:bg-[#5566f6]/[0.09]"
                 >
                   <MoreHorizontal className="size-4" />

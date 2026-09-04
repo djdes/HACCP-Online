@@ -16,6 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+import { TOUR } from "@/lib/tour-anchors";
 
 export function JournalTopBar(props: {
   heading: string;
@@ -48,6 +50,11 @@ export function JournalTopBar(props: {
   createSlot?: React.ReactNode;
   /** uv_lamp_runtime: следующий свободный номер установки (U7 аудита). */
   nextLampNumber?: string;
+  /**
+   * Первый активный документ — «Как заполнить?» ведёт туда шаги «внутри
+   * документа». Без него такие шаги показываются неактивными.
+   */
+  firstDocumentId?: string;
 }) {
   return (
     // `sm:items-center` — когда длинный H1 («Журнал бракеража скоропортящейся
@@ -59,16 +66,29 @@ export function JournalTopBar(props: {
         {props.heading}
       </h1>
       <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-        <Button
-          variant="outline"
-          className="h-9 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
-          asChild
-        >
-          <Link href={`/journals/${props.routeCode ?? props.templateCode}/guide`}>
-            <BookOpenText className="size-4" />
-            Инструкция
-          </Link>
-        </Button>
+        {/* «Инструкция» (правила) и «Как заполнить?» (куда нажимать) — одна
+            пара в общем ряду: на телефоне бок о бок, а не три этажа кнопок.
+            Вторая рендерится только у журналов с walkthrough
+            (journal-ui-walkthroughs.ts). */}
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button
+            variant="outline"
+            className="h-9 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
+            asChild
+          >
+            <Link href={`/journals/${props.routeCode ?? props.templateCode}/guide`}>
+              <BookOpenText className="size-4" />
+              Инструкция
+            </Link>
+          </Button>
+          <FillGuideLauncher
+            code={props.templateCode}
+            journalName={props.templateName}
+            page="list"
+            variant="button"
+            firstDocumentId={props.firstDocumentId}
+          />
+        </div>
         {props.activeTab === "active" && props.documentCount !== 0 && props.createSlot}
         {props.activeTab === "active" && props.documentCount !== 0 && !props.createSlot && (
           <CreateDocumentDialog
@@ -79,6 +99,7 @@ export function JournalTopBar(props: {
             triggerLabel="Создать документ"
             triggerIcon={<Plus className="size-5" strokeWidth={2.5} />}
             nextLampNumber={props.nextLampNumber}
+            triggerDataTour={TOUR.createDocument}
           />
         )}
       </div>
@@ -170,6 +191,7 @@ export function EmptyDocumentsState({
         triggerLabel="Создать документ"
         triggerIcon={<Plus className="size-5" strokeWidth={2.5} />}
         nextLampNumber={nextLampNumber}
+        triggerDataTour={TOUR.createDocument}
       />
     ) : null);
 

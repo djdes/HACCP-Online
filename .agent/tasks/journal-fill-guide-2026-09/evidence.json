@@ -1,0 +1,157 @@
+{
+  "task": "journal-fill-guide-2026-09",
+  "date": "2026-09-04",
+  "checks": {
+    "typecheck": "PASS",
+    "test": {
+      "status": "PASS",
+      "tests": 552,
+      "failed": 0
+    },
+    "lint_touched_files": {
+      "errors": 0,
+      "warnings": 4
+    },
+    "lint_repo": {
+      "errors": 24,
+      "files": [
+        "src/components/cleaning/scope-and-schedule-editors.tsx",
+        "resources/print-agent/setup.js",
+        "resources/print-agent/agent.js",
+        "src/components/task-fill/task-fill-field.tsx"
+      ],
+      "note": "pre-existing, untouched by this task"
+    }
+  },
+  "acceptance": {
+    "AC1": {
+      "status": "PASS",
+      "hygiene.buttonRightOfInstruction": true,
+      "climate.buttonRightOfInstruction": true,
+      "cleaningNoButton": true
+    },
+    "AC2": {
+      "status": "PASS",
+      "hygiene.stepCount": 7,
+      "climate.stepCount": 8,
+      "rulesTab": true,
+      "miniDialog": {
+        "top": 84.40625,
+        "bottom": 844,
+        "height": 759.59375,
+        "vh": 844,
+        "fits": true
+      }
+    },
+    "AC3": {
+      "status": "PASS",
+      "hygieneDocSteps": [
+        "add-staff",
+        "status-cell",
+        "temperature-cell",
+        "autofill",
+        "more-actions"
+      ],
+      "climateDocSteps": [
+        "add-room",
+        "journal-settings",
+        "autofill",
+        "add-row",
+        "measure-input",
+        "more-actions"
+      ],
+      "maxDelta": 0,
+      "escCloses": true,
+      "miniFallback": [
+        "staff-card",
+        "staff-card",
+        "staff-card",
+        "autofill",
+        "more-actions"
+      ]
+    },
+    "AC4": {
+      "status": "PASS",
+      "hygiene": {
+        "opened": true,
+        "state": {
+          "open": true,
+          "counter": "Шаг 2 из 5",
+          "title": "Отметьте осмотр за сегодня",
+          "anchor": "status-cell",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        "url": "http://localhost:3020/journals/hygiene/documents/cmt6j45i60htw82tsj2nnpgzw"
+      },
+      "climate": {
+        "opened": true,
+        "state": {
+          "open": true,
+          "counter": "Шаг 5 из 6",
+          "title": "Впишите показания",
+          "anchor": "measure-input",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        "url": "http://localhost:3020/journals/climate_control/documents/cmt6j45ne0hy482ts2ii5wkkd"
+      },
+      "jump": true
+    },
+    "AC5": {
+      "status": "PASS",
+      "autoOpen": [
+        true,
+        true
+      ],
+      "reopenAfterReload": [
+        false,
+        false
+      ],
+      "docAutoOpen": [
+        false,
+        false
+      ],
+      "otherBrowserAutoOpen": false
+    },
+    "AC6": {
+      "status": "PASS",
+      "miniListButton": true,
+      "miniDocFab": true,
+      "miniFabAboveNav": {
+        "fabBottom": 696,
+        "navTop": 1000.1875,
+        "navPosition": "relative",
+        "above": true
+      },
+      "miniDocTourSteps": 5
+    },
+    "AC7": {
+      "status": "PASS",
+      "cleaningOldFab": true,
+      "cleaningOldSheet": true
+    },
+    "AC8": {
+      "status": "PASS",
+      "hygiene": "/journals/hygiene",
+      "climate_control": "/journals/climate_control"
+    },
+    "AC9": {
+      "status": "PASS",
+      "note": "typecheck + tests green; lint has 0 errors in touched files, 24 pre-existing errors elsewhere"
+    }
+  },
+  "artifacts": {
+    "results": "e2e/results.json",
+    "resultsMini": "e2e/results-mini.json",
+    "shots": "shots/",
+    "eslint": "e2e/eslint.json",
+    "devLog": "dev-3020.log"
+  },
+  "outOfScope": [
+    "MiniNav position: relative (mini-theme.css .mini-root > * unlayered rule)",
+    "LiveClock hydration text mismatch in mini-shell.tsx"
+  ]
+}

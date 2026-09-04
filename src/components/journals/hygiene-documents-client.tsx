@@ -1,5 +1,7 @@
 "use client";
 
+import { TOUR } from "@/lib/tour-anchors";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -219,7 +221,7 @@ function DocumentRow({
   const href = `/journals/${templateCode}/documents/${document.id}`;
 
   return (
-    <div className={JOURNAL_LIST_CARD_CLASS}>
+    <div className={JOURNAL_LIST_CARD_CLASS} data-tour={TOUR.documentCard}>
       <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
         {document.title}
       </Link>
@@ -277,6 +279,7 @@ export function HygieneDocumentsClient(props: Props) {
           templateName={templateName}
           users={users}
           documentCount={documents.length}
+          firstDocumentId={activeTab === "active" ? documents[0]?.id : undefined}
         />
 
         <JournalTabs activeTab={activeTab} templateCode={templateCode} />

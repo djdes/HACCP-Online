@@ -1,5 +1,7 @@
 "use client";
 
+import { TOUR } from "@/lib/tour-anchors";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ChevronDown, Copy, Plus, UserPlus, Users } from "lucide-react";
@@ -780,7 +782,7 @@ export function StaffJournalToolbar({
           // H5/Q3 аудита: у эталона полоса — лента 48px, подпись 15px/600,
           // тумблер штатного размера (44×24), зазор до подписи 12px.
           // Вся геометрия живёт в DOC_AUTOFILL_STRIP_CLASS.
-          <div className={DOC_AUTOFILL_STRIP_CLASS}>
+          <div className={DOC_AUTOFILL_STRIP_CLASS} data-tour={TOUR.autofill}>
             <Switch
               checked={checked}
               onCheckedChange={handleAutoFill}
@@ -844,7 +846,10 @@ export function StaffJournalAddButton({
     <div className={className ?? DOC_ADD_ROW_CLASS}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-11 w-fit gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]">
+          <Button
+            data-tour={TOUR.addStaff}
+            className="h-11 w-fit gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
+          >
             <Plus className="size-5" strokeWidth={2.5} />
             Добавить
             <ChevronDown className="size-4" />

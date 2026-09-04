@@ -1,5 +1,7 @@
 "use client";
 
+import type { TourAnchor } from "@/lib/tour-anchors";
+
 import { type ReactNode, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -131,6 +133,8 @@ interface Props {
   triggerClassName?: string;
   triggerLabel?: string;
   triggerIcon?: ReactNode;
+  /** `data-tour` на кнопке-триггере — анкор спотлайт-тура «Как заполнить?». */
+  triggerDataTour?: TourAnchor;
   /**
    * uv_lamp_runtime: следующий свободный номер бактерицидной установки.
    * Считается на списке документов журнала — диалог сам список не видит.
@@ -145,6 +149,7 @@ export function CreateDocumentDialog({
   triggerClassName,
   triggerLabel = "Создать документ",
   triggerIcon,
+  triggerDataTour,
   nextLampNumber = "1",
 }: Props) {
   const router = useRouter();
@@ -521,7 +526,7 @@ export function CreateDocumentDialog({
 
   const trigger = (
     <DialogTrigger asChild>
-      <Button className={cn(triggerClassName)}>
+      <Button className={cn(triggerClassName)} data-tour={triggerDataTour}>
         {triggerIcon || <Plus className="size-4" />}
         {triggerLabel}
       </Button>

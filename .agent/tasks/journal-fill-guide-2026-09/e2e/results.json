@@ -1,0 +1,249 @@
+{
+  "login": "http://localhost:3020/dashboard",
+  "hygiene": {
+    "autoOpen": true,
+    "stepCount": 7,
+    "hasRulesTab": true,
+    "buttonRightOfInstruction": true,
+    "reopenAfterReload": false,
+    "listTour": {
+      "steps": [
+        {
+          "open": true,
+          "counter": "Шаг 1 из 2",
+          "title": "Создайте документ",
+          "anchor": "create-document",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 2 из 2",
+          "title": "Откройте документ",
+          "anchor": "document-card",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        }
+      ],
+      "closedAfter": true
+    },
+    "docId": "cmt6j45i60htw82tsj2nnpgzw",
+    "docFab": true,
+    "docAutoOpen": false,
+    "rulesTabHasSteps": true,
+    "docTour": {
+      "steps": [
+        {
+          "open": true,
+          "counter": "Шаг 1 из 5",
+          "title": "Добавьте сотрудников",
+          "anchor": "add-staff",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 2 из 5",
+          "title": "Отметьте осмотр за сегодня",
+          "anchor": "status-cell",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 3 из 5",
+          "title": "Температура выше 37°?",
+          "anchor": "temperature-cell",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 4 из 5",
+          "title": "Включите автозаполнение",
+          "anchor": "autofill",
+          "delta": 0,
+          "ringInViewport": false,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 5 из 5",
+          "title": "Сохранять не нужно",
+          "anchor": "more-actions",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        }
+      ],
+      "closedAfter": true
+    },
+    "escCloses": true,
+    "queryTour": {
+      "opened": true,
+      "state": {
+        "open": true,
+        "counter": "Шаг 2 из 5",
+        "title": "Отметьте осмотр за сегодня",
+        "anchor": "status-cell",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      },
+      "url": "http://localhost:3020/journals/hygiene/documents/cmt6j45i60htw82tsj2nnpgzw"
+    },
+    "jumpToDocument": {
+      "jumped": true,
+      "url": "http://localhost:3020/journals/hygiene/documents/cmt6j45i60htw82tsj2nnpgzw",
+      "state": {
+        "open": true,
+        "counter": "Шаг 1 из 5",
+        "title": "Добавьте сотрудников",
+        "anchor": "add-staff",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      }
+    }
+  },
+  "climate": {
+    "autoOpen": true,
+    "stepCount": 8,
+    "hasRulesTab": true,
+    "buttonRightOfInstruction": true,
+    "reopenAfterReload": false,
+    "listTour": {
+      "steps": [
+        {
+          "open": true,
+          "counter": "Шаг 1 из 2",
+          "title": "Создайте документ",
+          "anchor": "create-document",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 2 из 2",
+          "title": "Откройте документ",
+          "anchor": "document-card",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        }
+      ],
+      "closedAfter": true
+    },
+    "docId": "cmt6j45ne0hy482ts2ii5wkkd",
+    "docFab": true,
+    "docAutoOpen": false,
+    "rulesTabHasSteps": true,
+    "docTour": {
+      "steps": [
+        {
+          "open": true,
+          "counter": "Шаг 1 из 6",
+          "title": "Добавьте помещения",
+          "anchor": "add-room",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 2 из 6",
+          "title": "Задайте время контроля",
+          "anchor": "journal-settings",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 3 из 6",
+          "title": "Автозаполнение",
+          "anchor": "autofill",
+          "delta": 0,
+          "ringInViewport": false,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 4 из 6",
+          "title": "Добавьте строку за сегодня",
+          "anchor": "add-row",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 5 из 6",
+          "title": "Впишите показания",
+          "anchor": "measure-input",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 6 из 6",
+          "title": "Закончить журнал",
+          "anchor": "more-actions",
+          "delta": 0,
+          "ringInViewport": true,
+          "hasCutout": true
+        }
+      ],
+      "closedAfter": true
+    },
+    "escCloses": true,
+    "queryTour": {
+      "opened": true,
+      "state": {
+        "open": true,
+        "counter": "Шаг 5 из 6",
+        "title": "Впишите показания",
+        "anchor": "measure-input",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      },
+      "url": "http://localhost:3020/journals/climate_control/documents/cmt6j45ne0hy482ts2ii5wkkd"
+    },
+    "jumpToDocument": {
+      "jumped": true,
+      "url": "http://localhost:3020/journals/climate_control/documents/cmt6j45ne0hy482ts2ii5wkkd",
+      "state": {
+        "open": true,
+        "counter": "Шаг 1 из 6",
+        "title": "Добавьте помещения",
+        "anchor": "add-room",
+        "delta": 0,
+        "ringInViewport": true,
+        "hasCutout": true
+      }
+    }
+  },
+  "cleaningNoButton": true,
+  "cleaningOldFab": true,
+  "cleaningOldSheet": true,
+  "guideCta_hygiene": "/journals/hygiene",
+  "guideCta_climate_control": "/journals/climate_control",
+  "otherBrowserAutoOpen": false,
+  "miniListButton": true,
+  "miniDialog": {
+    "top": 97.99655151367188,
+    "bottom": 857.5903015136719,
+    "height": 759.59375,
+    "vh": 844,
+    "fits": false
+  },
+  "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[role=\"dialog\"][aria-labelledby=\"fill-guide-title\"]').locator('button:has-text(\"Понятно\")')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:flex-none\">Понятно</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    51 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+}

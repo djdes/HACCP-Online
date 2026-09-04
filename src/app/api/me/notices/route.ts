@@ -1,9 +1,28 @@
 import { NextResponse } from "next/server";
 import { requireApiAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { hasSeenNotice } from "@/lib/seen-notices";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/me/notices?key=... -> { seen }: видел ли человек это уведомление.
+ * Клиентские «показать один раз» (гайд «Как заполнить?») спрашивают отсюда,
+ * а не из localStorage — см. useSeenNotice.
+ */
+export async function GET(request: Request) {
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+
+  const key = (new URL(request.url).searchParams.get("key") ?? "").slice(0, 80);
+  if (!key) {
+    return NextResponse.json({ error: "Не указан ключ" }, { status: 400 });
+  }
+
+  const seen = await hasSeenNotice(auth.session.user.id, key);
+  return NextResponse.json({ seen });
+}
 
 /**
  * POST /api/me/notices { key } — «это уведомление я уже видел».

@@ -1,0 +1,132 @@
+{
+  "task": "journal-fill-guide-2026-09",
+  "verifiedAt": "2026-09-04T22:44:00+03:00",
+  "verifier": "task-verifier — fresh pass against the current working tree (uncommitted changes on master, HEAD 7ed23497), dev server http://localhost:3020, Playwright Chromium (channel chrome)",
+  "overall": "PASS",
+  "commands": {
+    "npm run typecheck": { "status": "PASS", "exit": 0, "log": "scratchpad/typecheck.log" },
+    "npm test": { "status": "PASS", "exit": 0, "tests": 552, "pass": 552, "fail": 0, "includes": ["src/lib/journal-ui-walkthroughs.test.ts (3 tests)", "src/lib/spotlight-geometry.test.ts (7 tests)"] },
+    "npx eslint <24 touched files>": { "status": "PASS", "exit": 0, "errors": 0, "warnings": 8, "warningsNote": "3× react-hooks/set-state-in-effect (setMounted / setTab / measure pattern already used elsewhere in repo), 4× pre-existing no-unused-vars, 1× pre-existing @next/next/no-img-element" },
+    "npx eslint . (repo-wide, = npm run lint)": { "status": "RED, pre-existing", "exit": 1, "errors": 24, "files": ["src/components/cleaning/scope-and-schedule-editors.tsx (13)", "resources/print-agent/setup.js (5)", "resources/print-agent/agent.js (4)", "src/components/task-fill/task-fill-field.tsx (2)"], "note": "All four files are byte-identical to HEAD (git diff --quiet HEAD -- <file> for each) and appear in neither the modified nor the untracked list of this task; the 24 errors exist on HEAD independent of this task." },
+    "ONLY=mini npx tsx e2e/verify.ts (builder script rerun)": { "status": "PASS", "exit": 0, "output": "e2e/results-mini.json (rewritten 22:25:17)", "result": "miniListButton=true, miniDialog.fits=true (top 84.4, bottom 844, h 759.59 = 90vh), miniDocFab=true, fab bottom 696 = 844-148, 5-step doc tour with staff-card fallback, closes on Готово" },
+    "npx tsx e2e/verify-verifier.ts (verifier's own independent script)": { "status": "PASS", "exit": 0, "outputs": ["e2e/results-verifier-run1.json (fresh-key AC5 run; ended at AC4 on a tsx __name serialization quirk in my helper, fixed afterwards)", "e2e/results-verifier.json (full run, SKIP_AC5=1, 22:42:39–22:43:58)", "shots/verifier-*.png"] }
+  },
+  "acceptance": {
+    "AC1": {
+      "status": "PASS",
+      "criterion": "«Как заполнить?» справа от «Инструкция» на /journals/hygiene и /journals/climate_control; на /journals/cleaning кнопки нет",
+      "evidence": [
+        "results-verifier.json ac1.hygiene: Инструкция right=166.2, button left=174.2, same top 419.3 → rightOf=true",
+        "results-verifier.json ac1.climate_control: Инструкция right=923.5, button left=931.5, same top 381.3 → rightOf=true",
+        "results-verifier.json ac1.cleaningButtonCount=0",
+        "code: document-list-ui.tsx JournalTopBar and tracked-documents-client.tsx render <FillGuideLauncher> inside the same flex row right after the «Инструкция» Link; fill-guide-launcher.tsx:152 returns null when getJournalWalkthrough(code) is null (cleaning has no walkthrough — journal-ui-walkthroughs.test.ts asserts WALKTHROUGH_CODES == {hygiene, climate_control})"
+      ]
+    },
+    "AC2": {
+      "status": "PASS",
+      "criterion": "Окно показывает шаги из journal-ui-walkthroughs.ts с мини-копиями и вкладку «Правила» с прежним контентом; на 390px — bottom-sheet, помещается в 90vh, тело скроллится",
+      "evidence": [
+        "results-verifier.json ac2desktop.stepTitles = 7 hygiene titles exactly matching WALKTHROUGHS.hygiene (mobileOnly staff-card hidden on desktop); previewCount=4 (= steps with `preview`: create-document, add-staff, status-cell, temperature-cell)",
+        "results-verifier.json ac2desktop.rulesHeadings = [Что подготовить, Пошаговая инструкция, Примеры заполнения, Типичные ошибки, Что делать если что-то не так] — rendered by JournalDocGuideBody, the same markup extracted verbatim from the old GuideSheet (git diff journal-doc-guide.tsx)",
+        "results-verifier.json ac2mini.miniDialog @390x844 (measured after the enter animation settled, runningAnimations=0): top 84.41, bottom 844 (= vh), height 759.59 (= 0.9·844), fitsViewport=true, within90vh=true, borderRadius '22px / 0px' (bottom-sheet), header bottom 227.9 and footer 758–843 both on screen, bodyOverflowY=auto, bodyScrollable=true, scrollTop after programmatic scroll = 300, body scroll locked (overflow hidden)",
+        "shots/verifier-ac2-mini-dialog.png, shots/mini-02-dialog.png",
+        "note: the builder's first full run recorded miniDialog.fits=false (bottom 857.6) — it measured 500 ms after open while the Next dev overlay (LiveClock hydration warning) was re-rendering the tree; two later measurements (builder rerun 22:25 and mine 22:43, after animations settled) both give bottom=844. Judged a measurement-timing artefact, not a layout defect."
+      ]
+    },
+    "AC3": {
+      "status": "PASS",
+      "criterion": "«Показать на экране» затемняет страницу, вырезает и подсвечивает реальный элемент (вырез = rect цели ±8px), показывает «Шаг N из M», Назад/Далее/Готово, Esc закрывает; шаги без анкора на странице пропускаются, fallbackAnchor подхватывается на мобиле",
+      "evidence": [
+        "results-verifier.json ac3.tour.steps[0..4]: every step has pathStartsWithViewport=true, evenodd=true, fill=rgba(11,16,36,0.55) (dimming), cutoutMatchesRing=true (SVG hole starts at ring.left+radius / ring.top), offsets=[6,6,6,6] → hole = target rect + 6 px on each side, i.e. within the ±8 px tolerance of the criterion (HOLE_PADDING=6 per the approved design doc)",
+        "counters 'Шаг 1 из 5' … 'Шаг 5 из 5'; buttons: step 1 = [Закрыть подсказку, Далее], middle = [Закрыть подсказку, Назад, Далее], last = [Закрыть подсказку, Назад, Готово]; closedAfter=true after Готово; backNav afterNext='Шаг 2 из 5' → afterBack='Шаг 1 из 5'; escCloses=true",
+        "skipping steps whose anchor is absent: on /journals/hygiene?tab=closed&tour=open-document the «Создать документ» button is not rendered, the tour ran as 'ШАГ 1 ИЗ 1 — Откройте документ' (shots/verifier-ac4-tab-closed.png); on desktop the doc tour has 5 of 6 document steps (staff-card is mobileOnly — visibleWalkthroughSteps)",
+        "fallbackAnchor on mobile: results-verifier.json ac6.miniDocTour steps 2 and 3 (status-cell, temperature-cell) resolve to anchor=staff-card (cards view, cells collapsed) — shots/verifier-ac6-mini-doc-step2.png",
+        "ringInViewport=false on the autofill step (desktop and mini) is a check artefact: DOC_AUTOFILL_STRIP_CLASS is a full-bleed band (-mx-4 md:-mx-8) so the 6 px ring pokes past the viewport edges while the band itself is fully highlighted — shots/hygiene-07-doc-step4.png, shots/mini-04-doc-step4.png"
+      ]
+    },
+    "AC4": {
+      "status": "PASS",
+      "criterion": "Переход список ↔ документ по ?tour=<stepId> стартует тур на нужном шаге, параметр исчезает из URL, ?tab= не теряется",
+      "evidence": [
+        "results-verifier.json ac4.tabActive: /journals/hygiene?tab=active&tour=open-document → tour open at 'Шаг 2 из 2 — Откройте документ' (anchor document-card), url http://localhost:3020/journals/hygiene?tab=active (tour removed, tab kept)",
+        "results-verifier.json ac4.tabClosed: /journals/hygiene?tab=closed&tour=open-document → url …/journals/hygiene?tab=closed, closedTabSelected=true, no dialog auto-open, 1-step tour on the closed card",
+        "results-verifier.json ac4.docToList (document → list): step labelled 'в списке журнала', click → url http://localhost:3020/journals/hygiene (no tour=), tour open at 'Откройте документ'",
+        "results-verifier.json ac4.listToDocLaterStep (list → document, non-first step): click «Включите автозаполнение» → url …/documents/cmt6j45i60htw82tsj2nnpgzw (no tour=), tour open at 'Шаг 4 из 5 — Включите автозаполнение' — proves startStepId is honoured across client-side navigation",
+        "builder results.json hygiene.queryTour / climate.queryTour (status-cell → Шаг 2 из 5, measure-input → Шаг 5 из 6) — consistent",
+        "code: fill-guide-launcher.tsx:126-140 — url.searchParams.delete('tour') then history.replaceState(window.history.state, '', pathname + search + hash); other params and hash untouched, no router round-trip"
+      ]
+    },
+    "AC5": {
+      "status": "PASS",
+      "criterion": "Первое открытие журнала пользователем открывает окно само; reload и другой браузер с тем же аккаунтом — не открывают (fill-guide:<code>)",
+      "evidence": [
+        "results-verifier-run1.json ac5 (climate_control key cleared via e2e/reset-notice.ts right before the run): autoOpen=true; GET /api/me/notices?key=fill-guide:climate_control returned {seen:true} while the dialog was still open (flag written on open, not on close — fill-guide-launcher.tsx:145-150); reopenAfterLeaving=false (left the page without closing the dialog and came back); reopenAfterReload=false; otherBrowserAutoOpen=false (fresh browser context, same account)",
+        "shots/verifier-ac5-auto-open.png",
+        "builder results.json (pristine first visit of the seeded user): hygiene/climate autoOpen=true, reopenAfterReload=false, docAutoOpen=false, otherBrowserAutoOpen=false — consistent",
+        "code: use-seen-notice.ts key = `fill-guide:${code}`; server flag in User.seenNoticesJson via GET/POST /api/me/notices (route.ts), not localStorage"
+      ],
+      "stateChangeNote": "e2e/reset-notice.ts cleared the e2e user's fill-guide:climate_control flag twice (before verifier run 1 and before a second run that hung in an unrelated helper and was killed); each run's auto-open re-set it. Final state read with e2e/read-notice.ts: {fill-guide:hygiene:true, fill-guide:climate_control:true} — identical to the state the builder left. No users were created or deleted. The builder's own AC5 evidence (results.json) was produced on the pristine seeded state before any reset."
+    },
+    "AC6": {
+      "status": "PASS",
+      "criterion": "Mini App: кнопка в /mini/journals/<code> вместо устаревшего info-box; круглая кнопка над нижней навигацией в /mini/documents/<id>; тур подсвечивает карточки/таблицу",
+      "evidence": [
+        "results-verifier.json ac2mini.miniListButton=true, staleBox=0 (text «заполнение таблицы доступно на сайте» absent; grep over src finds no occurrence) — shots/verifier-ac6-mini-list.png",
+        "results-verifier.json ac6.miniDocFab=true, fabGeom: fabBottom=696 (= 844 − bottomOffset 148), fabRight=370, fabParent=BODY (portaled) — shots/verifier-ac6-mini-doc.png",
+        "results-verifier.json ac6.tabs=[Куда нажимать, Правила]; miniDocTour: 5 steps, staff-card highlighted for steps 1–3, autofill, more-actions; closedAfter=true — shots/verifier-ac6-mini-doc-step*.png",
+        "builder rerun e2e/results-mini.json (22:25) agrees on all points",
+        "note (out of scope per spec): MiniNav computes as position: relative (navTop 1000 > viewport) because of the unlayered `.mini-root > *` rule in mini-theme.css; the FAB and tour are portaled to body and unaffected"
+      ]
+    },
+    "AC7": {
+      "status": "PASS",
+      "criterion": "Круглая кнопка на журналах без walkthrough ведёт себя как раньше (GuideSheet)",
+      "evidence": [
+        "results-verifier.json ac7: oldFab=true (aria-label «Как заполнять этот журнал»), newFab=false, oldSheet=true (dialog «Инструкция по заполнению») — shots/verifier-ac7-cleaning-old-sheet.png",
+        "code: journal-doc-guide.tsx:84-108 — walkthrough ? <FillGuideLauncher variant=fab> : <JournalGuideFab> + <GuideSheet>; GuideSheet body now delegates to JournalDocGuideBody with unchanged markup"
+      ]
+    },
+    "AC8": {
+      "status": "PASS",
+      "criterion": "«К заполнению →» на /journals/hygiene/guide и /journals/climate_control/guide ведёт на список, а не в 404",
+      "evidence": [
+        "results-verifier.json ac8: hygiene → /journals/hygiene, climate_control → /journals/climate_control",
+        "code: guide/page.tsx:57-60 fillHref = isDocumentTemplate(resolvedCode) || isScanOnlyDocumentTemplate(resolvedCode) ? `/journals/${resolvedCode}` : `/journals/${resolvedCode}/new`"
+      ]
+    },
+    "AC9": {
+      "status": "PASS",
+      "criterion": "npm run typecheck, npm run lint, npm test — зелёные",
+      "evidence": [
+        "typecheck exit 0; npm test 552/552 pass; eslint on all 24 files touched by the task: 0 errors (8 warnings)",
+        "repo-wide `npm run lint` is red with 24 errors in 4 files that are byte-identical to HEAD and untouched by this task (see commands section) — pre-existing, not introduced here; judged in the scope agreed with the coordinator (touched files clean)"
+      ],
+      "caveat": "If the owner requires a literally green repo-wide `npm run lint`, that is a separate pre-existing cleanup of scope-and-schedule-editors.tsx, task-fill-field.tsx and resources/print-agent/*.js, outside this task."
+    }
+  },
+  "codeReview": {
+    "1_dataTourOnlyFromTOUR": "PASS — every `data-tour=` in src is `{TOUR.x}` or a pass-through prop (`triggerDataTour`, `dataTour`) whose only call sites pass TOUR.createDocument / TOUR.viewToggle; no literal string values (grep -rnE 'data-tour=\"' src → none). Minor: those two props are typed `string`, not `TourAnchor` (create-document-dialog.tsx:135, mobile-view-toggle.tsx:24) — a typo at a future call site would not be caught by typecheck; tightening to TourAnchor is a one-line change each.",
+    "2_launcherNullWithoutWalkthrough": "PASS — fill-guide-launcher.tsx:152 `if (!steps) return null;` after hooks; useSeenNotice receives null key so no fetch is made.",
+    "3_overlayKeepsGuideSheet": "PASS — journal-doc-guide.tsx:84-108; verified live on /journals/cleaning/documents/<id>.",
+    "4_tourParamHandling": "PASS — fill-guide-launcher.tsx:126-140 uses history.replaceState(window.history.state, '', url.pathname + url.search + url.hash) after deleting only `tour`; verified live with ?tab=active and ?tab=closed.",
+    "5_autoOpenMarksSeenImmediately": "PASS — fill-guide-launcher.tsx:145-150 calls markSeen() before setDialogOpen(true); verified live (server flag true while dialog open; no reopen after leaving without closing).",
+    "6_miniStaleBoxRemoved": "PASS — git diff src/app/mini/journals/[code]/page.tsx replaces the info-box with <FillGuideLauncher variant=button basePath=mini>; string absent from src; live count 0.",
+    "7_guideCtaForDocumentTemplates": "PASS — guide/page.tsx:57-60; live hrefs /journals/hygiene and /journals/climate_control."
+  },
+  "observations": [
+    "Pre-existing, not from this task: hydration warning on /mini/* from <LiveClock> in mini-shell.tsx (server/client second mismatch) — surfaces the Next dev overlay which intercepts clicks in e2e (builder's first mini run failed on it; both reruns drop <nextjs-portal> before clicking).",
+    "Pre-existing, out of scope per spec: `.mini-root > *` unlayered rule in mini-theme.css overrides Tailwind `.fixed` on MiniNav (position: relative).",
+    "Theoretical, dev-only, not reproduced: with React StrictMode's double effect run, useSeenNotice's second effect resets markedRef before its GET #2, so on a never-seen key reached via a ?tour= link a slow POST could let GET #2 return seen:false and auto-open the dialog beneath the running tour. Production (single effect run) is unaffected; both live ?tour= paths behaved correctly.",
+    "whats-new-notes.ts: notes for this feature were added but LATEST_NOTES_BUILD_SHA is still 03648f35 — per CLAUDE.md it must be bumped to the commit sha once these changes are committed.",
+    "Verification helpers added under .agent/tasks/journal-fill-guide-2026-09/e2e/: verify-verifier.ts, reset-notice.ts, read-notice.ts (untracked task artifacts; no production code was modified by the verifier).",
+    "Working tree at the end of this pass: the builder's 15 modified files plus `.gitignore` (+1 line `.agent/tasks/*/e2e/creds.json`), which appeared during this session and was not changed by the verifier — presumably added by a parallel session to keep the throwaway e2e credentials out of commits."
+  ],
+  "artifacts": {
+    "spec": ".agent/tasks/journal-fill-guide-2026-09/spec.md",
+    "builderEvidence": [".agent/tasks/journal-fill-guide-2026-09/evidence.md", ".agent/tasks/journal-fill-guide-2026-09/evidence.json", ".agent/tasks/journal-fill-guide-2026-09/e2e/results.json", ".agent/tasks/journal-fill-guide-2026-09/e2e/results-mini.json", ".agent/tasks/journal-fill-guide-2026-09/e2e/eslint.json"],
+    "verifierEvidence": [".agent/tasks/journal-fill-guide-2026-09/e2e/results-verifier.json", ".agent/tasks/journal-fill-guide-2026-09/e2e/results-verifier-run1.json", ".agent/tasks/journal-fill-guide-2026-09/shots/verifier-*.png"],
+    "verifierScripts": [".agent/tasks/journal-fill-guide-2026-09/e2e/verify-verifier.ts", ".agent/tasks/journal-fill-guide-2026-09/e2e/reset-notice.ts", ".agent/tasks/journal-fill-guide-2026-09/e2e/read-notice.ts"],
+    "commandLogs": "C:/Users/djdes/AppData/Local/Temp/claude/d--www-Wesetup-ru/f7aa5961-1a0e-4dbd-a78a-602b4a018c86/scratchpad/{typecheck.log,test.log,eslint-touched.log,eslint-repo.json,verify-mini-rerun.log,verify-verifier3.log}"
+  },
+  "problemsMd": "not written — no acceptance criterion is FAIL or UNKNOWN"
+}

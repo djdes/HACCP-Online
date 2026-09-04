@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/db";
 import SiteJournalDocumentPage from "@/app/(dashboard)/journals/[code]/documents/[docId]/page";
+import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide";
 
 /**
  * Mini App document editor.
@@ -77,6 +78,12 @@ export default async function MiniDocumentPage({
           chrome="mini"
         />
       </div>
+
+      {/* Круглая кнопка «Как заполнить?» / «Как заполнять» — как на сайте
+          (П-3). Mini-layout её не монтирует, а по URL код журнала не
+          вычислить — передаём явно. 148px = AI-помощник на 96px + 44px
+          кнопка + 8px зазор, над нижней навигацией. */}
+      <JournalDocGuideOverlay code={code} basePath="mini" bottomOffset={148} />
     </div>
   );
 }

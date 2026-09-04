@@ -1,0 +1,451 @@
+{
+  "login": "http://localhost:3020/dashboard",
+  "ac5": "skipped — see results-verifier-run1.json (fresh-key run)",
+  "ac1": {
+    "hygiene": {
+      "found": true,
+      "button": true,
+      "rightOf": true,
+      "instr": {
+        "left": 32,
+        "right": 166.234375,
+        "top": 419.296875
+      },
+      "btn": {
+        "left": 174.234375,
+        "right": 333.1875,
+        "top": 419.296875
+      }
+    },
+    "climate_control": {
+      "found": true,
+      "button": true,
+      "rightOf": true,
+      "instr": {
+        "left": 789.28125,
+        "right": 923.515625,
+        "top": 381.296875
+      },
+      "btn": {
+        "left": 931.515625,
+        "right": 1063.53125,
+        "top": 381.296875
+      }
+    },
+    "cleaningButtonCount": 0
+  },
+  "ac2desktop": {
+    "stepTitles": [
+      "Создайте документ",
+      "Откройте документ",
+      "Добавьте сотрудников",
+      "Отметьте осмотр за сегодня",
+      "Температура выше 37°?",
+      "Включите автозаполнение",
+      "Сохранять не нужно"
+    ],
+    "previewCount": 4,
+    "hasRulesTab": true,
+    "rulesHeadings": [
+      "Что подготовить",
+      "Пошаговая инструкция",
+      "Примеры заполнения",
+      "Типичные ошибки",
+      "Что делать если что-то не так"
+    ]
+  },
+  "ac2desktopEscClosesDialog": true,
+  "docId": "cmt6j45i60htw82tsj2nnpgzw",
+  "ac4": {
+    "tabActive": {
+      "opened": true,
+      "state": {
+        "open": true,
+        "counter": "Шаг 2 из 2",
+        "title": "Откройте документ",
+        "buttons": [
+          "Закрыть подсказку",
+          "Назад",
+          "Готово"
+        ],
+        "anchor": "document-card",
+        "maxOffset": 6,
+        "offsets": [
+          6,
+          6,
+          6,
+          6
+        ],
+        "pathStartsWithViewport": true,
+        "evenodd": true,
+        "fill": "rgba(11,16,36,0.55)",
+        "cutoutMatchesRing": true,
+        "ringInViewport": true
+      },
+      "url": "http://localhost:3020/journals/hygiene?tab=active"
+    },
+    "tabClosed": {
+      "url": "http://localhost:3020/journals/hygiene?tab=closed",
+      "tourCount": 1,
+      "dialogCount": 0,
+      "closedTabSelected": true,
+      "toast": []
+    },
+    "docToList": {
+      "elsewhereLabel": [
+        "в списке журнала"
+      ],
+      "jumped": true,
+      "url": "http://localhost:3020/journals/hygiene",
+      "state": {
+        "open": true,
+        "counter": "Шаг 2 из 2",
+        "title": "Откройте документ",
+        "buttons": [
+          "Закрыть подсказку",
+          "Назад",
+          "Готово"
+        ],
+        "anchor": "document-card",
+        "maxOffset": 6,
+        "offsets": [
+          6,
+          6,
+          6,
+          6
+        ],
+        "pathStartsWithViewport": true,
+        "evenodd": true,
+        "fill": "rgba(11,16,36,0.55)",
+        "cutoutMatchesRing": true,
+        "ringInViewport": true
+      }
+    },
+    "listToDocLaterStep": {
+      "jumped": true,
+      "url": "http://localhost:3020/journals/hygiene/documents/cmt6j45i60htw82tsj2nnpgzw",
+      "state": {
+        "open": true,
+        "counter": "Шаг 4 из 5",
+        "title": "Включите автозаполнение",
+        "buttons": [
+          "Закрыть подсказку",
+          "Назад",
+          "Далее"
+        ],
+        "anchor": "autofill",
+        "maxOffset": 6,
+        "offsets": [
+          6,
+          6,
+          6,
+          6
+        ],
+        "pathStartsWithViewport": true,
+        "evenodd": true,
+        "fill": "rgba(11,16,36,0.55)",
+        "cutoutMatchesRing": true,
+        "ringInViewport": false
+      }
+    }
+  },
+  "ac3": {
+    "docAutoOpen": false,
+    "dialogClosedWhenTourOpen": true,
+    "tour": {
+      "steps": [
+        {
+          "open": true,
+          "counter": "Шаг 1 из 5",
+          "title": "Добавьте сотрудников",
+          "buttons": [
+            "Закрыть подсказку",
+            "Далее"
+          ],
+          "anchor": "add-staff",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 2 из 5",
+          "title": "Отметьте осмотр за сегодня",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Далее"
+          ],
+          "anchor": "status-cell",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 3 из 5",
+          "title": "Температура выше 37°?",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Далее"
+          ],
+          "anchor": "temperature-cell",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 4 из 5",
+          "title": "Включите автозаполнение",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Далее"
+          ],
+          "anchor": "autofill",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": false
+        },
+        {
+          "open": true,
+          "counter": "Шаг 5 из 5",
+          "title": "Сохранять не нужно",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Готово"
+          ],
+          "anchor": "more-actions",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        }
+      ],
+      "closedAfter": true
+    },
+    "backNav": {
+      "afterNext": "Шаг 2 из 5",
+      "afterBack": "Шаг 1 из 5"
+    },
+    "escCloses": true
+  },
+  "ac8": {
+    "hygiene": "/journals/hygiene",
+    "climate_control": "/journals/climate_control"
+  },
+  "ac7": {
+    "oldFab": true,
+    "newFab": false,
+    "oldSheet": true
+  },
+  "ac2mini": {
+    "miniListButton": true,
+    "staleBox": 0,
+    "miniDialog": {
+      "vh": 844,
+      "top": 84.40625,
+      "bottom": 844,
+      "height": 759.59375,
+      "fitsViewport": true,
+      "within90vh": true,
+      "headerBottom": 227.90625,
+      "footerRect": {
+        "top": 758,
+        "bottom": 843
+      },
+      "bodyOverflowY": "auto",
+      "bodyScrollable": true,
+      "bodyScrollTopAfterScroll": 300,
+      "borderRadius": "22px / 0px",
+      "bodyOverflowLocked": "hidden",
+      "runningAnimations": 0
+    },
+    "escClosed": true
+  },
+  "ac6": {
+    "miniDocFab": true,
+    "fabGeom": {
+      "fabBottom": 696,
+      "fabRight": 370,
+      "vh": 844,
+      "navTop": 1000.1875,
+      "navPosition": "relative",
+      "fabParent": "BODY"
+    },
+    "tabs": [
+      "Куда нажимать",
+      "Правила"
+    ],
+    "miniDocTour": {
+      "steps": [
+        {
+          "open": true,
+          "counter": "Шаг 1 из 5",
+          "title": "Раскройте карточку сотрудника",
+          "buttons": [
+            "Закрыть подсказку",
+            "Далее"
+          ],
+          "anchor": "staff-card",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 2 из 5",
+          "title": "Отметьте осмотр за сегодня",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Далее"
+          ],
+          "anchor": "staff-card",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 3 из 5",
+          "title": "Температура выше 37°?",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Далее"
+          ],
+          "anchor": "staff-card",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        },
+        {
+          "open": true,
+          "counter": "Шаг 4 из 5",
+          "title": "Включите автозаполнение",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Далее"
+          ],
+          "anchor": "autofill",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": false
+        },
+        {
+          "open": true,
+          "counter": "Шаг 5 из 5",
+          "title": "Сохранять не нужно",
+          "buttons": [
+            "Закрыть подсказку",
+            "Назад",
+            "Готово"
+          ],
+          "anchor": "more-actions",
+          "maxOffset": 6,
+          "offsets": [
+            6,
+            6,
+            6,
+            6
+          ],
+          "pathStartsWithViewport": true,
+          "evenodd": true,
+          "fill": "rgba(11,16,36,0.55)",
+          "cutoutMatchesRing": true,
+          "ringInViewport": true
+        }
+      ],
+      "closedAfter": true
+    }
+  },
+  "pageErrors": [
+    "Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:",
+    "Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:"
+  ]
+}
