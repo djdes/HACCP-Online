@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
 import {
@@ -64,11 +65,18 @@ type JournalTemplateListItem = {
   filledToday: boolean;
   disabled: boolean;
   hasActiveDocumentToday?: boolean;
+  /** Снимок реального документа организации; null — показать образец. */
+  previewUrl?: string | null;
 };
 
 type JournalsBrowserProps = {
   templates: JournalTemplateListItem[];
   canBulkCreate?: boolean;
+  /**
+   * Менеджер может скрыть журнал с дашборда и включить обратно прямо
+   * из списка — тем же PATCH /api/settings/journals, что и настройки.
+   */
+  canToggle?: boolean;
 };
 
 // Коды, для которых в public/journal-samples лежит PNG бланка.
@@ -119,8 +127,16 @@ function normalizeSearchValue(value: string) {
 export function JournalsBrowser({
   templates,
   canBulkCreate = false,
+  canToggle = false,
 }: JournalsBrowserProps) {
   const router = useRouter();
+  // Полный список отключённых кодов: PATCH /api/settings/journals ждёт
+  // весь набор, а не дельту, поэтому карточка добавляет/убирает свой
+  // код к этому списку.
+  const disabledCodes = useMemo(
+    () => templates.filter((t) => t.disabled).map((t) => t.code),
+    [templates],
+  );
   const [query, setQuery] = useState("");
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -322,6 +338,8 @@ export function JournalsBrowser({
                   }
                   bulkSelected={selectedCodes.has(template.code)}
                   onBulkToggle={toggleSelect}
+                  canToggle={canToggle}
+                  disabledCodes={disabledCodes}
                 />
               ))}
             </div>
@@ -334,18 +352,30 @@ export function JournalsBrowser({
                   Отключённые журналы
                 </h3>
                 <span className="text-[13px] text-[#9b9fb3]">
-                  ({filteredDisabled.length}) — включить в{" "}
-                  <Link
-                    href="/settings/journals"
-                    className="font-medium text-[#5566f6] hover:underline"
-                  >
-                    настройках
-                  </Link>
+                  ({filteredDisabled.length})
+                  {canToggle ? (
+                    " — не показываются на дашборде и сотрудникам"
+                  ) : (
+                    <>
+                      {" "}— включить в{" "}
+                      <Link
+                        href="/settings/journals"
+                        className="font-medium text-[#5566f6] hover:underline"
+                      >
+                        настройках
+                      </Link>
+                    </>
+                  )}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
                 {filteredDisabled.map((template) => (
-                  <TemplateCard key={template.id} template={template} />
+                  <TemplateCard
+                    key={template.id}
+                    template={template}
+                    canToggle={canToggle}
+                    disabledCodes={disabledCodes}
+                  />
                 ))}
               </div>
             </section>
@@ -361,13 +391,55 @@ function TemplateCard({
   bulkSelectable = false,
   bulkSelected = false,
   onBulkToggle,
+  canToggle = false,
+  disabledCodes = [],
 }: {
   template: JournalTemplateListItem;
   bulkSelectable?: boolean;
   bulkSelected?: boolean;
   onBulkToggle?: (code: string) => void;
+  canToggle?: boolean;
+  disabledCodes?: string[];
 }) {
+  const router = useRouter();
+  const [hideConfirmOpen, setHideConfirmOpen] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const Icon = JOURNAL_ICONS[template.code] ?? NotebookPen;
+
+  // Тот же контракт, что у /settings/journals: отправляем полный список
+  // отключённых кодов. После ответа — refresh, чтобы карточка переехала
+  // между «включёнными» и «отключёнными» по данным сервера, а не по
+  // локальной догадке.
+  async function patchDisabled(next: string[], successText: string) {
+    setToggling(true);
+    try {
+      const res = await fetch("/api/settings/journals", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabledCodes: next }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error || "Не удалось сохранить настройку");
+      }
+      toast.success(successText);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить настройку");
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  function hideJournal() {
+    const next = Array.from(new Set([...disabledCodes, template.code]));
+    return patchDisabled(next, `Журнал скрыт: ${template.name}`);
+  }
+
+  function enableJournal() {
+    const next = disabledCodes.filter((code) => code !== template.code);
+    return patchDisabled(next, `Журнал включён: ${template.name}`);
+  }
   const isMandatory = template.isMandatorySanpin || template.isMandatoryHaccp;
   const isDaily = ALL_DAILY_JOURNAL_CODES.has(template.code);
   const needsAttentionToday =
@@ -375,14 +447,17 @@ function TemplateCard({
   const readyToday =
     !template.disabled && isMandatory && isDaily && template.filledToday;
   const hasSample = SAMPLE_CODES.has(template.code);
+  const previewSrc =
+    template.previewUrl ?? (hasSample ? `/journal-samples/${template.code}.png` : null);
 
-  // Превью настоящего бланка. По названию вроде «Чек-лист (памятка)
+  // Превью: снимок своего документа (cron journal-previews), а пока его
+  // нет — образец бланка. По названию вроде «Чек-лист (памятка)
   // проведения санитарного дня» невозможно вспомнить, что там за форма, —
   // картинка узнаётся мгновенно. Те же файлы, что на дашборде.
-  const preview = hasSample ? (
+  const preview = previewSrc ? (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/journal-samples/${template.code}.png`}
+      src={previewSrc}
       alt=""
       loading="lazy"
       className={cn(
@@ -421,12 +496,26 @@ function TemplateCard({
               <EyeOff className="size-3" />
               Отключён
             </span>
-            <Link
-              href={`/settings/journals#journal-${template.code}`}
-              className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6] hover:bg-[#eef1ff]"
-            >
-              Включить
-            </Link>
+            {canToggle ? (
+              // Включение безопасно (ничего не теряется), поэтому без
+              // подтверждения — одно нажатие.
+              <button
+                type="button"
+                onClick={enableJournal}
+                disabled={toggling}
+                className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6] transition-colors hover:bg-[#eef1ff] disabled:opacity-60"
+              >
+                <Eye className="size-3" />
+                {toggling ? "Включаю…" : "Включить"}
+              </button>
+            ) : (
+              <Link
+                href={`/settings/journals#journal-${template.code}`}
+                className="inline-flex items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#5566f6] hover:bg-[#eef1ff]"
+              >
+                Включить
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -434,7 +523,46 @@ function TemplateCard({
   }
 
   return (
-    <div className="relative">
+    <div className="group/card relative">
+      {canToggle ? (
+        <>
+          {/* Скрыть с дашборда. На десктопе кнопка проявляется по
+              наведению, чтобы не спорить со стрелкой и бейджами; на
+              телефоне hover'а нет — видна всегда, но полупрозрачная. */}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setHideConfirmOpen(true);
+            }}
+            disabled={toggling}
+            title="Скрыть с дашборда"
+            aria-label={`Скрыть «${template.name}» с дашборда`}
+            className="absolute right-2 top-2 z-10 flex size-7 items-center justify-center rounded-full bg-white/90 text-[#9b9fb3] shadow-[0_0_0_1px_rgba(220,223,237,0.9)] backdrop-blur transition-all duration-150 hover:text-[#5566f6] hover:shadow-[0_0_0_1px_rgba(85,102,246,0.6)] disabled:opacity-60 sm:opacity-0 sm:group-hover/card:opacity-100 sm:focus-visible:opacity-100"
+          >
+            <EyeOff className="size-3.5" />
+          </button>
+          <ConfirmDialog
+            open={hideConfirmOpen}
+            onClose={() => setHideConfirmOpen(false)}
+            onConfirm={async () => {
+              setHideConfirmOpen(false);
+              await hideJournal();
+            }}
+            variant="warn"
+            icon={EyeOff}
+            title="Скрыть журнал с дашборда?"
+            description={`«${template.name}» перестанет показываться как обязательный.`}
+            bullets={[
+              { label: "Исчезнет с дашборда и из Mini App у сотрудников", tone: "warn" },
+              { label: "Записи и документы сохраняются — ничего не удаляется" },
+              { label: "Включить обратно можно здесь же, в блоке «Отключённые журналы»", tone: "info" },
+            ]}
+            confirmLabel="Скрыть"
+          />
+        </>
+      ) : null}
       {bulkSelectable ? (
         <label
           className="absolute left-2 top-2 z-10 flex size-7 cursor-pointer items-center justify-center rounded-full bg-white/95 shadow-[0_0_0_1px_rgba(220,223,237,0.9)] backdrop-blur hover:shadow-[0_0_0_1px_rgba(85,102,246,0.6)]"

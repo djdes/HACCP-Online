@@ -9,6 +9,7 @@ import { PageGuide } from "@/components/ui/page-guide";
 import { normalizeSphere } from "@/lib/org-profile";
 import { paperJournalsFor } from "@/lib/sphere-journal-rules";
 import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
+import { getJournalPreviewMap } from "@/lib/journal-preview/service";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,9 @@ export default async function JournalsSettingsPage() {
     accessByTemplate.set(row.templateId, list);
   }
 
+  // Снимки реальных документов — те же, что на дашборде и в /journals.
+  const previewUrls = await getJournalPreviewMap(organizationId);
+
   const items = templates.map((t) => ({
     id: t.id,
     code: t.code,
@@ -80,6 +84,7 @@ export default async function JournalsSettingsPage() {
     description: t.description,
     isMandatorySanpin: t.isMandatorySanpin,
     isMandatoryHaccp: t.isMandatoryHaccp,
+    previewUrl: previewUrls.get(t.code) ?? null,
     enabled: !disabled.has(t.code),
     fillMode: getFillMode(t),
     defaultAssigneeId: t.defaultAssigneeId,

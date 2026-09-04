@@ -10,6 +10,7 @@ import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { getJournalPreviewMap } from "@/lib/journal-preview/service";
 import { hasCapability } from "@/lib/permission-presets";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,9 @@ export default async function JournalsPage() {
     ).map((d) => d.templateId)
   );
 
+  // Снимки реальных документов — те же, что на дашборде.
+  const previewUrls = await getJournalPreviewMap(getActiveOrgId(session));
+
   const items = visibleTemplates.map((template) => ({
     id: template.id,
     code: template.code,
@@ -89,6 +93,7 @@ export default async function JournalsPage() {
     filledToday: filledTodayIds.has(template.id),
     disabled: disabledCodes.has(template.code),
     hasActiveDocumentToday: activeTemplateIds.has(template.id),
+    previewUrl: previewUrls.get(template.code) ?? null,
   }));
 
   // Готовность считаем здесь же, из уже собранных items: в шапке нужна
@@ -159,7 +164,7 @@ export default async function JournalsPage() {
           },
         ]}
       />
-      <JournalsBrowser templates={items} canBulkCreate={isManager} />
+      <JournalsBrowser templates={items} canBulkCreate={isManager} canToggle={isManager} />
     </div>
   );
 }

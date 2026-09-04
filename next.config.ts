@@ -35,6 +35,11 @@ const nextConfig: NextConfig = {
   // сами в middleware: `/payment/` переписываем, остальным путям
   // отдаём тот же 308, что и раньше.
   skipTrailingSlashRedirect: true,
+  // Рендер превью журналов (PDF → PNG) идёт в Node без браузера: pdfjs
+  // тянет свой worker динамическим import'ом по относительному пути, а
+  // @napi-rs/canvas — нативный бинарник. Внутри серверного бандла ни то,
+  // ни другое не работает — оставляем их обычными node_modules.
+  serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
   typescript: {
     // Temporary deploy unblocker: unrelated dashboard pages still carry legacy Next build type errors.
     ignoreBuildErrors: true,
@@ -158,8 +163,12 @@ const nextConfig: NextConfig = {
         // скачивание заново гоняло jsPDF на полмегабайта, а роут открыт
         // без сессии — бесплатная нагрузка на CPU для любого желающего.
         // Свой Cache-Control роут выставляет сам.
+        // api/journal-previews — снимки журналов организации: приватные
+        // (`private, immutable`), версия в URL меняется с перерисовкой,
+        // поэтому браузер держит их сколько угодно. Под no-store каждая
+        // карточка дашборда заново качала бы ~100 КБ PNG.
         source:
-          "/((?!_next/static|_next/image|api/journal-samples|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
+          "/((?!_next/static|_next/image|api/journal-samples|api/journal-previews|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
         headers: [
           {
             key: "Cache-Control",

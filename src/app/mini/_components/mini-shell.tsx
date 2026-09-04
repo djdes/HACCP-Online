@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
+import { PartnerHint } from "@/components/partner/partner-hint";
+import type { PartnerHintRates } from "@/lib/partners/partner-hint";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
@@ -141,7 +143,12 @@ function formatClock(d: Date): string {
   return `${h}:${m}:${s}`;
 }
 
-export function MiniTopBar() {
+export function MiniTopBar({
+  partnerHint = null,
+}: {
+  /** Ставки для иконки «партнёрская программа» у логотипа; null — скрыть. */
+  partnerHint?: PartnerHintRates | null;
+} = {}) {
   const pathname = usePathname();
   const title = titleForPath(pathname);
 
@@ -181,8 +188,21 @@ export function MiniTopBar() {
             />
           </span>
           <div className="min-w-0">
-            <div className="mini-eyebrow" style={{ opacity: 0.75 }}>
+            <div className="mini-eyebrow flex items-center gap-1" style={{ opacity: 0.75 }}>
               <BrandLogo height={14} title="WeSetup" />
+              {partnerHint ? (
+                // Внутри <Link> на главную: клик по иконке не должен
+                // уводить на /mini — гасим переход здесь.
+                <span
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  className="inline-flex"
+                >
+                  <PartnerHint rates={partnerHint} variant="mini" className="size-6" />
+                </span>
+              ) : null}
             </div>
             <div
               className="mini-display-bold truncate"

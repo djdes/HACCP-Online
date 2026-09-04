@@ -32,6 +32,7 @@ import {
 } from "@/lib/partners/branding";
 import { toConsultantContact } from "@/lib/partners/consultant-contact";
 import { getPartnerMembership } from "@/lib/partners/service";
+import { getPartnerHintRates } from "@/lib/partners/partner-hint";
 import "@/app/app-theme.css";
 
 export const dynamic = "force-dynamic";
@@ -193,6 +194,15 @@ export default async function DashboardLayout({
   // сохранении (`checkAccent`), но hex-формат перепроверяем перед
   // вставкой в <style>.
   const consultant = toConsultantContact(partnerBranding);
+
+  // Иконка «партнёрская программа» у логотипа. Считается после брендинга:
+  // под чужим (white-label) логотипом звать под свой бренд неуместно.
+  const headerLogoUrl = brandedOrg?.logoUrl ?? consultant?.logoUrl ?? null;
+  const partnerHint = await getPartnerHintRates({
+    organizationId: activeOrgId,
+    userId: session.user.id,
+    hasWhiteLabelLogo: Boolean(headerLogoUrl),
+  });
   const partnerAccent =
     !brandColor &&
     consultant?.accentColor &&
@@ -259,7 +269,7 @@ export default async function DashboardLayout({
             userName={session.user.name ?? "Пользователь"}
             userEmail={session.user.email ?? ""}
             organizationName={impersonatedName ?? session.user.organizationName ?? ""}
-            organizationLogoUrl={brandedOrg?.logoUrl ?? consultant?.logoUrl ?? null}
+            organizationLogoUrl={headerLogoUrl}
             userRole={session.user.role ?? ""}
             positionTitle={profile?.positionTitle ?? ""}
             isRoot={session.user.isRoot === true}
@@ -273,6 +283,7 @@ export default async function DashboardLayout({
             canCreateOrganization={Boolean(ownedAccount)}
             organizationSphere={brandedOrg?.type ?? "restaurant"}
             partnerCabinet={partnerCabinet}
+            partnerHint={partnerHint}
           />
           {/* Быстрый старт только что созданной точки. Живёт в layout'е,
               а не на странице дашборда: баннер сам решает показываться

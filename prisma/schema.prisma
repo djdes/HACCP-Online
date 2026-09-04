@@ -363,6 +363,7 @@ model Organization {
   journalGuideTemplates          JournalGuideTemplate[]
   journalPipelineTemplates       JournalPipelineTemplate[]
   partnerClients                 PartnerClient[]                @relation("PartnerClients")
+  journalPreviews                JournalPreview[]
 
   @@index([isDemo, demoExpiresAt])
 }
@@ -2783,4 +2784,26 @@ model TemperatureDeviationIncident {
 
   @@index([organizationId, resolvedAt])
   @@index([subjectKey, resolvedAt])
+}
+
+/// Снимок первой страницы активного документа журнала — превью карточки
+/// на дашборде и в списках вместо статичного образца. Рендерится cron'ом
+/// (`/api/cron/journal-previews`) из того же PDF, что идёт на печать;
+/// одна строка на (организация, код журнала), перерисовка перезаписывает.
+model JournalPreview {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  code            String
+  documentId      String
+  png             Bytes
+  width           Int
+  height          Int
+  /// `JournalDocument.updatedAt` на момент рендера — по нему cron понимает,
+  /// что документ изменился и превью устарело.
+  sourceUpdatedAt DateTime
+  renderedAt      DateTime     @default(now())
+
+  @@unique([organizationId, code])
+  @@index([renderedAt])
 }

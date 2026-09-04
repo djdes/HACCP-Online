@@ -3,6 +3,8 @@ import Script from "next/script";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getPartnerHintRates } from "@/lib/partners/partner-hint";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
@@ -70,6 +72,16 @@ export default async function MiniLayout({
     return user?.themePreference === "light" ? "light" : "dark";
   })();
 
+  // Та же иконка партнёрской программы, что на сайте (П-3). Mini App
+  // без white-label шапки, поэтому логотип-условие всегда false.
+  const partnerHint = session?.user?.id
+    ? await getPartnerHintRates({
+        organizationId: getActiveOrgId(session),
+        userId: session.user.id,
+        hasWhiteLabelLogo: false,
+      })
+    : null;
+
   return (
     <>
       <Script
@@ -109,7 +121,7 @@ export default async function MiniLayout({
             suppressHydrationWarning
           >
             <MiniThemeBootstrap />
-            <MiniTopBar />
+            <MiniTopBar partnerHint={partnerHint} />
             {/* Safe-area-inset для iPhone notch и home-indicator. На
                 iPhone X+ Telegram WebApp в expand-режиме растягивается
                 на всю высоту, и без учёта env(safe-area-inset-*) контент

@@ -109,16 +109,22 @@ export function DashboardSection({
           ) : null}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
+              {/* Бейдж-счётчик живёт ВНУТРИ заголовка, а не рядом: на
+                  390px «Обязательные журналы» занимает всю ширину группы,
+                  и отдельный flex-элемент падал на следующую строку под
+                  название. Как inline-часть текста он переносится вместе
+                  с последним словом («…журналы 3/5»), а на десктопе стоит
+                  там же, где стоял. */}
               <h3 className="text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[16px]">
                 {title}
+                {badge ? (
+                  <span
+                    className={`ml-2 inline-flex translate-y-[-1px] items-center whitespace-nowrap rounded-full px-2 py-0.5 align-middle text-[11px] font-semibold ${TONE_CLS[badge.tone ?? "default"]}`}
+                  >
+                    {badge.text}
+                  </span>
+                ) : null}
               </h3>
-              {badge ? (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${TONE_CLS[badge.tone ?? "default"]}`}
-                >
-                  {badge.text}
-                </span>
-              ) : null}
               {titleAction}
             </div>
             {subtitle ? (

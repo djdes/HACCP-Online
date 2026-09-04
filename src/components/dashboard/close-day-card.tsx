@@ -198,28 +198,30 @@ export function CloseDayCard({
       // Секция раскрывается по клику на <summary>; кнопки лежат внутри
       // него, поэтому событие гасим здесь — иначе каждое нажатие
       // сворачивало бы список журналов.
-      // На мобиле кнопки идут друг под другом во всю ширину: в строку
-      // они не влезали (~380px текста) и выталкивали шапку секции за
-      // край экрана. Заодно тап-таргет становится полноширинным.
+      // На мобиле кнопки стоят рядом в два столбца: секция и так
+      // отдаёт им отдельную строку под заголовком, а столбиком они
+      // съедали два ряда. Чтобы влезть в 390px, вторая подпись
+      // укорочена до «Выборочно». Тап-таргет 44px.
       <div
-        className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center"
+        className="grid w-full grid-cols-2 gap-2 sm:flex sm:items-center"
         onClick={(e) => e.preventDefault()}
       >
         <button
           type="button"
           onClick={() => setConfirming(true)}
           disabled={busy}
-          className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-1"
+          className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:h-10 sm:flex-1"
         >
           <CheckCheck className="size-4" />
           {busy ? "Заполняю…" : "Закрыть день"}
         </button>
         <Link
           href="/dashboard/catch-up"
-          className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:flex-1"
+          className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:h-10 sm:flex-1"
         >
           <Wand2 className="size-4 text-[#5566f6]" />
-          Закрыть выборочно
+          <span className="sm:hidden">Выборочно</span>
+          <span className="hidden sm:inline">Закрыть выборочно</span>
         </Link>
         {/* Итог показываем тостом, а не строкой рядом с кнопками:
             в шапке секции ей негде развернуться, а цифры нужны сразу

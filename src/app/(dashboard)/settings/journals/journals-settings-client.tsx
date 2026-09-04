@@ -50,6 +50,8 @@ type Item = {
   id: string;
   code: string;
   name: string;
+  /** Снимок реального документа организации; null — показать образец. */
+  previewUrl?: string | null;
   description: string | null;
   isMandatorySanpin: boolean;
   isMandatoryHaccp: boolean;
@@ -395,9 +397,11 @@ export function JournalsSettingsClient({
             enabled ? "bg-[#7cf5c0]" : "bg-[#ececf4]"
           }`}
         />
-        {sampleSet.has(item.code)
-          ? renderPreview(`/journal-samples/${item.code}.png`, item.name, "green")
-          : null}
+        {item.previewUrl
+          ? renderPreview(item.previewUrl, item.name, "green")
+          : sampleSet.has(item.code)
+            ? renderPreview(`/journal-samples/${item.code}.png`, item.name, "green")
+            : null}
 
         <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
           <div className="flex items-start gap-2">

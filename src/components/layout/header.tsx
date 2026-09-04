@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
+import { PartnerHint } from "@/components/partner/partner-hint";
+import type { PartnerHintRates } from "@/lib/partners/partner-hint";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -142,6 +144,12 @@ type HeaderProps = {
    * Партнёрский кабинет» в меню профиля.
    */
   partnerCabinet?: { brandName: string } | null;
+  /**
+   * Ставки партнёрской программы для еле заметной иконки у логотипа.
+   * `null` — не показывать (клиент партнёра, сам партнёр, white-label,
+   * платформенная организация). См. `getPartnerHintRates`.
+   */
+  partnerHint?: PartnerHintRates | null;
 };
 
 export function Header({
@@ -162,6 +170,7 @@ export function Header({
   freeUserLimit,
   billingTestMode,
   partnerCabinet = null,
+  partnerHint = null,
 }: HeaderProps) {
   const pathname = usePathname();
   const headerUndo = useHeaderUndo();
@@ -296,6 +305,7 @@ export function Header({
             </span>
           )}
         </Link>
+        {partnerHint ? <PartnerHint rates={partnerHint} className="-ml-1" /> : null}
 
         {/*
           Desktop: only the home pill is visible. Secondary nav lives in a

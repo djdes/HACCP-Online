@@ -34,6 +34,7 @@ import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
 import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
+import { getJournalPreviewMap } from "@/lib/journal-preview/service";
 import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { MedBooksExpiryCard } from "@/components/dashboard/med-books-expiry-card";
 import {
@@ -240,6 +241,9 @@ export default async function DashboardPage() {
   const selectedEnabledTemplates = templates.filter(
     (t) => !disabledCodes.has(t.code)
   );
+  // Снимки реальных документов (cron journal-previews). Нет снимка —
+  // карточка показывает стандартный образец, ждать нечего.
+  const previewUrls = await getJournalPreviewMap(organizationId);
   const complianceItems = selectedEnabledTemplates.map((t) => ({
     id: t.id,
     name: t.name,
@@ -247,6 +251,7 @@ export default async function DashboardPage() {
     filled: filledTodayIds.has(t.id),
     isSanpin: t.isMandatorySanpin,
     isHaccp: t.isMandatoryHaccp,
+    previewUrl: previewUrls.get(t.code) ?? null,
   }));
   const unfilledCount = complianceItems.filter((c) => !c.filled).length;
   const filledCount = complianceItems.length - unfilledCount;
@@ -308,13 +313,16 @@ export default async function DashboardPage() {
                 <Link
                   href="/settings/journals"
                   title="Выбрать, какие журналы вести"
+                  aria-label="Настройка журналов"
                   // Обычная кнопка с рамкой, а не мягкая плашка: слева
                   // в шапке секции стоит такая же по форме плашка с
                   // иконкой, и было непонятно, что из двух нажимается.
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#3848c7]"
+                  // На телефоне — только иконка: со словом «Настройка»
+                  // строка заголовка не вмещала счётчик и стрелку.
+                  className="inline-flex size-9 items-center justify-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white text-[13px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#3848c7] sm:w-auto sm:px-3"
                 >
                   <SlidersHorizontal className="size-4 text-[#5566f6]" />
-                  Настройка
+                  <span className="hidden sm:inline">Настройка</span>
                 </Link>
               }
               badge={
@@ -340,14 +348,15 @@ export default async function DashboardPage() {
                         : "border-[#ffd2cd] hover:border-[#ff8d7d]"
                     )}
                   >
-                    {/* Превью настоящего бланка: по названию вроде
-                        «Чек-лист (памятка) проведения санитарного дня»
-                        невозможно вспомнить, что там за форма. Картинки
-                        те же, что на публичных страницах журналов. */}
-                    {SAMPLE_CODES.has(item.code) ? (
+                    {/* Превью: снимок первой страницы своего документа,
+                        если cron уже отрисовал, иначе стандартный образец
+                        бланка — по названию вроде «Чек-лист (памятка)
+                        проведения санитарного дня» невозможно вспомнить,
+                        что там за форма. */}
+                    {item.previewUrl || SAMPLE_CODES.has(item.code) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`/journal-samples/${item.code}.png`}
+                        src={item.previewUrl ?? `/journal-samples/${item.code}.png`}
                         alt=""
                         loading="lazy"
                         className="aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top"
@@ -404,14 +413,17 @@ export default async function DashboardPage() {
                   </Link>
                 ))}
 
-                {/* Бумажные журналы. Та же геометрия, но янтарные и без
+                {/* Бумажные журналы. Та же геометрия, но нейтральные и без
                     статуса: отметить «заполнено» в системе нельзя —
-                    подпись ставится ручкой на распечатанном листе. */}
+                    подпись ставится ручкой на распечатанном листе. Цвет
+                    (зелёный/красный) остаётся только у электронных, где он
+                    что-то значит; янтарный «третий статус» читался как
+                    предупреждение. */}
                 {paperItems.map((paper) => (
                   <Link
                     key={paper.id}
                     href={`/settings/journals/paper/${paper.id}`}
-                    className="group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ffe9b0] bg-[#fffaf0] transition-colors duration-150 hover:border-[#f5c451]"
+                    className="group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ececf4] bg-[#fafbff] transition-colors duration-150 hover:border-[#5566f6]/40"
                   >
                     {/* Превью настоящего бланка — тот же конвейер, что у
                         электронных образцов (paper_<id>.png). Скелет-заглушка
@@ -421,10 +433,10 @@ export default async function DashboardPage() {
                       src={`/journal-samples/paper_${paper.id}.png`}
                       alt=""
                       loading="lazy"
-                      className="aspect-[1228/862] w-full border-b border-[#ffe9b0] bg-white object-cover object-top"
+                      className="aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top"
                     />
                     <span className="flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 py-3">
-                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#fff1d6] px-2 py-0.5 text-[11px] font-medium text-[#b45309]">
+                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#3848c7]">
                         <Printer className="size-3" />
                         {/* На телефоне полная подпись «Бумажный ·
                             распечатать» переносилась в две строки внутри
@@ -434,7 +446,7 @@ export default async function DashboardPage() {
                           Бумажный · распечатать
                         </span>
                       </span>
-                      <span className="line-clamp-3 break-words text-[13px] font-semibold leading-snug tracking-[-0.01em] text-[#8a4a08] sm:line-clamp-2 sm:text-[15px]">
+                      <span className="line-clamp-3 break-words text-[13px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024] sm:line-clamp-2 sm:text-[15px]">
                         {paper.name}
                       </span>
                     </span>
