@@ -129,6 +129,29 @@ export async function DELETE(
     );
   }
 
-  await db.user.delete({ where: { id: user.id } });
+  // Room.cleanerUserIds / verifierUserIds — String[] без FK: вычищаем
+  // id сотрудника, чтобы карточки помещений не ссылались на удалённого.
+  const rooms = await db.room.findMany({
+    where: {
+      building: { organizationId: orgId },
+      OR: [
+        { cleanerUserIds: { has: user.id } },
+        { verifierUserIds: { has: user.id } },
+      ],
+    },
+    select: { id: true, cleanerUserIds: true, verifierUserIds: true },
+  });
+  await db.$transaction([
+    ...rooms.map((room) =>
+      db.room.update({
+        where: { id: room.id },
+        data: {
+          cleanerUserIds: room.cleanerUserIds.filter((x) => x !== user.id),
+          verifierUserIds: room.verifierUserIds.filter((x) => x !== user.id),
+        },
+      }),
+    ),
+    db.user.delete({ where: { id: user.id } }),
+  ]);
   return NextResponse.json({ ok: true });
 }

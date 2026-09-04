@@ -338,7 +338,13 @@ export type CleaningDocumentConfig = {
   /// verifierUserId per-row через AdapterRow.verifierUserId, и
   /// bulk-assign создаёт supervisor-task на этого юзера вместо
   /// document-wide.
-  verifierByRoomId?: Record<string, string>;
+  ///
+  /// 2026-09-04: список (несколько проверяющих у помещения). Первый —
+  /// проверяющий задачи в TF, все — получают вечернюю сводку по своим
+  /// помещениям. Источник — Room.verifierUserIds, подмешивается в
+  /// эффективный конфиг через applyRoomResponsiblesToConfig
+  /// (src/lib/cleaning-room-responsibles.ts). Legacy string → [string].
+  verifierByRoomId?: Record<string, string[]>;
   /// 2026-09: закрепление зон «по желанию». roomId → уборщики зоны
   /// (подмножество selectedCleanerUserIds). Один id — зона закреплена,
   /// несколько — гонка внутри зоны. Комната без записи → пул как раньше
@@ -1328,13 +1334,17 @@ export function normalizeCleaningDocumentConfig(
       )
     : [];
   next.roomsRaceMode = record.roomsRaceMode === true;
-  // Per-room verifiers: filter only valid string→string entries.
+  // Per-room verifiers: string (legacy) или string[] → string[] без
+  // дублей и пустых значений.
   if (record.verifierByRoomId && typeof record.verifierByRoomId === "object" && !Array.isArray(record.verifierByRoomId)) {
-    const cleaned: Record<string, string> = {};
-    for (const [roomId, uid] of Object.entries(record.verifierByRoomId as Record<string, unknown>)) {
-      if (typeof roomId === "string" && typeof uid === "string" && uid.length > 0) {
-        cleaned[roomId] = uid;
-      }
+    const cleaned: Record<string, string[]> = {};
+    for (const [roomId, raw] of Object.entries(record.verifierByRoomId as Record<string, unknown>)) {
+      if (typeof roomId !== "string" || roomId.length === 0) continue;
+      const list = Array.isArray(raw) ? raw : [raw];
+      const ids = Array.from(
+        new Set(list.filter((x): x is string => typeof x === "string" && x.length > 0)),
+      );
+      if (ids.length > 0) cleaned[roomId] = ids;
     }
     next.verifierByRoomId = cleaned;
   } else {
@@ -1421,7 +1431,27 @@ export function resolveRoomCleaners(
   return [pool[idx % pool.length]];
 }
 
-/** Кто контролирует комнату: зона → документ → первый из controlResponsibles. */
+/**
+ * Кто проверяет комнату — список: проверяющие помещения (Room.verifierUserIds
+ * через эффективный конфиг) → контролёр документа → первый из
+ * controlResponsibles. Первый в списке — проверяющий задачи в TF,
+ * остальные получают вечернюю сводку по своим помещениям.
+ */
+export function resolveRoomControllers(
+  config: Pick<
+    CleaningDocumentConfig,
+    "verifierByRoomId" | "controlUserId" | "controlResponsibles"
+  >,
+  roomId: string,
+): string[] {
+  const zone = config.verifierByRoomId?.[roomId];
+  if (Array.isArray(zone) && zone.length > 0) return [...zone];
+  const fallback =
+    config.controlUserId ?? config.controlResponsibles?.[0]?.userId ?? null;
+  return fallback ? [fallback] : [];
+}
+
+/** Кто контролирует комнату (основной): первый из resolveRoomControllers. */
 export function resolveRoomController(
   config: Pick<
     CleaningDocumentConfig,
@@ -1429,13 +1459,18 @@ export function resolveRoomController(
   >,
   roomId: string,
 ): string | null {
-  return (
-    config.verifierByRoomId?.[roomId] ??
-    config.controlUserId ??
-    config.controlResponsibles?.[0]?.userId ??
-    null
-  );
+  return resolveRoomControllers(config, roomId)[0] ?? null;
 }
+
+/**
+ * Подписи нижних строк журнала уборки (экран, карточки списка, PDF).
+ * Совпадают с названиями слотов в /settings/journal-responsibles.
+ * Хранимые `title` ответственных (должность) — отдельное поле, не они.
+ */
+export const CLEANING_ROW_LABELS = {
+  cleaning: "Старший по уборке",
+  control: "Контролёр",
+} as const;
 
 /**
  * Легенда «Ответственный за уборку» — коды С1…СN. Rooms-mode с непустым
@@ -1505,9 +1540,9 @@ export function validateCleaningDocumentConfig(
       config.selectedCleanerUserIds.length === 0
     ) {
       throw new Error(
-        "Режим «По комнатам» требует выбрать хотя бы одного уборщика " +
-          "(selectedCleanerUserIds). Открой настройки документа и " +
-          "отметь сотрудников.",
+        "Режим «По комнатам» требует хотя бы одного уборщика: выберите " +
+          "уборщиков в пуле документа или назначьте их помещениям в " +
+          "«Настройки → Помещения».",
       );
     }
   }

@@ -52,7 +52,11 @@ export const cleaningConfigSchema = z.object({
   selectedRoomIds: z.array(z.string()).optional().default([]),
   selectedCleanerUserIds: z.array(z.string()).optional().default([]),
   controlUserId: z.string().nullable().optional(),
-  verifierByRoomId: z.record(z.string(), z.string()).optional().default({}),
+  // 2026-09-04: список проверяющих; string — legacy-документы.
+  verifierByRoomId: z
+    .record(z.string(), z.union([z.string(), z.array(z.string())]))
+    .optional()
+    .default({}),
   cleanerByRoomId: z.record(z.string(), z.array(z.string())).optional().default({}),
   roomsRaceMode: z.boolean().optional(),
 

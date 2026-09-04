@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-09-04T00:00:00.000Z",
+  "checks": {
+    "tsc": "PASS",
+    "lint": "PASS (0 errors, inherited warnings only)",
+    "tests": "PASS (524/524)",
+    "prismaDbPush": "PASS (Room.cleanerUserIds, Room.verifierUserIds)"
+  },
+  "results": [
+    { "ac": "AC1", "ok": true, "note": "cleaning-room-responsibles.test.ts: 6 tests" },
+    { "ac": "AC2", "ok": true, "note": "resolveRoomControllers + legacy coercion tests" },
+    { "ac": "AC3", "ok": true, "note": "RoomEditorDialog + MultiUserPicker; PATCH validates org users, dedupe, max 30" },
+    { "ac": "AC4", "ok": true, "note": "roomAssignmentLabel/roomVerifierLabel desktop + mobile, click opens room editor" },
+    { "ac": "AC5", "ok": true, "note": "adapter, override-sync, pdf, document PATCH use effective config" },
+    { "ac": "AC6", "ok": true, "note": "addRoom opens editor for created room" },
+    { "ac": "AC7", "ok": true, "note": "buildings row chips" },
+    { "ac": "AC8", "ok": true, "note": "CLEANING_ROW_LABELS in client, list cards, pdf" },
+    { "ac": "AC9", "ok": true, "note": "digest fan-out per verifier; parse/build/scope tests" },
+    { "ac": "AC10", "ok": true, "note": "whats-new updated; SHA in follow-up commit" }
+  ]
+}

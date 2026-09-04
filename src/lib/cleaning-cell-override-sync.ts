@@ -19,6 +19,7 @@
  * сотрудник, без необходимости manipulate'ить recurring-задачи.
  */
 import { db } from "@/lib/db";
+import { applyRoomResponsiblesToConfig } from "@/lib/cleaning-room-responsibles";
 import {
   TasksFlowError,
   tasksflowClientFor,
@@ -222,7 +223,7 @@ export async function syncCleaningCellOverride(
     select: { config: true, organizationId: true },
   });
   if (!doc || doc.organizationId !== args.organizationId) return;
-  const config = normalizeCleaningDocumentConfig(
+  const rawConfig = normalizeCleaningDocumentConfig(
     doc.config,
   ) as CleaningDocumentConfig;
 
@@ -236,8 +237,21 @@ export async function syncCleaningCellOverride(
       requirePhoto: true,
       currentScope: true,
       generalScope: true,
+      cleanerUserIds: true,
+      verifierUserIds: true,
     },
   });
+  // Эффективный конфиг: уборщики/проверяющие помещения из Room
+  // (та же точка слияния, что у адаптера и PDF).
+  const activeUsers = await db.user.findMany({
+    where: { organizationId: args.organizationId, archivedAt: null },
+    select: { id: true },
+  });
+  const config = applyRoomResponsiblesToConfig(
+    rawConfig,
+    buildingRooms,
+    new Set(activeUsers.map((u) => u.id)),
+  );
   const roomName = findRoomName(config, buildingRooms, args.roomId);
   // Effective requirePhoto = Room.requirePhoto OR любой scope-step
   // имеет explicit per-step requirePhoto=true.

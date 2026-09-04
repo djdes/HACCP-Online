@@ -80,7 +80,7 @@ test("normalizeCleaningDocumentConfig: cleanerByRoomId проходит норм
 test("resolveRoomController: зона → документ → controlResponsibles[0]", () => {
   const ctrl = { id: "c", kind: "control" as const, title: "", userId: "boss", userName: "", code: "С1" };
   assert.equal(
-    resolveRoomController({ verifierByRoomId: { r1: "v1" }, controlUserId: "d", controlResponsibles: [ctrl] }, "r1"),
+    resolveRoomController({ verifierByRoomId: { r1: ["v1"] }, controlUserId: "d", controlResponsibles: [ctrl] }, "r1"),
     "v1",
   );
   assert.equal(

@@ -6,8 +6,10 @@ import {
   listCleaningRoomCompletions,
   normalizeCleaningDocumentConfig,
   resolveDocumentController,
+  resolveRoomControllers,
   type CleaningDocumentConfig,
 } from "@/lib/cleaning-document";
+import { applyRoomResponsiblesToConfig } from "@/lib/cleaning-room-responsibles";
 import { tasksflowClientFor } from "@/lib/tasksflow-client";
 import { buildControlRowKey } from "@/lib/tasksflow-adapters/cleaning";
 
@@ -22,16 +24,19 @@ export const dynamic = "force-dynamic";
  * условно «конец рабочего дня». Для каждой org с rooms-mode cleaning
  * журналом и подключённой TasksFlow интеграцией:
  *   1. Считает сегодняшние JournalDocumentEntry с kind="cleaning_room".
- *   2. Если ≥ 1 entry — формирует одну сводную TF-задачу
- *      контролёру (controlUserId из config) с описанием:
- *      «Помещение1 ✓ Иванов, Помещение2 ✓ Петров…».
- *   3. rowKey задачи = `control::{documentId}::{dateKey}`. Сохраняем
- *      TasksFlowTaskLink, чтобы при complete webhook прокинул
- *      controllerCompletedAt всем entries (см. applyControlCompletion
- *      в cleaning адаптере).
+ *   2. Раскладывает выполненные помещения по проверяющим
+ *      (resolveRoomControllers по эффективному конфигу: свои
+ *      проверяющие помещения → контролёр документа) и формирует
+ *      каждому одну сводную TF-задачу ТОЛЬКО по его помещениям:
+ *      «Помещение1 — Иванов, Помещение2 — Петров…».
+ *   3. rowKey задачи: контролёр документа — `control::{documentId}::{dateKey}`
+ *      (legacy-ключ), свой проверяющий — `control::{documentId}::{dateKey}::{verifierId}`.
+ *      Сохраняем TasksFlowTaskLink, чтобы при complete webhook прокинул
+ *      controllerCompletedAt entries по его помещениям (см.
+ *      applyControlCompletion + controllerScopeRoomIds в cleaning адаптере).
  *
- * Idempotent: если control-task за этот дневой dateKey уже создан,
- * пропускаем.
+ * Idempotent: если control-task с этим rowKey за сегодня уже создан,
+ * пропускаем. Повторный запуск в окне ничего не создаёт.
  */
 async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
@@ -79,36 +84,39 @@ async function handle(request: Request) {
     const todayKey = now.toISOString().slice(0, 10);
     const todayDate = new Date(`${todayKey}T00:00:00.000Z`);
 
-    const docs = await db.journalDocument.findMany({
-      where: {
-        organizationId: integration.organizationId,
-        status: "active",
-        template: { code: CLEANING_DOCUMENT_TEMPLATE_CODE },
-      },
-      select: { id: true, title: true, config: true },
-    });
+    const [docs, orgRooms, activeUsers] = await Promise.all([
+      db.journalDocument.findMany({
+        where: {
+          organizationId: integration.organizationId,
+          status: "active",
+          template: { code: CLEANING_DOCUMENT_TEMPLATE_CODE },
+        },
+        select: { id: true, title: true, config: true },
+      }),
+      // Назначения помещений (кто проверяет) — для эффективного конфига.
+      db.room.findMany({
+        where: { building: { organizationId: integration.organizationId } },
+        select: { id: true, name: true, cleanerUserIds: true, verifierUserIds: true },
+      }),
+      db.user.findMany({
+        where: { organizationId: integration.organizationId, archivedAt: null },
+        select: { id: true, name: true },
+      }),
+    ]);
+    const activeUserIds = new Set(activeUsers.map((u) => u.id));
+    const roomNameById = new Map(orgRooms.map((r) => [r.id, r.name]));
+    const userNameById = new Map(activeUsers.map((u) => [u.id, u.name]));
 
     for (const doc of docs) {
-      const config = normalizeCleaningDocumentConfig(
-        doc.config
-      ) as CleaningDocumentConfig;
+      const config = applyRoomResponsiblesToConfig(
+        normalizeCleaningDocumentConfig(doc.config) as CleaningDocumentConfig,
+        orgRooms,
+        activeUserIds,
+      );
       if (config.cleaningMode !== "rooms") continue;
       // 2026-09: контролёр через резолвер — controlUserId давно не
       // пишется UI, fallback на controlResponsibles[0] оживляет дайджест.
-      const controllerUserId = resolveDocumentController(config);
-      if (!controllerUserId) continue;
-
-      const rowKey = buildControlRowKey(doc.id, todayKey);
-
-      // Idempotency — control-задача уже создана сегодня?
-      const existing = await db.tasksFlowTaskLink.findFirst({
-        where: {
-          integrationId: integration.id,
-          rowKey,
-        },
-        select: { id: true },
-      });
-      if (existing) continue;
+      const documentController = resolveDocumentController(config);
 
       const entries = await db.journalDocumentEntry.findMany({
         where: {
@@ -123,80 +131,89 @@ async function handle(request: Request) {
         continue;
       }
 
-      // Подгружаем имена помещений и cleaner-ов для description.
       // Одна entry = все зоны уборщика за день (data.rooms).
       const completions = entries.flatMap((e) =>
         listCleaningRoomCompletions(e.data),
       );
-      const roomIds = Array.from(new Set(completions.map((c) => c.roomId)));
-      const cleanerIds = Array.from(
-        new Set(completions.map((c) => c.cleanerUserId).filter(Boolean)),
-      );
-      const [rooms, users] = await Promise.all([
-        db.room.findMany({
-          where: { id: { in: roomIds } },
-          select: { id: true, name: true },
-        }),
-        db.user.findMany({
-          where: { id: { in: cleanerIds } },
-          select: { id: true, name: true },
-        }),
-      ]);
-      const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
-      const userNameById = new Map(users.map((u) => [u.id, u.name]));
 
-      const lines = completions
-        .map((c) => {
-          const roomName = roomNameById.get(c.roomId) ?? "(помещение)";
-          const cleanerName = userNameById.get(c.cleanerUserId) ?? "(сотрудник)";
-          return `• ${roomName} — ${cleanerName}`;
-        })
-        .join("\n");
-
-      // Линк контролёра в TF (он должен быть синкан).
-      const controllerLink = await db.tasksFlowUserLink.findFirst({
-        where: {
-          integrationId: integration.id,
-          wesetupUserId: controllerUserId,
-        },
-        select: { tasksflowUserId: true },
-      });
-      if (!controllerLink?.tasksflowUserId) {
-        errors.push({
-          orgId: integration.organizationId,
-          reason: "controller not linked to TasksFlow",
-        });
-        continue;
+      // Проверяющий → его помещения (из сегодняшних выполнений).
+      const roomsByVerifier = new Map<string, Set<string>>();
+      for (const roomId of new Set(completions.map((c) => c.roomId))) {
+        for (const verifierId of resolveRoomControllers(config, roomId)) {
+          const set = roomsByVerifier.get(verifierId) ?? new Set<string>();
+          set.add(roomId);
+          roomsByVerifier.set(verifierId, set);
+        }
       }
+      if (roomsByVerifier.size === 0) continue;
 
-      try {
-        const client = tasksflowClientFor(integration);
-        const task = await client.createTask({
-          title: `Контроль уборки · ${todayKey}`,
-          workerId: controllerLink.tasksflowUserId,
-          requiresPhoto: false,
-          isRecurring: false,
-          weekDays: [],
-          category: "WeSetup · Уборка · Контроль",
-          description: `Журнал: ${doc.title}\nПроверь выполненные сегодня уборки:\n${lines}`,
+      for (const [verifierId, roomIds] of roomsByVerifier) {
+        // Контролёр документа — legacy-ключ без суффикса (идемпотентность
+        // уже созданных задач сохраняется); свой проверяющий — с суффиксом.
+        const rowKey = buildControlRowKey(
+          doc.id,
+          todayKey,
+          verifierId === documentController ? null : verifierId,
+        );
+
+        // Idempotency — control-задача этому проверяющему уже создана сегодня?
+        const existing = await db.tasksFlowTaskLink.findFirst({
+          where: { integrationId: integration.id, rowKey },
+          select: { id: true },
         });
-        await db.tasksFlowTaskLink.create({
-          data: {
-            integrationId: integration.id,
-            journalCode: CLEANING_DOCUMENT_TEMPLATE_CODE,
-            journalDocumentId: doc.id,
-            rowKey,
-            tasksflowTaskId: task.id,
-            remoteStatus: "active",
-            lastDirection: "push",
-          },
+        if (existing) continue;
+
+        const lines = completions
+          .filter((c) => roomIds.has(c.roomId))
+          .map((c) => {
+            const roomName = roomNameById.get(c.roomId) ?? "(помещение)";
+            const cleanerName = userNameById.get(c.cleanerUserId) ?? "(сотрудник)";
+            return `• ${roomName} — ${cleanerName}`;
+          })
+          .join("\n");
+
+        // Линк проверяющего в TF (он должен быть синкан).
+        const verifierLink = await db.tasksFlowUserLink.findFirst({
+          where: { integrationId: integration.id, wesetupUserId: verifierId },
+          select: { tasksflowUserId: true },
         });
-        created += 1;
-      } catch (err) {
-        errors.push({
-          orgId: integration.organizationId,
-          reason: err instanceof Error ? err.message : "unknown",
-        });
+        if (!verifierLink?.tasksflowUserId) {
+          errors.push({
+            orgId: integration.organizationId,
+            reason: `verifier ${verifierId} not linked to TasksFlow`,
+          });
+          continue;
+        }
+
+        try {
+          const client = tasksflowClientFor(integration);
+          const task = await client.createTask({
+            title: `Контроль уборки · ${todayKey}`,
+            workerId: verifierLink.tasksflowUserId,
+            requiresPhoto: false,
+            isRecurring: false,
+            weekDays: [],
+            category: "WeSetup · Уборка · Контроль",
+            description: `Журнал: ${doc.title}\nПроверь выполненные сегодня уборки:\n${lines}`,
+          });
+          await db.tasksFlowTaskLink.create({
+            data: {
+              integrationId: integration.id,
+              journalCode: CLEANING_DOCUMENT_TEMPLATE_CODE,
+              journalDocumentId: doc.id,
+              rowKey,
+              tasksflowTaskId: task.id,
+              remoteStatus: "active",
+              lastDirection: "push",
+            },
+          });
+          created += 1;
+        } catch (err) {
+          errors.push({
+            orgId: integration.organizationId,
+            reason: err instanceof Error ? err.message : "unknown",
+          });
+        }
       }
     }
   }

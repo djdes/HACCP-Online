@@ -432,6 +432,16 @@ model Room {
   /// «Сделал» без загрузки фото. Per-Room — все scope-шаги этой
   /// комнаты обязательно требуют фото.
   requirePhoto        Boolean  @default(false)
+  /// 2026-09-04: кто убирает и кто проверяет это помещение — единственное
+  /// место закрепления (карточка помещения в /settings/buildings и та же
+  /// карточка из журналов). Порядок = приоритет: первый проверяющий
+  /// уходит в TasksFlow как verifier задачи, остальные получают
+  /// вечернюю сводку. Сотрудники архивируются, а не удаляются, поэтому
+  /// читатели пересекают массивы с активными пользователями организации
+  /// (см. src/lib/cleaning-room-responsibles.ts); при hard-delete
+  /// сотрудника id вычищается из массивов (api/staff/[id]).
+  cleanerUserIds      String[] @default([])
+  verifierUserIds     String[] @default([])
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

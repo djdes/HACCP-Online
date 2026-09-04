@@ -24,8 +24,10 @@ import {
   resolveDocumentController,
   resolveRoomCleaners,
   resolveRoomController,
+  resolveRoomControllers,
   type ScopeStep,
 } from "@/lib/cleaning-document";
+import { applyRoomResponsiblesToConfig } from "@/lib/cleaning-room-responsibles";
 import { toDateKey } from "@/lib/hygiene-document";
 import { toPrismaJsonValue } from "@/lib/journal-entry-write";
 import {
@@ -102,6 +104,9 @@ export const cleaningAdapter: JournalAdapter = {
         requirePhoto: true,
         currentScope: true,
         generalScope: true,
+        // 2026-09-04: уборщики/проверяющие помещения → эффективный конфиг.
+        cleanerUserIds: true,
+        verifierUserIds: true,
       },
     });
     const roomNameById = new Map(allRooms.map((r) => [r.id, r.name]));
@@ -124,6 +129,7 @@ export const cleaningAdapter: JournalAdapter = {
       select: { id: true, name: true },
     });
     const userNameById = new Map(orgUsers.map((u) => [u.id, u.name]));
+    const activeUserIds = new Set(orgUsers.map((u) => u.id));
 
     // 2026-05-09: bulk-assign-today фильтрует rows по matrix today.
     // Если в ячейке `<roomId>::<today>` стоит «/» (не убираться) или
@@ -134,9 +140,13 @@ export const cleaningAdapter: JournalAdapter = {
     const todayKey = toDateKey(new Date());
 
     return docs.map((doc) => {
-      const config = normalizeCleaningDocumentConfig(
-        doc.config
-      ) as CleaningDocumentConfig;
+      // Эффективный конфиг: Room.cleanerUserIds / verifierUserIds
+      // подмешиваются после нормализации (см. cleaning-room-responsibles).
+      const config = applyRoomResponsiblesToConfig(
+        normalizeCleaningDocumentConfig(doc.config) as CleaningDocumentConfig,
+        allRooms,
+        activeUserIds,
+      );
       const adapterDoc: AdapterDocument = {
         documentId: doc.id,
         documentTitle: doc.title,
@@ -369,11 +379,23 @@ export const cleaningAdapter: JournalAdapter = {
     // controllerCompletedAt всем entries за этот dateKey.
     const ctrl = parseControlRowKey(rowKey);
     if (ctrl && config.cleaningMode === "rooms") {
+      // Эффективный конфиг (свои проверяющие помещений из Room) — чтобы
+      // сводка конкретного проверяющего штамповала только его помещения.
+      const orgRooms = await db.room.findMany({
+        where: { building: { organizationId: doc.organizationId } },
+        select: { id: true, cleanerUserIds: true, verifierUserIds: true },
+      });
+      const effective = applyRoomResponsiblesToConfig(config, orgRooms);
+      const controllerUserId =
+        ctrl.verifierUserId ?? resolveDocumentController(effective);
       return applyControlCompletion({
         documentId: doc.id,
-        controllerUserId: resolveDocumentController(config),
+        controllerUserId,
         dateKey: ctrl.dateKey,
         completed,
+        roomIds: controllerUserId
+          ? controllerScopeRoomIds(effective, controllerUserId)
+          : undefined,
       });
     }
 
@@ -751,8 +773,8 @@ function buildRoomsModeRows(
         userNameById.get(cleanerId) ?? "(удалённый сотрудник)";
       const hint = pinned
         ? roomCleaners.length > 1
-          ? " (гонка в зоне)"
-          : " (зона закреплена)"
+          ? " (закреплено за помещением — кто первый)"
+          : " (закреплено за помещением)"
         : config.roomsRaceMode === true
           ? " (race — кто первый)"
           : "";
@@ -780,15 +802,50 @@ function parseRoomsModeRowKey(
 
 export function parseControlRowKey(
   rowKey: string
-): { documentId: string; dateKey: string } | null {
-  // Формат: `control::{documentId}::{dateKey}`
-  const m = /^control::([^:]+)::([0-9-]+)$/.exec(rowKey);
+): { documentId: string; dateKey: string; verifierUserId: string | null } | null {
+  // Формат: `control::{documentId}::{dateKey}` — контролёр документа
+  // (legacy-ключ, идемпотентность старых задач не ломаем), либо
+  // `control::{documentId}::{dateKey}::{verifierUserId}` — свой
+  // проверяющий помещений (2026-09-04, сводка каждому по его комнатам).
+  const m = /^control::([^:]+)::([0-9-]+)(?:::([^:]+))?$/.exec(rowKey);
   if (!m) return null;
-  return { documentId: m[1], dateKey: m[2] };
+  return { documentId: m[1], dateKey: m[2], verifierUserId: m[3] ?? null };
 }
 
-export function buildControlRowKey(documentId: string, dateKey: string): string {
-  return `control::${documentId}::${dateKey}`;
+export function buildControlRowKey(
+  documentId: string,
+  dateKey: string,
+  verifierUserId?: string | null,
+): string {
+  return verifierUserId
+    ? `control::${documentId}::${dateKey}::${verifierUserId}`
+    : `control::${documentId}::${dateKey}`;
+}
+
+/**
+ * Помещения, которые проверяет `verifierUserId` в этом документе:
+ * те, где он в resolveRoomControllers. Возвращает undefined, когда ни у
+ * одного помещения нет своих проверяющих — тогда контролёр документа
+ * отвечает за всё (legacy-поведение без scope).
+ */
+export function controllerScopeRoomIds(
+  config: Pick<
+    CleaningDocumentConfig,
+    "selectedRoomIds" | "verifierByRoomId" | "controlUserId" | "controlResponsibles"
+  >,
+  verifierUserId: string,
+): Set<string> | undefined {
+  const hasZoneVerifiers = Object.values(config.verifierByRoomId ?? {}).some(
+    (ids) => Array.isArray(ids) && ids.length > 0,
+  );
+  if (!hasZoneVerifiers) return undefined;
+  const scope = new Set<string>();
+  for (const roomId of config.selectedRoomIds ?? []) {
+    if (resolveRoomControllers(config, roomId).includes(verifierUserId)) {
+      scope.add(roomId);
+    }
+  }
+  return scope;
 }
 
 async function applyControlCompletion(args: {

@@ -34,6 +34,8 @@ import {
   parseScopeSteps,
   type ScopeStep,
 } from "@/lib/cleaning-document";
+import { MultiUserPicker } from "@/components/shared/multi-user-picker";
+import type { RoomResponsibleUser } from "@/lib/room-responsible-candidates";
 
 const KIND_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "guest", label: "Гостевая зона" },
@@ -64,6 +66,10 @@ export type RoomEditorInitial = {
   currentMonthDays?: string[];
   generalMonthDays?: string[];
   requirePhoto?: boolean;
+  // 2026-09-04: кто убирает / кто проверяет (Room.cleanerUserIds /
+  // verifierUserIds). Порядок = приоритет.
+  cleanerUserIds?: string[];
+  verifierUserIds?: string[];
 };
 
 /**
@@ -84,6 +90,8 @@ export type RoomEditorSavedSnapshot = {
   currentMonthDays: string[];
   generalMonthDays: string[];
   requirePhoto: boolean;
+  cleanerUserIds: string[];
+  verifierUserIds: string[];
 };
 
 type Props = {
@@ -91,6 +99,11 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   initial: RoomEditorInitial | null;
   onSaved?: (snapshot: RoomEditorSavedSnapshot) => void;
+  /** Активные сотрудники организации — для «Кто убирает / Кто проверяет». */
+  users: ReadonlyArray<RoomResponsibleUser>;
+  /** userId → сколько ДРУГИХ помещений уже убирает / проверяет (подсказка). */
+  roomsPerCleaner?: Map<string, number>;
+  roomsPerVerifier?: Map<string, number>;
 };
 
 /**
@@ -117,8 +130,22 @@ const GENERAL_SCOPE_EXAMPLES = [
   "Радиаторы отопления",
 ];
 
-export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props) {
+export function RoomEditorDialog({
+  open,
+  onOpenChange,
+  initial,
+  onSaved,
+  users,
+  roomsPerCleaner,
+  roomsPerVerifier,
+}: Props) {
   const [name, setName] = useState(initial?.name ?? "");
+  const [cleanerUserIds, setCleanerUserIds] = useState<string[]>(
+    initial?.cleanerUserIds ?? [],
+  );
+  const [verifierUserIds, setVerifierUserIds] = useState<string[]>(
+    initial?.verifierUserIds ?? [],
+  );
   const [kind, setKind] = useState(initial?.kind ?? "other");
   const [detergent, setDetergent] = useState(initial?.detergent ?? "");
   const [currentScope, setCurrentScope] = useState<ScopeStep[]>(
@@ -165,6 +192,8 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
     setCurrentMonthDays(initial?.currentMonthDays ?? []);
     setGeneralMonthDays(initial?.generalMonthDays ?? []);
     setRequirePhoto(initial?.requirePhoto ?? false);
+    setCleanerUserIds(initial?.cleanerUserIds ?? []);
+    setVerifierUserIds(initial?.verifierUserIds ?? []);
   });
 
   async function save() {
@@ -201,6 +230,8 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
           currentMonthDays,
           generalMonthDays,
           requirePhoto,
+          cleanerUserIds,
+          verifierUserIds,
         }),
       });
       if (!res.ok) {
@@ -222,6 +253,8 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
         currentMonthDays,
         generalMonthDays,
         requirePhoto,
+        cleanerUserIds,
+        verifierUserIds,
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
@@ -266,6 +299,61 @@ export function RoomEditorDialog({ open, onOpenChange, initial, onSaved }: Props
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-[13px] font-semibold text-[#0b1024]">
+                      Кто убирает
+                    </Label>
+                    <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
+                      Задачи на это помещение приходят этим сотрудникам. Несколько —
+                      кто первый закроет. Изменения вступят в силу с завтрашних задач
+                      или после «Отправить задачи».
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
+                    {cleanerUserIds.length} чел.
+                  </span>
+                </div>
+                <MultiUserPicker
+                  role="cleaner"
+                  value={cleanerUserIds}
+                  onChange={setCleanerUserIds}
+                  users={users}
+                  roomsPerUser={roomsPerCleaner}
+                  emptyHint="Никто не назначен — помещение раздаётся из общего пула журнала уборки (гонка или по очереди)."
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <Label className="text-[13px] font-semibold text-[#0b1024]">
+                      Кто проверяет (необязательно)
+                    </Label>
+                    <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
+                      Первый в списке получит задачу на проверку в TasksFlow, остальные —
+                      вечернюю сводку по этому помещению. Пусто — проверяет контролёр
+                      журнала.
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#eef1ff] px-2.5 py-1 text-[11px] font-medium text-[#3848c7] tabular-nums">
+                    {verifierUserIds.length} чел.
+                  </span>
+                </div>
+                <MultiUserPicker
+                  role="verifier"
+                  value={verifierUserIds}
+                  onChange={setVerifierUserIds}
+                  users={users}
+                  roomsPerUser={roomsPerVerifier}
+                  emptyHint="Свой проверяющий не назначен — результат принимает контролёр журнала."
+                  primaryBadge="основной"
+                  disabled={saving}
+                />
               </div>
 
               <div className="space-y-2">

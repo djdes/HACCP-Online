@@ -64,9 +64,30 @@ const UpdateSchema = z.object({
     .max(31)
     .optional(),
   requirePhoto: z.boolean().optional(),
+  // 2026-09-04: кто убирает / кто проверяет помещение. Порядок = приоритет.
+  cleanerUserIds: z.array(z.string().min(1)).max(30).optional(),
+  verifierUserIds: z.array(z.string().min(1)).max(30).optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
+
+/** Дедуп с сохранением порядка (первый = основной). */
+function uniqueIds(ids: string[]): string[] {
+  return Array.from(new Set(ids));
+}
+
+/**
+ * Все id принадлежат организации и активны. Паттерн из
+ * api/settings/journal-responsibles/[code] — чужие/архивные id → 400.
+ */
+async function ensureOrgUsers(orgId: string, ids: string[]): Promise<boolean> {
+  if (ids.length === 0) return true;
+  const found = await db.user.findMany({
+    where: { id: { in: ids }, organizationId: orgId, isActive: true, archivedAt: null },
+    select: { id: true },
+  });
+  return found.length === ids.length;
+}
 
 async function ensureOwn(orgId: string, roomId: string) {
   const r = await db.room.findFirst({
@@ -118,6 +139,18 @@ export async function PATCH(request: Request, ctx: Ctx) {
   const nextCurrentScope = cleanScopeSteps(body.currentScope);
   const nextGeneralScope = cleanScopeSteps(body.generalScope);
 
+  const nextCleanerIds =
+    body.cleanerUserIds !== undefined ? uniqueIds(body.cleanerUserIds) : undefined;
+  const nextVerifierIds =
+    body.verifierUserIds !== undefined ? uniqueIds(body.verifierUserIds) : undefined;
+  const idsToCheck = uniqueIds([...(nextCleanerIds ?? []), ...(nextVerifierIds ?? [])]);
+  if (!(await ensureOrgUsers(orgId, idsToCheck))) {
+    return NextResponse.json(
+      { error: "Некоторые сотрудники не принадлежат организации или в архиве" },
+      { status: 400 },
+    );
+  }
+
   // Cleaning unification 2026-05-08: при изменении scope — синкаем
   // JournalChecklistItem'ы (TF task-fill подтягивает оттуда чек-лист).
   // Делаем ДО update Room чтобы не оставлять рассинхрона если sync упадёт.
@@ -167,6 +200,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
       ...(body.requirePhoto !== undefined
         ? { requirePhoto: body.requirePhoto }
         : {}),
+      ...(nextCleanerIds !== undefined ? { cleanerUserIds: nextCleanerIds } : {}),
+      ...(nextVerifierIds !== undefined ? { verifierUserIds: nextVerifierIds } : {}),
     },
   });
   return NextResponse.json({ room: updated });

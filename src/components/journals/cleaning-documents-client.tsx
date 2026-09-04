@@ -26,6 +26,7 @@ import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   CLEANING_DOCUMENT_TITLE,
   CLEANING_PAGE_TITLE,
+  CLEANING_ROW_LABELS,
   defaultCleaningDocumentConfig,
   getCleaningCreatePeriodBounds,
   getCleaningPeriodLabel,
@@ -268,7 +269,7 @@ function CreateDialog(props: {
               }))
             }
             positionLabel="Должность ответственного за уборку"
-            employeeLabel="Ответственный за уборку"
+            employeeLabel={CLEANING_ROW_LABELS.cleaning}
             variant="floating"
           />
           <PositionEmployeePicker
@@ -282,7 +283,7 @@ function CreateDialog(props: {
               }))
             }
             positionLabel="Должность ответственного за контроль"
-            employeeLabel="Ответственный за контроль"
+            employeeLabel={CLEANING_ROW_LABELS.control}
             variant="floating"
           />
           <ControlPeriodicityField
@@ -374,7 +375,7 @@ function SettingsDialog(props: {
               )
             }
             positionLabel="Должность ответственного за уборку"
-            employeeLabel="Ответственный за уборку"
+            employeeLabel={CLEANING_ROW_LABELS.cleaning}
             variant="floating"
           />
           <PositionEmployeePicker
@@ -392,7 +393,7 @@ function SettingsDialog(props: {
               )
             }
             positionLabel="Должность ответственного за контроль"
-            employeeLabel="Ответственный за контроль"
+            employeeLabel={CLEANING_ROW_LABELS.control}
             variant="floating"
           />
           <ControlPeriodicityField
@@ -685,7 +686,7 @@ export function CleaningDocumentsClient(props: Props) {
                   {document.title || CLEANING_DOCUMENT_TITLE}
                 </Link>
                 <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
-                  <div className={JOURNAL_CARD_LABEL_CLASS}>Ответственный за уборку</div>
+                  <div className={JOURNAL_CARD_LABEL_CLASS}>{CLEANING_ROW_LABELS.cleaning}</div>
                   <div className={`${JOURNAL_CARD_VALUE_CLASS} space-y-1`}>
                     {cleaningLines.map((line) => (
                       <div key={line}>{line}</div>
@@ -693,7 +694,7 @@ export function CleaningDocumentsClient(props: Props) {
                   </div>
                 </Link>
                 <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
-                  <div className={JOURNAL_CARD_LABEL_CLASS}>Ответственный за контроль</div>
+                  <div className={JOURNAL_CARD_LABEL_CLASS}>{CLEANING_ROW_LABELS.control}</div>
                   <div className={JOURNAL_CARD_VALUE_CLASS}>
                     {controlLine}
                   </div>

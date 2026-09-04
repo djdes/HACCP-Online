@@ -1054,6 +1054,9 @@ async function JournalDocumentBody({
             currentMonthDays: true,
             generalMonthDays: true,
             requirePhoto: true,
+            // 2026-09-04: кто убирает / кто проверяет помещение.
+            cleanerUserIds: true,
+            verifierUserIds: true,
           },
         },
       },
@@ -1106,6 +1109,8 @@ async function JournalDocumentBody({
                 )
               : [],
             requirePhoto: r.requirePhoto === true,
+            cleanerUserIds: r.cleanerUserIds,
+            verifierUserIds: r.verifierUserIds,
           })),
         }))}
         config={normalizeCleaningDocumentConfig(document.config)}

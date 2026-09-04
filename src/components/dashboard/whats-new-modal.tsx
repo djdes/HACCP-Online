@@ -11,6 +11,7 @@ import {
   ListChecks,
   MessageCircle,
   MessageCircleMore,
+  Building2,
   Moon,
   Plug,
   Settings2,
@@ -61,6 +62,7 @@ function isCategoryNote(
  * нельзя (server→client serialization), поэтому держим mapping здесь.
  */
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Помещения и уборка": Building2,
   "Отклонения температуры": Thermometer,
   "Баланс и бонусы": Coins,
   "Чат и поддержка": MessageCircle,

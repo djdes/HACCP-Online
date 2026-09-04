@@ -11,6 +11,11 @@ import {
 } from "@/components/cleaning/room-editor-dialog";
 import { toast } from "sonner";
 import {
+  applyRoomResponsiblesToConfig,
+  countRoomsPerUser,
+  type RoomResponsibles,
+} from "@/lib/cleaning-room-responsibles";
+import {
   ScopeListEditor,
   WeekdayMaskPicker,
 } from "@/components/cleaning/scope-and-schedule-editors";
@@ -50,11 +55,14 @@ import {
   getCleaningGridMonthLabel,
   getCleaningPeriodLabel,
   isAutoSignatureValue,
+  CLEANING_ROW_LABELS,
   listCleaningCodeEntries,
   listCleaningRoomCompletions,
   markAutoSignature,
   normalizeCleaningDocumentConfig,
+  resolveDocumentController,
   resolveRoomCleaners,
+  resolveRoomControllers,
   setCleaningMatrixValue,
   stripAutoSignatureMarker,
   toggleCleaningMatrixValue,
@@ -123,7 +131,17 @@ import {
 
 import { useTodayKey } from "@/lib/use-today-key";
 import { localDayKey } from "@/lib/entry-defaults";
-type UserItem = { id: string; name: string; role: string };
+type UserItem = {
+  id: string;
+  name: string;
+  role: string;
+  // 2026-09-04: для группировки в мультивыборе карточки помещения.
+  // Форма jobPosition — как в UserLike (user-roles.ts), чтобы тот же
+  // список подходил и PositionSelect / usePositionEmployeeCascade.
+  isRoot?: boolean;
+  positionTitle?: string | null;
+  jobPosition?: { name: string; categoryKey: string } | null;
+};
 type EntryItem = { id: string; employeeId: string; date: string; data: unknown };
 type Props = {
   documentId: string;
@@ -175,6 +193,9 @@ type Props = {
       currentMonthDays?: string[];
       generalMonthDays?: string[];
       requirePhoto?: boolean;
+      // 2026-09-04: кто убирает / кто проверяет помещение (Room DB).
+      cleanerUserIds?: string[];
+      verifierUserIds?: string[];
     }>;
   }>;
   /**
@@ -450,6 +471,8 @@ export function CleaningDocumentClient(props: Props) {
         ? dbRoom.generalMonthDays
         : [],
       requirePhoto: dbRoom.requirePhoto === true,
+      cleanerUserIds: dbRoom.cleanerUserIds ?? [],
+      verifierUserIds: dbRoom.verifierUserIds ?? [],
     });
   }
   const [responsibleDialog, setResponsibleDialog] = useState<ResponsibleFormState | null>(null);
@@ -717,6 +740,8 @@ export function CleaningDocumentClient(props: Props) {
         currentMonthDays?: string[];
         generalMonthDays?: string[];
         requirePhoto?: boolean;
+        cleanerUserIds?: string[];
+        verifierUserIds?: string[];
       }
     >();
     (props.buildings ?? []).forEach((b) =>
@@ -724,6 +749,34 @@ export function CleaningDocumentClient(props: Props) {
     );
     return m;
   }, [props.buildings]);
+
+  // Назначения помещений (Room.cleanerUserIds / verifierUserIds) для
+  // эффективного конфига и подсказок нагрузки в карточке помещения.
+  const dbRoomResponsibles = useMemo(
+    () =>
+      Array.from(dbRoomById.values()).map((r) => ({
+        id: r.id,
+        cleanerUserIds: r.cleanerUserIds ?? [],
+        verifierUserIds: r.verifierUserIds ?? [],
+      })),
+    [dbRoomById],
+  );
+
+  /**
+   * ЭФФЕКТИВНЫЙ конфиг — raw `config` + назначения помещений из Room.
+   * Только для отображения и резолверов (кто убирает / кто проверяет,
+   * коды С1..СN). В сохранение (patchDocument) уходит только raw
+   * `config` — назначения живут в Room, а не в документе.
+   */
+  const effectiveConfig = useMemo(
+    () =>
+      applyRoomResponsiblesToConfig(
+        config,
+        dbRoomResponsibles,
+        new Set(props.users.map((u) => u.id)),
+      ),
+    [config, dbRoomResponsibles, props.users],
+  );
 
   // Map с полным расписанием для applyRoomScheduleToMatrix.
   const dbScheduleMap = useMemo(() => {
@@ -761,7 +814,7 @@ export function CleaningDocumentClient(props: Props) {
   const cleaningResponsibleList = useMemo<CleaningResponsible[]>(() => {
     // Единый источник с PDF/адаптером (listCleaningCodeEntries).
     const names = new Map(props.users.map((u) => [u.id, u.name]));
-    return listCleaningCodeEntries(config, names).map((r) => ({
+    return listCleaningCodeEntries(effectiveConfig, names).map((r) => ({
       id: r.id,
       kind: "cleaning" as const,
       code: r.code,
@@ -769,7 +822,7 @@ export function CleaningDocumentClient(props: Props) {
       userId: r.userId,
       userName: r.userName,
     }));
-  }, [config, props.users]);
+  }, [effectiveConfig, props.users]);
 
   // Контролёры — С1, С2, ... СM (independent numbering от cleaning-list).
   // Каждая строка («Ответственный за уборку» и «Ответственный за контроль»)
@@ -1017,7 +1070,6 @@ export function CleaningDocumentClient(props: Props) {
     cleaningMode: "pairs" | "rooms";
     selectedRoomIds: string[];
     selectedCleanerUserIds: string[];
-    cleanerByRoomId: Record<string, string[]>;
   }) {
     const previousIds = new Set(config.selectedRoomIds ?? []);
     const addedIds = patch.selectedRoomIds.filter((id) => !previousIds.has(id));
@@ -1026,9 +1078,8 @@ export function CleaningDocumentClient(props: Props) {
       cleaningMode: patch.cleaningMode,
       selectedRoomIds: patch.selectedRoomIds,
       selectedCleanerUserIds: patch.selectedCleanerUserIds,
-      // Нормализация (только выбранные комнаты, только пул) — на сервере
-      // и в normalizeCleaningDocumentConfig; здесь передаём как есть.
-      cleanerByRoomId: patch.cleanerByRoomId,
+      // 2026-09-04: закрепления живут в Room (cleanerUserIds), в документе
+      // остаётся только legacy config.cleanerByRoomId — не трогаем.
     };
     if (addedIds.length > 0) {
       const todayKey = toDateKey(new Date());
@@ -1191,9 +1242,9 @@ export function CleaningDocumentClient(props: Props) {
    */
   function roomAssignmentLabel(roomId: string): { text: string; pinned: boolean } | null {
     if (!isRoomsMode) return null;
-    const ids = resolveRoomCleaners(config, roomId);
+    const ids = resolveRoomCleaners(effectiveConfig, roomId);
     if (ids.length === 0) return null;
-    const pinned = (config.cleanerByRoomId?.[roomId]?.length ?? 0) > 0;
+    const pinned = (effectiveConfig.cleanerByRoomId?.[roomId]?.length ?? 0) > 0;
     const names = ids.map((uid) => {
       const name = props.users.find((u) => u.id === uid)?.name ?? "—";
       const code = cleanerCodeById.get(uid);
@@ -1202,6 +1253,39 @@ export function CleaningDocumentClient(props: Props) {
     const suffix = ids.length > 1 ? " — кто первый" : "";
     return { text: `Уборка: ${names.join(", ")}${suffix}`, pinned };
   }
+
+  /**
+   * Подпись «кто проверяет помещение» — только когда у помещения свои
+   * проверяющие (Room.verifierUserIds). Контролёр журнала и так стоит в
+   * строке «Контролёр» внизу — не дублируем его под каждой комнатой.
+   */
+  function roomVerifierLabel(roomId: string): string | null {
+    if (!isRoomsMode) return null;
+    const zone = effectiveConfig.verifierByRoomId?.[roomId];
+    if (!zone || zone.length === 0) return null;
+    const names = resolveRoomControllers(effectiveConfig, roomId).map(
+      (uid) => props.users.find((u) => u.id === uid)?.name ?? "—",
+    );
+    return `Проверяет: ${names.join(", ")}`;
+  }
+
+  /** Нагрузка по ДРУГИМ помещениям — подсказка в карточке помещения. */
+  const roomsPerCleanerForEditor = useMemo(
+    () =>
+      countRoomsPerUser(
+        dbRoomResponsibles.filter((r) => r.id !== roomEditor?.id),
+        "cleaner",
+      ),
+    [dbRoomResponsibles, roomEditor?.id],
+  );
+  const roomsPerVerifierForEditor = useMemo(
+    () =>
+      countRoomsPerUser(
+        dbRoomResponsibles.filter((r) => r.id !== roomEditor?.id),
+        "verifier",
+      ),
+    [dbRoomResponsibles, roomEditor?.id],
+  );
 
   // Множество допустимых кодов уборщиков ("С1", "С2", ...). Используется
   // как safety-net: если в matrix лежит легаси-значение "С2" (записанное
@@ -1896,8 +1980,8 @@ export function CleaningDocumentClient(props: Props) {
             enabled={(config.cleaningMode ?? "pairs") === "rooms"}
             raceMode={config.roomsRaceMode === true}
             roomCount={(config.selectedRoomIds ?? []).length}
-            cleanerCount={(config.selectedCleanerUserIds ?? []).length}
-            pinnedCount={Object.keys(config.cleanerByRoomId ?? {}).length}
+            cleanerCount={(effectiveConfig.selectedCleanerUserIds ?? []).length}
+            pinnedCount={Object.keys(effectiveConfig.cleanerByRoomId ?? {}).length}
             disabled={props.status !== "active" || saving}
             onToggle={async (enabled) => {
               await patchDocument({
@@ -2068,7 +2152,7 @@ export function CleaningDocumentClient(props: Props) {
             ) : null}
             {rows.map((row) => {
               const expanded = expandedRowId === row.id;
-              const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
+              const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? CLEANING_ROW_LABELS.cleaning : CLEANING_ROW_LABELS.control;
               const subtitle = row.kind === "room" ? row.room.detergent : `${row.responsible.code} · ${row.responsible.userName || "не назначен"}`;
               const filledCount = dayKeys.reduce((acc, dk) => acc + (cellValue(row, dk) ? 1 : 0), 0);
               const isSelected = selection.includes(row.id);
@@ -2089,6 +2173,11 @@ export function CleaningDocumentClient(props: Props) {
                             }`}
                           >
                             {roomAssignmentLabel(row.id)?.text}
+                          </div>
+                        ) : null}
+                        {row.kind === "room" && roomVerifierLabel(row.id) ? (
+                          <div className="truncate text-[11px] text-[#3848c7]">
+                            {roomVerifierLabel(row.id)}
                           </div>
                         ) : null}
                       </div>
@@ -2180,7 +2269,7 @@ export function CleaningDocumentClient(props: Props) {
                   }
                   className="text-left text-[14px] font-medium text-[#0b1024] disabled:cursor-default"
                 >
-                  Ответственный за уборку
+                  {CLEANING_ROW_LABELS.cleaning}
                 </button>
                 <div className="mt-1 text-[12px] leading-[1.55] text-[#3c4053]">
                   {cleaningResponsibleList.map((resp) => (
@@ -2209,7 +2298,7 @@ export function CleaningDocumentClient(props: Props) {
                   }
                   className="text-left text-[14px] font-medium text-[#0b1024] disabled:cursor-default"
                 >
-                  Ответственный за контроль
+                  {CLEANING_ROW_LABELS.control}
                 </button>
                 <div className="mt-1 text-[12px] leading-[1.55] text-[#3c4053]">
                   {controlResponsibleList.map((resp) => (
@@ -2263,7 +2352,7 @@ export function CleaningDocumentClient(props: Props) {
           <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>
           <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === todayKey ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight ${dateKey === todayKey ? "bg-[#eef1ff] text-[#3848c7] print:bg-transparent print:text-inherit" : ""}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
-              const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? "Ответственный за уборку" : "Ответственный за контроль";
+              const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? CLEANING_ROW_LABELS.cleaning : CLEANING_ROW_LABELS.control;
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "не назначен"}`;
               return <tr key={row.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent">
                 <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" disabled={props.status !== "active"} /></td>
@@ -2292,9 +2381,9 @@ export function CleaningDocumentClient(props: Props) {
                       {row.kind === "room" && roomAssignmentLabel(row.id) ? (
                         <button
                           type="button"
-                          title="Закрепить зону за уборщиком — открыть настройки"
+                          title="Кто убирает и проверяет — изменить в карточке помещения"
                           disabled={props.status !== "active"}
-                          onClick={() => setRaceConfigOpen(true)}
+                          onClick={() => openRoomEditorFromRow(row.id)}
                           className={`mt-0.5 block w-full truncate text-[11px] font-normal transition-colors print:hidden ${
                             roomAssignmentLabel(row.id)?.pinned
                               ? "text-[#3848c7] hover:text-[#5566f6]"
@@ -2302,6 +2391,17 @@ export function CleaningDocumentClient(props: Props) {
                           }`}
                         >
                           {roomAssignmentLabel(row.id)?.text}
+                        </button>
+                      ) : null}
+                      {row.kind === "room" && roomVerifierLabel(row.id) ? (
+                        <button
+                          type="button"
+                          title="Кто убирает и проверяет — изменить в карточке помещения"
+                          disabled={props.status !== "active"}
+                          onClick={() => openRoomEditorFromRow(row.id)}
+                          className="block w-full truncate text-[11px] font-normal text-[#3848c7] transition-colors hover:text-[#5566f6] print:hidden"
+                        >
+                          {roomVerifierLabel(row.id)}
                         </button>
                       ) : null}
                     </div>
@@ -2435,7 +2535,7 @@ export function CleaningDocumentClient(props: Props) {
                     }
                     className="text-left transition-colors hover:text-[#5566f6] disabled:cursor-default"
                   >
-                    Ответственный за уборку
+                    {CLEANING_ROW_LABELS.cleaning}
                   </button>
                 </td>
                 <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
@@ -2467,7 +2567,7 @@ export function CleaningDocumentClient(props: Props) {
                       }
                       role={interactive ? "button" : undefined}
                       tabIndex={interactive ? 0 : undefined}
-                      aria-label={`Ответственный за уборку, ${formatDayAriaLabel(dateKey)}: ${code || "не отмечено"}`}
+                      aria-label={`${CLEANING_ROW_LABELS.cleaning}, ${formatDayAriaLabel(dateKey)}: ${code || "не отмечено"}`}
                       onClick={
                         interactive
                           ? () =>
@@ -2536,7 +2636,7 @@ export function CleaningDocumentClient(props: Props) {
                     }
                     className="text-left transition-colors hover:text-[#5566f6] disabled:cursor-default"
                   >
-                    Ответственный за контроль
+                    {CLEANING_ROW_LABELS.control}
                   </button>
                 </td>
                 <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
@@ -2568,7 +2668,7 @@ export function CleaningDocumentClient(props: Props) {
                       }
                       role={interactive ? "button" : undefined}
                       tabIndex={interactive ? 0 : undefined}
-                      aria-label={`Ответственный за контроль, ${formatDayAriaLabel(dateKey)}: ${code || "не отмечено"}`}
+                      aria-label={`${CLEANING_ROW_LABELS.control}, ${formatDayAriaLabel(dateKey)}: ${code || "не отмечено"}`}
                       onClick={
                         interactive
                           ? () =>
@@ -2626,6 +2726,9 @@ export function CleaningDocumentClient(props: Props) {
           if (!open) setRoomEditor(null);
         }}
         initial={roomEditor}
+        users={props.users}
+        roomsPerCleaner={roomsPerCleanerForEditor}
+        roomsPerVerifier={roomsPerVerifierForEditor}
         onSaved={async (snapshot) => {
           // Сначала auto-apply (использует snapshot для override и
           // patchDocument'ом отправляет matrix → API endpoint
@@ -2662,15 +2765,24 @@ export function CleaningDocumentClient(props: Props) {
               <RoomsModeCard
                 buildings={props.buildings}
                 users={props.users}
+                dbRooms={dbRoomResponsibles}
                 disabled={props.status !== "active" || saving}
                 cleaningMode={config.cleaningMode ?? "pairs"}
                 selectedRoomIds={config.selectedRoomIds ?? []}
                 selectedCleanerUserIds={config.selectedCleanerUserIds ?? []}
                 cleanerByRoomId={config.cleanerByRoomId ?? {}}
+                verifierByRoomId={config.verifierByRoomId ?? {}}
+                controlUserId={resolveDocumentController(config)}
                 roomsRaceMode={config.roomsRaceMode === true}
                 onSave={async (patch) => {
                   await saveRoomsSelection(patch);
                   setRaceConfigOpen(false);
+                }}
+                onEditRoom={(roomId) => {
+                  // Не стекаем два диалога: закрываем race-настройки и
+                  // открываем карточку помещения.
+                  setRaceConfigOpen(false);
+                  openRoomEditorFromRow(roomId);
                 }}
               />
             </div>
@@ -3164,18 +3276,24 @@ type RoomsModeCardProps = {
     rooms: Array<{ id: string; name: string; kind: string }>;
   }>;
   users: UserItem[];
+  /** Назначения помещений из Room (кто убирает / кто проверяет). */
+  dbRooms: RoomResponsibles[];
   disabled: boolean;
   cleaningMode: "pairs" | "rooms";
   selectedRoomIds: string[];
   selectedCleanerUserIds: string[];
+  /** Legacy-закрепления документа (до 2026-09-04) — только для превью. */
   cleanerByRoomId: Record<string, string[]>;
+  verifierByRoomId: Record<string, string[]>;
+  controlUserId: string | null;
   roomsRaceMode: boolean;
   onSave: (patch: {
     cleaningMode: "pairs" | "rooms";
     selectedRoomIds: string[];
     selectedCleanerUserIds: string[];
-    cleanerByRoomId: Record<string, string[]>;
   }) => Promise<void>;
+  /** Открыть карточку помещения — единственное место закрепления. */
+  onEditRoom: (roomId: string) => void;
 };
 
 function RoomsModeCard(props: RoomsModeCardProps) {
@@ -3184,38 +3302,32 @@ function RoomsModeCard(props: RoomsModeCardProps) {
   const [cleaners, setCleaners] = useState<string[]>(
     props.selectedCleanerUserIds
   );
-  const [pinned, setPinned] = useState<Record<string, string[]>>(
-    props.cleanerByRoomId
-  );
   const [busy, setBusy] = useState(false);
 
-  function togglePinned(roomId: string, userId: string) {
-    setPinned((prev) => {
-      const current = prev[roomId] ?? [];
-      const next = current.includes(userId)
-        ? current.filter((x) => x !== userId)
-        : [...current, userId];
-      const out = { ...prev };
-      if (next.length === 0) delete out[roomId];
-      else out[roomId] = next;
-      return out;
-    });
-  }
-
   // Живой прогноз: сколько зон у каждого уборщика при текущих настройках
-  // (закрепления + пул), тем же резолвером, что и раздача задач.
-  const previewConfig = {
-    selectedRoomIds: rooms,
-    selectedCleanerUserIds: cleaners,
-    roomsRaceMode: props.roomsRaceMode,
-    cleanerByRoomId: pinned,
-  };
+  // (назначения помещений + пул), тем же резолвером, что и раздача задач.
+  const previewConfig = applyRoomResponsiblesToConfig(
+    {
+      selectedRoomIds: rooms,
+      selectedCleanerUserIds: cleaners,
+      roomsRaceMode: props.roomsRaceMode,
+      cleanerByRoomId: props.cleanerByRoomId,
+      verifierByRoomId: props.verifierByRoomId,
+      controlUserId: props.controlUserId,
+      controlResponsibles: [],
+    },
+    props.dbRooms,
+    new Set(props.users.map((u) => u.id)),
+  );
+  const previewCleaners = previewConfig.selectedCleanerUserIds ?? [];
   const zonesPerCleaner = new Map<string, number>();
   for (const roomId of rooms) {
     for (const uid of resolveRoomCleaners(previewConfig, roomId)) {
       zonesPerCleaner.set(uid, (zonesPerCleaner.get(uid) ?? 0) + 1);
     }
   }
+  const userName = (uid: string) =>
+    props.users.find((u) => u.id === uid)?.name ?? "—";
   const selectedRoomNames = new Map<string, string>();
   for (const b of props.buildings) {
     for (const r of b.rooms) selectedRoomNames.set(r.id, r.name);
@@ -3235,19 +3347,10 @@ function RoomsModeCard(props: RoomsModeCardProps) {
   async function save() {
     setBusy(true);
     try {
-      // Чистим закрепления по снятым комнатам / убранным из пула людям,
-      // чтобы не тащить мусор в конфиг.
-      const cleanedPinned: Record<string, string[]> = {};
-      for (const [roomId, ids] of Object.entries(pinned)) {
-        if (!rooms.includes(roomId)) continue;
-        const keep = ids.filter((id) => cleaners.includes(id));
-        if (keep.length > 0) cleanedPinned[roomId] = keep;
-      }
       await props.onSave({
         cleaningMode: mode,
         selectedRoomIds: rooms,
         selectedCleanerUserIds: cleaners,
-        cleanerByRoomId: cleanedPinned,
       });
     } finally {
       setBusy(false);
@@ -3340,9 +3443,14 @@ function RoomsModeCard(props: RoomsModeCardProps) {
 
           {/* Уборщики */}
           <div>
-            <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-              Уборщики (race) — кто может забирать задачи
+            <div className="mb-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+              Пул уборщиков — для помещений без назначенных
             </div>
+            <p className="mb-2 max-w-[640px] text-[12.5px] leading-[1.5] text-[#6f7282]">
+              Помещение с назначенными уборщиками (карточка помещения) раздаётся
+              им. Остальные помещения — этому пулу:{" "}
+              {props.roomsRaceMode ? "всем, кто первый." : "поровну между уборщиками."}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {cleanersList.map((u) => {
                 const active = cleaners.includes(u.id);
@@ -3365,115 +3473,110 @@ function RoomsModeCard(props: RoomsModeCardProps) {
             </div>
           </div>
 
-          {/* Закрепление зон — по желанию. Без закрепления работает пул. */}
-          {rooms.length > 0 && cleaners.length > 0 ? (
+          {/* Кто убирает / кто проверяет каждое помещение — read-only сводка.
+              Закрепление живёт в карточке помещения (Room), а не в документе. */}
+          {rooms.length > 0 ? (
             <div>
               <div className="mb-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-                Закрепить зоны (по желанию)
+                Кто убирает и проверяет
               </div>
               <p className="mb-3 max-w-[640px] text-[12.5px] leading-[1.5] text-[#6f7282]">
-                Нажмите на уборщика напротив зоны — задачи по ней будут
-                уходить только ему. Два и больше — «кто первый» внутри зоны.
-                Пусто — зона раздаётся как остальные:{" "}
-                {props.roomsRaceMode
-                  ? "всем уборщикам, кто первый."
-                  : "поровну между уборщиками."}
+                Назначения хранятся в карточке помещения — они общие для всех
+                документов. Нажмите «Изменить», чтобы поменять уборщиков или
+                проверяющих.
               </p>
               <div className="overflow-hidden rounded-2xl border border-[#ececf4]">
                 {rooms.map((roomId, idx) => {
-                  const explicit = pinned[roomId] ?? [];
+                  const dbRoom = props.dbRooms.find((r) => r.id === roomId);
+                  const assigned = (dbRoom?.cleanerUserIds ?? []).length > 0;
                   const effective = resolveRoomCleaners(previewConfig, roomId);
-                  const defaultNames = effective
-                    .map((uid) => props.users.find((u) => u.id === uid)?.name ?? "—")
-                    .join(", ");
+                  const cleanerNames = effective.map(userName).join(", ");
+                  const zoneVerifiers = previewConfig.verifierByRoomId?.[roomId] ?? [];
+                  const verifierNames = zoneVerifiers.map(userName).join(", ");
                   return (
                     <div
                       key={roomId}
                       className={`flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4 ${
                         idx > 0 ? "border-t border-[#ececf4]" : ""
-                      } ${explicit.length > 0 ? "bg-[#fafbff]" : "bg-white"}`}
+                      } ${assigned ? "bg-[#fafbff]" : "bg-white"}`}
                     >
-                      <div className="min-w-0 sm:w-[200px] sm:shrink-0">
+                      <div className="min-w-0 flex-1">
                         <div className="truncate text-[13px] font-medium text-[#0b1024]">
                           {selectedRoomNames.get(roomId) ?? "Помещение"}
                         </div>
                         <div
-                          className={`truncate text-[11px] ${
-                            explicit.length > 0 ? "text-[#3848c7]" : "text-[#9b9fb3]"
+                          className={`truncate text-[11.5px] ${
+                            assigned ? "text-[#3848c7]" : "text-[#9b9fb3]"
                           }`}
                         >
-                          {explicit.length > 0
-                            ? explicit.length > 1
-                              ? "закреплено · кто первый"
-                              : "закреплено"
-                            : `по умолчанию — ${defaultNames || "—"}`}
+                          {assigned
+                            ? `Убирает: ${cleanerNames}${effective.length > 1 ? " — кто первый" : ""}`
+                            : `Из пула — ${cleanerNames || "никто (пул пуст)"}`}
+                        </div>
+                        <div
+                          className={`truncate text-[11.5px] ${
+                            zoneVerifiers.length > 0 ? "text-[#3848c7]" : "text-[#9b9fb3]"
+                          }`}
+                        >
+                          {zoneVerifiers.length > 0
+                            ? `Проверяет: ${verifierNames}`
+                            : "Проверяет контролёр журнала"}
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {cleaners.map((uid) => {
-                          const user = props.users.find((u) => u.id === uid);
-                          const active = explicit.includes(uid);
-                          return (
-                            <button
-                              key={uid}
-                              type="button"
-                              disabled={props.disabled}
-                              onClick={() => togglePinned(roomId, uid)}
-                              title={
-                                active
-                                  ? "Снять закрепление"
-                                  : "Закрепить зону за этим уборщиком"
-                              }
-                              className={`inline-flex h-8 items-center rounded-xl border px-2.5 text-[12.5px] font-medium transition-colors duration-150 ${
-                                active
-                                  ? "border-[#5566f6] bg-[#5566f6] text-white hover:bg-[#4a5bf0]"
-                                  : "border-[#dcdfed] bg-white text-[#6f7282] hover:border-[#5566f6]/50 hover:bg-[#f5f6ff]"
-                              }`}
-                            >
-                              {user?.name ?? "—"}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <button
+                        type="button"
+                        disabled={props.disabled || !dbRoom}
+                        onClick={() => props.onEditRoom(roomId)}
+                        title={
+                          dbRoom
+                            ? "Открыть карточку помещения"
+                            : "Помещение есть только в документе — заведите его в «Настройки → Помещения»"
+                        }
+                        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[12.5px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Pencil className="size-3.5 text-[#5566f6]" />
+                        Изменить
+                      </button>
                     </div>
                   );
                 })}
               </div>
               {/* Live-prediction: нагрузка по зонам при текущих настройках. */}
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-[#6f7282]">
-                <span>Зон на уборщика:</span>
-                {cleaners.map((uid) => {
-                  const user = props.users.find((u) => u.id === uid);
-                  const n = zonesPerCleaner.get(uid) ?? 0;
-                  return (
-                    <span
-                      key={uid}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
-                        n === 0
-                          ? "bg-[#fff4f2] text-[#a13a32]"
-                          : "bg-[#f5f6ff] text-[#3848c7]"
-                      }`}
-                    >
-                      {user?.name ?? "—"}
-                      <span className="font-semibold tabular-nums">{n}</span>
-                    </span>
-                  );
-                })}
-              </div>
+              {previewCleaners.length > 0 ? (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-[#6f7282]">
+                  <span>Зон на уборщика:</span>
+                  {previewCleaners.map((uid) => {
+                    const n = zonesPerCleaner.get(uid) ?? 0;
+                    return (
+                      <span
+                        key={uid}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+                          n === 0
+                            ? "bg-[#fff4f2] text-[#a13a32]"
+                            : "bg-[#f5f6ff] text-[#3848c7]"
+                        }`}
+                      >
+                        {userName(uid)}
+                        <span className="font-semibold tabular-nums">{n}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
-          {/* Контролёр / ответственные настраиваются в одном месте — не дублируем. */}
+          {/* Контролёр журнала настраивается в одном месте — не дублируем. */}
           <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 text-[13px] leading-[1.55] text-[#3c4053]">
-            <span className="font-medium text-[#0b1024]">Кто проверяет?</span>{" "}
-            Контролёр и ответственные за этот журнал настраиваются на странице{" "}
+            <span className="font-medium text-[#0b1024]">Контролёр журнала</span>{" "}
+            — на странице{" "}
             <a
-              href="/settings/journal-responsibles/cleaning"
+              href="/settings/journal-responsibles"
               className="font-medium text-[#5566f6] hover:text-[#4a5bf0]"
             >
               /settings/journal-responsibles
             </a>
-            . Здесь — только включить race-режим и выбрать комнаты + уборщиков.
+            . Свои проверяющие у помещения — в его карточке («Изменить» выше).
           </div>
         </div>
       ) : (

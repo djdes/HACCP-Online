@@ -12,7 +12,8 @@ export default async function BuildingsPage() {
   if (!hasFullWorkspaceAccess(session.user)) redirect("/journals");
   const orgId = getActiveOrgId(session);
 
-  const buildings = await db.building.findMany({
+  const [buildings, users] = await Promise.all([
+    db.building.findMany({
     where: { organizationId: orgId },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     include: {
@@ -23,6 +24,9 @@ export default async function BuildingsPage() {
           name: true,
           kind: true,
           sortOrder: true,
+          // 2026-09-04: кто убирает / кто проверяет помещение.
+          cleanerUserIds: true,
+          verifierUserIds: true,
           // Cleaning unification 2026-05-08: Room теперь хранит scope/days/
           // detergent — RoomEditorDialog в buildings-client использует.
           detergent: true,
@@ -38,7 +42,21 @@ export default async function BuildingsPage() {
         },
       },
     },
-  });
+    }),
+    // Сотрудники для мультивыбора «Кто убирает / Кто проверяет».
+    db.user.findMany({
+      where: { organizationId: orgId, isActive: true, archivedAt: null },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        isRoot: true,
+        positionTitle: true,
+        jobPosition: { select: { name: true } },
+      },
+    }),
+  ]);
 
   return (
     <div className="space-y-5">
@@ -66,7 +84,7 @@ export default async function BuildingsPage() {
           { q: "Что если я создал и в Buildings и в Areas?", a: "Будут оба — Equipment dropdown покажет всё. Дубликаты не страшны, но захламляют список. Удалить лишнее можно в /settings/areas." },
         ]}
       />
-      <BuildingsClient initial={buildings} />
+      <BuildingsClient initial={buildings} users={users} />
     </div>
   );
 }

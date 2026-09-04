@@ -33,10 +33,13 @@ import {
   listCleaningRoomCompletions,
   normalizeCleaningDocumentConfig,
   resolveRoomCleaners,
+  resolveRoomControllers,
+  CLEANING_ROW_LABELS,
   CLEANING_SIGNATURE_ROW_ID,
   CONTROL_SIGNATURE_ROW_ID,
   stripAutoSignatureMarker,
 } from "@/lib/cleaning-document";
+import { applyRoomResponsiblesToConfig } from "@/lib/cleaning-room-responsibles";
 import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   getFinishedProductDocumentTitle,
@@ -2154,10 +2157,10 @@ function drawCleaningPdf(doc: jsPDF, params: {
 
   const signatureRows: RowInput[] = [
     ...(cleaningResponsibleList.length > 0
-      ? [buildSignatureRow("Ответственный за уборку", cleaningResponsibleList, cleaningCodeForDay)]
+      ? [buildSignatureRow(CLEANING_ROW_LABELS.cleaning, cleaningResponsibleList, cleaningCodeForDay)]
       : []),
     ...(controlResponsibleList.length > 0
-      ? [buildSignatureRow("Ответственный за контроль", controlResponsibleList, controlCodeForDay)]
+      ? [buildSignatureRow(CLEANING_ROW_LABELS.control, controlResponsibleList, controlCodeForDay)]
       : []),
   ];
 
@@ -2197,11 +2200,20 @@ function drawCleaningPdf(doc: jsPDF, params: {
       resolveRoomCleaners(config, roomId)
         .map((uid) => cleanerCodeById.get(uid))
         .filter((code): code is string => Boolean(code));
+    // Проверяющие помещения (только когда назначены самому помещению —
+    // контролёр документа и так стоит в строке «Контролёр»).
+    const roomVerifierLine = (roomId: string) => {
+      if (!config.verifierByRoomId?.[roomId]?.length) return "";
+      const names = resolveRoomControllers(config, roomId)
+        .map((uid) => params.userNamesById?.[uid])
+        .filter((name): name is string => Boolean(name));
+      return names.length > 0 ? `\nПроверяет: ${names.join(", ")}` : "";
+    };
     const roomRows: RowInput[] = selectedRoomIds.map((roomId) => [
       {
         content: `${namesMap[roomId] ?? "Помещение"}${
           roomCodes(roomId).length > 0 ? ` (${roomCodes(roomId).join(", ")})` : ""
-        }`,
+        }${roomVerifierLine(roomId)}`,
         styles: { halign: "center" as const, valign: "middle" as const },
       },
       {
@@ -5907,6 +5919,10 @@ export type JournalDocumentPdfInput = {
     detergent?: string | null;
     currentScope?: unknown;
     generalScope?: unknown;
+    /// 2026-09-04: кто убирает / кто проверяет — коды у комнат и строка
+    /// «Проверяет» в rooms-mode.
+    cleanerUserIds?: string[];
+    verifierUserIds?: string[];
   }[];
   /// White-label партнёра: подпись в подвале каждой страницы + плашка
   /// «Работает на платформе WeSetup». `null`/undefined — организация без
@@ -6004,6 +6020,8 @@ export async function loadJournalDocumentPdfInput(params: {
             detergent: true,
             currentScope: true,
             generalScope: true,
+            cleanerUserIds: true,
+            verifierUserIds: true,
           },
           orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
         })
@@ -6071,7 +6089,18 @@ export function renderJournalDocumentPdf(
   const reconciledConfig = normalizeJournalStaffBoundConfig(templateCode, document.config, users);
   const climateConfig = normalizeClimateDocumentConfig(reconciledConfig);
   const coldConfig = normalizeColdEquipmentDocumentConfig(reconciledConfig);
-  const cleaningConfig = normalizeCleaningDocumentConfig(reconciledConfig);
+  // Эффективный конфиг уборки: уборщики/проверяющие помещений из Room
+  // (та же точка слияния, что у TF-адаптера) — коды у комнат и строка
+  // «Проверяет» печатаются по назначениям помещений.
+  const cleaningConfig = applyRoomResponsiblesToConfig(
+    normalizeCleaningDocumentConfig(reconciledConfig),
+    rooms.map((r) => ({
+      id: r.id,
+      cleanerUserIds: r.cleanerUserIds ?? [],
+      verifierUserIds: r.verifierUserIds ?? [],
+    })),
+    new Set(users.map((u) => u.id)),
+  );
   const finishedConfig = normalizeFinishedProductDocumentConfig(reconciledConfig);
   const perishableRejectionConfig = normalizePerishableRejectionConfig(reconciledConfig);
   const uvRuntimeConfig = normalizeUvRuntimeDocumentConfig(reconciledConfig);

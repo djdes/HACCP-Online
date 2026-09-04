@@ -32,6 +32,7 @@ import {
   CONTROL_PERIODICITY_CONFIG_KEY,
   sanitizeControlPeriodicity,
 } from "@/lib/control-periodicity";
+import { applyRoomResponsiblesToConfig } from "@/lib/cleaning-room-responsibles";
 import { syncDocumentToTasksFlow } from "@/lib/tasksflow-sync";
 import { isJournalSupported } from "@/lib/tasksflow-adapters";
 import { syncTodayMatrixChanges } from "@/lib/cleaning-cell-override-sync";
@@ -261,8 +262,20 @@ export async function PATCH(
       // а не silent-fail в bulk-assign.
       if (template.code === CLEANING_DOCUMENT_TEMPLATE_CODE) {
         try {
+          // Валидируем ЭФФЕКТИВНЫЙ конфиг: уборщики могут быть назначены
+          // помещениям (Room.cleanerUserIds), а не выбраны в пуле
+          // документа — такой документ валиден.
+          const rawCleaningConfig =
+            normalizedDocumentState.config as CleaningDocumentConfig;
+          const roomsForValidation = await db.room.findMany({
+            where: {
+              id: { in: rawCleaningConfig.selectedRoomIds ?? [] },
+              building: { organizationId: doc.organizationId },
+            },
+            select: { id: true, cleanerUserIds: true, verifierUserIds: true },
+          });
           validateCleaningDocumentConfig(
-            normalizedDocumentState.config as CleaningDocumentConfig,
+            applyRoomResponsiblesToConfig(rawCleaningConfig, roomsForValidation),
           );
         } catch (err) {
           return NextResponse.json(

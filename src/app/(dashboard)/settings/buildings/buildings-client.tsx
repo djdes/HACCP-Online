@@ -9,6 +9,11 @@ import {
   RoomEditorDialog,
   type RoomEditorInitial,
 } from "@/components/cleaning/room-editor-dialog";
+import {
+  countRoomsPerUser,
+  toUserIdList,
+} from "@/lib/cleaning-room-responsibles";
+import type { RoomResponsibleUser } from "@/lib/room-responsible-candidates";
 
 // Cleaning unification 2026-05-08: Room теперь хранит scope/days/detergent.
 // RoomEditorDialog позволяет редактировать всё это в /settings/buildings.
@@ -17,6 +22,9 @@ type Room = {
   name: string;
   kind: string;
   sortOrder: number;
+  // 2026-09-04: кто убирает / кто проверяет.
+  cleanerUserIds?: string[];
+  verifierUserIds?: string[];
   detergent?: string | null;
   currentScope?: unknown;
   generalScope?: unknown;
@@ -45,13 +53,32 @@ const KIND_LABELS: Record<string, string> = {
   other: "Другое",
 };
 
-export function BuildingsClient({ initial }: { initial: Building[] }) {
+export function BuildingsClient({
+  initial,
+  users,
+}: {
+  initial: Building[];
+  users: RoomResponsibleUser[];
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAddr, setNewAddr] = useState("");
   const [editorRoom, setEditorRoom] = useState<RoomEditorInitial | null>(null);
+  const userNameById = new Map(users.map((u) => [u.id, u.name]));
+
+  // Нагрузка по ДРУГИМ помещениям — подсказка в мультивыборе.
+  const otherRooms = initial
+    .flatMap((b) => b.rooms)
+    .filter((r) => r.id !== editorRoom?.id)
+    .map((r) => ({
+      id: r.id,
+      cleanerUserIds: toUserIdList(r.cleanerUserIds),
+      verifierUserIds: toUserIdList(r.verifierUserIds),
+    }));
+  const roomsPerCleaner = countRoomsPerUser(otherRooms, "cleaner");
+  const roomsPerVerifier = countRoomsPerUser(otherRooms, "verifier");
 
   function refresh() {
     startTransition(() => router.refresh());
@@ -62,6 +89,8 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
       id: room.id,
       name: room.name,
       kind: room.kind,
+      cleanerUserIds: toUserIdList(room.cleanerUserIds),
+      verifierUserIds: toUserIdList(room.verifierUserIds),
       detergent: room.detergent ?? "",
       // Передаём scope как-есть — RoomEditorDialog.parseScopeSteps
       // нормализует и legacy string[] и новый ScopeStep[] (с per-step
@@ -157,6 +186,7 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
         <BuildingCard
           key={b.id}
           building={b}
+          userNameById={userNameById}
           onRefresh={refresh}
           onDelete={() => deleteBuilding(b.id, b.name)}
           onEditRoom={openEditor}
@@ -170,6 +200,9 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
         }}
         initial={editorRoom}
         onSaved={refresh}
+        users={users}
+        roomsPerCleaner={roomsPerCleaner}
+        roomsPerVerifier={roomsPerVerifier}
       />
 
       {adding ? (
@@ -222,11 +255,13 @@ export function BuildingsClient({ initial }: { initial: Building[] }) {
 
 function BuildingCard({
   building,
+  userNameById,
   onRefresh,
   onDelete,
   onEditRoom,
 }: {
   building: Building;
+  userNameById: Map<string, string>;
   onRefresh: () => void;
   onDelete: () => void;
   onEditRoom: (room: Room) => void;
@@ -251,11 +286,15 @@ function BuildingCard({
       toast.error(d?.error ?? "Не удалось добавить");
       return;
     }
+    const created = (await res.json().catch(() => ({}))) as { room?: Room };
     setRoomName("");
     setRoomKind("other");
     setAddingRoom(false);
-    toast.success("Помещение добавлено");
+    toast.success("Помещение добавлено — назначьте, кто убирает");
     onRefresh();
+    // «При добавлении»: сразу открываем карточку нового помещения —
+    // уборщики, проверяющие и состав уборки настраиваются в одном окне.
+    if (created.room?.id) onEditRoom(created.room);
   }
 
   async function deleteRoom(id: string, name: string) {
@@ -316,28 +355,50 @@ function BuildingCard({
           const hasCleaningCfg =
             currentLen + generalLen > 0 ||
             (room.detergent && room.detergent.length > 0);
+          const nameOf = (id: string) => userNameById.get(id) ?? "—";
+          const cleanerNames = toUserIdList(room.cleanerUserIds).map(nameOf);
+          const verifierNames = toUserIdList(room.verifierUserIds).map(nameOf);
           return (
             <div
               key={room.id}
               className="flex items-center justify-between gap-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2 text-[13.5px]"
             >
-              <div className="flex min-w-0 items-center gap-2 flex-wrap">
-                <span className="font-medium text-[#0b1024]">{room.name}</span>
-                <span className="rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] text-[#3848c7]">
-                  {KIND_LABELS[room.kind] ?? room.kind}
-                </span>
-                {hasCleaningCfg ? (
-                  <span
-                    className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[11px] text-[#136b2a]"
-                    title={`Текущая: ${currentLen} шаг(ов), Генеральная: ${generalLen}`}
-                  >
-                    🧽 Уборка настроена ({currentLen}/{generalLen})
+              <div className="min-w-0 space-y-1">
+                <div className="flex min-w-0 items-center gap-2 flex-wrap">
+                  <span className="font-medium text-[#0b1024]">{room.name}</span>
+                  <span className="rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] text-[#3848c7]">
+                    {KIND_LABELS[room.kind] ?? room.kind}
                   </span>
-                ) : (
-                  <span className="rounded-full bg-[#fff8eb] px-2 py-0.5 text-[11px] text-[#a16d32]">
-                    Уборка не настроена
-                  </span>
-                )}
+                  {hasCleaningCfg ? (
+                    <span
+                      className="rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[11px] text-[#136b2a]"
+                      title={`Текущая: ${currentLen} шаг(ов), Генеральная: ${generalLen}`}
+                    >
+                      🧽 Уборка настроена ({currentLen}/{generalLen})
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-[#fff8eb] px-2 py-0.5 text-[11px] text-[#a16d32]">
+                      Уборка не настроена
+                    </span>
+                  )}
+                </div>
+                {/* Кто убирает / кто проверяет — видно без открытия карточки. */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
+                  {cleanerNames.length > 0 ? (
+                    <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[#3848c7]">
+                      Убирает: {cleanerNames.join(", ")}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[#9b9fb3] ring-1 ring-inset ring-[#ececf4]">
+                      Уборщики не назначены
+                    </span>
+                  )}
+                  {verifierNames.length > 0 ? (
+                    <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[#3848c7]">
+                      Проверяет: {verifierNames.join(", ")}
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 <button
