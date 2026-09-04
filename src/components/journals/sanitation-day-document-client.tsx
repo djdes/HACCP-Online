@@ -32,12 +32,23 @@ import {
 } from "@/lib/user-roles";
 import {
   SANITATION_MONTHS,
+  applyRoomDirectoryToSanitationConfig,
   createEmptySanitationRow,
   getSanitationApproveLabel,
+  listSanitationRoomsNotInDocument,
   normalizeSanitationDayConfig,
+  suggestDirectoryRoomForSanitationRow,
   type SanitationDayConfig,
   type SanitationMonthKey,
+  type SanitationRoomRow,
 } from "@/lib/sanitation-day-document";
+import {
+  RoomEditorDialog,
+  type RoomEditorInitial,
+} from "@/components/cleaning/room-editor-dialog";
+import { RoomDirectoryPickerDialog } from "@/components/cleaning/room-directory-picker-dialog";
+import { directoryRoomToEditorInitial } from "@/components/cleaning/room-editor-initial";
+import type { DirectoryBuilding, DirectoryRoom } from "@/lib/room-directory";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_ADD_ROW_CLASS,
@@ -103,6 +114,12 @@ type Props = {
   controlPeriodicity?: string;
   status: string;
   users: UserItem[];
+  /**
+   * 2026-09-04: единый справочник помещений (/settings/buildings).
+   * Строки с `roomId` берут название из него; карточка помещения
+   * открывается прямо из журнала.
+   */
+  buildings?: DirectoryBuilding[];
   config: unknown;
   /** Design v2 toggle. */
   useV2?: boolean;
@@ -181,16 +198,22 @@ function RoomDialog(props: {
   submitText: string;
   initial: RoomDialogState;
   includePlanFields: boolean;
-  onSubmit: (value: RoomDialogState) => Promise<void>;
+  /** Помещения справочника, с которыми можно связать legacy-строку. */
+  linkOptions?: Array<{ id: string; name: string }>;
+  onSubmit: (value: RoomDialogState, linkRoomId?: string | null) => Promise<void>;
 }) {
   const [state, setState] = useState<RoomDialogState>(props.initial);
+  const [linkRoomId, setLinkRoomId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   return (
     <Dialog
       open={props.open}
       onOpenChange={(value) => {
-        if (value) setState(props.initial);
+        if (value) {
+          setState(props.initial);
+          setLinkRoomId("");
+        }
         props.onOpenChange(value);
       }}
     >
@@ -220,6 +243,29 @@ function RoomDialog(props: {
               className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
+
+          {props.initial.id && (props.linkOptions?.length ?? 0) > 0 ? (
+            <div className="space-y-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3">
+              <Label className="text-[13px] font-medium text-[#3c4053]">
+                Связать с помещением из справочника
+              </Label>
+              <select
+                value={linkRoomId}
+                onChange={(event) => setLinkRoomId(event.target.value)}
+                className="h-10 w-full rounded-2xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              >
+                <option value="">— не связывать —</option>
+                {props.linkOptions?.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11.5px] leading-[1.5] text-[#6f7282]">
+                После связи название и ответственные берутся из карточки помещения («Настройки → Помещения»); план по месяцам сохраняется.
+              </p>
+            </div>
+          ) : null}
 
           {props.includePlanFields ? (
             <>
@@ -272,7 +318,7 @@ function RoomDialog(props: {
                 }
                 setSubmitting(true);
                 try {
-                  await props.onSubmit({ ...state, name: state.name.trim() });
+                  await props.onSubmit({ ...state, name: state.name.trim() }, linkRoomId || null);
                   props.onOpenChange(false);
                 } finally {
                   setSubmitting(false);
@@ -667,6 +713,7 @@ export function SanitationDayDocumentClient({
   controlPeriodicity = "",
   status,
   users,
+  buildings = [],
   config,
   useV2 = false,
 }: Props) {
@@ -693,7 +740,21 @@ export function SanitationDayDocumentClient({
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
-  const normalized = normalizeSanitationDayConfig(config);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
+  // Справочник помещений: название строк с roomId — из Room.
+  const directoryRooms = useMemo(
+    () => buildings.flatMap((b) => b.rooms),
+    [buildings],
+  );
+  const normalized = applyRoomDirectoryToSanitationConfig(
+    normalizeSanitationDayConfig(config),
+    directoryRooms,
+  );
+  const userNameById = useMemo(
+    () => new Map(users.map((u) => [u.id, u.name])),
+    [users],
+  );
   const readOnly = status === "closed";
   const { mobileView, switchMobileView } = useMobileView("general_cleaning");
 
@@ -763,7 +824,58 @@ export function SanitationDayDocumentClient({
     await patchConfig({ ...normalized, rows: nextRows });
   }
 
-  async function saveRoomDialog(value: RoomDialogState) {
+  /** Кто убирает / проверяет помещение строки — из справочника. */
+  function roomPeople(row: SanitationRoomRow): { cleaners: string[]; verifiers: string[] } {
+    const dbRoom = row.roomId ? directoryRooms.find((r) => r.id === row.roomId) : undefined;
+    if (!dbRoom) return { cleaners: [], verifiers: [] };
+    const nameOf = (id: string) => userNameById.get(id) ?? "—";
+    return {
+      cleaners: dbRoom.cleanerUserIds.map(nameOf),
+      verifiers: dbRoom.verifierUserIds.map(nameOf),
+    };
+  }
+
+  /** Клик по помещению: со связью — карточка помещения, без — legacy-диалог. */
+  function openRowEditor(row: SanitationRoomRow) {
+    const dbRoom = row.roomId ? directoryRooms.find((r) => r.id === row.roomId) : undefined;
+    if (dbRoom) {
+      setRoomEditor(directoryRoomToEditorInitial(dbRoom));
+      return;
+    }
+    setRoomDialogState({ id: row.id, name: row.roomName, plan: { ...row.plan } });
+    setRoomDialogOpen(true);
+  }
+
+  /** Помещение из справочника → строка графика (id стабильный `row-room-<Room.id>`). */
+  async function addRoomFromDirectory(room: DirectoryRoom) {
+    if (normalized.rows.some((r) => r.roomId === room.id)) {
+      toast.error("Это помещение уже есть в графике");
+      return;
+    }
+    await patchConfig({
+      ...normalized,
+      rows: [...normalized.rows, createEmptySanitationRow(room.name, room.id)],
+    });
+  }
+
+  /** «Связать» legacy-строку с помещением: id строки не меняем (линки TF живы). */
+  async function linkRow(rowId: string, room: { id: string; name: string }) {
+    await patchConfig({
+      ...normalized,
+      rows: normalized.rows.map((r) =>
+        r.id === rowId ? { ...r, roomId: room.id, roomName: room.name } : r,
+      ),
+    });
+  }
+
+  async function saveRoomDialog(value: RoomDialogState, linkRoomId?: string | null) {
+    if (value.id && linkRoomId) {
+      const room = directoryRooms.find((r) => r.id === linkRoomId);
+      if (room) {
+        await linkRow(value.id, room);
+        return;
+      }
+    }
     if (!value.id) {
       const nextRow = createEmptySanitationRow(value.name);
       nextRow.plan = value.plan;
@@ -865,25 +977,7 @@ export function SanitationDayDocumentClient({
             <Button
               type="button"
               onClick={() => {
-                setRoomDialogState({
-                  id: null,
-                  name: "",
-                  plan: {
-                    jan: "-",
-                    feb: "-",
-                    mar: "-",
-                    apr: "-",
-                    may: "-",
-                    jun: "-",
-                    jul: "-",
-                    aug: "-",
-                    sep: "-",
-                    oct: "-",
-                    nov: "-",
-                    dec: "-",
-                  },
-                });
-                setRoomDialogOpen(true);
+                setPickerOpen(true);
               }}
               className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
             >
@@ -911,12 +1005,7 @@ export function SanitationDayDocumentClient({
               onClick={() => {
                 const target = selectedRows[0];
                 if (!target) return;
-                setRoomDialogState({
-                  id: target.id,
-                  name: target.roomName,
-                  plan: { ...target.plan },
-                });
-                setRoomDialogOpen(true);
+                openRowEditor(target);
               }}
               className="h-10 gap-1.5 rounded-xl border-[#dcdfed] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none transition-colors duration-150 hover:bg-[#f3f4fe] hover:text-[#5566f6]"
             >
@@ -960,6 +1049,8 @@ export function SanitationDayDocumentClient({
                     />
                   ) : null,
                   fields: [
+                    { label: "Убирает", value: roomPeople(row).cleaners.join(", "), hideIfEmpty: true },
+                    { label: "Проверяет", value: roomPeople(row).verifiers.join(", "), hideIfEmpty: true },
                     { label: "План по месяцам", value: planSummary, hideIfEmpty: true },
                     { label: "Факт по месяцам", value: factSummary, hideIfEmpty: true },
                   ],
@@ -1045,15 +1136,35 @@ export function SanitationDayDocumentClient({
                       className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle ${readOnly ? "" : "cursor-pointer hover:bg-[#f5f6ff]"} leading-tight`}
                       onClick={() => {
                         if (readOnly) return;
-                        setRoomDialogState({
-                          id: row.id,
-                          name: row.roomName,
-                          plan: { ...row.plan },
-                        });
-                        setRoomDialogOpen(true);
+                        openRowEditor(row);
                       }}
                     >
-                      {row.roomName}
+                      <div>{row.roomName}</div>
+                      {/* Кто убирает / проверяет — из карточки помещения. */}
+                      {roomPeople(row).cleaners.length > 0 ? (
+                        <div className="text-[11px] font-normal text-[#3848c7] print:hidden">
+                          Убирает: {roomPeople(row).cleaners.join(", ")}
+                        </div>
+                      ) : null}
+                      {roomPeople(row).verifiers.length > 0 ? (
+                        <div className="text-[11px] font-normal text-[#3848c7] print:hidden">
+                          Проверяет: {roomPeople(row).verifiers.join(", ")}
+                        </div>
+                      ) : null}
+                      {!readOnly && !row.roomId && suggestDirectoryRoomForSanitationRow(row, directoryRooms) ? (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            const match = suggestDirectoryRoomForSanitationRow(row, directoryRooms);
+                            if (match) void linkRow(row.id, match);
+                          }}
+                          title="В справочнике есть помещение с таким же названием — связать, чтобы название и ответственные брались из карточки помещения"
+                          className="mt-0.5 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#3848c7] transition-colors duration-150 hover:bg-[#eef1ff] print:hidden"
+                        >
+                          Связать
+                        </button>
+                      ) : null}
                     </td>
                     <td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>
                       План
@@ -1178,7 +1289,34 @@ export function SanitationDayDocumentClient({
         }
         submitText={roomDialogState.id ? "Сохранить" : "Создать"}
         includePlanFields={!roomDialogState.id}
+        linkOptions={listSanitationRoomsNotInDocument(normalized, directoryRooms)}
         onSubmit={saveRoomDialog}
+      />
+
+      {/* Единый справочник помещений: добавить из /settings/buildings или
+          создать новое — и сразу открыть его карточку. */}
+      <RoomDirectoryPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        buildings={buildings}
+        excludeRoomIds={normalized.rows.map((r) => r.roomId).filter((id): id is string => Boolean(id))}
+        hint="Помещения общие для всех журналов. Состав генеральной уборки, уборщики и проверяющие — в карточке помещения."
+        onPick={addRoomFromDirectory}
+        onCreated={async (room) => {
+          await addRoomFromDirectory(room);
+          setRoomEditor(directoryRoomToEditorInitial(room));
+        }}
+      />
+
+      <RoomEditorDialog
+        open={roomEditor !== null}
+        onOpenChange={(open) => {
+          if (!open) setRoomEditor(null);
+        }}
+        initial={roomEditor}
+        focus="cleaning"
+        users={users}
+        onSaved={() => router.refresh()}
       />
 
       <DocumentSettingsDialog

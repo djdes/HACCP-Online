@@ -23,6 +23,7 @@ import { db } from "@/lib/db";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
   DEFAULT_CLIMATE_CONTROL_TIMES,
+  applyRoomDirectoryToClimateConfig,
   normalizeClimateDocumentConfig,
   normalizeClimateEntryData,
   type ClimateDocumentConfig,
@@ -168,7 +169,7 @@ export const climateAdapter: JournalAdapter = {
   },
 
   async listDocumentsForOrg(organizationId): Promise<AdapterDocument[]> {
-    const [docs, employees] = await Promise.all([
+    const [docs, employees, directoryRooms] = await Promise.all([
       db.journalDocument.findMany({
         where: {
           organizationId,
@@ -189,9 +190,17 @@ export const climateAdapter: JournalAdapter = {
         select: { id: true, name: true, role: true, positionTitle: true },
         orderBy: [{ role: "asc" }, { name: "asc" }],
       }),
+      // 2026-09-04: имена/нормы помещений — из справочника Room.
+      db.room.findMany({
+        where: { building: { organizationId } },
+        select: { id: true, name: true, climateNorms: true },
+      }),
     ]);
     return docs.map<AdapterDocument>((doc) => {
-      const config = normalizeClimateDocumentConfig(doc.config);
+      const config = applyRoomDirectoryToClimateConfig(
+        normalizeClimateDocumentConfig(doc.config),
+        directoryRooms,
+      );
       const times = config.controlTimes.length
         ? config.controlTimes
         : [...DEFAULT_CLIMATE_CONTROL_TIMES];
@@ -228,7 +237,7 @@ export const climateAdapter: JournalAdapter = {
     const [doc, employee] = await Promise.all([
       db.journalDocument.findUnique({
         where: { id: documentId },
-        select: { config: true },
+        select: { config: true, organizationId: true },
       }),
       (async () => {
         const empId = employeeIdFromRowKey(rowKey);
@@ -240,7 +249,14 @@ export const climateAdapter: JournalAdapter = {
       })(),
     ]);
     if (!doc) return null;
-    const config = normalizeClimateDocumentConfig(doc.config);
+    const directoryRooms = await db.room.findMany({
+      where: { building: { organizationId: doc.organizationId } },
+      select: { id: true, name: true, climateNorms: true },
+    });
+    const config = applyRoomDirectoryToClimateConfig(
+      normalizeClimateDocumentConfig(doc.config),
+      directoryRooms,
+    );
     return buildForm(config, employee?.name ?? null, timeFromRowKey(rowKey));
   },
 

@@ -36,10 +36,22 @@ import {
   CLIMATE_SCOPE_HINT,
   normalizeClimateDocumentConfig,
   syncClimateEntryDataWithConfig,
+  applyRoomDirectoryToClimateConfig,
+  climateRoomFromDirectory,
+  listClimateRoomsNotInDocument,
+  normalizeClimateRoomNorms,
+  suggestDirectoryRoomForClimateRow,
   type ClimateDocumentConfig,
   type ClimateEntryData,
   type ClimateRoomConfig,
 } from "@/lib/climate-document";
+import {
+  RoomEditorDialog,
+  type RoomEditorInitial,
+} from "@/components/cleaning/room-editor-dialog";
+import { RoomDirectoryPickerDialog } from "@/components/cleaning/room-directory-picker-dialog";
+import { directoryRoomToEditorInitial } from "@/components/cleaning/room-editor-initial";
+import type { DirectoryBuilding, DirectoryRoom } from "@/lib/room-directory";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
@@ -124,6 +136,12 @@ type Props = {
   status: string;
   autoFill?: boolean;
   employees: EmployeeItem[];
+  /**
+   * 2026-09-04: единый справочник помещений (/settings/buildings).
+   * Строки с `roomId` берут имя и нормы из него; карточка помещения
+   * открывается прямо из журнала.
+   */
+  buildings?: DirectoryBuilding[];
   config: ClimateDocumentConfig;
   initialEntries: RowItem[];
   /** Design v2 toggle. */
@@ -163,6 +181,7 @@ function RoomDialog({
   onOpenChange,
   initialRoom,
   canDelete,
+  linkOptions,
   onSave,
   onDelete,
 }: {
@@ -170,10 +189,13 @@ function RoomDialog({
   onOpenChange: (value: boolean) => void;
   initialRoom: ClimateRoomConfig | null;
   canDelete: boolean;
-  onSave: (room: ClimateRoomConfig) => Promise<void>;
+  /** Помещения справочника, с которыми можно связать legacy-строку. */
+  linkOptions?: Array<{ id: string; name: string }>;
+  onSave: (room: ClimateRoomConfig, linkRoomId?: string | null) => Promise<void>;
   onDelete: (roomId: string) => Promise<void>;
 }) {
   const [name, setName] = useState("");
+  const [linkRoomId, setLinkRoomId] = useState("");
   const [temperatureEnabled, setTemperatureEnabled] = useState(true);
   const [temperatureMin, setTemperatureMin] = useState("18");
   const [temperatureMax, setTemperatureMax] = useState("25");
@@ -191,6 +213,7 @@ function RoomDialog({
         humidity: { enabled: false, min: 15, max: 75 },
       });
     setName(room.name);
+    setLinkRoomId("");
     setTemperatureEnabled(room.temperature.enabled);
     setTemperatureMin(room.temperature.min?.toString() || "");
     setTemperatureMax(room.temperature.max?.toString() || "");
@@ -222,7 +245,7 @@ function RoomDialog({
 
     setIsSubmitting(true);
     try {
-      await onSave(room);
+      await onSave(room, linkRoomId || null);
       onOpenChange(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ошибка сохранения помещения");
@@ -266,6 +289,29 @@ function RoomDialog({
               className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
             />
           </div>
+
+          {initialRoom && !initialRoom.roomId && (linkOptions?.length ?? 0) > 0 ? (
+            <div className="space-y-2 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-3">
+              <Label className="text-[13px] font-medium text-[#3c4053]">
+                Связать с помещением из справочника
+              </Label>
+              <select
+                value={linkRoomId}
+                onChange={(event) => setLinkRoomId(event.target.value)}
+                className="h-10 w-full rounded-2xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              >
+                <option value="">— не связывать —</option>
+                {linkOptions?.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11.5px] leading-[1.5] text-[#6f7282]">
+                После связи имя и нормы берутся из карточки помещения («Настройки → Помещения»), замеры сохраняются.
+              </p>
+            </div>
+          ) : null}
 
           <div className="space-y-5">
             <div className="text-[16px] font-medium text-black">Нормы условий</div>
@@ -948,6 +994,7 @@ export function ClimateDocumentClient({
   status,
   autoFill = false,
   employees,
+  buildings = [],
   config: initialConfig,
   initialEntries,
   useV2 = false,
@@ -956,7 +1003,16 @@ export function ClimateDocumentClient({
   // «Сегодня» — после mount (useTodayKey): new Date() в рендере
   // расходился между сервером (UTC) и браузером и врал подсветкой.
   const todayKey = useTodayKey();
-  const [config, setConfig] = useState(initialConfig);
+  // Справочник помещений: имена и нормы строк с roomId — из Room.
+  const directoryRooms = useMemo(
+    () => buildings.flatMap((b) => b.rooms),
+    [buildings],
+  );
+  const [config, setConfig] = useState(() =>
+    applyRoomDirectoryToClimateConfig(initialConfig, directoryRooms),
+  );
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
   const [rows, setRows] = useState(getSortedRows(initialEntries));
   const [documentTitle, setDocumentTitle] = useState(title);
   const [defaultResponsibleTitle, setDefaultResponsibleTitle] = useState(
@@ -1132,17 +1188,67 @@ export function ClimateDocumentClient({
     await syncEntriesWithConfig(params.config);
   }
 
-  async function handleSaveRoom(room: ClimateRoomConfig) {
-    const nextRooms = editingRoom
-      ? config.rooms.map((item) => (item.id === room.id ? room : item))
-      : [...config.rooms, room];
-    const nextConfig = normalizeClimateDocumentConfig({
-      ...config,
-      rooms: nextRooms,
-    });
+  async function handleSaveRoom(room: ClimateRoomConfig, linkRoomId?: string | null) {
+    let nextRoom = room;
+    if (linkRoomId) {
+      // «Связать» legacy-строку с помещением справочника: id строки не
+      // меняем (ключи замеров живы), имя/нормы дальше идут из Room.
+      const dbRoom = directoryRooms.find((r) => r.id === linkRoomId);
+      if (dbRoom) {
+        nextRoom = { ...room, roomId: dbRoom.id, name: dbRoom.name };
+        if (!normalizeClimateRoomNorms(dbRoom.climateNorms)) {
+          // В карточке помещения норм ещё нет — переносим из строки,
+          // чтобы ничего не потерялось.
+          const res = await fetch(`/api/settings/rooms/${dbRoom.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              climateNorms: { temperature: room.temperature, humidity: room.humidity },
+            }),
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => null);
+            throw new Error(body?.error || "Не удалось сохранить нормы в карточку помещения");
+          }
+        }
+      }
+    }
+    const exists = config.rooms.some((item) => item.id === nextRoom.id);
+    const nextRooms = exists
+      ? config.rooms.map((item) => (item.id === nextRoom.id ? nextRoom : item))
+      : [...config.rooms, nextRoom];
+    const nextConfig = applyRoomDirectoryToClimateConfig(
+      normalizeClimateDocumentConfig({ ...config, rooms: nextRooms }),
+      directoryRooms,
+    );
 
     await persistDocument({ config: nextConfig });
     await syncEntriesWithConfig(nextConfig);
+    if (linkRoomId) router.refresh();
+  }
+
+  /** Карандаш у помещения: со связью — карточка помещения, без — legacy-диалог. */
+  function openRoomEditor(room: ClimateRoomConfig) {
+    const dbRoom = room.roomId
+      ? directoryRooms.find((r) => r.id === room.roomId)
+      : undefined;
+    if (dbRoom) {
+      setRoomEditor(directoryRoomToEditorInitial(dbRoom));
+      return;
+    }
+    setEditingRoom(room);
+    setRoomDialogOpen(true);
+  }
+
+  /** Помещение из справочника → строка документа (id стабильный `room-<Room.id>`). */
+  async function addRoomFromDirectory(room: DirectoryRoom) {
+    const row = climateRoomFromDirectory(room);
+    if (config.rooms.some((r) => r.id === row.id || r.roomId === room.id)) {
+      toast.error("Это помещение уже есть в документе");
+      return;
+    }
+    setEditingRoom(null);
+    await handleSaveRoom(row);
   }
 
   async function handleDeleteRoom(roomId: string) {
@@ -1451,8 +1557,7 @@ export function ClimateDocumentClient({
       <button
         type="button"
         onClick={() => {
-          setEditingRoom(null);
-          setRoomDialogOpen(true);
+          setPickerOpen(true);
         }}
         title="Добавить помещение с нормами температуры и влажности"
         className={GRID_ADD_CELL_SOLID_CLASS}
@@ -1529,16 +1634,34 @@ export function ClimateDocumentClient({
                   {status === "active" && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setEditingRoom(room);
-                        setRoomDialogOpen(true);
-                      }}
-                      title="Изменить нормы помещения"
+                      onClick={() => openRoomEditor(room)}
+                      title={
+                        room.roomId
+                          ? "Карточка помещения — нормы, уборка, ответственные"
+                          : "Изменить нормы помещения"
+                      }
                       className="text-[#5566f6] transition-colors duration-150 hover:text-[#4a5bf0] print:hidden"
                     >
                       <Pencil className="size-4" />
                     </button>
                   )}
+                  {status === "active" && !room.roomId && suggestDirectoryRoomForClimateRow(room, directoryRooms) ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const match = suggestDirectoryRoomForClimateRow(room, directoryRooms);
+                        if (match) {
+                          handleSaveRoom(room, match.id).catch((error) =>
+                            toast.error(error instanceof Error ? error.message : "Не удалось связать помещение"),
+                          );
+                        }
+                      }}
+                      title="В справочнике есть помещение с таким же названием — связать, чтобы нормы и имя брались из карточки помещения"
+                      className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#3848c7] transition-colors duration-150 hover:bg-[#eef1ff] print:hidden"
+                    >
+                      Связать
+                    </button>
+                  ) : null}
                 </div>
               </td>
               <td className={`${GRID_CELL_CLASS} w-1/2 px-4 py-2 text-center leading-tight`}>
@@ -1559,8 +1682,7 @@ export function ClimateDocumentClient({
                 <button
                   type="button"
                   onClick={() => {
-                    setEditingRoom(null);
-                    setRoomDialogOpen(true);
+                    setPickerOpen(true);
                   }}
                   title="Добавить помещение с нормами температуры и влажности"
                   className={GRID_ADD_CELL_SOLID_CLASS}
@@ -2126,8 +2248,57 @@ export function ClimateDocumentClient({
         }}
         initialRoom={editingRoom}
         canDelete={config.rooms.length > 1}
+        linkOptions={listClimateRoomsNotInDocument(config, directoryRooms)}
         onSave={handleSaveRoom}
         onDelete={handleDeleteRoom}
+      />
+
+      {/* Единый справочник помещений: добавить из /settings/buildings или
+          создать новое — и сразу открыть его карточку. */}
+      <RoomDirectoryPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        buildings={buildings}
+        excludeRoomIds={config.rooms.map((r) => r.roomId).filter((id): id is string => Boolean(id))}
+        hint="Помещения общие для всех журналов. Нормы температуры и влажности задаются в карточке помещения."
+        onPick={addRoomFromDirectory}
+        onCreated={async (room) => {
+          await addRoomFromDirectory(room);
+          setRoomEditor(directoryRoomToEditorInitial(room));
+        }}
+      />
+
+      <RoomEditorDialog
+        open={roomEditor !== null}
+        onOpenChange={(open) => {
+          if (!open) setRoomEditor(null);
+        }}
+        initial={roomEditor}
+        focus="climate"
+        users={employees}
+        onSaved={async (snapshot) => {
+          // Имя и нормы строки — из карточки (snapshot), без ожидания
+          // router.refresh(); ключ строки не меняется.
+          const row = config.rooms.find((r) => r.roomId === snapshot.id);
+          if (row) {
+            const next: ClimateRoomConfig = {
+              ...row,
+              name: snapshot.name,
+              ...(snapshot.climateNorms
+                ? {
+                    temperature: snapshot.climateNorms.temperature,
+                    humidity: snapshot.climateNorms.humidity,
+                  }
+                : {}),
+            };
+            try {
+              await handleSaveRoom(next);
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Не удалось обновить строку");
+            }
+          }
+          router.refresh();
+        }}
       />
 
       <AddRowDialog

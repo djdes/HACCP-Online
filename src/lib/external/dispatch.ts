@@ -12,6 +12,8 @@ import {
   createEmptyClimateEntryData,
   normalizeClimateDocumentConfig,
   normalizeClimateEntryData,
+  applyRoomDirectoryToClimateConfig,
+  type ClimateDirectoryRoom,
 } from "@/lib/climate-document";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
@@ -269,7 +271,11 @@ async function findOrCreateDocument(params: {
   return { doc: created, created: true };
 }
 
-function normalizeClimatePayload(value: unknown, documentConfig: unknown) {
+function normalizeClimatePayload(
+  value: unknown,
+  documentConfig: unknown,
+  directoryRooms: ClimateDirectoryRoom[] = [],
+) {
   if (!isRecord(value)) {
     return normalizeClimateEntryData(value);
   }
@@ -278,7 +284,15 @@ function normalizeClimatePayload(value: unknown, documentConfig: unknown) {
     return normalizeClimateEntryData(value);
   }
 
-  const config = normalizeClimateDocumentConfig(documentConfig);
+  // 2026-09-04: имена помещений — из справочника Room (Room wins), чтобы
+  // датчик, присланный по имени помещения, попадал в нужную строку.
+  const config = applyRoomDirectoryToClimateConfig(
+    normalizeClimateDocumentConfig(documentConfig),
+    directoryRooms,
+  );
+  const roomByDirectoryId = new Map(
+    config.rooms.filter((r) => r.roomId).map((r) => [r.roomId as string, r]),
+  );
   const result = createEmptyClimateEntryData(
     config,
     typeof value.responsibleTitle === "string" ? value.responsibleTitle : null
@@ -303,8 +317,13 @@ function normalizeClimatePayload(value: unknown, documentConfig: unknown) {
   const readings = Array.isArray(value.readings) ? value.readings : [];
   for (const reading of readings) {
     if (!isRecord(reading)) continue;
+    const requestedRoomId = normalizeText(reading.roomId);
     const roomId =
-      normalizeText(reading.roomId) ||
+      // roomId — id строки документа ИЛИ id помещения справочника.
+      (requestedRoomId &&
+        (config.rooms.some((r) => r.id === requestedRoomId)
+          ? requestedRoomId
+          : roomByDirectoryId.get(requestedRoomId)?.id)) ||
       roomByName.get(normalizeText(reading.roomName).toLowerCase())?.id ||
       firstRoom?.id;
     const time =
@@ -498,10 +517,15 @@ function mergeCleaningEntryIntoConfig(
   return next;
 }
 
-function normalizeEntryPayload(templateCode: string, value: unknown, documentConfig: unknown) {
+function normalizeEntryPayload(
+  templateCode: string,
+  value: unknown,
+  documentConfig: unknown,
+  directoryRooms: ClimateDirectoryRoom[] = [],
+) {
   switch (templateCode) {
     case CLIMATE_DOCUMENT_TEMPLATE_CODE:
-      return normalizeClimatePayload(value, documentConfig);
+      return normalizeClimatePayload(value, documentConfig, directoryRooms);
     case COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE:
       return normalizeColdEquipmentPayload(value, documentConfig);
     case CLEANING_DOCUMENT_TEMPLATE_CODE:
@@ -798,6 +822,15 @@ export async function dispatchExternalEntries(params: {
     employeesById,
   };
 
+  // 2026-09-04: справочник помещений для сопоставления замеров климата.
+  const directoryRooms =
+    template.code === CLIMATE_DOCUMENT_TEMPLATE_CODE
+      ? await db.room.findMany({
+          where: { building: { organizationId } },
+          select: { id: true, name: true, climateNorms: true },
+        })
+      : [];
+
   let written = 0;
   await db.$transaction(async (tx) => {
     let currentDoc = initialDoc;
@@ -813,7 +846,7 @@ export async function dispatchExternalEntries(params: {
     if (usesConfigWriter(template.code)) {
       const configEntries = normalized.map((entry) => ({
         ...entry,
-        data: normalizeEntryPayload(template.code, entry.data, documentConfig),
+        data: normalizeEntryPayload(template.code, entry.data, documentConfig, directoryRooms),
       }));
       const configResult = await writeConfigEntries({
         tx,
@@ -829,7 +862,7 @@ export async function dispatchExternalEntries(params: {
 
     for (const entry of normalized) {
       const employee = context.employeesById.get(entry.employeeId)!;
-      const normalizedData = normalizeEntryPayload(template.code, entry.data, documentConfig);
+      const normalizedData = normalizeEntryPayload(template.code, entry.data, documentConfig, directoryRooms);
       const reconciled = reconcileEntryStaffFields(normalizedData, employee as StaffBindingUser);
       await tx.journalDocumentEntry.upsert({
         where: {

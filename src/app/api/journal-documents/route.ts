@@ -14,7 +14,7 @@ import {
 } from "@/lib/control-periodicity";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
-  buildClimateConfigFromAreas,
+  buildClimateConfigFromRooms,
   getDefaultClimateDocumentConfig,
 } from "@/lib/climate-document";
 import {
@@ -55,7 +55,7 @@ import {
 } from "@/lib/ppe-issuance-document";
 import {
   SANITATION_DAY_TEMPLATE_CODE,
-  buildSanitationDayConfigFromAreas,
+  buildSanitationDayConfigFromRooms,
   normalizeSanitationDayConfig,
 } from "@/lib/sanitation-day-document";
 import {
@@ -299,8 +299,7 @@ export async function POST(request: Request) {
       : [];
 
   const allAreas =
-    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE ||
-    resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
+    resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
       ? await db.area.findMany({
           where: {
             organizationId: getActiveOrgId(session),
@@ -339,6 +338,18 @@ export async function POST(request: Request) {
             name: true,
           },
           orderBy: { name: "asc" },
+        })
+      : [];
+
+  // 2026-09-04: единый справочник помещений. Климат и график ген. уборок
+  // сидируются из Room (/settings/buildings), а не из legacy Area.
+  const directoryRooms =
+    resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
+    resolvedTemplateCode === SANITATION_DAY_TEMPLATE_CODE
+      ? await db.room.findMany({
+          where: { building: { organizationId: getActiveOrgId(session) } },
+          select: { id: true, name: true, climateNorms: true },
+          orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
         })
       : [];
 
@@ -470,7 +481,7 @@ export async function POST(request: Request) {
       : resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? equipmentCalibrationConfig
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
-      ? buildClimateConfigFromAreas(allAreas)
+      ? buildClimateConfigFromRooms(directoryRooms)
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? // «Как прошлый журнал»: если есть предыдущий документ —
         // используем его rooms/schedule/планы как структурную основу,
@@ -568,7 +579,7 @@ export async function POST(request: Request) {
         // присылает лишь approve*/responsible*, и наивный merge обнулил
         // бы список помещений.
         (() => {
-          const base = buildSanitationDayConfigFromAreas(allAreas, new Date(dateFrom));
+          const base = buildSanitationDayConfigFromRooms(directoryRooms, new Date(dateFrom));
           const provided = (rawConfig || {}) as Record<string, unknown>;
           const providedRows =
             Array.isArray(provided.rows) && provided.rows.length > 0;

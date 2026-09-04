@@ -53,6 +53,7 @@ import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { SANITATION_DAY_TEMPLATE_CODE } from "@/lib/sanitation-day-document";
+import { loadDirectoryBuildings } from "@/lib/room-directory";
 import { isScanOnlyDocumentTemplate } from "@/lib/scan-journal-config";
 import { getScanJournalPageCount } from "@/lib/scan-journal-pages";
 import { TRAINING_PLAN_TEMPLATE_CODE } from "@/lib/training-plan-document";
@@ -669,6 +670,9 @@ async function JournalDocumentBody({
   }
 
   if (document.template.code === SANITATION_DAY_TEMPLATE_CODE) {
+    // 2026-09-04: единый справочник помещений — строки графика связаны с
+    // Room; карточка помещения открывается прямо из журнала.
+    const directoryBuildings = await loadDirectoryBuildings(getActiveOrgId(session));
     return (
       <SanitationDayDocumentClient
         documentId={document.id}
@@ -677,6 +681,7 @@ async function JournalDocumentBody({
         organizationName={organization?.name || ORG_NAME_FALLBACK}
         status={document.status}
         users={enrichedEmployees}
+        buildings={directoryBuildings}
         config={document.config}
         useV2={organization?.experimentalUiV2 ?? true}
       />
@@ -1006,6 +1011,9 @@ async function JournalDocumentBody({
   }
 
   if (document.template.code === CLIMATE_DOCUMENT_TEMPLATE_CODE) {
+    // 2026-09-04: единый справочник помещений — строки климата связаны с
+    // Room (нормы и имя из карточки помещения).
+    const directoryBuildings = await loadDirectoryBuildings(getActiveOrgId(session));
     return (
       <ClimateDocumentClient
         documentId={document.id}
@@ -1019,6 +1027,7 @@ async function JournalDocumentBody({
         status={document.status}
         autoFill={document.autoFill}
         employees={enrichedEmployees}
+        buildings={directoryBuildings}
         config={normalizeClimateDocumentConfig(document.config)}
         initialEntries={document.entries.map((entry) => ({
           id: entry.id,

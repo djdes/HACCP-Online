@@ -232,18 +232,20 @@ async function poolClimate(args: {
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
-  const areas = await db.area.findMany({
-    where: { organizationId: args.organizationId },
+  // 2026-09-04: единый справочник помещений — Room, а не legacy Area.
+  // Заявки живут один день, смена ключа `area:` → `room:` безопасна.
+  const rooms = await db.room.findMany({
+    where: { building: { organizationId: args.organizationId } },
     select: { id: true, name: true },
-    orderBy: { name: "asc" },
+    orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
   });
   const doc = await activeDocFor(args.organizationId, "climate_control", args.today);
   const shifts = ["morning", "evening"] as const;
   const scopes: TaskScope[] = [];
-  for (const a of areas) {
+  for (const a of rooms) {
     for (const s of shifts) {
       scopes.push({
-        scopeKey: `area:${a.id}:${s}:${args.todayKey}`,
+        scopeKey: `room:${a.id}:${s}:${args.todayKey}`,
         scopeLabel: `${a.name} — ${s === "morning" ? "Утро" : "Вечер"}`,
         sublabel: "Климат-контроль",
         journalDocumentId: doc?.id,

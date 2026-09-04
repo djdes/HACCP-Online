@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
@@ -8,6 +9,17 @@ import { parseScopeSteps, type ScopeStep } from "@/lib/cleaning-document";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const ClimateMetricSchema = z
+  .object({
+    enabled: z.boolean(),
+    min: z.number().finite().nullable(),
+    max: z.number().finite().nullable(),
+  })
+  .refine(
+    (m) => !m.enabled || m.min === null || m.max === null || m.min <= m.max,
+    { message: "Минимум нормы не может быть больше максимума." },
+  );
 
 const UpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -67,6 +79,18 @@ const UpdateSchema = z.object({
   // 2026-09-04: кто убирает / кто проверяет помещение. Порядок = приоритет.
   cleanerUserIds: z.array(z.string().min(1)).max(30).optional(),
   verifierUserIds: z.array(z.string().min(1)).max(30).optional(),
+  // 2026-09-04: нормы климата (единый справочник помещений). null —
+  // нормы не заданы.
+  climateNorms: z
+    .object({
+      temperature: ClimateMetricSchema,
+      humidity: ClimateMetricSchema,
+    })
+    .refine((v) => v.temperature.enabled || v.humidity.enabled, {
+      message: "Нужно оставить включённой хотя бы одну норму для помещения.",
+    })
+    .nullable()
+    .optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -89,14 +113,6 @@ async function ensureOrgUsers(orgId: string, ids: string[]): Promise<boolean> {
   return found.length === ids.length;
 }
 
-async function ensureOwn(orgId: string, roomId: string) {
-  const r = await db.room.findFirst({
-    where: { id: roomId, building: { organizationId: orgId } },
-    select: { id: true },
-  });
-  return Boolean(r);
-}
-
 export async function PATCH(request: Request, ctx: Ctx) {
   const auth = await requireApiAuth();
   if (!auth.ok) return auth.response;
@@ -105,7 +121,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
   }
   const orgId = getActiveOrgId(auth.session);
   const { id } = await ctx.params;
-  if (!(await ensureOwn(orgId, id))) {
+  const previous = await db.room.findFirst({
+    where: { id, building: { organizationId: orgId } },
+    select: { id: true, name: true },
+  });
+  if (!previous) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
@@ -202,8 +222,25 @@ export async function PATCH(request: Request, ctx: Ctx) {
         : {}),
       ...(nextCleanerIds !== undefined ? { cleanerUserIds: nextCleanerIds } : {}),
       ...(nextVerifierIds !== undefined ? { verifierUserIds: nextVerifierIds } : {}),
+      ...(body.climateNorms !== undefined
+        ? { climateNorms: body.climateNorms === null ? Prisma.JsonNull : body.climateNorms }
+        : {}),
     },
   });
+
+  // Зеркальная Area (legacy split: Area — оборудование/записи, Room —
+  // журналы). Переименование помещения раньше не доходило до Area, и
+  // связь по имени рвалась.
+  if (body.name !== undefined && body.name !== previous.name) {
+    await db.area
+      .updateMany({
+        where: { organizationId: orgId, name: previous.name },
+        data: { name: body.name },
+      })
+      .catch(() => {
+        /* best-effort: дубликат имени в Area не должен ломать PATCH */
+      });
+  }
   return NextResponse.json({ room: updated });
 }
 
@@ -215,9 +252,28 @@ export async function DELETE(_request: Request, ctx: Ctx) {
   }
   const orgId = getActiveOrgId(auth.session);
   const { id } = await ctx.params;
-  if (!(await ensureOwn(orgId, id))) {
+  const room = await db.room.findFirst({
+    where: { id, building: { organizationId: orgId } },
+    select: { id: true, name: true },
+  });
+  if (!room) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
   await db.room.delete({ where: { id } });
+  // Зеркальная Area удаляется только если к ней ничего не привязано
+  // (оборудование, записи журналов) — иначе остаётся.
+  const mirrors = await db.area.findMany({
+    where: { organizationId: orgId, name: room.name },
+    select: {
+      id: true,
+      _count: { select: { equipment: true, journalEntries: true } },
+    },
+  });
+  const removable = mirrors
+    .filter((a) => a._count.equipment === 0 && a._count.journalEntries === 0)
+    .map((a) => a.id);
+  if (removable.length > 0) {
+    await db.area.deleteMany({ where: { id: { in: removable } } });
+  }
   return NextResponse.json({ ok: true });
 }

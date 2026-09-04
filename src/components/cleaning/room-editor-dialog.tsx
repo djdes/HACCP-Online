@@ -36,6 +36,13 @@ import {
 } from "@/lib/cleaning-document";
 import { MultiUserPicker } from "@/components/shared/multi-user-picker";
 import type { RoomResponsibleUser } from "@/lib/room-responsible-candidates";
+import { Switch } from "@/components/ui/switch";
+import { ChevronDown } from "lucide-react";
+import {
+  DEFAULT_CLIMATE_HUMIDITY,
+  DEFAULT_CLIMATE_TEMPERATURE,
+  type ClimateRoomNorms,
+} from "@/lib/climate-document";
 
 const KIND_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "guest", label: "Гостевая зона" },
@@ -70,6 +77,9 @@ export type RoomEditorInitial = {
   // verifierUserIds). Порядок = приоритет.
   cleanerUserIds?: string[];
   verifierUserIds?: string[];
+  // 2026-09-04: нормы климата (Room.climateNorms). null — помещение не
+  // контролируется в журнале климата.
+  climateNorms?: ClimateRoomNorms | null;
 };
 
 /**
@@ -92,13 +102,23 @@ export type RoomEditorSavedSnapshot = {
   requirePhoto: boolean;
   cleanerUserIds: string[];
   verifierUserIds: string[];
+  climateNorms: ClimateRoomNorms | null;
 };
+
+/** Какую секцию раскрыть при открытии — журнал вызывает «свою». */
+export type RoomEditorFocus = "cleaning" | "climate";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initial: RoomEditorInitial | null;
   onSaved?: (snapshot: RoomEditorSavedSnapshot) => void;
+  /**
+   * Секция, ради которой открыли карточку: "climate" — журнал климата
+   * (раскрыты нормы, уборка свёрнута), "cleaning" / по умолчанию —
+   * раскрыта уборка. Ответственные видны всегда.
+   */
+  focus?: RoomEditorFocus;
   /** Активные сотрудники организации — для «Кто убирает / Кто проверяет». */
   users: ReadonlyArray<RoomResponsibleUser>;
   /** userId → сколько ДРУГИХ помещений уже убирает / проверяет (подсказка). */
@@ -138,6 +158,7 @@ export function RoomEditorDialog({
   users,
   roomsPerCleaner,
   roomsPerVerifier,
+  focus = "cleaning",
 }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [cleanerUserIds, setCleanerUserIds] = useState<string[]>(
@@ -145,6 +166,18 @@ export function RoomEditorDialog({
   );
   const [verifierUserIds, setVerifierUserIds] = useState<string[]>(
     initial?.verifierUserIds ?? [],
+  );
+  // Климат: null = не контролируется. В форме держим строки, чтобы
+  // пустой ввод не превращался в 0.
+  const [climateEnabled, setClimateEnabled] = useState<boolean>(
+    Boolean(initial?.climateNorms),
+  );
+  const [climate, setClimate] = useState<ClimateNormsForm>(
+    toClimateForm(initial?.climateNorms ?? null),
+  );
+  const [cleaningOpen, setCleaningOpen] = useState<boolean>(focus !== "climate");
+  const [climateOpen, setClimateOpen] = useState<boolean>(
+    focus === "climate" || Boolean(initial?.climateNorms),
   );
   const [kind, setKind] = useState(initial?.kind ?? "other");
   const [detergent, setDetergent] = useState(initial?.detergent ?? "");
@@ -194,6 +227,10 @@ export function RoomEditorDialog({
     setRequirePhoto(initial?.requirePhoto ?? false);
     setCleanerUserIds(initial?.cleanerUserIds ?? []);
     setVerifierUserIds(initial?.verifierUserIds ?? []);
+    setClimateEnabled(Boolean(initial?.climateNorms));
+    setClimate(toClimateForm(initial?.climateNorms ?? null));
+    setCleaningOpen(focus !== "climate");
+    setClimateOpen(focus === "climate" || Boolean(initial?.climateNorms));
   });
 
   async function save() {
@@ -201,6 +238,22 @@ export function RoomEditorDialog({
     if (!name.trim()) {
       toast.error("Название не может быть пустым");
       return;
+    }
+    const climateNorms = climateEnabled ? fromClimateForm(climate) : null;
+    if (climateNorms && !climateNorms.temperature.enabled && !climateNorms.humidity.enabled) {
+      toast.error("Нужно оставить включённой хотя бы одну норму климата — или выключить контроль климата.");
+      return;
+    }
+    for (const metric of climateNorms ? [climateNorms.temperature, climateNorms.humidity] : []) {
+      if (
+        metric.enabled &&
+        metric.min !== null &&
+        metric.max !== null &&
+        metric.min > metric.max
+      ) {
+        toast.error("Минимум нормы не может быть больше максимума.");
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -232,6 +285,7 @@ export function RoomEditorDialog({
           requirePhoto,
           cleanerUserIds,
           verifierUserIds,
+          climateNorms,
         }),
       });
       if (!res.ok) {
@@ -255,6 +309,7 @@ export function RoomEditorDialog({
         requirePhoto,
         cleanerUserIds,
         verifierUserIds,
+        climateNorms,
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Не удалось сохранить");
@@ -356,6 +411,103 @@ export function RoomEditorDialog({
                 />
               </div>
 
+              {/* Секция «Климат» — нормы температуры/влажности для журнала
+                  климата. Единый справочник помещений, 2026-09-04. */}
+              <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff]">
+                <button
+                  type="button"
+                  onClick={() => setClimateOpen((v) => !v)}
+                  aria-expanded={climateOpen}
+                  className="flex w-full items-center justify-between gap-2 rounded-3xl px-4 py-3 text-left transition-colors hover:bg-[#f5f6ff]"
+                >
+                  <div>
+                    <div className="text-[13px] font-semibold text-[#0b1024]">
+                      Климат — нормы температуры и влажности
+                    </div>
+                    <p className="mt-0.5 text-[12px] leading-[1.55] text-[#6f7282]">
+                      {climateEnabled
+                        ? describeClimate(climate)
+                        : "Помещение не контролируется в журнале температуры и влажности."}
+                    </p>
+                  </div>
+                  <ChevronDown
+                    className={`size-4 shrink-0 text-[#6f7282] transition-transform ${climateOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {climateOpen ? (
+                  <div className="space-y-4 border-t border-[#ececf4] px-4 pb-4 pt-3">
+                    <label className="flex items-center gap-3 text-[13.5px] font-medium text-[#0b1024]">
+                      <Switch
+                        checked={climateEnabled}
+                        onCheckedChange={(v) => {
+                          setClimateEnabled(v);
+                          if (v && !climate.temperatureEnabled && !climate.humidityEnabled) {
+                            setClimate((c) => ({ ...c, temperatureEnabled: true }));
+                          }
+                        }}
+                        className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+                      />
+                      Контролировать климат в этом помещении
+                    </label>
+                    {climateEnabled ? (
+                      <div className="space-y-3">
+                        <ClimateMetricRow
+                          label="Температура (T)"
+                          unit="°C"
+                          enabled={climate.temperatureEnabled}
+                          min={climate.temperatureMin}
+                          max={climate.temperatureMax}
+                          onChange={(next) =>
+                            setClimate((c) => ({
+                              ...c,
+                              temperatureEnabled: next.enabled,
+                              temperatureMin: next.min,
+                              temperatureMax: next.max,
+                            }))
+                          }
+                        />
+                        <ClimateMetricRow
+                          label="Влажность воздуха (ВВ)"
+                          unit="%"
+                          enabled={climate.humidityEnabled}
+                          min={climate.humidityMin}
+                          max={climate.humidityMax}
+                          onChange={(next) =>
+                            setClimate((c) => ({
+                              ...c,
+                              humidityEnabled: next.enabled,
+                              humidityMin: next.min,
+                              humidityMax: next.max,
+                            }))
+                          }
+                        />
+                        <p className="text-[11.5px] leading-[1.5] text-[#6f7282]">
+                          Нормы общие для всех документов климата, где есть это помещение.
+                          Выход за норму подсветится в журнале и в форме TasksFlow.
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Секция «Уборка» — сворачивается, когда карточку открыли из
+                  журнала климата. */}
+              <button
+                type="button"
+                onClick={() => setCleaningOpen((v) => !v)}
+                aria-expanded={cleaningOpen}
+                className="flex w-full items-center justify-between gap-2 rounded-2xl border border-[#ececf4] bg-white px-4 py-2.5 text-left transition-colors hover:bg-[#f5f6ff]"
+              >
+                <span className="text-[13px] font-semibold text-[#0b1024]">
+                  Уборка — средства, фото, состав текущей и генеральной
+                </span>
+                <ChevronDown
+                  className={`size-4 shrink-0 text-[#6f7282] transition-transform ${cleaningOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              <div className={cleaningOpen ? "space-y-5" : "hidden"}>
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">
                   Моющие и дезинфицирующие средства
@@ -545,6 +697,7 @@ export function RoomEditorDialog({
                   )}
                 </div>
               </div>
+              </div>
             </div>
             <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
               <Button
@@ -583,4 +736,114 @@ function useStateReset(key: string | undefined, reset: () => void) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+}
+
+// ---------------------------------------------------------------- climate helpers
+
+type ClimateNormsForm = {
+  temperatureEnabled: boolean;
+  temperatureMin: string;
+  temperatureMax: string;
+  humidityEnabled: boolean;
+  humidityMin: string;
+  humidityMax: string;
+};
+
+function numToStr(n: number | null): string {
+  return n === null ? "" : String(n);
+}
+
+function strToNum(s: string): number | null {
+  const t = s.trim();
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toClimateForm(norms: ClimateRoomNorms | null): ClimateNormsForm {
+  const t = norms?.temperature ?? DEFAULT_CLIMATE_TEMPERATURE;
+  const h = norms?.humidity ?? DEFAULT_CLIMATE_HUMIDITY;
+  return {
+    temperatureEnabled: t.enabled,
+    temperatureMin: numToStr(t.min),
+    temperatureMax: numToStr(t.max),
+    humidityEnabled: h.enabled,
+    humidityMin: numToStr(h.min),
+    humidityMax: numToStr(h.max),
+  };
+}
+
+function fromClimateForm(f: ClimateNormsForm): ClimateRoomNorms {
+  return {
+    temperature: {
+      enabled: f.temperatureEnabled,
+      min: strToNum(f.temperatureMin),
+      max: strToNum(f.temperatureMax),
+    },
+    humidity: {
+      enabled: f.humidityEnabled,
+      min: strToNum(f.humidityMin),
+      max: strToNum(f.humidityMax),
+    },
+  };
+}
+
+function describeMetric(enabled: boolean, min: string, max: string, unit: string): string | null {
+  if (!enabled) return null;
+  const a = min.trim();
+  const b = max.trim();
+  if (a && b) return `${a}…${b} ${unit}`;
+  if (a) return `от ${a} ${unit}`;
+  if (b) return `до ${b} ${unit}`;
+  return "без диапазона";
+}
+
+function describeClimate(f: ClimateNormsForm): string {
+  const parts = [
+    describeMetric(f.temperatureEnabled, f.temperatureMin, f.temperatureMax, "°C"),
+    describeMetric(f.humidityEnabled, f.humidityMin, f.humidityMax, "%"),
+  ];
+  const t = parts[0] ? `t° ${parts[0]}` : null;
+  const h = parts[1] ? `влажность ${parts[1]}` : null;
+  return [t, h].filter(Boolean).join(" · ") || "нормы не выбраны";
+}
+
+function ClimateMetricRow(props: {
+  label: string;
+  unit: string;
+  enabled: boolean;
+  min: string;
+  max: string;
+  onChange: (next: { enabled: boolean; min: string; max: string }) => void;
+}) {
+  const { enabled, min, max } = props;
+  return (
+    <div className="flex flex-wrap items-center gap-2.5">
+      <Switch
+        checked={enabled}
+        onCheckedChange={(v) => props.onChange({ enabled: v, min, max })}
+        className="data-[state=checked]:bg-[#5566f6] data-[state=unchecked]:bg-[#d6d9ee]"
+      />
+      <span className="min-w-[150px] text-[13.5px] text-[#0b1024]">{props.label}</span>
+      <Input
+        type="number"
+        value={min}
+        disabled={!enabled}
+        onChange={(e) => props.onChange({ enabled, min: e.target.value, max })}
+        aria-label={`${props.label}: минимум`}
+        className="h-9 w-[84px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
+      />
+      <span className="text-[13px] text-[#6f7282]">{props.unit}</span>
+      <span className="text-[13px] text-[#9b9fb3]">—</span>
+      <Input
+        type="number"
+        value={max}
+        disabled={!enabled}
+        onChange={(e) => props.onChange({ enabled, min, max: e.target.value })}
+        aria-label={`${props.label}: максимум`}
+        className="h-9 w-[84px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
+      />
+      <span className="text-[13px] text-[#6f7282]">{props.unit}</span>
+    </div>
+  );
 }

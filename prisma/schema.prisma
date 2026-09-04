@@ -442,6 +442,13 @@ model Room {
   /// сотрудника id вычищается из массивов (api/staff/[id]).
   cleanerUserIds      String[] @default([])
   verifierUserIds     String[] @default([])
+  /// 2026-09-04: единый справочник помещений для всех журналов. Нормы
+  /// климата (журнал температуры/влажности по помещениям):
+  /// { temperature: { enabled, min, max }, humidity: { enabled, min, max } }
+  /// — зеркало ClimateMetricConfig (src/lib/climate-document.ts).
+  /// null = нормы не заданы (документ климата использует дефолт
+  /// 18…25 °C / 15…75 %).
+  climateNorms        Json?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

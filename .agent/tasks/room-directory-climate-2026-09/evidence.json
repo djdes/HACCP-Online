@@ -1,0 +1,1 @@
+{"generatedAt":"2026-09-04T00:00:00.000Z","checks":{"tsc":"PASS","lint":"PASS (0 errors)","tests":"PASS (532/532)","prismaDbPush":"PASS (Room.climateNorms)"},"results":[{"ac":"AC1","ok":true},{"ac":"AC2","ok":true,"note":"room-directory.test.ts"},{"ac":"AC3","ok":true},{"ac":"AC4","ok":true},{"ac":"AC5","ok":true},{"ac":"AC6","ok":true,"note":"script written; not run on prod"}]}

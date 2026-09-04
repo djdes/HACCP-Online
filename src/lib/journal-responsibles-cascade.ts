@@ -22,7 +22,7 @@ import {
 async function fetchOrgDataForDefaults(
   organizationId: string
 ): Promise<DefaultConfigOrgData> {
-  const [org, areas, equipment, users, products] = await Promise.all([
+  const [org, areas, rooms, equipment, users, products] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
       select: { name: true },
@@ -31,6 +31,13 @@ async function fetchOrgDataForDefaults(
       where: { organizationId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
+    }),
+    // 2026-09-04: единый справочник помещений — климат и график
+    // ген. уборок сидируются из Room.
+    db.room.findMany({
+      where: { building: { organizationId } },
+      select: { id: true, name: true, climateNorms: true },
+      orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
     }),
     db.equipment.findMany({
       where: { area: { organizationId } },
@@ -65,6 +72,7 @@ async function fetchOrgDataForDefaults(
   ]);
   return {
     areas,
+    rooms,
     equipment,
     users: users.map((u) => ({
       id: u.id,

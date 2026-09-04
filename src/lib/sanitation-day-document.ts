@@ -25,10 +25,20 @@ export type SanitationMonthValues = Record<SanitationMonthKey, string>;
 
 export type SanitationRoomRow = {
   id: string;
+  /**
+   * 2026-09-04: связь со справочником помещений (Room.id). Если задана и
+   * помещение живо — название берётся из Room
+   * (applyRoomDirectoryToSanitationConfig); roomName остаётся снапшотом.
+   * Строки без связи — legacy (свободный текст) — предлагаем «Связать».
+   */
+  roomId?: string;
   roomName: string;
   plan: SanitationMonthValues;
   fact: SanitationMonthValues;
 };
+
+/** Помещение справочника — минимум для графика ген. уборок. */
+export type SanitationDirectoryRoom = { id: string; name: string };
 
 export type SanitationDayConfig = {
   year: number;
@@ -104,17 +114,92 @@ function normalizeRows(value: unknown): SanitationRoomRow[] {
     .map((row, index) => {
       if (!row || typeof row !== "object") return null;
       const source = row as Record<string, unknown>;
+      const roomId =
+        typeof source.roomId === "string" && source.roomId.length > 0
+          ? source.roomId
+          : undefined;
       return {
         id:
           typeof source.id === "string" && source.id.length > 0
             ? source.id
             : `row-${index + 1}`,
+        ...(roomId ? { roomId } : {}),
         roomName: safeText(source.roomName),
         plan: normalizeMonthValues(source.plan),
         fact: normalizeMonthValues(source.fact),
       };
     })
     .filter((item): item is SanitationRoomRow => item !== null);
+}
+
+/** Стабильный id строки для помещения справочника. */
+export function sanitationRowIdForRoom(roomId: string): string {
+  return `row-room-${roomId}`;
+}
+
+/**
+ * Строит конфиг графика ген. уборок из помещений справочника (Room,
+ * /settings/buildings). Пусто — stub-дефолт.
+ */
+export function buildSanitationDayConfigFromRooms(
+  rooms: ReadonlyArray<SanitationDirectoryRoom>,
+  date = new Date(),
+): SanitationDayConfig {
+  if (rooms.length === 0) {
+    return getSanitationDayDefaultConfig(date);
+  }
+  const base = buildSanitationDayConfigFromAreas([], date);
+  return {
+    ...base,
+    rows: rooms.map((room) => ({
+      id: sanitationRowIdForRoom(room.id),
+      roomId: room.id,
+      roomName: room.name,
+      plan: createMonthValues("-"),
+      fact: createMonthValues("-"),
+    })),
+  };
+}
+
+/**
+ * Эффективный конфиг: у строк с `roomId` название берётся из справочника
+ * (Room wins), если помещение живо. Только для отображения — в документ
+ * пишется raw-конфиг.
+ */
+export function applyRoomDirectoryToSanitationConfig(
+  config: SanitationDayConfig,
+  rooms: ReadonlyArray<SanitationDirectoryRoom>,
+): SanitationDayConfig {
+  const byId = new Map(rooms.map((r) => [r.id, r]));
+  return {
+    ...config,
+    rows: config.rows.map((row) => {
+      if (!row.roomId) return row;
+      const dbRoom = byId.get(row.roomId);
+      if (!dbRoom) return row;
+      return { ...row, roomName: dbRoom.name.trim() || row.roomName };
+    }),
+  };
+}
+
+/** Помещения справочника, которых ещё нет в графике. */
+export function listSanitationRoomsNotInDocument(
+  config: Pick<SanitationDayConfig, "rows">,
+  rooms: ReadonlyArray<SanitationDirectoryRoom>,
+): SanitationDirectoryRoom[] {
+  const linked = new Set(config.rows.map((r) => r.roomId).filter(Boolean));
+  return rooms.filter((r) => !linked.has(r.id));
+}
+
+/** Подсказка «Связать» для legacy-строки: помещение с тем же названием. */
+export function suggestDirectoryRoomForSanitationRow(
+  row: Pick<SanitationRoomRow, "roomName" | "roomId">,
+  rooms: ReadonlyArray<SanitationDirectoryRoom>,
+): SanitationDirectoryRoom | null {
+  if (row.roomId) return null;
+  const needle = row.roomName.trim().toLowerCase();
+  if (!needle) return null;
+  return rooms.find((r) => r.name.trim().toLowerCase() === needle) ?? null;
 }
 
 /**
@@ -256,9 +341,15 @@ export function getSanitationApproveLabel(
   return `${rolePart}${employee || ""}`.trim();
 }
 
-export function createEmptySanitationRow(name = ""): SanitationRoomRow {
+export function createEmptySanitationRow(
+  name = "",
+  roomId?: string,
+): SanitationRoomRow {
   return {
-    id: `row-${Math.random().toString(36).slice(2, 9)}`,
+    id: roomId
+      ? sanitationRowIdForRoom(roomId)
+      : `row-${Math.random().toString(36).slice(2, 9)}`,
+    ...(roomId ? { roomId } : {}),
     roomName: name,
     plan: createMonthValues("-"),
     fact: createMonthValues("-"),

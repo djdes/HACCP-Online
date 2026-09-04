@@ -42,7 +42,6 @@ import {
   SANITATION_DAY_DOCUMENT_TITLE,
   SANITATION_DAY_HEADING,
   SANITATION_DAY_TEMPLATE_CODE,
-  createEmptySanitationRow,
   getSanitationApproveLabel,
   getSanitationDayDefaultConfig,
   getSanitationDocumentDateLabel,
@@ -368,7 +367,9 @@ export function SanitationDayDocumentsClient({
       responsibleRole: payload.responsibleRole,
       responsibleEmployeeId: payload.responsibleEmployeeId || null,
       responsibleEmployee: payload.responsibleEmployee,
-      rows: [createEmptySanitationRow("Производство 1 этаж")],
+      // 2026-09-04: строки сидирует сервер из справочника помещений
+      // (Room); пустой список = «взять помещения организации».
+      rows: [],
     } as SanitationDayConfig;
 
     const response = await fetch("/api/journal-documents", {

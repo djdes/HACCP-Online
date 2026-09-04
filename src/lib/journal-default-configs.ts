@@ -23,6 +23,7 @@ import { defaultCleaningDocumentConfig } from "./cleaning-document";
 import { getDefaultCleaningVentilationConfig } from "./cleaning-ventilation-checklist-document";
 import {
   buildClimateConfigFromAreas,
+  buildClimateConfigFromRooms,
   getDefaultClimateDocumentConfig,
 } from "./climate-document";
 import {
@@ -60,6 +61,7 @@ import {
 } from "./register-document";
 import {
   buildSanitationDayConfigFromAreas,
+  buildSanitationDayConfigFromRooms,
   getSanitationDayDefaultConfig,
 } from "./sanitation-day-document";
 import { defaultSdcConfig } from "./sanitary-day-checklist-document";
@@ -76,6 +78,9 @@ import { getTrainingPlanDefaultConfig } from "./training-plan-document";
  */
 export type DefaultConfigOrgData = {
   areas?: Array<{ id: string; name: string }>;
+  /// 2026-09-04: единый справочник помещений (Room). Климат и график
+  /// ген. уборок сидируются из него; areas — legacy fallback.
+  rooms?: Array<{ id: string; name: string; climateNorms?: unknown }>;
   equipment?: Array<{
     id: string;
     name: string;
@@ -134,6 +139,12 @@ function registerConfig(
 const PROVIDERS: Record<string, Provider> = {
   // ═══ ТЕМПЕРАТУРА ═══
   climate_control: (orgData) => {
+    if (orgData?.rooms && orgData.rooms.length > 0) {
+      return buildClimateConfigFromRooms(orgData.rooms) as unknown as Record<
+        string,
+        unknown
+      >;
+    }
     if (orgData?.areas && orgData.areas.length > 0) {
       return buildClimateConfigFromAreas(orgData.areas) as unknown as Record<
         string,
@@ -169,6 +180,11 @@ const PROVIDERS: Record<string, Provider> = {
       orgData?.areas
     ) as unknown as Record<string, unknown>,
   general_cleaning: (orgData) => {
+    if (orgData?.rooms && orgData.rooms.length > 0) {
+      return buildSanitationDayConfigFromRooms(
+        orgData.rooms
+      ) as unknown as Record<string, unknown>;
+    }
     if (orgData?.areas && orgData.areas.length > 0) {
       return buildSanitationDayConfigFromAreas(
         orgData.areas

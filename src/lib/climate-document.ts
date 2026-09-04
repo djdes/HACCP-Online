@@ -42,6 +42,38 @@ export type ClimateRoomConfig = {
   name: string;
   temperature: ClimateMetricConfig;
   humidity: ClimateMetricConfig;
+  /**
+   * 2026-09-04: связь со справочником помещений (Room.id,
+   * /settings/buildings). Если задана и помещение живо — имя и нормы
+   * берутся из Room (см. applyRoomDirectoryToClimateConfig); поля здесь
+   * остаются снапшотом на случай удаления помещения. Ключи
+   * `measurements[id]` при этом НЕ меняются.
+   */
+  roomId?: string;
+};
+
+/** Нормы климата помещения — хранятся в Room.climateNorms. */
+export type ClimateRoomNorms = {
+  temperature: ClimateMetricConfig;
+  humidity: ClimateMetricConfig;
+};
+
+export const DEFAULT_CLIMATE_TEMPERATURE: ClimateMetricConfig = {
+  enabled: true,
+  min: 18,
+  max: 25,
+};
+export const DEFAULT_CLIMATE_HUMIDITY: ClimateMetricConfig = {
+  enabled: true,
+  min: 15,
+  max: 75,
+};
+
+/** Помещение из справочника (Room) — минимум для климата. */
+export type ClimateDirectoryRoom = {
+  id: string;
+  name: string;
+  climateNorms?: unknown;
 };
 
 export type ClimateDocumentConfig = {
@@ -189,20 +221,118 @@ function normalizeMetric(value: unknown, fallback: ClimateMetricConfig): Climate
 export function createClimateRoomConfig(
   overrides: Partial<ClimateRoomConfig> = {}
 ): ClimateRoomConfig {
+  const roomId =
+    typeof overrides.roomId === "string" && overrides.roomId.trim() !== ""
+      ? overrides.roomId
+      : undefined;
   return {
     id: overrides.id || createId("room"),
     name: overrides.name?.trim() || DEFAULT_CLIMATE_ROOM_NAME,
-    temperature: normalizeMetric(overrides.temperature, {
-      enabled: true,
-      min: 18,
-      max: 25,
-    }),
-    humidity: normalizeMetric(overrides.humidity, {
-      enabled: true,
-      min: 15,
-      max: 75,
+    temperature: normalizeMetric(overrides.temperature, DEFAULT_CLIMATE_TEMPERATURE),
+    humidity: normalizeMetric(overrides.humidity, DEFAULT_CLIMATE_HUMIDITY),
+    ...(roomId ? { roomId } : {}),
+  };
+}
+
+/**
+ * Room.climateNorms → нормы. null, если в справочнике нормы не заданы
+ * (документ климата тогда использует дефолт / свой снапшот).
+ */
+export function normalizeClimateRoomNorms(raw: unknown): ClimateRoomNorms | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const record = raw as Record<string, unknown>;
+  if (!record.temperature && !record.humidity) return null;
+  return {
+    temperature: normalizeMetric(record.temperature, DEFAULT_CLIMATE_TEMPERATURE),
+    humidity: normalizeMetric(record.humidity, DEFAULT_CLIMATE_HUMIDITY),
+  };
+}
+
+/** Стабильный id строки документа для помещения справочника. */
+export function climateRowIdForRoom(roomId: string): string {
+  return `room-${roomId}`;
+}
+
+/** Строка документа климата из помещения справочника. */
+export function climateRoomFromDirectory(room: ClimateDirectoryRoom): ClimateRoomConfig {
+  const norms = normalizeClimateRoomNorms(room.climateNorms);
+  return createClimateRoomConfig({
+    id: climateRowIdForRoom(room.id),
+    roomId: room.id,
+    name: room.name,
+    temperature: norms?.temperature,
+    humidity: norms?.humidity,
+  });
+}
+
+/**
+ * Пре-заполняет конфиг климата помещениями справочника (Room).
+ * Пусто — дефолтная одна комната.
+ */
+export function buildClimateConfigFromRooms(
+  rooms: ClimateDirectoryRoom[]
+): ClimateDocumentConfig {
+  if (rooms.length === 0) return getDefaultClimateDocumentConfig();
+  return {
+    rooms: rooms.map((room) => climateRoomFromDirectory(room)),
+    controlTimes: [...DEFAULT_CLIMATE_CONTROL_TIMES],
+    skipWeekends: false,
+  };
+}
+
+/**
+ * Эффективный конфиг: для строк с `roomId` имя и нормы берутся из
+ * справочника (Room wins), если помещение живо. Строки без связи или с
+ * удалённым помещением остаются как есть. Ключи строк не меняются.
+ * Результат — только для отображения/резолверов; в документ пишется
+ * raw-конфиг (см. cleaning-room-responsibles — тот же принцип).
+ */
+export function applyRoomDirectoryToClimateConfig(
+  config: ClimateDocumentConfig,
+  rooms: ReadonlyArray<ClimateDirectoryRoom>
+): ClimateDocumentConfig {
+  const byId = new Map(rooms.map((r) => [r.id, r]));
+  return {
+    ...config,
+    rooms: config.rooms.map((row) => {
+      if (!row.roomId) return row;
+      const dbRoom = byId.get(row.roomId);
+      if (!dbRoom) return row;
+      const norms = normalizeClimateRoomNorms(dbRoom.climateNorms);
+      return {
+        ...row,
+        name: dbRoom.name.trim() || row.name,
+        ...(norms ? { temperature: norms.temperature, humidity: norms.humidity } : {}),
+      };
     }),
   };
+}
+
+/**
+ * Помещения справочника, которых ещё нет в документе (для пикера
+ * «Добавить помещение из справочника»).
+ */
+export function listClimateRoomsNotInDocument(
+  config: Pick<ClimateDocumentConfig, "rooms">,
+  rooms: ReadonlyArray<ClimateDirectoryRoom>
+): ClimateDirectoryRoom[] {
+  const linked = new Set(config.rooms.map((r) => r.roomId).filter(Boolean));
+  return rooms.filter((r) => !linked.has(r.id));
+}
+
+/**
+ * Ленивое сопоставление строки без `roomId` с помещением справочника по
+ * имени (без регистра). Используется для подсказки «Связать» — без
+ * автозаписи.
+ */
+export function suggestDirectoryRoomForClimateRow(
+  row: Pick<ClimateRoomConfig, "name" | "roomId">,
+  rooms: ReadonlyArray<ClimateDirectoryRoom>
+): ClimateDirectoryRoom | null {
+  if (row.roomId) return null;
+  const needle = row.name.trim().toLowerCase();
+  if (!needle) return null;
+  return rooms.find((r) => r.name.trim().toLowerCase() === needle) ?? null;
 }
 
 export function getClimateDocumentTitle() {
@@ -295,16 +425,10 @@ export function normalizeClimateDocumentConfig(value: unknown): ClimateDocumentC
             id: rawId,
             name:
               typeof roomRecord.name === "string" ? roomRecord.name : undefined,
-            temperature: normalizeMetric(roomRecord.temperature, {
-              enabled: true,
-              min: 18,
-              max: 25,
-            }),
-            humidity: normalizeMetric(roomRecord.humidity, {
-              enabled: true,
-              min: 15,
-              max: 75,
-            }),
+            temperature: normalizeMetric(roomRecord.temperature, DEFAULT_CLIMATE_TEMPERATURE),
+            humidity: normalizeMetric(roomRecord.humidity, DEFAULT_CLIMATE_HUMIDITY),
+            roomId:
+              typeof roomRecord.roomId === "string" ? roomRecord.roomId : undefined,
           });
         })
         .filter((room): room is ClimateRoomConfig => room !== null)

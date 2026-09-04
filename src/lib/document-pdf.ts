@@ -11,6 +11,7 @@ import {
   getClimateDocumentTitle,
   getClimateFilePrefix,
   getClimatePeriodicityText,
+  applyRoomDirectoryToClimateConfig,
   normalizeClimateDocumentConfig,
   normalizeClimateEntryData,
   type ClimateDocumentConfig,
@@ -134,6 +135,7 @@ import {
   SANITATION_DAY_TEMPLATE_CODE,
   SANITATION_DAY_DOCUMENT_TITLE,
   SANITATION_MONTHS,
+  applyRoomDirectoryToSanitationConfig,
   normalizeSanitationDayConfig,
 } from "@/lib/sanitation-day-document";
 import {
@@ -5923,6 +5925,8 @@ export type JournalDocumentPdfInput = {
     /// «Проверяет» в rooms-mode.
     cleanerUserIds?: string[];
     verifierUserIds?: string[];
+    /// Нормы климата (Room.climateNorms) — печать климата по справочнику.
+    climateNorms?: unknown;
   }[];
   /// White-label партнёра: подпись в подвале каждой страницы + плашка
   /// «Работает на платформе WeSetup». `null`/undefined — организация без
@@ -6005,8 +6009,12 @@ export async function loadJournalDocumentPdfInput(params: {
   // Помещения раньше подгружались из середины рендера — из-за этого он
   // не мог быть чистой функцией. Тянем их здесь и только для журнала
   // уборки: остальным формам они не нужны.
+  // 2026-09-04: единый справочник — климат и график ген. уборок тоже
+  // печатают имена/нормы помещений из Room.
   const rooms =
-    document.template.code === CLEANING_DOCUMENT_TEMPLATE_CODE
+    document.template.code === CLEANING_DOCUMENT_TEMPLATE_CODE ||
+    document.template.code === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
+    document.template.code === SANITATION_DAY_TEMPLATE_CODE
       ? await db.room.findMany({
           // C7 аудита: печать уборки в rooms-mode берёт название,
           // средства и шаги (scope) из Room — единственного источника
@@ -6022,6 +6030,7 @@ export async function loadJournalDocumentPdfInput(params: {
             generalScope: true,
             cleanerUserIds: true,
             verifierUserIds: true,
+            climateNorms: true,
           },
           orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
         })
@@ -6087,7 +6096,10 @@ export function renderJournalDocumentPdf(
   const employeeIds = entries.map((entry) => entry.employeeId);
   const entryMap: Record<string, Record<string, unknown>> = {};
   const reconciledConfig = normalizeJournalStaffBoundConfig(templateCode, document.config, users);
-  const climateConfig = normalizeClimateDocumentConfig(reconciledConfig);
+  const climateConfig = applyRoomDirectoryToClimateConfig(
+    normalizeClimateDocumentConfig(reconciledConfig),
+    rooms,
+  );
   const coldConfig = normalizeColdEquipmentDocumentConfig(reconciledConfig);
   // Эффективный конфиг уборки: уборщики/проверяющие помещений из Room
   // (та же точка слияния, что у TF-адаптера) — коды у комнат и строка
@@ -6329,7 +6341,10 @@ export function renderJournalDocumentPdf(
       // Экран (sanitation-day-document-client) читает СЫРОЙ document.config.
       // Через reconciledConfig PDF подменял сохранённые «Кондитер / амаап»
       // дефолтами «Управляющий / Администратор» — бланк расходился с экраном.
-      config: normalizeSanitationDayConfig(document.config),
+      config: applyRoomDirectoryToSanitationConfig(
+        normalizeSanitationDayConfig(document.config),
+        rooms,
+      ),
     });
   } else if (templateCode === TRAINING_PLAN_TEMPLATE_CODE) {
     drawTrainingPlanPdf(doc, {

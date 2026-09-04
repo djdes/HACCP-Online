@@ -12,8 +12,10 @@ import { db } from "@/lib/db";
 import {
   SANITATION_DAY_TEMPLATE_CODE,
   type SanitationDayConfig,
+  applyRoomDirectoryToSanitationConfig,
   normalizeSanitationDayConfig,
 } from "@/lib/sanitation-day-document";
+import { effectiveStepRequirePhoto, parseScopeSteps } from "@/lib/cleaning-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import {
   TasksFlowError,
@@ -31,6 +33,49 @@ import {
 const TEMPLATE_CODE = SANITATION_DAY_TEMPLATE_CODE;
 const CATEGORY = "WeSetup · Ген. уборки";
 const MARK = "✓";
+
+/**
+ * 2026-09-04: единый справочник помещений. Строка графика связана с Room
+ * (`roomId`): ответственный — первый уборщик помещения, проверяющий —
+ * первый проверяющий, фото и шаги формы — из карточки помещения
+ * (generalScope / requirePhoto), день месяца — из generalMonthDays.
+ * Без связи — как раньше: ответственный документа, 8 стандартных шагов.
+ */
+type DirectoryRoomForSanitation = {
+  id: string;
+  name: string;
+  cleanerUserIds: string[];
+  verifierUserIds: string[];
+  requirePhoto: boolean;
+  generalScope: unknown;
+  generalScheduleType: string;
+  generalMonthDays: unknown;
+};
+
+const DIRECTORY_ROOM_SELECT = {
+  id: true,
+  name: true,
+  cleanerUserIds: true,
+  verifierUserIds: true,
+  requirePhoto: true,
+  generalScope: true,
+  generalScheduleType: true,
+  generalMonthDays: true,
+} as const;
+
+/** День месяца для TF из Room.generalMonthDays («last» → 28: есть в любом месяце). */
+function monthDayForRoom(room: DirectoryRoomForSanitation | undefined): number {
+  if (!room || room.generalScheduleType !== "monthly") return 1;
+  const days = Array.isArray(room.generalMonthDays) ? room.generalMonthDays : [];
+  for (const raw of days) {
+    if (raw === "last") return 28;
+    const n = Number(raw);
+    if (Number.isInteger(n) && n >= 1 && n <= 31) return n;
+  }
+  return 1;
+}
+
+type DocWithMonthDays = AdapterDocument & { _monthDayByRowKey?: Record<string, number> };
 
 function currentMonthKey(): string {
   const now = new Date();
@@ -60,8 +105,9 @@ export const sanitationDayAdapter: JournalAdapter = {
     iconName: "broom",
   },
 
-  scheduleForRow(): TaskSchedule {
-    return { weekDays: [], monthDay: 1 };
+  scheduleForRow(row, doc): TaskSchedule {
+    const monthDay = (doc as DocWithMonthDays)._monthDayByRowKey?.[row.rowKey] ?? 1;
+    return { weekDays: [], monthDay };
   },
 
   titleForRow(row): string {
@@ -92,21 +138,38 @@ export const sanitationDayAdapter: JournalAdapter = {
       },
       orderBy: { dateFrom: "desc" },
     });
+    const directoryRooms = await db.room.findMany({
+      where: { building: { organizationId } },
+      select: DIRECTORY_ROOM_SELECT,
+    });
+    const roomById = new Map(directoryRooms.map((r) => [r.id, r]));
     return docs.map((doc) => {
-      const config = normalizeSanitationDayConfig(doc.config) as SanitationDayConfig;
-      const adapterDoc: AdapterDocument = {
+      const config = applyRoomDirectoryToSanitationConfig(
+        normalizeSanitationDayConfig(doc.config) as SanitationDayConfig,
+        directoryRooms,
+      );
+      const monthDayByRowKey: Record<string, number> = {};
+      const adapterDoc: DocWithMonthDays = {
         documentId: doc.id,
         documentTitle: doc.title,
         period: {
           from: toDateKey(doc.dateFrom),
           to: toDateKey(doc.dateTo),
         },
-        rows: (config.rows ?? []).map<AdapterRow>((row) => ({
-          rowKey: row.id,
-          label: row.roomName || "Помещение",
-          responsibleUserId: config.responsibleEmployeeId ?? null,
-        })),
+        rows: (config.rows ?? []).map<AdapterRow>((row) => {
+          const room = row.roomId ? roomById.get(row.roomId) : undefined;
+          monthDayByRowKey[row.id] = monthDayForRoom(room);
+          return {
+            rowKey: row.id,
+            label: row.roomName || "Помещение",
+            responsibleUserId:
+              room?.cleanerUserIds[0] ?? config.responsibleEmployeeId ?? null,
+            verifierUserId: room?.verifierUserIds[0] ?? null,
+            requiresPhoto: room?.requirePhoto === true,
+          };
+        }),
       };
+      adapterDoc._monthDayByRowKey = monthDayByRowKey;
       return adapterDoc;
     });
   },
@@ -125,7 +188,15 @@ export const sanitationDayAdapter: JournalAdapter = {
     }
     if (doc.status === "closed") return EMPTY_SYNC_REPORT;
 
-    const config = normalizeSanitationDayConfig(doc.config) as SanitationDayConfig;
+    const directoryRooms = await db.room.findMany({
+      where: { building: { organizationId: doc.organizationId } },
+      select: DIRECTORY_ROOM_SELECT,
+    });
+    const roomById = new Map(directoryRooms.map((r) => [r.id, r]));
+    const config = applyRoomDirectoryToSanitationConfig(
+      normalizeSanitationDayConfig(doc.config) as SanitationDayConfig,
+      directoryRooms,
+    );
     const rows = config.rows ?? [];
 
     const userLinks = await db.tasksFlowUserLink.findMany({
@@ -157,7 +228,9 @@ export const sanitationDayAdapter: JournalAdapter = {
 
     for (const row of rows) {
       seen.add(row.id);
-      const responsibleUserId = config.responsibleEmployeeId;
+      const room = row.roomId ? roomById.get(row.roomId) : undefined;
+      const responsibleUserId =
+        room?.cleanerUserIds[0] ?? config.responsibleEmployeeId;
       let remoteUserId: number | null = null;
       if (responsibleUserId) {
         const link = linkByUser.get(responsibleUserId);
@@ -171,9 +244,9 @@ export const sanitationDayAdapter: JournalAdapter = {
       const payload = {
         title: `Ген. уборка · ${row.roomName || "Помещение"}`,
         workerId: remoteUserId,
-        requiresPhoto: false,
+        requiresPhoto: room?.requirePhoto === true,
         isRecurring: true,
-        monthDay: 1,
+        monthDay: monthDayForRoom(room),
         category: CATEGORY,
         description: [
           `Журнал: ${doc.title}`,
@@ -279,11 +352,36 @@ export const sanitationDayAdapter: JournalAdapter = {
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return null;
 
-    const config = normalizeSanitationDayConfig(
-      doc.config,
-    ) as SanitationDayConfig;
+    const directoryRooms = await db.room.findMany({
+      where: { building: { organizationId: doc.organizationId } },
+      select: DIRECTORY_ROOM_SELECT,
+    });
+    const config = applyRoomDirectoryToSanitationConfig(
+      normalizeSanitationDayConfig(doc.config) as SanitationDayConfig,
+      directoryRooms,
+    );
     const row = config.rows.find((r) => r.id === rowKey);
     const roomName = row?.roomName ?? "помещение";
+    const room = row?.roomId ? directoryRooms.find((r) => r.id === row.roomId) : undefined;
+
+    // Шаги — из карточки помещения (состав генеральной уборки), если он
+    // задан; иначе стандартный список.
+    const roomSteps = parseScopeSteps(room?.generalScope);
+    if (room && roomSteps.length > 0) {
+      return {
+        intro: `Генеральная уборка · ${roomName}\nСостав из карточки помещения. Выполняйте шаги по порядку.`,
+        fields: [],
+        pipeline: roomSteps.map((step, idx) => ({
+          id: `step-${idx + 1}`,
+          title: step.label,
+          detail: `Шаг ${idx + 1} из ${roomSteps.length}.`,
+          photoMode: effectiveStepRequirePhoto(step, room.requirePhoto)
+            ? ("required" as const)
+            : ("optional" as const),
+        })),
+        submitLabel: "Завершить генеральную уборку",
+      };
+    }
 
     const steps = [
       "Очистка пола (мойка, дезинфекция)",

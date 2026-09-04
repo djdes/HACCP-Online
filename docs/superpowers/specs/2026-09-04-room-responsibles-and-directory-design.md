@@ -1,6 +1,6 @@
 # Уборщики и проверяющие у помещения + единый справочник помещений
 
-Дата: 2026-09-04. Статус: фаза 1 реализована; фаза 2 (справочник для климата и графика ген. уборок) — см. ниже.
+Дата: 2026-09-04. Статус: фазы 1 и 2 реализованы.
 
 ## Проблема
 
@@ -37,8 +37,17 @@
 - Cron `cleaning-control-digest`: каждому проверяющему — своя сводка по его помещениям. rowKey контролёра документа — `control::{doc}::{date}` (legacy), своих проверяющих — `control::{doc}::{date}::{verifierId}`. Webhook (`applyControlCompletion`) штампует `controllerCompletedAt` только по помещениям этого проверяющего (`controllerScopeRoomIds`).
 - Ограничение: смена уборщиков помещения не перераздаёт уже созданные сегодня задачи (rowKey содержит cleanerId).
 
-## Фаза 2 — единый справочник помещений (план)
+## Фаза 2 — единый справочник помещений (реализовано)
 
 - 2a. `Room`↔`Area`: переименование `Room` переименовывает зеркальную `Area`; удаление — удаляет `Area`, если к ней не привязано оборудование/записи. Климат и ген. уборки сидируются из `Room`, а не `Area`.
 - 2b. Климат: `Room.climateNorms Json?` (`{ temperature: {enabled,min,max}, humidity: {…} }`), `ClimateRoomConfig.roomId`, `buildClimateConfigFromRooms`, имя и нормы из `Room` при наличии `roomId`; ключи `measurements` не меняются; из журнала — пикер из справочника + `RoomEditorDialog` с секцией «Климат»; сопоставление датчиков по `Room.id` / имени.
 - 2c. График ген. уборок: `SanitationRoomRow.roomId`, сидирование из `Room`, `RoomEditorDialog` из журнала, ответственный строки = уборщик помещения, шаги TF-формы из `Room.generalScope`.
+
+### Как реализовано (фаза 2)
+- `src/lib/room-directory.ts` — один select и форма `DirectoryBuilding/DirectoryRoom` для страниц журналов; `src/components/cleaning/room-editor-initial.ts` — маппер в `RoomEditorInitial`.
+- `RoomDirectoryPickerDialog` (`src/components/cleaning/room-directory-picker-dialog.tsx`) — «Добавить помещение из справочника» + «Создать новое» (POST /api/settings/rooms), после создания открывается карточка.
+- `RoomEditorDialog`: секция «Климат» (`Room.climateNorms`), prop `focus` ("cleaning" | "climate") — секция «Уборка» сворачивается, когда карточку открыли из журнала климата.
+- Климат: `ClimateRoomConfig.roomId`, `buildClimateConfigFromRooms`, `applyRoomDirectoryToClimateConfig` (Room wins по имени/нормам, ключи строк не меняются), «Связать» для legacy-строк (по совпадению имени или из legacy-диалога; нормы строки переносятся в Room, если там пусто), сопоставление датчиков по `Room.id`/имени (`external/dispatch.ts`), `journal-task-pool` по Room, TF-адаптер и PDF — по эффективному конфигу.
+- График ген. уборок: `SanitationRoomRow.roomId`, `buildSanitationDayConfigFromRooms` (закрыт баг с демо-строками), под названием — «Убирает / Проверяет» из карточки, TF-адаптер: ответственный = первый уборщик помещения, проверяющий = первый проверяющий, шаги формы — из `Room.generalScope`, день месяца — из `Room.generalMonthDays`.
+- `Room`↔`Area`: переименование Room переименовывает зеркальную Area; удаление Room удаляет Area без оборудования/записей. Создание документов климата и графика — из Room (`api/journal-documents/route.ts`, `journal-default-configs.ts`, `journal-responsibles-cascade.ts`).
+- Скрипт `scripts/migrate-journal-rooms-to-directory.ts` (dry-run / `--apply` / `--create`) связывает существующие строки по имени.
