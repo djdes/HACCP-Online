@@ -74,6 +74,20 @@ export function isTeamFanOutJournal(journalCode: string): boolean {
 }
 
 /**
+ * Журнал уборки в rooms-режиме раздаёт задачи по зонам явно
+ * (`room::<roomId>::cleaner::<uid>`): закрепления, гонка или поровну —
+ * решение менеджера. Синтетический fan-out «всем на смене» поверх него
+ * не нужен. Возвращает true, когда адаптер уже дал такие строки.
+ */
+export function hasExplicitPerRowDistribution(
+  journalCode: string,
+  rows: ReadonlyArray<Pick<AdapterRow, "rowKey">>,
+): boolean {
+  if (journalCode !== "cleaning") return false;
+  return rows.some((row) => row.rowKey.startsWith("room::"));
+}
+
+/**
  * Должна ли задача рассылаться всем eligible-сотрудникам (а не одному).
  *
  * Случаи:

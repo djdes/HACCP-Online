@@ -53,6 +53,7 @@ export const cleaningConfigSchema = z.object({
   selectedCleanerUserIds: z.array(z.string()).optional().default([]),
   controlUserId: z.string().nullable().optional(),
   verifierByRoomId: z.record(z.string(), z.string()).optional().default({}),
+  cleanerByRoomId: z.record(z.string(), z.array(z.string())).optional().default({}),
   roomsRaceMode: z.boolean().optional(),
 
   // Pairs-mode legacy

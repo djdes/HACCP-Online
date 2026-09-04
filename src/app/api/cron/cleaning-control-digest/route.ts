@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
 import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
+  listCleaningRoomCompletions,
   normalizeCleaningDocumentConfig,
+  resolveDocumentController,
   type CleaningDocumentConfig,
 } from "@/lib/cleaning-document";
 import { tasksflowClientFor } from "@/lib/tasksflow-client";
@@ -91,7 +93,10 @@ async function handle(request: Request) {
         doc.config
       ) as CleaningDocumentConfig;
       if (config.cleaningMode !== "rooms") continue;
-      if (!config.controlUserId) continue;
+      // 2026-09: контролёр через резолвер — controlUserId давно не
+      // пишется UI, fallback на controlResponsibles[0] оживляет дайджест.
+      const controllerUserId = resolveDocumentController(config);
+      if (!controllerUserId) continue;
 
       const rowKey = buildControlRowKey(doc.id, todayKey);
 
@@ -119,19 +124,13 @@ async function handle(request: Request) {
       }
 
       // Подгружаем имена помещений и cleaner-ов для description.
-      const roomIds = Array.from(
-        new Set(
-          entries
-            .map((e) => (e.data as Record<string, unknown>)?.roomId)
-            .filter((x): x is string => typeof x === "string")
-        )
+      // Одна entry = все зоны уборщика за день (data.rooms).
+      const completions = entries.flatMap((e) =>
+        listCleaningRoomCompletions(e.data),
       );
+      const roomIds = Array.from(new Set(completions.map((c) => c.roomId)));
       const cleanerIds = Array.from(
-        new Set(
-          entries
-            .map((e) => (e.data as Record<string, unknown>)?.cleanerUserId)
-            .filter((x): x is string => typeof x === "string")
-        )
+        new Set(completions.map((c) => c.cleanerUserId).filter(Boolean)),
       );
       const [rooms, users] = await Promise.all([
         db.room.findMany({
@@ -146,13 +145,10 @@ async function handle(request: Request) {
       const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
       const userNameById = new Map(users.map((u) => [u.id, u.name]));
 
-      const lines = entries
-        .map((e) => {
-          const d = e.data as Record<string, unknown>;
-          const roomName =
-            roomNameById.get(d.roomId as string) ?? "(помещение)";
-          const cleanerName =
-            userNameById.get(d.cleanerUserId as string) ?? "(сотрудник)";
+      const lines = completions
+        .map((c) => {
+          const roomName = roomNameById.get(c.roomId) ?? "(помещение)";
+          const cleanerName = userNameById.get(c.cleanerUserId) ?? "(сотрудник)";
           return `• ${roomName} — ${cleanerName}`;
         })
         .join("\n");
@@ -161,7 +157,7 @@ async function handle(request: Request) {
       const controllerLink = await db.tasksFlowUserLink.findFirst({
         where: {
           integrationId: integration.id,
-          wesetupUserId: config.controlUserId,
+          wesetupUserId: controllerUserId,
         },
         select: { tasksflowUserId: true },
       });

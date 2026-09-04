@@ -68,6 +68,7 @@ import {
   applyCleaningAutoSignatures,
   applyRoomScheduleToMatrix,
   fillPastDaysNotPerformed,
+  listCleaningRoomCompletions,
   normalizeCleaningDocumentConfig,
   toRoomScheduleMap,
   type CleaningMatrixMap,
@@ -646,12 +647,8 @@ async function applyCleaningConfigAutoFill(
   });
   const completionDays = new Set<string>();
   for (const entry of completionEntries) {
-    const data =
-      entry.data && typeof entry.data === "object" && !Array.isArray(entry.data)
-        ? (entry.data as Record<string, unknown>)
-        : null;
-    if (data?.kind === "cleaning_room" && typeof data.dateKey === "string") {
-      completionDays.add(data.dateKey);
+    for (const c of listCleaningRoomCompletions(entry.data)) {
+      if (c.dateKey) completionDays.add(c.dateKey);
     }
   }
   config = applyCleaningAutoSignatures(config, dateKeys, { completionDays });

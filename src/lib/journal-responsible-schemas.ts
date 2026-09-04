@@ -108,7 +108,7 @@ const SCHEMA_OVERRIDES: Record<string, readonly ResponsibleSlot[]> = {
     {
       id: "supervisor",
       label: "Старший по уборке",
-      hint: "Кто отвечает за факт проведения",
+      hint: "Кто отвечает за факт проведения. Отдельные зоны закрепляются за уборщиками в самом журнале: «Настроить» → «Закрепить зоны»",
       primary: true,
       positionKeywords: ["уборщ", "клинер", "старш"],
     },

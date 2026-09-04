@@ -26,6 +26,8 @@ import {
 import {
   normalizeCleaningDocumentConfig,
   parseScopeSteps,
+  resolveRoomCleaners,
+  resolveRoomController,
   type CleaningDocumentConfig,
   type CleaningRoomItem,
 } from "@/lib/cleaning-document";
@@ -102,18 +104,8 @@ function pickCleanersForRoom(
     Array.isArray(config.selectedCleanerUserIds) &&
     config.selectedCleanerUserIds.length > 0
   ) {
-    const cleaners = config.selectedCleanerUserIds.filter(Boolean);
-    // Race-mode: все cleaners получают задачу.
-    if (config.roomsRaceMode === true) return cleaners;
-    // Round-robin: один cleaner. selectedRoomIds может быть пустой
-    // (legacy-документ или менеджер не настраивал) — тогда idx=0.
-    const selectedRoomIds = Array.isArray(config.selectedRoomIds)
-      ? config.selectedRoomIds
-      : [];
-    const idx = selectedRoomIds.indexOf(roomId);
-    const safeIdx = idx >= 0 ? idx : 0;
-    const picked = cleaners[safeIdx % cleaners.length];
-    return picked ? [picked] : [];
+    // 2026-09: единый резолвер с адаптером (закрепление зон → пул).
+    return resolveRoomCleaners(config, roomId);
   }
   // Pairs-mode (legacy): первый cleaner из responsiblePairs.
   const firstPair = config.responsiblePairs?.[0];
@@ -126,8 +118,7 @@ function pickVerifierWesetupId(
   roomId: string,
 ): string | null {
   return (
-    config.verifierByRoomId?.[roomId] ??
-    config.controlUserId ??
+    resolveRoomController(config, roomId) ??
     config.responsiblePairs?.[0]?.controlUserId ??
     null
   );

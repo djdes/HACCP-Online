@@ -17,8 +17,13 @@ import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   type CleaningDocumentConfig,
   effectiveStepRequirePhoto,
+  listCleaningRoomCompletions,
+  mergeCleaningRoomCompletion,
   normalizeCleaningDocumentConfig,
   parseScopeSteps,
+  resolveDocumentController,
+  resolveRoomCleaners,
+  resolveRoomController,
   type ScopeStep,
 } from "@/lib/cleaning-document";
 import { toDateKey } from "@/lib/hygiene-document";
@@ -365,7 +370,7 @@ export const cleaningAdapter: JournalAdapter = {
     if (ctrl && config.cleaningMode === "rooms") {
       return applyControlCompletion({
         documentId: doc.id,
-        controllerUserId: config.controlUserId ?? null,
+        controllerUserId: resolveDocumentController(config),
         dateKey: ctrl.dateKey,
         completed,
       });
@@ -729,65 +734,38 @@ function buildRoomsModeRows(
   });
   if (rooms.length === 0) return [];
 
-  // 2026-05-04: ДВА режима через config.roomsRaceMode.
-  //
-  // RACE-MODE (config.roomsRaceMode === true):
-  //   На каждую комнату задача СРАЗУ для всех выбранных уборщиков.
-  //   В TasksFlow появляется N×M task'ов; кто первый отметит —
-  //   остальные видят «выполнено другим». Подходит для гибких смен
-  //   где уборщица сама решает что делать. После Stage 1 фикса
-  //   selectRowsForBulkAssign сохраняет все rows (dedup by rowKey,
-  //   не userId).
-  //
-  // ROUND-ROBIN (default — config.roomsRaceMode !== true):
-  //   На каждую комнату ровно ОДИН уборщик (cleaners[i % M]).
-  //   5 комнат × 2 уборщика → 5 task'ов: Маркова делает комнаты
-  //   0,2,4, Захаров — 1,3. Каждый знает свой набор. Подходит
-  //   для строгого распределения зон ответственности.
-  // Per-room verifier resolver — приоритет verifierByRoomId[roomId]
-  // → fallback controlUserId → fallback null (тогда bulk-assign
-  // возьмёт document-wide doc.verifierUserId).
-  const verifierByRoomId = config.verifierByRoomId ?? {};
-  function verifierForRoom(roomId: string): string | null {
-    return (
-      verifierByRoomId[roomId] ?? config.controlUserId ?? null
-    );
-  }
-
-  if (config.roomsRaceMode === true) {
-    const rows: AdapterRow[] = [];
-    for (const roomId of rooms) {
-      const roomName = roomNameById.get(roomId) ?? "(удалённая комната)";
-      const requiresPhoto = roomRequirePhotoById.get(roomId) === true;
-      for (const cleanerId of cleaners) {
-        const cleanerName =
-          userNameById.get(cleanerId) ?? "(удалённый сотрудник)";
-        rows.push({
-          rowKey: `room::${roomId}::cleaner::${cleanerId}`,
-          label: `Уборка · ${roomName}`,
-          sublabel: `Уборщик: ${cleanerName} (race — кто первый)`,
-          responsibleUserId: cleanerId,
-          verifierUserId: verifierForRoom(roomId),
-          requiresPhoto,
-        });
-      }
-    }
-    return rows;
-  }
-
-  return rooms.map((roomId, idx) => {
-    const cleanerId = cleaners[idx % cleaners.length];
+  // Кто убирает комнату решает единый резолвер (cleaning-document.ts):
+  // закрепление cleanerByRoomId → пул (race: все, round-robin по индексу
+  // в selectedRoomIds). Контролёр — resolveRoomController. Здесь только
+  // сборка строк.
+  const rows: AdapterRow[] = [];
+  for (const roomId of rooms) {
     const roomName = roomNameById.get(roomId) ?? "(удалённая комната)";
-    const cleanerName = userNameById.get(cleanerId) ?? "(удалённый сотрудник)";
-    return {
-      rowKey: `room::${roomId}::cleaner::${cleanerId}`,
-      label: `Уборка · ${roomName}`,
-      sublabel: `Уборщик: ${cleanerName}`,
-      responsibleUserId: cleanerId,
-      verifierUserId: verifierForRoom(roomId),
-      requiresPhoto: roomRequirePhotoById.get(roomId) === true,
-    };
-  });
+    const requiresPhoto = roomRequirePhotoById.get(roomId) === true;
+    const roomCleaners = resolveRoomCleaners(config, roomId);
+    const pinned = (config.cleanerByRoomId?.[roomId]?.length ?? 0) > 0;
+    const verifierUserId = resolveRoomController(config, roomId);
+    for (const cleanerId of roomCleaners) {
+      const cleanerName =
+        userNameById.get(cleanerId) ?? "(удалённый сотрудник)";
+      const hint = pinned
+        ? roomCleaners.length > 1
+          ? " (гонка в зоне)"
+          : " (зона закреплена)"
+        : config.roomsRaceMode === true
+          ? " (race — кто первый)"
+          : "";
+      rows.push({
+        rowKey: `room::${roomId}::cleaner::${cleanerId}`,
+        label: `Уборка · ${roomName}`,
+        sublabel: `Уборщик: ${cleanerName}${hint}`,
+        responsibleUserId: cleanerId,
+        verifierUserId,
+        requiresPhoto,
+      });
+    }
+  }
+  return rows;
 }
 
 function parseRoomsModeRowKey(
@@ -817,6 +795,8 @@ async function applyControlCompletion(args: {
   controllerUserId: string | null;
   dateKey: string;
   completed: boolean;
+  /** Optional zone scope (per-room controllers). Absent = every room. */
+  roomIds?: Set<string>;
 }): Promise<boolean> {
   if (!args.completed || !args.controllerUserId) return false;
   const date = new Date(`${args.dateKey}T00:00:00.000Z`);
@@ -835,24 +815,48 @@ async function applyControlCompletion(args: {
   if (entries.length === 0) return false;
 
   const stamp = new Date().toISOString();
+  let touched = false;
   for (const e of entries) {
     const prevData =
       e.data && typeof e.data === "object" && !Array.isArray(e.data)
         ? (e.data as Record<string, unknown>)
         : {};
-    if (prevData.controllerCompletedAt) continue;
+    const completions = listCleaningRoomCompletions(prevData);
+    const rooms: Record<string, Record<string, unknown>> = {};
+    let changed = false;
+    for (const c of completions) {
+      // Phase 2 hook: `roomIds` limits the stamp to this controller's zones.
+      const inScope = !args.roomIds || args.roomIds.has(c.roomId);
+      const stamped = Boolean(c.controllerCompletedAt);
+      rooms[c.roomId] = {
+        completedAt: c.completedAt,
+        ...(c.controllerUserId ? { controllerUserId: c.controllerUserId } : {}),
+        ...(c.controllerCompletedAt
+          ? { controllerCompletedAt: c.controllerCompletedAt }
+          : {}),
+      };
+      if (inScope && !stamped) {
+        rooms[c.roomId].controllerUserId = args.controllerUserId;
+        rooms[c.roomId].controllerCompletedAt = stamp;
+        changed = true;
+      }
+    }
+    if (!changed) continue;
+    touched = true;
     await db.journalDocumentEntry.update({
       where: { id: e.id },
       data: {
         data: {
           ...prevData,
-          controllerUserId: args.controllerUserId,
-          controllerCompletedAt: stamp,
+          // Legacy top-level stamp stays for old readers.
+          controllerUserId: prevData.controllerUserId ?? args.controllerUserId,
+          controllerCompletedAt: prevData.controllerCompletedAt ?? stamp,
+          rooms,
         },
       },
     });
   }
-  return true;
+  return touched;
 }
 
 /**
@@ -888,29 +892,38 @@ async function applyRoomsModeCompletion(args: {
   const date = new Date(`${args.dateKey}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return false;
 
-  // Уже есть запись по этому (room, date) — другой уборщик был первым?
-  // findFirst по data JSON-path — медленнее unique-constraint, но для
-  // race-checking (1 раз на complete) acceptable.
-  const existing = await db.journalDocumentEntry.findFirst({
+  // Все completion-entries за (document, date): их не больше, чем
+  // уборщиков, поэтому race-check делаем в JS через
+  // listCleaningRoomCompletions (new `rooms` map + legacy roomId).
+  const dayEntries = await db.journalDocumentEntry.findMany({
     where: {
       documentId: args.documentId,
       date,
-      AND: [
-        { data: { path: ["roomId"], equals: args.roomId } },
-        { data: { path: ["kind"], equals: "cleaning_room" } },
-      ],
+      data: { path: ["kind"], equals: "cleaning_room" },
     },
-    select: { id: true },
+    select: { employeeId: true, data: true },
   });
-  if (existing) {
+  const takenByOther = dayEntries.some(
+    (e) =>
+      e.employeeId !== args.cleanerUserId &&
+      listCleaningRoomCompletions(e.data).some((c) => c.roomId === args.roomId),
+  );
+  if (takenByOther) {
     // Race lost — другой cleaner был первым. TF-task pipeline всё равно
     // пометит remote как completed, но новую entry не создаём.
     return false;
   }
 
-  // Idempotency через `(documentId, employeeId, date)` unique-constraint:
-  // если этот же cleaner повторно дёрнул complete на той же задаче —
-  // upsert не падает.
+  // Одна entry на (documentId, cleaner, date): все зоны дня сливаются в
+  // `data.rooms`, legacy `roomId` указывает на последнюю. Повторный
+  // complete той же зоны — idempotent overwrite completedAt.
+  const own = dayEntries.find((e) => e.employeeId === args.cleanerUserId);
+  const merged = mergeCleaningRoomCompletion(own?.data, {
+    roomId: args.roomId,
+    cleanerUserId: args.cleanerUserId,
+    dateKey: args.dateKey,
+    completedAt: new Date().toISOString(),
+  });
   await db.journalDocumentEntry.upsert({
     where: {
       documentId_employeeId_date: {
@@ -923,23 +936,9 @@ async function applyRoomsModeCompletion(args: {
       documentId: args.documentId,
       employeeId: args.cleanerUserId,
       date,
-      data: {
-        kind: "cleaning_room",
-        roomId: args.roomId,
-        dateKey: args.dateKey,
-        cleanerUserId: args.cleanerUserId,
-        completedAt: new Date().toISOString(),
-      },
+      data: merged,
     },
-    update: {
-      data: {
-        kind: "cleaning_room",
-        roomId: args.roomId,
-        dateKey: args.dateKey,
-        cleanerUserId: args.cleanerUserId,
-        completedAt: new Date().toISOString(),
-      },
-    },
+    update: { data: merged },
   });
   return true;
 }

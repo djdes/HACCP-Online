@@ -19,6 +19,7 @@ import {
 import { listAdapters } from "@/lib/tasksflow-adapters";
 import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
 import {
+  hasExplicitPerRowDistribution,
   parseStringArray,
   selectBulkJournalTemplates,
   selectRowsForBulkAssign,
@@ -956,6 +957,13 @@ export async function POST(request: Request) {
     //      важнее точной позиции) — fallback без position-filter:
     //      лучше чтобы задача ушла кому-то, чем не ушла никому.
     const fanOutCandidateIds = (() => {
+      // 2026-09: уборка в rooms-режиме — явное распределение по зонам
+      // (закрепления / гонка / поровну). Синтетическая задача «Журнал
+      // уборки» без комнаты всем остальным на смене противоречит плану
+      // менеджера — пул для fan-out пустой, остаются только строки адаптера.
+      if (hasExplicitPerRowDistribution(tpl.code, adapterDoc.rows)) {
+        return new Set<string>();
+      }
       const linkedScope = new Set<string>();
       for (const uid of candidateUserIds) {
         if (linkedUserIds.has(uid)) linkedScope.add(uid);

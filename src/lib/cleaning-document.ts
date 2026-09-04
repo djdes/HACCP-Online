@@ -47,11 +47,116 @@ export type CleaningEntryData = {
    * `kind` undefined → клиент их игнорирует и читает planned matrix.
    */
   kind?: "cleaning_room";
+  /** Legacy single-room fields: always mirror the LAST completed room. */
   roomId?: string;
   dateKey?: string;
   cleanerUserId?: string;
   completedAt?: string;
+  /**
+   * 2026-09: one cleaner may finish several rooms on the same day, but
+   * the entry is unique per (documentId, employeeId, date). All rooms of
+   * the day live here; `roomId`/`completedAt` above stay in sync with the
+   * most recent one for old readers. Read via `listCleaningRoomCompletions`.
+   */
+  rooms?: Record<string, CleaningRoomCompletion>;
 };
+
+export type CleaningRoomCompletion = {
+  completedAt: string;
+  controllerUserId?: string;
+  controllerCompletedAt?: string;
+};
+
+export type CleaningRoomCompletionView = CleaningRoomCompletion & {
+  roomId: string;
+  cleanerUserId: string;
+  dateKey: string;
+};
+
+/**
+ * Flattens a `cleaning_room` entry into one item per completed room.
+ * Handles both the new `rooms` map and legacy single-room entries.
+ * Non-completion entries (activities) yield an empty list.
+ */
+export function listCleaningRoomCompletions(
+  value: unknown,
+): CleaningRoomCompletionView[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const record = value as Record<string, unknown>;
+  if (record.kind !== "cleaning_room") return [];
+  const cleanerUserId =
+    typeof record.cleanerUserId === "string" ? record.cleanerUserId : "";
+  const dateKey = typeof record.dateKey === "string" ? record.dateKey : "";
+  const out: CleaningRoomCompletionView[] = [];
+  const rooms = record.rooms;
+  if (rooms && typeof rooms === "object" && !Array.isArray(rooms)) {
+    for (const [roomId, raw] of Object.entries(rooms as Record<string, unknown>)) {
+      if (!roomId || !raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+      const r = raw as Record<string, unknown>;
+      out.push({
+        roomId,
+        cleanerUserId,
+        dateKey,
+        completedAt: typeof r.completedAt === "string" ? r.completedAt : "",
+        controllerUserId:
+          typeof r.controllerUserId === "string" ? r.controllerUserId : undefined,
+        controllerCompletedAt:
+          typeof r.controllerCompletedAt === "string"
+            ? r.controllerCompletedAt
+            : undefined,
+      });
+    }
+  }
+  if (out.length === 0 && typeof record.roomId === "string" && record.roomId) {
+    out.push({
+      roomId: record.roomId,
+      cleanerUserId,
+      dateKey,
+      completedAt: typeof record.completedAt === "string" ? record.completedAt : "",
+      controllerUserId:
+        typeof record.controllerUserId === "string" ? record.controllerUserId : undefined,
+      controllerCompletedAt:
+        typeof record.controllerCompletedAt === "string"
+          ? record.controllerCompletedAt
+          : undefined,
+    });
+  }
+  return out;
+}
+
+/**
+ * Adds/overwrites one room in a `cleaning_room` entry `data`, keeping the
+ * legacy single-room fields pointed at the room just written.
+ */
+export function mergeCleaningRoomCompletion(
+  prev: unknown,
+  args: { roomId: string; cleanerUserId: string; dateKey: string; completedAt: string },
+): Record<string, unknown> {
+  const base =
+    prev && typeof prev === "object" && !Array.isArray(prev)
+      ? (prev as Record<string, unknown>)
+      : {};
+  const rooms: Record<string, CleaningRoomCompletion> = {};
+  for (const c of listCleaningRoomCompletions({ ...base, kind: "cleaning_room" })) {
+    rooms[c.roomId] = {
+      completedAt: c.completedAt,
+      ...(c.controllerUserId ? { controllerUserId: c.controllerUserId } : {}),
+      ...(c.controllerCompletedAt
+        ? { controllerCompletedAt: c.controllerCompletedAt }
+        : {}),
+    };
+  }
+  rooms[args.roomId] = { completedAt: args.completedAt };
+  return {
+    ...base,
+    kind: "cleaning_room",
+    roomId: args.roomId,
+    dateKey: args.dateKey,
+    cleanerUserId: args.cleanerUserId,
+    completedAt: args.completedAt,
+    rooms,
+  };
+}
 
 export type CleaningResponsibleKind = "cleaning" | "control";
 
@@ -234,6 +339,11 @@ export type CleaningDocumentConfig = {
   /// bulk-assign создаёт supervisor-task на этого юзера вместо
   /// document-wide.
   verifierByRoomId?: Record<string, string>;
+  /// 2026-09: закрепление зон «по желанию». roomId → уборщики зоны
+  /// (подмножество selectedCleanerUserIds). Один id — зона закреплена,
+  /// несколько — гонка внутри зоны. Комната без записи → пул как раньше
+  /// (race / round-robin). См. resolveRoomCleaners.
+  cleanerByRoomId?: Record<string, string[]>;
   /// User-id ответственного за контроль. В rooms-режиме он получает
   /// одну сводную задачу в конце дня. Используется как fallback если
   /// для конкретной комнаты нет записи в verifierByRoomId.
@@ -1234,6 +1344,12 @@ export function normalizeCleaningDocumentConfig(
     typeof record.controlUserId === "string" && record.controlUserId.length > 0
       ? record.controlUserId
       : null;
+  // Per-room cleaners: only known rooms, only pool members, no dupes.
+  next.cleanerByRoomId = normalizeCleanerByRoomId(
+    record.cleanerByRoomId,
+    next.selectedRoomIds,
+    next.selectedCleanerUserIds,
+  );
 
   // Pipeline (subtask) mode — perRoom by default для backwards-compat.
   // legacy = без подзадач, global = один общий список, perRoom = по помещению.
@@ -1256,6 +1372,114 @@ export function normalizeCleaningDocumentConfig(
   }
 
   return syncCompatibilityFields(next);
+}
+
+export function normalizeCleanerByRoomId(
+  raw: unknown,
+  selectedRoomIds: string[],
+  pool: string[],
+): Record<string, string[]> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const roomSet = new Set(selectedRoomIds);
+  const poolSet = new Set(pool);
+  const out: Record<string, string[]> = {};
+  for (const [roomId, ids] of Object.entries(raw as Record<string, unknown>)) {
+    if (!roomId || !roomSet.has(roomId) || !Array.isArray(ids)) continue;
+    const cleaned = Array.from(
+      new Set(ids.filter((x): x is string => typeof x === "string" && poolSet.has(x))),
+    );
+    if (cleaned.length > 0) out[roomId] = cleaned;
+  }
+  return out;
+}
+
+/**
+ * Кто убирает комнату — единственный источник для адаптера,
+ * override-sync, клиента и PDF.
+ *   1. Закрепление cleanerByRoomId[roomId] (если есть).
+ *   2. Иначе пул: race → все; round-robin → cleaners[idx % n], где idx —
+ *      позиция в selectedRoomIds (стабильна, не зависит от «/» в matrix).
+ */
+export function resolveRoomCleaners(
+  config: Pick<
+    CleaningDocumentConfig,
+    "selectedRoomIds" | "selectedCleanerUserIds" | "roomsRaceMode" | "cleanerByRoomId"
+  >,
+  roomId: string,
+): string[] {
+  const pool = config.selectedCleanerUserIds ?? [];
+  const pinned = config.cleanerByRoomId?.[roomId];
+  if (Array.isArray(pinned) && pinned.length > 0) {
+    const poolSet = new Set(pool);
+    const valid = pinned.filter((id) => poolSet.has(id));
+    if (valid.length > 0) return valid;
+  }
+  if (pool.length === 0) return [];
+  if (config.roomsRaceMode === true) return [...pool];
+  const idx = (config.selectedRoomIds ?? []).indexOf(roomId);
+  if (idx < 0) return [pool[0]];
+  return [pool[idx % pool.length]];
+}
+
+/** Кто контролирует комнату: зона → документ → первый из controlResponsibles. */
+export function resolveRoomController(
+  config: Pick<
+    CleaningDocumentConfig,
+    "verifierByRoomId" | "controlUserId" | "controlResponsibles"
+  >,
+  roomId: string,
+): string | null {
+  return (
+    config.verifierByRoomId?.[roomId] ??
+    config.controlUserId ??
+    config.controlResponsibles?.[0]?.userId ??
+    null
+  );
+}
+
+/**
+ * Легенда «Ответственный за уборку» — коды С1…СN. Rooms-mode с непустым
+ * пулом → пул в порядке selectedCleanerUserIds; иначе cleaningResponsibles.
+ * Один источник для экрана и PDF (раньше они читали разные списки).
+ */
+export function listCleaningCodeEntries(
+  config: Pick<
+    CleaningDocumentConfig,
+    "cleaningMode" | "selectedCleanerUserIds" | "cleaningResponsibles"
+  >,
+  userNameById?: Map<string, string> | Record<string, string>,
+): Array<{ id: string; userId: string; code: string; userName: string; title: string }> {
+  const nameOf = (id: string) =>
+    userNameById instanceof Map ? userNameById.get(id) : userNameById?.[id];
+  const pool = config.selectedCleanerUserIds ?? [];
+  if (config.cleaningMode === "rooms" && pool.length > 0) {
+    return pool.map((userId, idx) => ({
+      id: `selected-cleaner-${userId}`,
+      userId,
+      code: `С${idx + 1}`,
+      userName: nameOf(userId) ?? "—",
+      title: "Уборщик",
+    }));
+  }
+  return (config.cleaningResponsibles ?? []).map((r, idx) => ({
+    id: r.id,
+    userId: r.userId,
+    code: `С${idx + 1}`,
+    userName: r.userName || nameOf(r.userId) || "—",
+    title: r.title,
+  }));
+}
+
+/** Контролёр документа по умолчанию (без учёта зон). */
+export function resolveDocumentController(
+  config: Pick<CleaningDocumentConfig, "controlUserId" | "controlResponsibles">,
+): string | null {
+  return config.controlUserId ?? config.controlResponsibles?.[0]?.userId ?? null;
+}
+
+/** Is at least one room pinned to explicit cleaners? */
+export function countPinnedRooms(config: Pick<CleaningDocumentConfig, "cleanerByRoomId">): number {
+  return Object.keys(config.cleanerByRoomId ?? {}).length;
 }
 
 /**
@@ -1323,6 +1547,19 @@ export function normalizeCleaningEntryData(value: unknown): CleaningEntryData {
       result.cleanerUserId = record.cleanerUserId;
     if (typeof record.completedAt === "string")
       result.completedAt = record.completedAt;
+    const completions = listCleaningRoomCompletions(record);
+    if (completions.length > 0) {
+      result.rooms = {};
+      for (const c of completions) {
+        result.rooms[c.roomId] = {
+          completedAt: c.completedAt,
+          ...(c.controllerUserId ? { controllerUserId: c.controllerUserId } : {}),
+          ...(c.controllerCompletedAt
+            ? { controllerCompletedAt: c.controllerCompletedAt }
+            : {}),
+        };
+      }
+    }
   }
 
   return result;

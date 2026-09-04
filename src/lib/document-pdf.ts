@@ -29,7 +29,10 @@ import {
   displayMatrixValue,
   getCleaningDocumentTitle,
   getCleaningFilePrefix,
+  listCleaningCodeEntries,
+  listCleaningRoomCompletions,
   normalizeCleaningDocumentConfig,
+  resolveRoomCleaners,
   CLEANING_SIGNATURE_ROW_ID,
   CONTROL_SIGNATURE_ROW_ID,
   stripAutoSignatureMarker,
@@ -1985,6 +1988,8 @@ function drawCleaningPdf(doc: jsPDF, params: {
   >;
   /** userId → инициалы (для rooms-mode, инициалы cleaner-а / контролёра). */
   userInitialsById?: Record<string, string>;
+  /** Полные имена (rooms-mode) — для легенды «С1 - Иванова». */
+  userNamesById?: Record<string, string>;
 }) {
   const config = normalizeCleaningDocumentConfig(params.config);
 
@@ -2031,15 +2036,10 @@ function drawCleaningPdf(doc: jsPDF, params: {
   function roomsModeCellValue(roomId: string, dateKey: string): string {
     if (!params.userInitialsById) return "";
     for (const e of params.entries) {
-      const d = e.data as Record<string, unknown> | undefined;
-      if (
-        d?.kind === "cleaning_room" &&
-        d?.roomId === roomId &&
-        d?.dateKey === dateKey
-      ) {
-        return (
-          params.userInitialsById[String(d.cleanerUserId ?? "")] ?? ""
-        );
+      for (const c of listCleaningRoomCompletions(e.data)) {
+        if (c.roomId === roomId && c.dateKey === dateKey) {
+          return params.userInitialsById[c.cleanerUserId] ?? "";
+        }
       }
     }
     return "";
@@ -2050,16 +2050,10 @@ function drawCleaningPdf(doc: jsPDF, params: {
   ): string {
     if (!params.userInitialsById) return "";
     for (const e of params.entries) {
-      const d = e.data as Record<string, unknown> | undefined;
-      if (
-        d?.kind === "cleaning_room" &&
-        d?.roomId === roomId &&
-        d?.dateKey === dateKey &&
-        d?.controllerUserId
-      ) {
-        return (
-          params.userInitialsById[String(d.controllerUserId ?? "")] ?? ""
-        );
+      for (const c of listCleaningRoomCompletions(e.data)) {
+        if (c.roomId === roomId && c.dateKey === dateKey && c.controllerUserId) {
+          return params.userInitialsById[c.controllerUserId] ?? "";
+        }
       }
     }
     return "";
@@ -2076,10 +2070,8 @@ function drawCleaningPdf(doc: jsPDF, params: {
   //      и фильтром устаревших С-кодов);
   //   2) иначе — вычисляем из completion-entries (kind="cleaning_room").
   // Повторяем ровно эту логику, чтобы печать совпадала с экраном.
-  const cleaningResponsibleList = config.cleaningResponsibles.map((item, index) => ({
-    ...item,
-    code: `С${index + 1}`,
-  }));
+  // Единый список с экраном (rooms-mode: пул; иначе cleaningResponsibles).
+  const cleaningResponsibleList = listCleaningCodeEntries(config, params.userNamesById);
   const controlResponsibleList = config.controlResponsibles.map((item, index) => ({
     ...item,
     code: `С${index + 1}`,
@@ -2105,10 +2097,9 @@ function drawCleaningPdf(doc: jsPDF, params: {
   }
 
   function hasCompletion(dateKey: string) {
-    return params.entries.some((entry) => {
-      const data = entry.data as Record<string, unknown> | null;
-      return data?.kind === "cleaning_room" && data?.dateKey === dateKey;
-    });
+    return params.entries.some((entry) =>
+      listCleaningRoomCompletions(entry.data).some((c) => c.dateKey === dateKey)
+    );
   }
 
   function cleaningCodeForDay(dateKey: string): string {
@@ -2119,10 +2110,11 @@ function drawCleaningPdf(doc: jsPDF, params: {
     if (manual !== null) return manual;
     const codes = new Set<string>();
     for (const entry of params.entries) {
-      const data = entry.data as Record<string, unknown> | null;
-      if (data?.kind !== "cleaning_room" || data?.dateKey !== dateKey) continue;
-      const code = cleanerCodeById.get(String(data.cleanerUserId ?? ""));
-      if (code) codes.add(code);
+      for (const c of listCleaningRoomCompletions(entry.data)) {
+        if (c.dateKey !== dateKey) continue;
+        const code = cleanerCodeById.get(c.cleanerUserId);
+        if (code) codes.add(code);
+      }
     }
     return Array.from(codes).sort().join(",");
   }
@@ -2199,9 +2191,17 @@ function drawCleaningPdf(doc: jsPDF, params: {
     }
     const namesMap = params.roomNamesById ?? {};
 
+    // Код уборщика зоны в названии: «Холодный цех (С2)». Гонка/несколько
+    // уборщиков → «(С1, С3)».
+    const roomCodes = (roomId: string) =>
+      resolveRoomCleaners(config, roomId)
+        .map((uid) => cleanerCodeById.get(uid))
+        .filter((code): code is string => Boolean(code));
     const roomRows: RowInput[] = selectedRoomIds.map((roomId) => [
       {
-        content: namesMap[roomId] ?? "Помещение",
+        content: `${namesMap[roomId] ?? "Помещение"}${
+          roomCodes(roomId).length > 0 ? ` (${roomCodes(roomId).join(", ")})` : ""
+        }`,
         styles: { halign: "center" as const, valign: "middle" as const },
       },
       {
@@ -6167,6 +6167,7 @@ export function renderJournalDocumentPdf(
     // логике из config.rooms / config.controlResponsibles.
     const cleaningRoomNamesById: Record<string, string> = {};
     const cleaningUserInitialsById: Record<string, string> = {};
+    const cleaningUserNamesById: Record<string, string> = {};
     const cleaningRoomDetailsById: Record<
       string,
       { name: string; detergent: string; currentScope: string[]; generalScope: string[] }
@@ -6186,6 +6187,7 @@ export function renderJournalDocumentPdf(
         };
       }
       for (const u of users) {
+        cleaningUserNamesById[u.id] = u.name ?? "";
         const parts = (u.name ?? "").trim().split(/\s+/);
         cleaningUserInitialsById[u.id] = parts
           .map((p) => p[0]?.toUpperCase() ?? "")
@@ -6202,6 +6204,7 @@ export function renderJournalDocumentPdf(
       roomNamesById: cleaningRoomNamesById,
       roomDetailsById: cleaningRoomDetailsById,
       userInitialsById: cleaningUserInitialsById,
+      userNamesById: cleaningUserNamesById,
       entries: entries.map((entry) => ({
         employeeId: entry.employeeId,
         date: entry.date,
