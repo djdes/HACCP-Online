@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import {
   ArrowDown,
+  BellRing,
   CheckCircle2,
   ScanLine,
   Thermometer,
   Wifi,
+  type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/brand/logo";
 
@@ -17,8 +19,10 @@ import { BrandMark } from "@/components/brand/logo";
  * холодильника меряет → показание летит по Wi-Fi в WeSetup → строка
  * журнала печатается сама. Между шагами — пунктир с бегущим «пакетом
  * данных» (на мобилке шаги встают в столбик со стрелками вниз).
- * Сканер на приёмке — одной строкой-подписью внизу блока: это другая
- * история, и как третий шаг после строки журнала он не читался.
+ * Внизу блока — две строки-примечания: что происходит при отклонении
+ * (сообщение ответственному, затем руководству) и что сканер на
+ * приёмке работает так же. Оба сюжета важны, но как четвёртый и
+ * пятый шаг ряда они не читались.
  *
  * Датчик нарисован вектором — тот, который мы ставим клиентам: круглое
  * чёрное табло в металлическом ободе, красные сегментные цифры, щуп на
@@ -46,15 +50,17 @@ const STEPS = [
   {
     eyebrow: "Холодильник №3",
     title: "Датчик меряет сам",
-    hint: "Каждые 10 минут. Руками никто ничего не записывает.",
+    hint: "Каждые 10 минут, руками ничего не пишут.",
   },
   {
     eyebrow: "Wi-Fi",
     title: "Показание летит в WeSetup",
-    hint: "Приходит с точным временем — задним числом не впишешь.",
+    hint: "С точным временем — задним числом не впишешь.",
   },
   {
     eyebrow: "Журнал температуры",
+    /** На мобилке рядом с визуалом мало места — подпись короче. */
+    eyebrowShort: "Журнал",
     title: "Строка появляется сама",
     hint: "Норма — зелёная галочка. Повар не отвлекается.",
   },
@@ -93,13 +99,36 @@ export function AutomationScene() {
         </Step>
       </ol>
 
-      <div className="mt-5 flex items-start gap-2 border-t border-[#eef0f6] pt-4 text-[13px] leading-[1.5] text-[#6f7282]">
-        <ScanLine className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
-        <span>
+      <div className="mt-5 space-y-2.5 border-t border-[#eef0f6] pt-4 text-[13px] leading-[1.5] text-[#6f7282]">
+        <FootNote icon={BellRing}>
+          Вышло за норму — сообщение сразу{" "}
+          <span className="font-medium text-[#0b1024]">
+            ответственному за журнал
+          </span>
+          . Не исправил — узнает руководитель. Порог и само правило
+          настраиваются.
+        </FootNote>
+        <FootNote icon={ScanLine}>
           Так же и на приёмке: сканер штрих-кода вписывает партию, срок
           годности и поставщика — ввод руками не нужен.
-        </span>
+        </FootNote>
       </div>
+    </div>
+  );
+}
+
+/** Строка-примечание под шагами: иконка слева, текст в одну колонку. */
+function FootNote({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
+      <span>{children}</span>
     </div>
   );
 }
@@ -111,35 +140,50 @@ export function AutomationScene() {
 function Step({
   n,
   eyebrow,
+  eyebrowShort,
   title,
   hint,
   children,
 }: {
   n: number;
   eyebrow: string;
+  eyebrowShort?: string;
   title: string;
   hint: string;
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex min-w-0 flex-col">
-      <div className="flex items-center gap-2">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#eef1ff] text-[12px] font-semibold tabular-nums text-[#3848c7]">
-          {n}
-        </span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5566f6]">
-          {eyebrow}
-        </span>
-      </div>
-      <div className="mt-1.5 text-[15px] font-semibold tracking-[-0.01em] text-[#0b1024]">
-        {title}
+    // Мобилка: визуал слева, текст справа — шаг занимает одну строку.
+    // md+: колонка «подпись → визуал → пояснение», порядок через order.
+    <li className="grid grid-cols-[120px_minmax(0,1fr)] grid-rows-[auto_auto] items-center gap-x-4 md:flex md:min-w-0 md:flex-col md:items-stretch">
+      <div className="col-start-2 row-start-1 self-end md:order-1 md:self-auto">
+        <div className="flex items-center gap-2">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#eef1ff] text-[12px] font-semibold tabular-nums text-[#3848c7]">
+            {n}
+          </span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5566f6] md:tracking-[0.16em]">
+            {eyebrowShort ? (
+              <>
+                <span className="md:hidden">{eyebrowShort}</span>
+                <span className="hidden md:inline">{eyebrow}</span>
+              </>
+            ) : (
+              eyebrow
+            )}
+          </span>
+        </div>
+        <div className="mt-1 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024] md:mt-1.5">
+          {title}
+        </div>
       </div>
       {/* Одна высота у всех трёх визуалов — иначе колонки «пляшут»,
           а соединители не попадают в их середину. */}
-      <div className="mt-3 flex h-[124px] items-center justify-center">
+      <div className="col-start-1 row-span-2 row-start-1 flex h-[124px] items-center justify-center md:order-2 md:mt-3">
         {children}
       </div>
-      <p className="mt-3 text-[13px] leading-[1.5] text-[#6f7282]">{hint}</p>
+      <p className="col-start-2 row-start-2 mt-1.5 self-start text-[13px] leading-[1.5] text-[#6f7282] md:order-3 md:mt-3 md:self-auto">
+        {hint}
+      </p>
     </li>
   );
 }
@@ -152,7 +196,11 @@ function TuyaSensor({ reduced }: { reduced: boolean }) {
   return (
     // Провод со щупом уходит вправо-вниз за пределы корпуса, поэтому
     // сам корпус сдвинут влево — так вся фигура стоит по центру шага.
-    <span aria-hidden="true" className="relative block -translate-x-5">
+    // На мобилке датчик чуть меньше, чтобы щуп не залезал на текст.
+    <span
+      aria-hidden="true"
+      className="relative block -translate-x-2 scale-[0.8] md:-translate-x-5 md:scale-100"
+    >
       {/* Провод щупа: уходит из-под корпуса вправо и вниз, как на
           реальном устройстве. Рисуем под корпусом, чтобы вход провода
           прятался за ободом. */}
@@ -216,10 +264,12 @@ function TempReadout({
   return (
     <span className={`relative grid ${cls}`}>
       {TEMP_VALUES.map((v, i) => (
+        // Отрицательная задержка: анимация стартует сразу с нужной фазы,
+        // без «до задержки» состояния, где все три значения видны разом.
         <span
           key={v}
           className="automation-temp col-start-1 row-start-1"
-          style={{ animationDelay: `${i * 1.2}s` }}
+          style={{ animationDelay: `${i * 1.2 - 3.6}s` }}
         >
           {v}°
         </span>
@@ -352,9 +402,11 @@ function TypedValue({ reduced }: { reduced: boolean }) {
 
 function Connector({ reduced }: { reduced: boolean }) {
   return (
+    // На мобилке стрелка стоит под колонкой визуалов (120px), а не по
+    // центру карточки — так она продолжает поток «датчик → облако → журнал».
     <li
       aria-hidden="true"
-      className="flex list-none justify-center py-1 md:w-[56px] md:self-center md:py-0"
+      className="flex list-none justify-center py-1 md:w-[56px] md:self-center md:py-0 max-md:w-[120px]"
     >
       <ArrowDown
         className={`size-5 text-[#5566f6] md:hidden ${

@@ -11,6 +11,8 @@ import {
   type AutomationLockContext,
 } from "@/lib/closed-day";
 import { canWriteJournal } from "@/lib/journal-acl";
+import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
+import { processColdEquipmentEntryDeviations } from "@/lib/temperature-deviations";
 import {
   checkEntryWrite,
   isValidDate,
@@ -189,6 +191,20 @@ export async function PUT(
     doc.template?.code,
     getActiveOrgId(session)
   );
+
+  // Отклонение температуры в сетке холодильников — основной путь ввода
+  // у заведений без датчиков. Раньше эта запись не уведомляла никого.
+  // Не ждём отправку: сохранение ячейки не должно тормозить из-за
+  // Telegram (обработчик сам глушит свои ошибки).
+  if (doc.template?.code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
+    void processColdEquipmentEntryDeviations({
+      organizationId: doc.organizationId,
+      documentId: doc.id,
+      documentConfig: doc.config,
+      entryData: entry.data,
+      source: employee.name,
+    });
+  }
 
   return NextResponse.json({ entry });
 }

@@ -21,6 +21,8 @@ export default async function CompliancePage() {
       shiftEndHour: true,
       lockPastDayEdits: true,
       requirePhotoOnTaskFillStep: true,
+      escalateDeviationsToManagement: true,
+      deviationEscalationMinutes: true,
     },
   });
 
@@ -38,7 +40,8 @@ export default async function CompliancePage() {
             </h1>
             <p className="mt-1.5 max-w-[680px] text-[14px] leading-relaxed text-[#6f7282]">
               Настройки строгости журналов: кто и когда может править уже
-              сохранённые записи. По умолчанию — любой сотрудник может
+              сохранённые записи и что происходит, когда температура
+              вышла за норму. По умолчанию — любой сотрудник может
               открыть свою выполненную задачу и изменить значения. История
               правок сохраняется в журнале независимо от настроек.
             </p>
@@ -55,6 +58,10 @@ export default async function CompliancePage() {
         initialRequirePhotoOnTaskFillStep={
           org?.requirePhotoOnTaskFillStep ?? false
         }
+        initialEscalateDeviations={
+          org?.escalateDeviationsToManagement ?? true
+        }
+        initialEscalationMinutes={org?.deviationEscalationMinutes ?? 60}
       />
     </div>
   );

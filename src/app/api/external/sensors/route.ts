@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  processTemperatureReading,
+  subjectKeyForEquipment,
+} from "@/lib/temperature-deviations";
 import { authenticateExternalRequest } from "@/lib/external/auth";
 import { pickPrimaryManager } from "@/lib/user-roles";
 import { maybeCreateRealtimeCapa } from "@/lib/iot-violation-capa";
@@ -174,6 +178,22 @@ export async function POST(request: Request) {
   // подходящих маппингов (обычно 1).
   let capaResult: Awaited<ReturnType<typeof maybeCreateRealtimeCapa>> | null =
     null;
+  if (body.type === "temperature") {
+    // Отклонение → инцидент: ответственному за журнал, затем (если не
+    // исправит) руководству. Общий путь со всеми остальными входами.
+    await processTemperatureReading({
+      organizationId: orgId,
+      subjectKey: subjectKeyForEquipment(equipment.id),
+      subjectName: equipment.name,
+      value: body.value,
+      tempMin: equipment.tempMin,
+      tempMax: equipment.tempMax,
+      equipmentId: equipment.id,
+      source: "Датчик (внешний API)",
+      now,
+    });
+  }
+
   for (const m of matchingMappings) {
     if (body.type === "temperature") {
       const prevValue =

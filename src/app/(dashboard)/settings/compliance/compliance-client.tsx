@@ -1,15 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { Camera, Lock, Clock, Loader2, ShieldCheck } from "lucide-react";
+import {
+  Camera,
+  Clock,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Thermometer,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+
+/** Варианты ожидания перед эскалацией — в минутах. */
+const ESCALATION_OPTIONS = [30, 60, 120, 240] as const;
+
+function formatMinutes(minutes: number): string {
+  if (minutes < 60) return `${minutes} мин`;
+  const hours = minutes / 60;
+  if (hours === 1) return "1 час";
+  if (hours < 5) return `${hours} часа`;
+  return `${hours} часов`;
+}
 
 type Props = {
   initialRequireAdminForJournalEdit: boolean;
   initialShiftEndHour: number;
   initialLockPastDayEdits: boolean;
   initialRequirePhotoOnTaskFillStep: boolean;
+  initialEscalateDeviations: boolean;
+  initialEscalationMinutes: number;
 };
 
 export function ComplianceClient({
@@ -17,6 +37,8 @@ export function ComplianceClient({
   initialShiftEndHour,
   initialLockPastDayEdits,
   initialRequirePhotoOnTaskFillStep,
+  initialEscalateDeviations,
+  initialEscalationMinutes,
 }: Props) {
   const [value, setValue] = useState(initialRequireAdminForJournalEdit);
   const [shiftEndHour, setShiftEndHour] = useState(initialShiftEndHour);
@@ -28,6 +50,11 @@ export function ComplianceClient({
   const [savingShift, setSavingShift] = useState(false);
   const [savingLock, setSavingLock] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+  const [escalate, setEscalate] = useState(initialEscalateDeviations);
+  const [escalationMinutes, setEscalationMinutes] = useState(
+    initialEscalationMinutes
+  );
+  const [savingEscalation, setSavingEscalation] = useState(false);
 
   async function handleToggle(next: boolean) {
     const previous = value;
@@ -109,6 +136,56 @@ export function ComplianceClient({
       toast.error(error instanceof Error ? error.message : "Ошибка");
     } finally {
       setSavingPhoto(false);
+    }
+  }
+
+  async function handleEscalateToggle(next: boolean) {
+    const previous = escalate;
+    setEscalate(next);
+    setSavingEscalation(true);
+    try {
+      const response = await fetch("/api/settings/compliance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ escalateDeviationsToManagement: next }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Не удалось сохранить");
+      }
+      toast.success(
+        next
+          ? "Руководство узнает, если отклонение не исправлено вовремя"
+          : "Сообщать будем только ответственному за журнал"
+      );
+    } catch (error) {
+      setEscalate(previous);
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setSavingEscalation(false);
+    }
+  }
+
+  async function handleEscalationMinutesChange(next: number) {
+    const previous = escalationMinutes;
+    setEscalationMinutes(next);
+    setSavingEscalation(true);
+    try {
+      const response = await fetch("/api/settings/compliance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviationEscalationMinutes: next }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Не удалось сохранить");
+      }
+      toast.success(`Ждём исправления ${formatMinutes(next)}`);
+    } catch (error) {
+      setEscalationMinutes(previous);
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setSavingEscalation(false);
     }
   }
 
@@ -324,6 +401,78 @@ export function ComplianceClient({
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+        <div className="flex items-start gap-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eef1ff] text-[#3848c7]">
+            <Thermometer className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-[15px] font-semibold text-[#0b1024]">
+                  Сообщать руководству, если отклонение не исправили
+                </div>
+                <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
+                  Когда температура выходит за норму, сообщение сразу уходит{" "}
+                  <span className="font-medium text-[#0b1024]">
+                    ответственному за журнал
+                  </span>{" "}
+                  — тому, кто назначен в «Ответственные за журналы». Если он
+                  не вернул температуру в норму и не написал в журнале, что
+                  сделал, — через заданное время об этом узнают руководители.
+                  Одно сообщение на отклонение, а не на каждое показание.
+                  <br />
+                  <span className="text-[12px] text-[#9b9fb3]">
+                    Выключите, если ответственный и есть руководитель — тогда
+                    второе сообщение будет лишним шумом. Если ответственный не
+                    назначен или у него не подключён Telegram, сообщение уходит
+                    руководству сразу.
+                  </span>
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {savingEscalation ? (
+                  <Loader2 className="size-4 animate-spin text-[#9b9fb3]" />
+                ) : null}
+                <Switch
+                  checked={escalate}
+                  onCheckedChange={(next) => {
+                    if (savingEscalation) return;
+                    void handleEscalateToggle(next);
+                  }}
+                  disabled={savingEscalation}
+                />
+              </div>
+            </div>
+
+            {escalate ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4">
+                <span className="text-[13px] text-[#3c4053]">
+                  Ждём исправления
+                </span>
+                <select
+                  value={escalationMinutes}
+                  onChange={(e) =>
+                    handleEscalationMinutesChange(Number(e.target.value))
+                  }
+                  disabled={savingEscalation}
+                  className="h-10 rounded-xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024] transition-colors hover:border-[#5566f6]/40 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15 focus:outline-none"
+                >
+                  {ESCALATION_OPTIONS.map((minutes) => (
+                    <option key={minutes} value={minutes}>
+                      {formatMinutes(minutes)}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[13px] text-[#6f7282]">
+                  — потом пишем руководству
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

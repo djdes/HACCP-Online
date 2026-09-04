@@ -14,6 +14,8 @@ import {
   hasFullDocumentAccess,
 } from "@/lib/journal-entry-write";
 import { orgTodayKey } from "@/lib/timezone";
+import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
+import { processColdEquipmentEntryDeviations } from "@/lib/temperature-deviations";
 import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const dynamic = "force-dynamic";
@@ -235,6 +237,18 @@ export async function POST(
       data: body.data as never,
     },
   });
+
+  // П-3: то же уведомление об отклонении, что и на сайте — иначе
+  // заполнение с телефона молча теряет отклонения.
+  if (doc.template.code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
+    void processColdEquipmentEntryDeviations({
+      organizationId: orgId,
+      documentId: doc.id,
+      documentConfig: doc.config,
+      entryData: entry.data,
+      source: session.user.name ?? "Сотрудник",
+    });
+  }
 
   return NextResponse.json({ entry });
 }

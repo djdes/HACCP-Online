@@ -18,10 +18,11 @@ import {
   Sparkles,
   SquarePen,
   Table2,
+  Thermometer,
+  type LucideIcon,
   Users,
   Wand2,
   X,
-  type LucideIcon,
 } from "lucide-react";
 
 const STORAGE_KEY = "wesetup.last-seen-build-sha";
@@ -60,6 +61,7 @@ function isCategoryNote(
  * нельзя (server→client serialization), поэтому держим mapping здесь.
  */
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Отклонения температуры": Thermometer,
   "Баланс и бонусы": Coins,
   "Чат и поддержка": MessageCircle,
   "Тёмная тема": Moon,

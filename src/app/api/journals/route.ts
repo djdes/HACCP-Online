@@ -5,8 +5,12 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import {
+  processTemperatureReading,
+  subjectKeyForEquipment,
+} from "@/lib/temperature-deviations";
 import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
-import { sendTemperatureAlertEmail, sendDeviationAlertEmail } from "@/lib/email";
+import { sendDeviationAlertEmail } from "@/lib/email";
 import { journalEntrySchema } from "@/lib/validators";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 import { canWriteJournal } from "@/lib/journal-acl";
@@ -276,53 +280,19 @@ export async function POST(request: Request) {
 
         if (equipment) {
           const temp = Number(data.temperature);
-          const isOutOfRange =
-            (equipment.tempMin != null && temp < equipment.tempMin) ||
-            (equipment.tempMax != null && temp > equipment.tempMax);
 
-          if (isOutOfRange) {
-            const rangeStr = [
-              equipment.tempMin != null ? `от ${equipment.tempMin}` : "",
-              equipment.tempMax != null ? `до ${equipment.tempMax}` : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
-
-            const message =
-              `<b>Отклонение температуры!</b>\n\n` +
-              `Оборудование: <b>${esc(equipment.name)}</b>\n` +
-              `Зафиксировано: <b>${temp}°C</b>\n` +
-              `Допустимый диапазон: ${esc(rangeStr)}°C\n` +
-              `Сотрудник: ${esc(filledByName)}`;
-
-            notifyOrganization(organizationId, message, ["owner", "technologist"], "temperature").catch(
-              (err) => console.error("Telegram notification error:", err)
-            );
-
-            db.user
-              .findMany({
-                where: {
-                  organizationId: organizationId,
-                  role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
-                  isActive: true,
-                },
-                select: { email: true },
-              })
-              .then((users) => {
-                for (const user of users) {
-                  sendTemperatureAlertEmail({
-                    to: user.email,
-                    equipmentName: equipment.name,
-                    temperature: temp,
-                    tempMin: equipment.tempMin,
-                    tempMax: equipment.tempMax,
-                    filledBy: filledByName,
-                    organizationId,
-                  });
-                }
-              })
-              .catch((err) => console.error("Email alert error:", err));
-          }
+          // Единый обработчик отклонений: ответственному за журнал
+          // сразу, руководству — если не исправит вовремя.
+          await processTemperatureReading({
+            organizationId,
+            subjectKey: subjectKeyForEquipment(equipmentId),
+            subjectName: equipment.name,
+            value: temp,
+            tempMin: equipment.tempMin,
+            tempMax: equipment.tempMax,
+            equipmentId,
+            source: filledByName,
+          });
         }
       } catch (notifError) {
         console.error("Temperature check/notification error:", notifError);

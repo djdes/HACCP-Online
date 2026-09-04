@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  processTemperatureReading,
+  subjectKeyForEquipment,
+} from "@/lib/temperature-deviations";
 import { checkCronSecret } from "@/lib/cron-auth";
 import { getDeviceTemperature } from "@/lib/tuya";
 import { pickPrimaryManager } from "@/lib/user-roles";
@@ -276,6 +280,19 @@ async function handle(request: Request) {
       // ≤90 мин — создаём тикет (см. src/lib/iot-violation-capa.ts).
       // Только для temperature-readings (humidity не имеет min/max).
       if (mapping.readingType === "temperature") {
+        // Отклонение → инцидент. Раньше этот (основной) cron вообще
+        // никого не уведомлял: алерт жил только в легаси tuya/collect.
+        await processTemperatureReading({
+          organizationId: orgId,
+          subjectKey: subjectKeyForEquipment(eq.id),
+          subjectName: eq.name,
+          value,
+          tempMin: eq.tempMin,
+          tempMax: eq.tempMax,
+          equipmentId: eq.id,
+          source: "IoT-датчик (авто)",
+          now,
+        });
         const prevValue =
           mapping.lastValue !== null && mapping.lastValue !== undefined
             ? Number(mapping.lastValue)

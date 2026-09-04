@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import {
+  processTemperatureReading,
+  subjectKeyForEquipment,
+} from "@/lib/temperature-deviations";
 import { getDeviceTemperature } from "@/lib/tuya";
-import { notifyOrganization, escapeTelegramHtml as esc } from "@/lib/telegram";
-import { sendTemperatureAlertEmail } from "@/lib/email";
-import { getDbRoleValuesWithLegacy, MANAGER_ROLES, MANAGEMENT_ROLES } from "@/lib/user-roles";
+import { getDbRoleValuesWithLegacy, MANAGER_ROLES } from "@/lib/user-roles";
 import {
   autofillColdEquipmentReading,
   autofillClimateReading,
@@ -141,51 +143,20 @@ export async function POST(request: Request) {
           alert: isOutOfRange,
         });
 
-        // Send alerts if out of range
-        if (isOutOfRange) {
-          const rangeStr = [
-            equip.tempMin != null ? `от ${equip.tempMin}` : "",
-            equip.tempMax != null ? `до ${equip.tempMax}` : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
-
-          const message =
-            `<b>Отклонение температуры!</b>\n\n` +
-            `Оборудование: <b>${esc(equip.name)}</b>\n` +
-            `Зафиксировано: <b>${temperature}°C</b>\n` +
-            `Допустимый диапазон: ${esc(rangeStr)}°C\n` +
-            `Источник: IoT-датчик (авто)`;
-
-          notifyOrganization(equip.area.organizationId, message, ["owner", "technologist"], "temperature").catch(
-            (err) => console.error("Telegram notification error:", err)
-          );
-
-          db.user
-            .findMany({
-              where: {
-                organizationId: equip.area.organizationId,
-                role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
-                isActive: true,
-              },
-              select: { email: true },
-            })
-            .then((users) => {
-              for (const user of users) {
-                sendTemperatureAlertEmail({
-                  to: user.email,
-                  equipmentName: equip.name,
-                  temperature,
-                  tempMin: equip.tempMin,
-                  tempMax: equip.tempMax,
-                  areaName: equip.area.name,
-                  filledBy: "IoT-датчик (авто)",
-                  organizationId: equip.area.organizationId,
-                });
-              }
-            })
-            .catch((err) => console.error("Email alert error:", err));
-        }
+        // Отклонение → инцидент: адресно ответственному за журнал,
+        // руководству — только если он не исправит вовремя. Раньше
+        // каждое показание слало пуш всем управляющим сразу.
+        await processTemperatureReading({
+          organizationId: equip.area.organizationId,
+          subjectKey: subjectKeyForEquipment(equip.id),
+          subjectName: equip.name,
+          value: temperature,
+          tempMin: equip.tempMin,
+          tempMax: equip.tempMax,
+          equipmentId: equip.id,
+          source: "IoT-датчик (авто)",
+          areaName: equip.area.name,
+        });
       } catch (err) {
         errors.push({
           equipmentId: equip.id,

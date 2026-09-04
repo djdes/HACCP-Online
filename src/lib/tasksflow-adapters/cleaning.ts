@@ -27,6 +27,7 @@ import {
   type ScopeStep,
 } from "@/lib/cleaning-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { toPrismaJsonValue } from "@/lib/journal-entry-write";
 import {
   TasksFlowError,
   tasksflowClientFor,
@@ -846,13 +847,13 @@ async function applyControlCompletion(args: {
     await db.journalDocumentEntry.update({
       where: { id: e.id },
       data: {
-        data: {
+        data: toPrismaJsonValue({
           ...prevData,
           // Legacy top-level stamp stays for old readers.
           controllerUserId: prevData.controllerUserId ?? args.controllerUserId,
           controllerCompletedAt: prevData.controllerCompletedAt ?? stamp,
           rooms,
-        },
+        }),
       },
     });
   }
@@ -936,9 +937,9 @@ async function applyRoomsModeCompletion(args: {
       documentId: args.documentId,
       employeeId: args.cleanerUserId,
       date,
-      data: merged,
+      data: toPrismaJsonValue(merged),
     },
-    update: { data: merged },
+    update: { data: toPrismaJsonValue(merged) },
   });
   return true;
 }

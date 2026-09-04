@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  processTemperatureReading,
+  subjectKeyForEquipment,
+} from "@/lib/temperature-deviations";
 import { verifyEquipmentQrToken } from "@/lib/equipment-qr-token";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
@@ -9,10 +13,6 @@ import {
   normalizeColdEquipmentEntryData,
   type ColdEquipmentEntryData,
 } from "@/lib/cold-equipment-document";
-import {
-  notifyOrganization,
-  escapeTelegramHtml as esc,
-} from "@/lib/telegram";
 import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const runtime = "nodejs";
@@ -282,33 +282,21 @@ export async function POST(
     }
   }
 
-  // Out-of-range alerting — matches the Tuya-collect behaviour so
-  // human-entered readings get the same visibility as IoT ones.
+  // Отклонение → тот же обработчик, что у датчиков: ответственному за
+  // журнал сразу, руководству — если не исправит (temperature-deviations).
   const isOutOfRange =
     (equipment.tempMin != null && parsed.temperature < equipment.tempMin) ||
     (equipment.tempMax != null && parsed.temperature > equipment.tempMax);
-  if (isOutOfRange) {
-    const rangeStr = [
-      equipment.tempMin != null ? `от ${equipment.tempMin}` : "",
-      equipment.tempMax != null ? `до ${equipment.tempMax}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    const message =
-      `<b>Отклонение температуры!</b>\n\n` +
-      `Оборудование: <b>${esc(equipment.name)}</b>\n` +
-      `Зафиксировано: <b>${parsed.temperature}°C</b>\n` +
-      `Допустимый диапазон: ${esc(rangeStr)}°C\n` +
-      `Снял показания: ${esc(employee.name)} (QR)`;
-    notifyOrganization(
-      organizationId,
-      message,
-      ["owner", "technologist"],
-      "temperature"
-    ).catch((err) => {
-      console.error("[equipment-fill] telegram alert failed", err);
-    });
-  }
+  await processTemperatureReading({
+    organizationId,
+    subjectKey: subjectKeyForEquipment(equipment.id),
+    subjectName: equipment.name,
+    value: parsed.temperature,
+    tempMin: equipment.tempMin,
+    tempMax: equipment.tempMax,
+    equipmentId: equipment.id,
+    source: `${employee.name} (QR)`,
+  });
 
   return NextResponse.json({
     ok: true,
