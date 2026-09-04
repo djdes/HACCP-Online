@@ -14,26 +14,36 @@ export type RenderedPreview = {
 
 type CanvasModule = typeof import("@napi-rs/canvas");
 
+/**
+ * require относительно корня приложения, а не `import.meta.url`: в
+ * production-сборке Next (webpack, CJS) `import.meta.url` превращается в
+ * числовой id модуля, и `createRequire` падает с «path must be a string».
+ * `process.cwd()` — каталог приложения и у PM2, и у `next dev`, и у тестов.
+ */
+function appRequire(): NodeJS.Require {
+  return createRequire(path.join(process.cwd(), "package.json"));
+}
+
 let canvasModule: CanvasModule | null = null;
 function loadCanvas(): CanvasModule {
   if (!canvasModule) {
     // require, а не import: pdfjs сам грузит @napi-rs/canvas через
     // require, и второй экземпляр модуля нам ни к чему.
-    const req = createRequire(import.meta.url);
+    const req = appRequire();
     canvasModule = req("@napi-rs/canvas") as CanvasModule;
   }
   return canvasModule;
 }
 
 function workerFileUrl(): string {
-  const req = createRequire(import.meta.url);
+  const req = appRequire();
   const pkg = req.resolve("pdfjs-dist/package.json");
   const file = path.join(path.dirname(pkg), "legacy", "build", "pdf.worker.mjs");
   return pathToFileURL(file).href;
 }
 
 function standardFontsDir(): string {
-  const req = createRequire(import.meta.url);
+  const req = appRequire();
   const pkg = req.resolve("pdfjs-dist/package.json");
   const dir = path.join(path.dirname(pkg), "standard_fonts");
   // pdfjs склеивает url + имя файла как строки, поэтому нужен trailing slash.
