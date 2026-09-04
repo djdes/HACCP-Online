@@ -31,6 +31,8 @@ import {
   normalizeClimateDocumentConfig,
   normalizeClimateEntryData,
   syncClimateEntryDataWithConfig,
+  type ClimateDocumentConfig,
+  type ClimateEntryData,
 } from "@/lib/climate-document";
 import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
@@ -39,6 +41,8 @@ import {
   normalizeColdEquipmentDocumentConfig,
   normalizeColdEquipmentEntryData,
   syncColdEquipmentEntryDataWithConfig,
+  type ColdEquipmentDocumentConfig,
+  type ColdEquipmentEntryData,
 } from "@/lib/cold-equipment-document";
 import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
@@ -226,18 +230,33 @@ export function pickCopyForwardCandidate(
 }
 
 /**
- * Источник «на основе последнего журнала» для фритюра:
+ * «Последнее успешное заполнение» журнала — сырые данные записи:
  *   1) предыдущий заполненный день ЭТОГО документа;
  *   2) последний заполненный день ПРЕДЫДУЩЕГО документа шаблона
  *      (фильтр `NOT_AUTO_SEEDED` — см. Postgres-gotcha в
  *      journal-entry-filters.ts);
- *   3) null — билдер возьмёт дефолты из справочников config.
+ *   3) null — источника нет, билдер сгенерирует по config.
+ *
+ * `pick` отсеивает кандидатов (по умолчанию — непустые данные).
  */
-export async function loadCopyForwardSource(
+export async function loadLastFilledEntryData(
   db: Pick<PrismaClient, "journalDocumentEntry" | "journalDocument">,
-  params: { document: AutoFillDocumentInput; before: Date }
-): Promise<FryerOilEntryData | null> {
+  params: {
+    document: AutoFillDocumentInput;
+    before: Date;
+    pick?: (data: unknown) => boolean;
+  }
+): Promise<Record<string, unknown> | null> {
   const { document, before } = params;
+  const accept = params.pick ?? ((data: unknown) => !isRawEntryDataEmpty(data));
+  const choose = (rows: Array<{ data: unknown }>) => {
+    for (const row of rows) {
+      if (isRawEntryDataEmpty(row.data)) continue;
+      if (!accept(row.data)) continue;
+      return row.data as Record<string, unknown>;
+    }
+    return null;
+  };
   const ownCandidates = await db.journalDocumentEntry.findMany({
     where: {
       documentId: document.id,
@@ -248,7 +267,7 @@ export async function loadCopyForwardSource(
     take: 15,
     select: { data: true },
   });
-  const own = pickCopyForwardCandidate(ownCandidates);
+  const own = choose(ownCandidates);
   if (own) return own;
 
   const previousDoc = await db.journalDocument.findFirst({
@@ -269,7 +288,69 @@ export async function loadCopyForwardSource(
     take: 15,
     select: { data: true },
   });
-  return pickCopyForwardCandidate(prevCandidates);
+  return choose(prevCandidates);
+}
+
+/** Источник copy-forward для фритюра (см. loadLastFilledEntryData). */
+export async function loadCopyForwardSource(
+  db: Pick<PrismaClient, "journalDocumentEntry" | "journalDocument">,
+  params: { document: AutoFillDocumentInput; before: Date }
+): Promise<FryerOilEntryData | null> {
+  const raw = await loadLastFilledEntryData(db, {
+    ...params,
+    pick: (data) => !isFryerOilEntryDataEmpty(normalizeFryerOilEntryData(data)),
+  });
+  return raw ? normalizeFryerOilEntryData(raw) : null;
+}
+
+/** Разброс при переносе замеров «на основании прошлого заполнения». */
+export const COPY_FORWARD_JITTER_PCT = 0.02;
+
+/** Зажимает замеры климата в нормы помещения из config. */
+export function clampClimateToNorms(
+  data: ClimateEntryData,
+  config: ClimateDocumentConfig
+): ClimateEntryData {
+  const clamp = (value: number | null, min: number | null, max: number | null) => {
+    if (value === null) return null;
+    let next = value;
+    if (typeof min === "number") next = Math.max(next, min);
+    if (typeof max === "number") next = Math.min(next, max);
+    return next;
+  };
+  for (const room of config.rooms) {
+    const byTime = data.measurements[room.id];
+    if (!byTime) continue;
+    for (const time of Object.keys(byTime)) {
+      const m = byTime[time];
+      if (!m) continue;
+      byTime[time] = {
+        temperature: room.temperature.enabled
+          ? clamp(m.temperature, room.temperature.min, room.temperature.max)
+          : null,
+        humidity: room.humidity.enabled
+          ? clamp(m.humidity, room.humidity.min, room.humidity.max)
+          : null,
+      };
+    }
+  }
+  return data;
+}
+
+/** Зажимает температуры холодильников в нормы оборудования из config. */
+export function clampColdEquipmentToNorms(
+  data: ColdEquipmentEntryData,
+  config: ColdEquipmentDocumentConfig
+): ColdEquipmentEntryData {
+  for (const item of config.equipment) {
+    const value = data.temperatures[item.id];
+    if (typeof value !== "number") continue;
+    let next = value;
+    if (typeof item.min === "number") next = Math.max(next, item.min);
+    if (typeof item.max === "number") next = Math.min(next, item.max);
+    data.temperatures[item.id] = next;
+  }
+  return data;
 }
 
 // ---------------------------------------------------------------------------
@@ -290,6 +371,12 @@ export async function applyJournalAutoFill(
     employeeIds?: string[];
     /** Ростер орги — fallback-ответственный и имена для подписей. */
     users?: AutoFillUser[];
+    /**
+     * «Закрыть день»: замеры (климат, холодильники) переносятся с
+     * последнего заполненного дня с небольшим разбросом и зажимом в
+     * нормы, а не генерируются заново. Cron по умолчанию не включает.
+     */
+    copyForward?: boolean;
   }
 ): Promise<AutoFillResult> {
   const capability = getAutofillCapability(params.document.templateCode);
@@ -381,9 +468,11 @@ export async function applyPerDayJournalAutoFill(
     document: AutoFillDocumentInput;
     dateKeys: string[];
     users?: AutoFillUser[];
+    copyForward?: boolean;
   }
 ): Promise<AutoFillResult> {
   const { document, dateKeys } = params;
+  const copyForward = params.copyForward === true;
   const users = params.users ?? [];
   const result = emptyResult();
 
@@ -429,14 +518,39 @@ export async function applyPerDayJournalAutoFill(
 
   if (code === CLIMATE_DOCUMENT_TEMPLATE_CODE) {
     const config = normalizeClimateDocumentConfig(document.config);
+    // Источник «прошлое успешное заполнение»: последний заполненный
+    // день до первой даты; по ходу — каждый человеком заполненный день.
+    let source: Record<string, unknown> | null = copyForward
+      ? await loadLastFilledEntryData(db, { document, before: utcDate(dateKeys[0]) })
+      : null;
     for (const dateKey of dateKeys) {
       if (config.skipWeekends && isWeekend(dateKey)) continue;
-      const generated = buildClimateAutoFillEntryData({
+      const fromConfig = buildClimateAutoFillEntryData({
         config,
         dateKey,
         responsibleTitle: document.responsibleTitle,
       });
+      const generated = source
+        ? clampClimateToNorms(
+            mergeClimateEntryData(
+              syncClimateEntryDataWithConfig(
+                normalizeClimateEntryData(
+                  copyForwardWithJitter(source, `${document.id}:${dateKey}`, {
+                    jitterPct: COPY_FORWARD_JITTER_PCT,
+                    overrides: { responsibleTitle: document.responsibleTitle },
+                  })
+                ),
+                config
+              ),
+              fromConfig
+            ),
+            config
+          )
+        : fromConfig;
       const existing = byDate.get(dateKey);
+      if (copyForward && existing && !isRawEntryDataEmpty(existing.data)) {
+        source = existing.data as Record<string, unknown>;
+      }
       if (!existing) {
         await createEntry(dateKey, generated);
         continue;
@@ -459,14 +573,37 @@ export async function applyPerDayJournalAutoFill(
 
   if (code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
     const config = normalizeColdEquipmentDocumentConfig(document.config);
+    let source: Record<string, unknown> | null = copyForward
+      ? await loadLastFilledEntryData(db, { document, before: utcDate(dateKeys[0]) })
+      : null;
     for (const dateKey of dateKeys) {
       if (config.skipWeekends && isWeekend(dateKey)) continue;
-      const generated = buildColdEquipmentAutoFillEntryData({
+      const fromConfig = buildColdEquipmentAutoFillEntryData({
         config,
         dateKey,
         responsibleTitle: document.responsibleTitle,
       });
+      const generated = source
+        ? clampColdEquipmentToNorms(
+            mergeColdEquipmentEntryData(
+              syncColdEquipmentEntryDataWithConfig(
+                normalizeColdEquipmentEntryData(
+                  copyForwardWithJitter(source, `${document.id}:${dateKey}`, {
+                    jitterPct: COPY_FORWARD_JITTER_PCT,
+                    overrides: { responsibleTitle: document.responsibleTitle },
+                  })
+                ),
+                config
+              ),
+              fromConfig
+            ),
+            config
+          )
+        : fromConfig;
       const existing = byDate.get(dateKey);
+      if (copyForward && existing && !isRawEntryDataEmpty(existing.data)) {
+        source = existing.data as Record<string, unknown>;
+      }
       if (!existing) {
         await createEntry(dateKey, generated);
         continue;

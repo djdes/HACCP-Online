@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
@@ -6,8 +5,18 @@ import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
-import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { logAudit } from "@/lib/audit";
+import { buildDateKeys, toDateKey } from "@/lib/hygiene-document";
+import { resolveDayStart } from "@/lib/today-compliance";
+import { applyJournalAutoFill } from "@/lib/journal-autofill";
+import { getAutofillCapability } from "@/lib/journal-autofill-capability";
+import { ensureActiveDocument } from "@/lib/journal-auto-create";
+import { getJournalAutomation } from "@/lib/journal-automation";
+import { resolveAutomationStaff } from "@/lib/journal-automation-staff";
+import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
+import { getUserPositionLabel } from "@/lib/user-roles";
+import { trialWriteGate } from "@/lib/trial-limits.server";
+import { CLEANING_DOCUMENT_TEMPLATE_CODE } from "@/lib/cleaning-document";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,45 +24,76 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/dashboard/close-day
  *
- * Жмёт «Закрыть день одним кликом» на дашборде. Копирует вчерашние
- * записи в сегодня для ВСЕХ активных JournalDocumentEntry-based
- * ежедневных документов организации (hygiene, health_check,
- * climate_control, cold_equipment_control,
- * cleaning_ventilation_checklist, uv_lamp_runtime, fryer_oil).
+ * «Закрыть день» на дашборде. Для каждого ежедневного журнала
+ * организации:
  *
- * Идемпотентно: если у сотрудника уже есть строка за сегодня — не
- * перезаписывается (overwrite=false). Если за вчера у документа
- * пусто — пропускается.
+ *   1. Находит активный документ на дату (или создаёт его на текущий
+ *      период — ответственные подбираются по правилам должностей
+ *      журнала, см. prefillResponsiblesForNewDocument).
+ *   2. Если у документа нет живого ответственного / проверяющего —
+ *      подбирает их теми же правилами и записывает в документ.
+ *   3. Заполняет ВСЕ пустые дни от начала периода до `upTo`
+ *      (по умолчанию — сегодня в зоне организации):
+ *        • кадровые журналы — состав из прошлого заполнения
+ *          (политика автоматики «как в последнем журнале» / список
+ *          должностей), выходные, отпуска и больничные из графика;
+ *        • замеры (климат, холодильники) — с последнего заполненного
+ *          дня с небольшим разбросом и зажимом в нормы; если заполнений
+ *          не было — генерация по нормам из настроек журнала;
+ *        • остальные — по настройкам журнала (движок journal-autofill);
+ *        • уборка — план Т/Г по расписанию помещений.
+ *      Уже заполненные ячейки не трогаются; действие идемпотентно.
  *
- * Доступно только management-ролям (владелец/менеджер/шеф). Body
- * принимает опциональный фильтр { templateCodes?: string[] } —
- * чтобы можно было закрыть день только по выбранным журналам;
- * по умолчанию обрабатываются все daily-doc-entry журналы.
+ * Body: `{ templateCodes?: string[]; upTo?: "YYYY-MM-DD" }`.
+ * Доступно только management-ролям.
  */
 
-type Body = { templateCodes?: string[] };
+type Body = { templateCodes?: string[]; upTo?: string };
 
-function utcDayStart(now: Date): Date {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
-}
+const CLOSE_DAY_CODES = new Set<string>([
+  ...DAILY_JOURNAL_CODES,
+  CLEANING_DOCUMENT_TEMPLATE_CODE,
+]);
 
-function toPrismaJsonValue(
-  value: unknown
-): Prisma.InputJsonValue | typeof Prisma.JsonNull {
-  return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
-}
-
-type JournalSummary = {
+export type CloseDaySummary = {
   templateCode: string;
   templateName: string;
   documentId: string;
   documentTitle: string;
-  copied: number;
-  kept: number;
-  skippedReason?: "no_yesterday" | "out_of_period" | "closed";
+  /** Записей создано + дозаполнено. */
+  filled: number;
+  /** Дней в обработанном диапазоне. */
+  days: number;
+  documentCreated: boolean;
+  responsiblesAssigned: boolean;
+  skippedReason?:
+    | "out_of_period"
+    | "no_document"
+    | "no_employees"
+    | "no_responsible"
+    | "unsupported"
+    | "error";
 };
+
+function utcDayStart(date: Date): Date {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  );
+}
+
+function parseDateKey(value: unknown): string | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const d = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? null : value;
+}
+
+function parseDisabledCodes(value: unknown): Set<string> {
+  return new Set(
+    Array.isArray(value)
+      ? value.filter((x): x is string => typeof x === "string")
+      : []
+  );
+}
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -75,152 +115,244 @@ export async function POST(request: Request) {
     : null;
 
   const organizationId = getActiveOrgId(session);
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      timezone: true,
+      disabledJournalCodes: true,
+      journalAutomationJson: true,
+      autoJournalCodes: true,
+    },
+  });
+  const disabledCodes = parseDisabledCodes(org?.disabledJournalCodes);
 
   const now = new Date();
-  const today = utcDayStart(now);
-  const yesterday = new Date(today);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const todayKey = toDateKey(resolveDayStart(org?.timezone ?? null, now));
+  // «По какую дату»: по умолчанию сегодня; будущее зажимаем в сегодня.
+  const requested = parseDateKey(body?.upTo);
+  const upToKey = requested && requested < todayKey ? requested : todayKey;
+  const upToDate = new Date(`${upToKey}T00:00:00.000Z`);
 
-  // Ищем активные документы по daily-codes набору. Берём свежий
-  // активный документ на сегодня — если у организации несколько,
-  // используем самый поздно созданный.
-  const codes = [...DAILY_JOURNAL_CODES].filter(
-    (c) => !filterCodes || filterCodes.has(c)
+  const codes = [...CLOSE_DAY_CODES].filter(
+    (c) => !disabledCodes.has(c) && (!filterCodes || filterCodes.has(c))
   );
-
   const templates = await db.journalTemplate.findMany({
-    where: { code: { in: codes } },
+    where: { code: { in: codes }, isActive: true },
     select: { id: true, code: true, name: true },
   });
-  const templateById = new Map(templates.map((t) => [t.id, t]));
 
-  const docs = await db.journalDocument.findMany({
+  // Один вызов = одно «закрытие дня» с точки зрения лимитов пробного
+  // тарифа: считаем по журналам, а не по каждой ячейке.
+  const limited = await trialWriteGate(organizationId, Math.max(1, templates.length));
+  if (limited) return limited;
+
+  // Ростер: активные, не в архиве, не уволенные на дату.
+  const employees = await db.user.findMany({
     where: {
       organizationId,
-      status: "active",
-      templateId: { in: templates.map((t) => t.id) },
+      isActive: true,
+      archivedAt: null,
+      OR: [{ dismissal: null }, { dismissal: { date: { gt: upToDate } } }],
     },
-    select: {
-      id: true,
-      title: true,
-      templateId: true,
-      dateFrom: true,
-      dateTo: true,
-    },
-    orderBy: { createdAt: "desc" },
+    select: { id: true, name: true, role: true },
+    orderBy: { id: "asc" },
   });
+  const employeeIds = employees.map((e) => e.id);
+  const aliveIds = new Set(employeeIds);
 
-  // Per-template — берём первый (самый свежий) активный документ.
-  const seenTpl = new Set<string>();
-  const targetDocs = docs.filter((d) => {
-    if (seenTpl.has(d.templateId)) return false;
-    seenTpl.add(d.templateId);
-    return true;
-  });
+  const summaries: CloseDaySummary[] = [];
+  let totalFilled = 0;
+  let documentsCreated = 0;
 
-  const summaries: JournalSummary[] = [];
-  let totalCopied = 0;
-  let totalKept = 0;
-
-  for (const doc of targetDocs) {
-    const tpl = templateById.get(doc.templateId);
-    if (!tpl) continue;
-
-    // Today must be within document's period.
-    const dateFromUtc = utcDayStart(doc.dateFrom);
-    const dateToUtcEnd = (() => {
-      const end = utcDayStart(doc.dateTo);
-      end.setUTCDate(end.getUTCDate() + 1);
-      return end;
-    })();
-
-    if (today < dateFromUtc || today >= dateToUtcEnd) {
-      summaries.push({
-        templateCode: tpl.code,
-        templateName: tpl.name,
-        documentId: doc.id,
-        documentTitle: doc.title,
-        copied: 0,
-        kept: 0,
-        skippedReason: "out_of_period",
-      });
-      continue;
-    }
-
-    // _autoSeeded плейсхолдеры — пустые «болванки», которые
-    // bulk-assign-today / sync-* проставляют как ожидаемый матрикс
-    // (employee × day). Они НЕ являются заполненными данными, и:
-    //  • Из «вчера» их исключаем — иначе copy-yesterday склонировал
-    //    бы пустую болванку как «вчерашнее заполнение» Алёны.
-    //  • Из «сегодня» их исключаем — иначе при наличии seeded-row
-    //    у Алёны мы пропустили бы upsert (думая что у неё уже
-    //    есть запись), хотя реально она ничего не вписала.
-    const [yesterdayEntries, todayEntries] = await Promise.all([
-      db.journalDocumentEntry.findMany({
-        where: { documentId: doc.id, date: yesterday, ...NOT_AUTO_SEEDED },
-        select: { employeeId: true, data: true },
-      }),
-      db.journalDocumentEntry.findMany({
-        where: { documentId: doc.id, date: today, ...NOT_AUTO_SEEDED },
-        select: { employeeId: true },
-      }),
-    ]);
-
-    if (yesterdayEntries.length === 0) {
-      summaries.push({
-        templateCode: tpl.code,
-        templateName: tpl.name,
-        documentId: doc.id,
-        documentTitle: doc.title,
-        copied: 0,
-        kept: todayEntries.length,
-        skippedReason: "no_yesterday",
-      });
-      continue;
-    }
-
-    const todayFilledEmployeeIds = new Set(
-      todayEntries.map((e) => e.employeeId)
-    );
-
-    let copied = 0;
-    let kept = 0;
-    for (const entry of yesterdayEntries) {
-      if (todayFilledEmployeeIds.has(entry.employeeId)) {
-        kept += 1;
-        continue;
-      }
-      await db.journalDocumentEntry.upsert({
-        where: {
-          documentId_employeeId_date: {
-            documentId: doc.id,
-            employeeId: entry.employeeId,
-            date: today,
-          },
-        },
-        create: {
-          documentId: doc.id,
-          employeeId: entry.employeeId,
-          date: today,
-          data: toPrismaJsonValue(entry.data),
-        },
-        update: {
-          data: toPrismaJsonValue(entry.data),
-        },
-      });
-      copied += 1;
-    }
-
-    totalCopied += copied;
-    totalKept += kept;
-    summaries.push({
+  for (const tpl of templates) {
+    const summary: CloseDaySummary = {
       templateCode: tpl.code,
       templateName: tpl.name,
-      documentId: doc.id,
-      documentTitle: doc.title,
-      copied,
-      kept,
-    });
+      documentId: "",
+      documentTitle: "",
+      filled: 0,
+      days: 0,
+      documentCreated: false,
+      responsiblesAssigned: false,
+    };
+    summaries.push(summary);
+    try {
+      // 1. Документ на дату — или создаём на текущий период.
+      let doc = await db.journalDocument.findFirst({
+        where: {
+          organizationId,
+          templateId: tpl.id,
+          status: "active",
+          dateFrom: { lte: upToDate },
+          dateTo: { gte: upToDate },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          config: true,
+          responsibleUserId: true,
+          responsibleTitle: true,
+          verifierUserId: true,
+          dateFrom: true,
+          dateTo: true,
+        },
+      });
+      if (!doc) {
+        const created = await ensureActiveDocument(db, {
+          organizationId,
+          templateCode: tpl.code,
+          now: upToDate,
+          inheritResponsiblesFromLastDocument: true,
+        });
+        if (!created.documentId) {
+          summary.skippedReason = "no_document";
+          continue;
+        }
+        summary.documentCreated = created.created;
+        if (created.created) documentsCreated += 1;
+        doc = await db.journalDocument.findUnique({
+          where: { id: created.documentId },
+          select: {
+            id: true,
+            title: true,
+            config: true,
+            responsibleUserId: true,
+            responsibleTitle: true,
+            verifierUserId: true,
+            dateFrom: true,
+            dateTo: true,
+          },
+        });
+        if (!doc) {
+          summary.skippedReason = "no_document";
+          continue;
+        }
+      }
+      summary.documentId = doc.id;
+      summary.documentTitle = doc.title;
+
+      // 2. Ответственный / проверяющий — по правилам должностей журнала,
+      //    если не заданы или уже не в организации.
+      const responsibleAlive =
+        !!doc.responsibleUserId && aliveIds.has(doc.responsibleUserId);
+      const verifierAlive =
+        !!doc.verifierUserId && aliveIds.has(doc.verifierUserId);
+      if (!responsibleAlive || !verifierAlive) {
+        const picked = await prefillResponsiblesForNewDocument({
+          organizationId,
+          journalCode: tpl.code,
+          baseConfig:
+            doc.config && typeof doc.config === "object" && !Array.isArray(doc.config)
+              ? (doc.config as Record<string, unknown>)
+              : undefined,
+        });
+        const nextResponsible = responsibleAlive
+          ? doc.responsibleUserId
+          : picked.responsibleUserId;
+        const nextVerifier = verifierAlive ? doc.verifierUserId : picked.verifierUserId;
+        if (nextResponsible !== doc.responsibleUserId || nextVerifier !== doc.verifierUserId) {
+          const titleUser = nextResponsible
+            ? await db.user.findUnique({
+                where: { id: nextResponsible },
+                select: {
+                  id: true,
+                  name: true,
+                  role: true,
+                  positionTitle: true,
+                  jobPosition: { select: { name: true, categoryKey: true } },
+                },
+              })
+            : null;
+          const responsibleTitle = titleUser
+            ? getUserPositionLabel(titleUser) || null
+            : doc.responsibleTitle;
+          doc = await db.journalDocument.update({
+            where: { id: doc.id },
+            data: {
+              responsibleUserId: nextResponsible,
+              responsibleTitle,
+              verifierUserId: nextVerifier,
+              // Печатные формы: имена/должности в config из того же подбора.
+              ...(responsibleAlive ? {} : { config: picked.config as never }),
+            },
+            select: {
+              id: true,
+              title: true,
+              config: true,
+              responsibleUserId: true,
+              responsibleTitle: true,
+              verifierUserId: true,
+              dateFrom: true,
+              dateTo: true,
+            },
+          });
+          summary.responsiblesAssigned = true;
+        }
+      }
+
+      // 3. Даты: от начала периода до upTo включительно.
+      const periodFrom = utcDayStart(doc.dateFrom);
+      const periodTo = utcDayStart(doc.dateTo);
+      if (upToDate < periodFrom || upToDate > periodTo) {
+        summary.skippedReason = "out_of_period";
+        continue;
+      }
+      const dateKeys = buildDateKeys(periodFrom, upToDate);
+      summary.days = dateKeys.length;
+
+      const capability = getAutofillCapability(tpl.code);
+      if (!capability) {
+        summary.skippedReason = "unsupported";
+        continue;
+      }
+
+      // Состав кадровых журналов: политика автоматики или «как в
+      // последнем журнале» (прошлое успешное заполнение) + новички.
+      let staffIds = employeeIds;
+      if (capability === "staff") {
+        const policy = getJournalAutomation(org, tpl.code).staff ?? { mode: "inherit" as const };
+        const resolved = await resolveAutomationStaff(db, {
+          organizationId,
+          templateCode: tpl.code,
+          staffPolicy: policy,
+        });
+        if (resolved.employeeIds.length > 0) staffIds = resolved.employeeIds;
+        if (staffIds.length === 0) {
+          summary.skippedReason = "no_employees";
+          continue;
+        }
+      }
+
+      const filled = await applyJournalAutoFill(db, {
+        document: {
+          id: doc.id,
+          organizationId,
+          templateCode: tpl.code,
+          config: doc.config,
+          responsibleUserId: doc.responsibleUserId,
+          responsibleTitle: doc.responsibleTitle,
+          dateFrom: doc.dateFrom,
+          dateTo: doc.dateTo,
+        },
+        dateKeys,
+        employeeIds: staffIds,
+        users: employees,
+        copyForward: true,
+      });
+      summary.filled = filled.created + filled.updated;
+      totalFilled += summary.filled;
+      if (filled.skipReasons.includes("no-responsible")) {
+        summary.skippedReason = "no_responsible";
+      } else if (filled.skipReasons.includes("no-employees")) {
+        summary.skippedReason = "no_employees";
+      } else if (filled.skipReasons.includes("unsupported")) {
+        summary.skippedReason = "unsupported";
+      }
+    } catch (err) {
+      console.error(`[close-day] ${tpl.code} failed`, err);
+      summary.skippedReason = "error";
+    }
   }
 
   await logAudit({
@@ -231,20 +363,20 @@ export async function POST(request: Request) {
     entity: "journal_document",
     details: {
       via: "dashboard.close_day",
-      totalCopied,
-      totalKept,
+      totalFilled,
+      documentsCreated,
       processed: summaries.length,
-      yesterday: yesterday.toISOString().slice(0, 10),
-      today: today.toISOString().slice(0, 10),
+      upTo: upToKey,
+      today: todayKey,
     },
   });
 
   return NextResponse.json({
-    totalCopied,
-    totalKept,
+    totalFilled,
+    documentsCreated,
     processed: summaries.length,
-    yesterdayKey: yesterday.toISOString().slice(0, 10),
-    todayKey: today.toISOString().slice(0, 10),
+    upToKey,
+    todayKey,
     summaries,
   });
 }

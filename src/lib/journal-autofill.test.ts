@@ -271,3 +271,59 @@ test("countMatrixDiff считает изменённые ячейки", () => {
     3
   );
 });
+
+// ---------------------------------------------------------------------------
+// «Закрыть день»: перенос замеров с последнего заполнения и зажим в нормы
+// ---------------------------------------------------------------------------
+
+test("clampClimateToNorms: значение вне нормы прижимается к границе", async () => {
+  const { clampClimateToNorms } = await import("@/lib/journal-autofill");
+  const { normalizeClimateDocumentConfig, normalizeClimateEntryData } = await import(
+    "@/lib/climate-document"
+  );
+  const config = normalizeClimateDocumentConfig({
+    rooms: [
+      {
+        id: "r1",
+        name: "Цех",
+        temperature: { enabled: true, min: 18, max: 25 },
+        humidity: { enabled: true, min: 15, max: 75 },
+      },
+    ],
+    controlTimes: ["10:00"],
+  });
+  const data = normalizeClimateEntryData({
+    responsibleTitle: null,
+    measurements: { r1: { "10:00": { temperature: 27.3, humidity: 10 } } },
+  });
+  const clamped = clampClimateToNorms(data, config);
+  assert.equal(clamped.measurements.r1["10:00"].temperature, 25);
+  assert.equal(clamped.measurements.r1["10:00"].humidity, 15);
+});
+
+test("clampColdEquipmentToNorms: null-границы не мешают, число зажимается", async () => {
+  const { clampColdEquipmentToNorms } = await import("@/lib/journal-autofill");
+  const { normalizeColdEquipmentDocumentConfig, normalizeColdEquipmentEntryData } =
+    await import("@/lib/cold-equipment-document");
+  const config = normalizeColdEquipmentDocumentConfig({
+    equipment: [
+      { id: "f1", name: "Холодильник", min: 2, max: 6 },
+      { id: "f2", name: "Морозилка", min: null, max: -18 },
+    ],
+  });
+  const data = normalizeColdEquipmentEntryData({
+    responsibleTitle: null,
+    temperatures: { f1: 8.4, f2: -25 },
+  });
+  const clamped = clampColdEquipmentToNorms(data, config);
+  assert.equal(clamped.temperatures.f1, 6);
+  assert.equal(clamped.temperatures.f2, -25);
+});
+
+test("copyForwardWithJitter с 2% не выносит замер далеко от источника", () => {
+  const out = copyForwardWithJitter({ t: 20.0, h: 50 }, "doc:2026-09-04", {
+    jitterPct: 0.02,
+  });
+  assert.ok(Math.abs((out.t as number) - 20) <= 0.4 + 1e-9);
+  assert.ok(Math.abs((out.h as number) - 50) <= 1 + 1e-9);
+});

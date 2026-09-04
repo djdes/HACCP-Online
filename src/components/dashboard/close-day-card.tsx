@@ -3,28 +3,56 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, AlertTriangle, CheckCheck, CheckCircle2, Wand2 } from "lucide-react";
+import { Sparkles, AlertTriangle, CalendarDays, CheckCheck, CheckCircle2, Wand2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
+import { localDayKey } from "@/lib/entry-defaults";
 
 type Summary = {
   templateCode: string;
   templateName: string;
   documentId: string;
   documentTitle: string;
-  copied: number;
-  kept: number;
-  skippedReason?: "no_yesterday" | "out_of_period" | "closed";
+  filled: number;
+  days: number;
+  documentCreated: boolean;
+  responsiblesAssigned: boolean;
+  skippedReason?:
+    | "out_of_period"
+    | "no_document"
+    | "no_employees"
+    | "no_responsible"
+    | "unsupported"
+    | "error";
 };
 
 type Result = {
-  totalCopied: number;
-  totalKept: number;
+  totalFilled: number;
+  documentsCreated: number;
   processed: number;
-  yesterdayKey: string;
+  upToKey: string;
   todayKey: string;
   summaries: Summary[];
 };
+
+const SKIP_LABELS: Record<NonNullable<Summary["skippedReason"]>, string> = {
+  out_of_period: "дата вне периода",
+  no_document: "нет документа",
+  no_employees: "нет сотрудников",
+  no_responsible: "нет ответственного",
+  unsupported: "не заполняется автоматически",
+  error: "ошибка",
+};
+
+function formatDayRu(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  if (!y || !m || !d) return dateKey;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+}
 
 function pluralRu(one: string, few: string, many: string) {
   return (count: number) => {
@@ -38,13 +66,15 @@ function pluralRu(one: string, few: string, many: string) {
 }
 const recordWord = pluralRu("запись", "записи", "записей");
 const journalWord = pluralRu("журнал", "журнала", "журналов");
+const documentWord = pluralRu("документ", "документа", "документов");
 
 /**
- * «Закрыть день одним кликом» — берёт вчерашние записи (hygiene,
- * climate, cold-eq, cleaning_ventilation_checklist, uv_lamp, fryer_oil,
- * health_check) и копирует их в сегодня для всех активных документов
- * организации. Уже заполненные строки НЕ перезаписываются — фишка
- * именно в том чтобы догнать пропуски, а не сломать актуальные данные.
+ * «Закрыть день одним кликом» — дозаполняет все пустые дни ежедневных
+ * журналов до выбранной даты (по умолчанию сегодня): на основании
+ * прошлого успешного заполнения, а без него — по настройкам журнала и
+ * реальным сотрудникам. Ответственные и проверяющие подбираются по
+ * правилам должностей. Уже заполненные строки НЕ перезаписываются —
+ * фишка именно в том чтобы догнать пропуски, а не сломать данные.
  *
  * Видна только management-ролям. На дашборде — рядом с
  * BulkAssignTodayButton; вместе они закрывают пару «есть пропуски —
@@ -63,6 +93,10 @@ export function CloseDayCard({
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const todayKey = localDayKey();
+  // «По какую дату»: по умолчанию сегодня, можно откатиться назад.
+  const [upTo, setUpTo] = useState(todayKey);
+  const upToValid = /^\d{4}-\d{2}-\d{2}$/.test(upTo) && upTo <= todayKey;
 
   async function handleClose() {
     setSubmitting(true);
@@ -71,7 +105,7 @@ export function CloseDayCard({
       const response = await fetch("/api/dashboard/close-day", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ upTo }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
@@ -81,16 +115,23 @@ export function CloseDayCard({
       // В компактном режиме подробную панель не показываем: тост уже
       // сказал главное, а в шапке секции панели негде развернуться.
       setResult(compact ? null : r);
-      if (r.totalCopied === 0) {
+      const touched = r.summaries.filter((s) => s.filled > 0).length;
+      if (r.totalFilled === 0 && r.documentsCreated === 0) {
         toast.info(
           r.processed === 0
-            ? "Нет активных ежедневных журналов для копирования."
-            : "Нечего копировать — за вчера записей не было ни в одном журнале."
+            ? "Нет ежедневных журналов для заполнения."
+            : "Всё уже заполнено — по эту дату пустых дней нет."
         );
       } else {
-        toast.success(
-          `Скопировано ${r.totalCopied} ${recordWord(r.totalCopied)} в ${r.processed} ${journalWord(r.processed)}`
-        );
+        const parts = [
+          `Заполнено ${r.totalFilled} ${recordWord(r.totalFilled)} в ${touched} ${journalWord(touched)}`,
+        ];
+        if (r.documentsCreated > 0) {
+          parts.push(`создано ${r.documentsCreated} ${documentWord(r.documentsCreated)}`);
+        }
+        toast.success(parts.join(", "), {
+          description: `По ${formatDayRu(r.upToKey)}. Данные можно поправить в самих журналах.`,
+        });
         startTransition(() => router.refresh());
       }
     } catch (error) {
@@ -103,6 +144,48 @@ export function CloseDayCard({
   }
 
   const busy = submitting || pending;
+
+  const dialog = (
+    <ConfirmDialog
+      open={confirming}
+      onClose={() => setConfirming(false)}
+      onConfirm={async () => {
+        setConfirming(false);
+        await handleClose();
+      }}
+      variant="info"
+      icon={CheckCheck}
+      title="Закрыть день?"
+      description={`Пустые дни ежедневных журналов заполнятся по выбранную дату на основании прошлого успешного заполнения.${
+        unfilledCount > 0
+          ? ` Сейчас ${unfilledCount} ${journalWord(unfilledCount)} без записей за сегодня.`
+          : ""
+      }`}
+      bullets={[
+        { label: "Если заполнений ещё не было — данные сгенерируются по настройкам журнала и реальным сотрудникам, даже если сотрудник один" },
+        { label: "Ответственные и проверяющие подберутся по правилам должностей журнала; документ на период создастся, если его нет" },
+        { label: "Выходные, отпуска и больничные из графика попадут в гигиенический журнал" },
+        { label: "Уже заполненные ячейки не трогаются, всё можно поправить после" },
+      ]}
+      confirmLabel="Закрыть день"
+      confirmDisabled={!upToValid}
+    >
+      <label className="flex items-center justify-between gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3 py-2.5">
+        <span className="flex items-center gap-2 text-[13px] text-[#3c4053]">
+          <CalendarDays className="size-4 text-[#5566f6]" />
+          Заполнить по дату
+        </span>
+        <input
+          type="date"
+          value={upTo}
+          max={todayKey}
+          onChange={(e) => setUpTo(e.target.value)}
+          className="h-9 rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[13px] text-[#0b1024] outline-none transition-colors focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+        />
+      </label>
+    </ConfirmDialog>
+  );
+
 
   // Без рамки и подложки: карточка живёт внутри секции, и своя коробка
   // делала из неё блок в блоке.
@@ -129,7 +212,7 @@ export function CloseDayCard({
           className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-1"
         >
           <CheckCheck className="size-4" />
-          {busy ? "Копирую…" : "Закрыть день"}
+          {busy ? "Заполняю…" : "Закрыть день"}
         </button>
         <Link
           href="/dashboard/catch-up"
@@ -141,28 +224,7 @@ export function CloseDayCard({
         {/* Итог показываем тостом, а не строкой рядом с кнопками:
             в шапке секции ей негде развернуться, а цифры нужны сразу
             и заметно. */}
-        <ConfirmDialog
-          open={confirming}
-          onClose={() => setConfirming(false)}
-          onConfirm={async () => {
-            setConfirming(false);
-            await handleClose();
-          }}
-          variant="info"
-          icon={CheckCheck}
-          title="Закрыть день?"
-          description={`Вчерашние записи скопируются в сегодня для всех ежедневных журналов с активным документом.${
-            unfilledCount > 0
-              ? ` Сейчас ${unfilledCount} ${journalWord(unfilledCount)} без записей за сегодня.`
-              : ""
-          }`}
-          bullets={[
-            { label: "Уже заполненные строки не перезаписываются" },
-            { label: "Журналы без вчерашних записей пропускаются" },
-            { label: "Действие можно повторить — оно ничего не портит" },
-          ]}
-          confirmLabel="Закрыть день"
-        />
+        {dialog}
       </div>
     );
   }
@@ -178,8 +240,9 @@ export function CloseDayCard({
             Закрыть день
           </div>
           <p className="mt-0.5 text-[13px] leading-snug text-[#6f7282]">
-            Копирует вчерашние записи в сегодня для всех ежедневных
-            журналов с активным документом. Уже заполненные строки
+            Заполняет пустые дни ежедневных журналов по сегодня на
+            основании прошлого заполнения, а без него — по настройкам
+            журнала и реальным сотрудникам. Уже заполненные строки
             сохраняются. {unfilledCount > 0 ? (
               <span className="font-medium text-[#3848c7]">
                 Сейчас {unfilledCount} {journalWord(unfilledCount)} без записей за сегодня.
@@ -190,12 +253,12 @@ export function CloseDayCard({
         <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
           <button
             type="button"
-            onClick={handleClose}
+            onClick={() => setConfirming(true)}
             disabled={busy}
             className="inline-flex h-10 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#5566f6] px-4 text-[13px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60 sm:flex-none"
           >
             <CheckCheck className="size-4" />
-            {busy ? "Копирую…" : "Закрыть день"}
+            {busy ? "Заполняю…" : "Закрыть день"}
           </button>
           <Link
             href="/dashboard/catch-up"
@@ -211,16 +274,14 @@ export function CloseDayCard({
         <div className="mt-3 space-y-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 py-2.5 text-[12px]">
           <div className="flex items-center justify-between gap-2 text-[12px] font-medium text-[#0b1024]">
             <span>
-              Итого: <span className="text-[#136b2a]">+{result.totalCopied}</span>
-              {result.totalKept > 0 ? (
+              Итого: <span className="text-[#136b2a]">+{result.totalFilled}</span>
+              {result.documentsCreated > 0 ? (
                 <span className="ml-2 text-[#6f7282]">
-                  сохранено {result.totalKept}
+                  создано {result.documentsCreated} {documentWord(result.documentsCreated)}
                 </span>
               ) : null}
             </span>
-            <span className="text-[#9b9fb3]">
-              {result.yesterdayKey} → {result.todayKey}
-            </span>
+            <span className="text-[#9b9fb3]">по {result.upToKey}</span>
           </div>
           <div className="space-y-1 pt-1">
             {result.summaries.map((s) => (
@@ -232,19 +293,14 @@ export function CloseDayCard({
                   {s.templateName}
                 </span>
                 <span className="shrink-0 inline-flex items-center gap-1.5">
-                  {s.skippedReason === "no_yesterday" ? (
+                  {s.skippedReason ? (
                     <span className="inline-flex items-center gap-1 text-[#9b9fb3]">
                       <AlertTriangle className="size-3" />
-                      нет вчерашних
+                      {SKIP_LABELS[s.skippedReason]}
                     </span>
-                  ) : s.skippedReason === "out_of_period" ? (
-                    <span className="inline-flex items-center gap-1 text-[#9b9fb3]">
-                      <AlertTriangle className="size-3" />
-                      вне периода
-                    </span>
-                  ) : s.copied > 0 ? (
+                  ) : s.filled > 0 ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#ecfdf5] px-2 py-0.5 text-[11px] font-medium text-[#136b2a]">
-                      <CheckCircle2 className="size-3" />+{s.copied}
+                      <CheckCircle2 className="size-3" />+{s.filled}
                     </span>
                   ) : (
                     <span className="text-[#6f7282]">всё уже есть</span>
@@ -255,6 +311,7 @@ export function CloseDayCard({
           </div>
         </div>
       ) : null}
+      {dialog}
     </div>
   );
 }

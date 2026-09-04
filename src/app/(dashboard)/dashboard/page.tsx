@@ -308,17 +308,13 @@ export default async function DashboardPage() {
                 <Link
                   href="/settings/journals"
                   title="Выбрать, какие журналы вести"
-                  // Иконка намеренно НЕ та шестерёнка, что в шапке:
-                  // рядом две одинаковые вели бы в разные места — общие
-                  // настройки и набор журналов. Здесь ползунки плюс
-                  // подпись, чтобы не гадать, что настраивается.
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#f5f6ff] px-3 text-[13px] font-medium text-[#5566f6] transition-colors hover:bg-[#eef1ff] hover:text-[#3848c7]"
+                  // Обычная кнопка с рамкой, а не мягкая плашка: слева
+                  // в шапке секции стоит такая же по форме плашка с
+                  // иконкой, и было непонятно, что из двух нажимается.
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#3848c7]"
                 >
-                  <SlidersHorizontal className="size-4" />
-                  {/* На узком экране остаётся одно слово: строка
-                      заголовка и так делится с бейджем и стрелкой. */}
-                  <span className="sm:hidden">Журналы</span>
-                  <span className="hidden sm:inline">Настроить журналы</span>
+                  <SlidersHorizontal className="size-4 text-[#5566f6]" />
+                  Настройка
                 </Link>
               }
               badge={
@@ -336,13 +332,12 @@ export default async function DashboardPage() {
                     key={item.id}
                     href={`/journals/${item.code}`}
                     className={cn(
-                      "group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border transition-all hover:-translate-y-0.5",
-                      // Цветное свечение под карточкой: статус читается
-                      // боковым зрением, ещё до того как глаз дошёл до
-                      // иконки и названия.
+                      "group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border transition-colors duration-150",
+                      // Без свечения и подпрыгивания: статус читается по
+                      // цвету рамки и подложки, hover — только рамка.
                       item.filled
-                        ? "border-[#c8f0d5] shadow-[0_8px_24px_-14px_rgba(19,107,42,0.45)] hover:border-[#7cf5c0] hover:shadow-[0_14px_32px_-14px_rgba(19,107,42,0.6)]"
-                        : "border-[#ffd2cd] shadow-[0_8px_24px_-14px_rgba(210,69,61,0.45)] hover:border-[#ff8d7d] hover:shadow-[0_14px_32px_-14px_rgba(210,69,61,0.6)]"
+                        ? "border-[#c8f0d5] hover:border-[#7cf5c0]"
+                        : "border-[#ffd2cd] hover:border-[#ff8d7d]"
                     )}
                   >
                     {/* Превью настоящего бланка: по названию вроде
@@ -416,7 +411,7 @@ export default async function DashboardPage() {
                   <Link
                     key={paper.id}
                     href={`/settings/journals/paper/${paper.id}`}
-                    className="group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ffe9b0] bg-[#fffaf0] transition-all hover:-translate-y-0.5 hover:border-[#f5c451] hover:shadow-[0_14px_32px_-14px_rgba(180,83,9,0.45)]"
+                    className="group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ffe9b0] bg-[#fffaf0] transition-colors duration-150 hover:border-[#f5c451]"
                   >
                     {/* Превью настоящего бланка — тот же конвейер, что у
                         электронных образцов (paper_<id>.png). Скелет-заглушка
