@@ -7,7 +7,7 @@
 staged_ts=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' || true)
 if [ -n "$staged_ts" ]; then
   echo "→ TypeScript type-check..."
-  npx tsc --noEmit --skipLibCheck || {
+  npm run typecheck || {
     echo "✗ Type-check провалился. Поправьте ошибки или пропустите hook через --no-verify."
     exit 1
   }

@@ -95,3 +95,9 @@ cf2.log
 
 
 dispatcher/logs/
+
+# Скриншоты и снапшоты страниц, которые агенты кладут в корень при отладке — мусор
+/*.png
+/*.jpg
+/*-snapshot.yml
+/.dev-server*.log

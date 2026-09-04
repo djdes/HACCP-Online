@@ -1,0 +1,27 @@
+[
+  {
+    "check": "login",
+    "ok": true,
+    "note": "landed on /dashboard"
+  },
+  {
+    "check": "status endpoint",
+    "ok": true,
+    "note": "{\"threadId\":\"cmti2bre1042zhrtskkm6btgo\",\"unreadForClient\":4,\"latest\":{\"id\":\"cmtlxx3wn004rmg9md7tvw7q3\",\"author\":\"operator\",\"preview\":\"Плановые работы e2e: сегод"
+  },
+  {
+    "check": "dashboard chat send",
+    "ok": true,
+    "note": "thread cmti2bre1042zhrtskkm6btgo, messages=6, last author=Денис Волков"
+  },
+  {
+    "check": "partner chats",
+    "ok": true,
+    "note": "threads=0, clients=0, waiting=0"
+  },
+  {
+    "check": "partner cabinet",
+    "ok": false,
+    "note": "step failed: locator.click: Timeout 30000ms exceeded."
+  }
+]

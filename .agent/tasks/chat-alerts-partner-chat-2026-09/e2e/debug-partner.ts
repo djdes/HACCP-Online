@@ -1,0 +1,33 @@
+import { chromium } from "playwright";
+import path from "node:path";
+const BASE = "http://localhost:3020";
+const OUT = path.resolve(process.cwd(), ".agent/tasks/chat-alerts-partner-chat-2026-09/shots");
+async function main() {
+  const browser = await chromium.launch();
+  const page = await browser.newContext({ viewport: { width: 1280, height: 900 } }).then((c) => c.newPage());
+  page.on("console", (m) => { if (m.type() === "error") console.log("console.error:", m.text().slice(0, 160)); });
+  page.on("response", (r) => { if (r.url().includes("/api/partner/chats") && r.request().method() === "POST") console.log("POST", r.url(), r.status()); });
+  await page.goto(`${BASE}/login`);
+  await page.locator("#email").fill(process.env.E2E_ROOT_EMAIL!);
+  await page.locator("#password").fill(process.env.E2E_ROOT_PASSWORD!);
+  await page.locator('button[type="submit"]').click();
+  await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 60_000 });
+  await page.goto(`${BASE}/partner/chats`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Написать" }).first().click();
+  await page.getByText("Написать клиенту").waitFor();
+  await page.screenshot({ path: path.join(OUT, "dbg-partner-dialog.png") });
+  const rows = page.locator('[role="dialog"] button:has(svg)');
+  console.log("dialog svg buttons:", await rows.count(), await rows.allTextContents());
+  await rows.first().click();
+  await page.locator('[role="dialog"] textarea').fill("debug консультант " + Date.now());
+  await page.screenshot({ path: path.join(OUT, "dbg-partner-dialog-filled.png") });
+  const send = page.getByRole("button", { name: "Отправить" });
+  console.log("send buttons:", await send.count(), "disabled:", await send.first().isDisabled());
+  await send.first().click();
+  await page.waitForTimeout(4000);
+  console.log("url:", page.url());
+  console.log("toasts:", await page.locator("[data-sonner-toast]").allTextContents());
+  await page.screenshot({ path: path.join(OUT, "dbg-partner-after-send.png") });
+  await browser.close();
+}
+main();
