@@ -663,9 +663,10 @@ export default async function LandingPage() {
 
       {/* ЗАПОЛНЯЕТСЯ САМО — hero показывает поверхности продукта, но не
           показывает главного: часть записей появляется без человека.
-          Сцена читается без текста: датчик → строка журнала → сканер. */}
+          Один компактный блок, три шага слева направо: датчик → Wi-Fi в
+          WeSetup → строка журнала; сканер на приёмке — подписью внизу. */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6 pb-20">
-        <div className="mb-10 max-w-[720px]">
+        <div className="mb-8 max-w-[720px]">
           <div className="mb-3 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.18em] text-[#5566f6]">
             <Wifi className="size-4" />
             Автоматизация

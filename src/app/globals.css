@@ -1530,7 +1530,7 @@ html, body {
   animation: automation-dash-flow 0.9s linear infinite;
 }
 
-/* «Пакет данных» едет по линии — вправо и (для правой карточки) влево. */
+/* «Пакет данных» едет по линии слева направо: датчик → WeSetup → журнал. */
 @keyframes automation-packet-run {
   0% {
     left: 2px;
@@ -1549,27 +1549,8 @@ html, body {
   left: 2px;
   animation: automation-packet-run 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
-.automation-packet-rev {
-  left: 2px;
-  animation: automation-packet-run 2.4s cubic-bezier(0.45, 0, 0.55, 1) 0.4s
-    infinite reverse;
-}
 
-/* Луч сканера. */
-@keyframes automation-beam-run {
-  from {
-    top: 12%;
-  }
-  to {
-    top: 82%;
-  }
-}
-.automation-beam {
-  top: 12%;
-  animation: automation-beam-run 1.6s ease-in-out infinite alternate;
-}
-
-/* Мобильная стрелка между карточками. */
+/* Мобильная стрелка между шагами. */
 @keyframes automation-bounce-down {
   0%,
   100% {
@@ -1593,8 +1574,6 @@ html, body {
   .automation-pop,
   .automation-dash,
   .automation-packet,
-  .automation-packet-rev,
-  .automation-beam,
   .automation-bounce {
     animation: none !important;
     opacity: 1 !important;

@@ -98,7 +98,7 @@
 ## 7. Техника
 
 - Кнопка hero в HTML `disabled` до гидрации: `disabled={loading}` + `<form action="/register" method="get">` как fallback.
-- Битый preload `/landing/tuya-sensor.png` (404) — убрать `SENSOR_PHOTO` в `automation-scene.tsx`.
+- ~~Битый preload `/landing/tuya-sensor.png` (404) — убрать `SENSOR_PHOTO` в `automation-scene.tsx`.~~ Сделано 2026-09-04: датчик рисуется вектором, сцена собрана в один блок.
 - Manrope (68 КБ) преложится на лендинге, который его не использует: `preload: false` или перенести в `(dashboard)/layout`.
 - `Cache-Control: no-store` глобально бьёт по `/brand`, `/icons`, `/journal-samples`: отдельное правило `public, max-age=604800`.
 - Brotli на nginx не включён; нет `preconnect` на mc.yandex.ru.
