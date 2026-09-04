@@ -1,0 +1,15 @@
+{
+  // Конфиг для `npm run typecheck` (локально, pre-commit/pre-push и CI).
+  // Отличие от tsconfig.json: не включает сгенерированные типы из .next/,
+  // потому что в CI папки .next нет, а локально dev-сервер пишет в
+  // .next/dev/types на лету и файлы бывают битыми/устаревшими —
+  // проверка тогда падает на мусоре, а не на реальных ошибках.
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "middleware.ts",
+    "next.config.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ]
+}

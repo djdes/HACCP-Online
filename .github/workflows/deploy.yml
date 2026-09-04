@@ -589,3 +589,31 @@ jobs:
             fi
 
             echo "=== Deploy complete ==="
+
+      # Деплой падал по несколько раз в день (typecheck-гейт), а узнавали
+      # об этом случайно — прод оставался на старом коде. Шаг ниже
+      # срабатывает ТОЛЬКО при падении любого предыдущего шага и шлёт
+      # админу платформы сообщение в Telegram с коммитом и ссылкой на лог.
+      # Секреты: TELEGRAM_BOT_TOKEN (тот же бот @wesetupbot) и
+      # DEPLOY_ALERT_TELEGRAM_CHAT_ID (= PLATFORM_ADMIN_TELEGRAM_CHAT_ID с прода).
+      # Если секретов нет — шаг молча пропускается, деплой это не ломает.
+      - name: Notify Telegram on failure
+        if: failure()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.DEPLOY_ALERT_TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SHORT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "[notify] секреты не заданы — пропуск"
+            exit 0
+          fi
+          FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n1 | cut -c1-120)
+          TEXT=$(printf '❌ Деплой wesetup.ru упал\nКоммит %s: %s\nПрод остался на предыдущей версии.\nЛог: %s' "${SHORT_SHA:0:8}" "$FIRST_LINE" "$RUN_URL")
+          curl -sS --max-time 20 -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${TEXT}" \
+            --data-urlencode "disable_web_page_preview=true" \
+            -o /dev/null -w "[notify] telegram HTTP %{http_code}\n" || echo "[notify] не отправилось — non-fatal"
