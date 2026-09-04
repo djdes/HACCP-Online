@@ -19,9 +19,7 @@ import {
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -47,7 +45,15 @@ import {
   type UvRuntimeEntryData,
   type UvSpecification,
 } from "@/lib/uv-lamp-runtime-document";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { MENU_ITEM_MUTED_CLASS } from "@/components/ui/menu-styles";
+import {
+  EMPTY_SELECT_VALUE,
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
+
+/** Старые документы хранят плейсхолдер как значение должности — считаем его «не выбрано». */
+const UV_LEGACY_EMPTY_TITLE = "- Выберите значение -";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
@@ -427,6 +433,17 @@ function UvRuntimeSettingsDialog(props: {
   const [dateFrom, setDateFrom] = useState(props.initialDateFrom);
   const [responsibleTitle, setResponsibleTitle] = useState(props.initialResponsibleTitle);
   const [responsibleUserId, setResponsibleUserId] = useState(props.initialResponsibleUserId);
+  // Один каскад на обе раскладки (v2 / legacy): рендерится только одна из них.
+  const settingsCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: responsibleTitle,
+    userId: responsibleUserId,
+    onChange: (n) => {
+      setResponsibleTitle(n.positionTitle);
+      setResponsibleUserId(n.userId);
+    },
+    autoPick: "first",
+  });
 
   const options = useMemo(() => getUvResponsibleTitleOptions(props.users), [props.users]);
 
@@ -505,47 +522,39 @@ function UvRuntimeSettingsDialog(props: {
           </div>
           <div className="space-y-2">
             <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={(value) => {
-              const candidates = getUsersForRoleLabel(props.users, value);
-              if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
-                setResponsibleUserId(candidates[0]?.id || "");
-              } else if (!responsibleUserId && candidates[0]) {
-                setResponsibleUserId(candidates[0].id);
+            <Select
+              value={
+                responsibleTitle && responsibleTitle !== UV_LEGACY_EMPTY_TITLE
+                  ? responsibleTitle
+                  : EMPTY_SELECT_VALUE
               }
-              setResponsibleTitle(value);
-            }}>
+              onValueChange={settingsCascade.handlePositionChange}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                 <SelectValue placeholder="— Выберите значение —" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="- Выберите значение -">— Выберите значение —</SelectItem>
-                {options.management.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">Руководство</SelectLabel>
-                    {options.management.map((title) => (
-                      <SelectItem key={`mgmt:${title}`} value={title}>{title}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {options.staff.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">Сотрудники</SelectLabel>
-                    {options.staff.map((title) => (
-                      <SelectItem key={`staff:${title}`} value={title}>{title}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
+                <SelectItem value={EMPTY_SELECT_VALUE} className={MENU_ITEM_MUTED_CLASS}>— Выберите значение —</SelectItem>
+                <PositionSelectItems users={props.users} groups={options} />
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
             <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Сотрудник</Label>
-            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+            <Select
+              value={responsibleUserId}
+              onValueChange={settingsCascade.handleEmployeeChange}
+              open={settingsCascade.employeeOpen}
+              onOpenChange={settingsCascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                 <SelectValue placeholder="— Выберите значение —" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((user) => (
+                {(responsibleTitle && responsibleTitle !== UV_LEGACY_EMPTY_TITLE
+                  ? settingsCascade.candidates
+                  : props.users
+                ).map((user) => (
                   <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -593,51 +602,39 @@ function UvRuntimeSettingsDialog(props: {
           </div>
           <div className="space-y-1">
             <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={(value) => {
-              const candidates = getUsersForRoleLabel(props.users, value);
-              if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
-                setResponsibleUserId(candidates[0]?.id || "");
-              } else if (!responsibleUserId && candidates[0]) {
-                setResponsibleUserId(candidates[0].id);
+            <Select
+              value={
+                responsibleTitle && responsibleTitle !== UV_LEGACY_EMPTY_TITLE
+                  ? responsibleTitle
+                  : EMPTY_SELECT_VALUE
               }
-              setResponsibleTitle(value);
-            }}>
+              onValueChange={settingsCascade.handlePositionChange}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="- Выберите значение -">- Выберите значение -</SelectItem>
-                {options.management.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[14px] font-semibold italic text-black">Руководство</SelectLabel>
-                    {options.management.map((title) => (
-                      <SelectItem key={`mgmt:${title}`} value={title}>
-                        {title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {options.staff.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[14px] font-semibold italic text-black">Сотрудники</SelectLabel>
-                    {options.staff.map((title) => (
-                      <SelectItem key={`staff:${title}`} value={title}>
-                        {title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
+                <SelectItem value={EMPTY_SELECT_VALUE} className={MENU_ITEM_MUTED_CLASS}>- Выберите значение -</SelectItem>
+                <PositionSelectItems users={props.users} groups={options} />
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+            <Select
+              value={responsibleUserId}
+              onValueChange={settingsCascade.handleEmployeeChange}
+              open={settingsCascade.employeeOpen}
+              onOpenChange={settingsCascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle && responsibleTitle !== "- Выберите значение -" ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((user) => (
+                {(responsibleTitle && responsibleTitle !== UV_LEGACY_EMPTY_TITLE
+                  ? settingsCascade.candidates
+                  : props.users
+                ).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -685,6 +682,16 @@ function AddRowDialog(props: {
   const [endMin, setEndMin] = useState("00");
   const [responsibleTitle, setResponsibleTitle] = useState(props.defaultResponsibleTitle);
   const [employeeId, setEmployeeId] = useState(props.defaultEmployeeId);
+  const addRowCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: responsibleTitle,
+    userId: employeeId,
+    onChange: (n) => {
+      setResponsibleTitle(n.positionTitle);
+      setEmployeeId(n.userId);
+    },
+    autoPick: "first",
+  });
 
   const options = useMemo(() => getUvResponsibleTitleOptions(props.users), [props.users]);
 
@@ -777,51 +784,32 @@ function AddRowDialog(props: {
 
           <div className="space-y-1">
             <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
-            <Select value={responsibleTitle} onValueChange={(value) => {
-              const candidates = getUsersForRoleLabel(props.users, value);
-              if (employeeId && !candidates.some((u) => u.id === employeeId)) {
-                setEmployeeId(candidates[0]?.id || "");
-              } else if (!employeeId && candidates[0]) {
-                setEmployeeId(candidates[0].id);
-              }
-              setResponsibleTitle(value);
-            }}>
+            <Select
+              value={responsibleTitle || EMPTY_SELECT_VALUE}
+              onValueChange={addRowCascade.handlePositionChange}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {options.management.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[14px] font-semibold italic text-black">Руководство</SelectLabel>
-                    {options.management.map((title) => (
-                      <SelectItem key={`mgmt:${title}`} value={title}>
-                        {title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {options.staff.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[14px] font-semibold italic text-black">Сотрудники</SelectLabel>
-                    {options.staff.map((title) => (
-                      <SelectItem key={`staff:${title}`} value={title}>
-                        {title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
+                <PositionSelectItems users={props.users} groups={options} />
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1">
             <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
+            <Select
+              value={employeeId}
+              onValueChange={addRowCascade.handleEmployeeChange}
+              open={addRowCascade.employeeOpen}
+              onOpenChange={addRowCascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: employeeId }) : props.users).map((user) => (
+                {(responsibleTitle ? addRowCascade.candidates : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

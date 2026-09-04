@@ -17,17 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import {
-  FloatingInputField,
-  FloatingLabelField,
-} from "@/components/journals/journal-dialog-field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FloatingInputField } from "@/components/journals/journal-dialog-field";
 import {
   getStaffJournalResponsibleTitleOptions,
 } from "@/lib/hygiene-document";
@@ -47,7 +37,6 @@ import {
   JOURNAL_DIALOG_ACTIONS_CLASS,
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
-  JOURNAL_DIALOG_FIELD_TRIGGER_CLASS,
   JOURNAL_DIALOG_FIELDS_CLASS,
   JOURNAL_DIALOG_FOOTER_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -57,10 +46,9 @@ import {
   JOURNAL_LIST_STACK_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { PageGuide } from "@/components/ui/page-guide";
 import { AUTOMATION_ENABLE_BULLETS } from "@/lib/journal-automation";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
 type JournalListDocument = {
   id: string;
   title: string;
@@ -177,37 +165,18 @@ function EditDocumentDialog({
             onChange={setTitle}
           />
 
-          <FloatingLabelField label="Должность ответственного">
-            <Select
-              value={responsibleTitle}
-              onValueChange={(value) => {
-                setResponsibleTitle(value);
-                setResponsibleUserId("");
-              }}
-            >
-              <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
-                <SelectValue placeholder="Выберите должность" />
-              </SelectTrigger>
-              <SelectContent>
-                <PositionSelectItems users={users} />
-              </SelectContent>
-            </Select>
-          </FloatingLabelField>
-
-          <FloatingLabelField label="Ответственный">
-            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
-              <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
-                <SelectValue placeholder="Выберите сотрудника" />
-              </SelectTrigger>
-              <SelectContent>
-                {(responsibleTitle ? getUsersForRoleLabel(users, responsibleTitle, { keepUserId: responsibleUserId }) : users).map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FloatingLabelField>
+          <PositionEmployeePicker
+            users={users}
+            value={{ positionTitle: responsibleTitle, userId: responsibleUserId }}
+            onChange={(n) => {
+              setResponsibleTitle(n.positionTitle);
+              setResponsibleUserId(n.userId);
+            }}
+            positionLabel="Должность ответственного"
+            employeeLabel="Ответственный"
+            variant="floating"
+            autoPick="first"
+          />
 
           <ControlPeriodicityField
             value={periodicity}

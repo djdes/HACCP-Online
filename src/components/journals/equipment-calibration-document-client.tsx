@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import {
   Dialog,
   DialogContent,
@@ -48,7 +48,10 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
@@ -95,6 +98,18 @@ export function EquipmentCalibrationDocumentClient({
     config.approveEmployeeId || ""
   );
   const [settingsApproveEmployee, setSettingsApproveEmployee] = useState(config.approveEmployee);
+  const approveCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: settingsApproveRole,
+    userId: settingsApproveEmployeeId,
+    onChange: (next) => {
+      const user = users.find((item) => item.id === next.userId);
+      setSettingsApproveRole(next.positionTitle);
+      setSettingsApproveEmployeeId(next.userId);
+      setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
+    },
+    autoPick: "first",
+  });
 
   // Add row draft state
   const [draftName, setDraftName] = useState("");
@@ -808,12 +823,7 @@ export function EquipmentCalibrationDocumentClient({
             </Label>
             <Select
               value={settingsApproveRole}
-              onValueChange={(value) => {
-                const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                setSettingsApproveRole(value);
-                setSettingsApproveEmployeeId(user?.id || "");
-                setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
-              }}
+              onValueChange={approveCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
@@ -835,12 +845,14 @@ export function EquipmentCalibrationDocumentClient({
                 setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
                 if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
               }}
+              open={approveCascade.employeeOpen}
+              onOpenChange={approveCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
-                {(settingsApproveRole ? getUsersForRoleLabel(users, settingsApproveRole) : users).map((u) => (
+                {(settingsApproveRole ? approveCascade.candidates : users).map((u) => (
                   <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>
                 ))}
               </SelectContent>
@@ -900,12 +912,7 @@ export function EquipmentCalibrationDocumentClient({
                 <Label className="text-[14px] text-[#6f7282]">Должность &quot;Утверждаю&quot;</Label>
                 <Select
                   value={settingsApproveRole}
-                  onValueChange={(value) => {
-                    const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                    setSettingsApproveRole(value);
-                    setSettingsApproveEmployeeId(user?.id || "");
-                    setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
-                  }}
+                  onValueChange={approveCascade.handlePositionChange}
                 >
                   <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                     <SelectValue placeholder="- Выберите значение -" />
@@ -925,12 +932,14 @@ export function EquipmentCalibrationDocumentClient({
                     setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
                     if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
                   }}
+                  open={approveCascade.employeeOpen}
+                  onOpenChange={approveCascade.setEmployeeOpen}
                 >
                   <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                     <SelectValue placeholder="- Выберите значение -" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(settingsApproveRole ? getUsersForRoleLabel(users, settingsApproveRole) : users).map((u) => (
+                    {(settingsApproveRole ? approveCascade.candidates : users).map((u) => (
                       <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>
                     ))}
                   </SelectContent>

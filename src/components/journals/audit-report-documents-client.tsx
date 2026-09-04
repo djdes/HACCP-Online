@@ -21,6 +21,7 @@ import {
   normalizeAuditReportConfig,
 } from "@/lib/audit-report-document";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 
 import { toast } from "sonner";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
@@ -61,6 +62,7 @@ function SettingsDialog({
   initial,
   dialogTitle,
   submitLabel,
+  mode,
   onSubmit,
 }: {
   open: boolean;
@@ -68,17 +70,30 @@ function SettingsDialog({
   initial: SettingsState;
   dialogTitle: string;
   submitLabel: string;
+  /** Создание — название подставляется автоматически (просьба владельца 2026-09-04). */
+  mode: "create" | "edit";
   onSubmit: (value: SettingsState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
+  const auto = useAutoDocumentTitle({
+    templateCode: AUDIT_REPORT_TEMPLATE_CODE,
+    journalName: AUDIT_REPORT_DOCUMENT_TITLE,
+    period: { dateFrom: state.documentDate },
+    enabled: mode === "create",
+  });
+  // Колбэки хука стабильны, объект — нет: в deps только колбэки.
+  const { reset: resetAutoTitle, seedTitle } = auto;
 
   useEffect(() => {
     if (open) {
-      setState(initial);
+      resetAutoTitle();
+      // В create-режиме `initial.title` — константа, поэтому автоназвание
+      // важнее; в edit-режиме хук отключён и вернёт "".
+      setState({ ...initial, title: seedTitle() || initial.title });
       setSubmitting(false);
     }
-  }, [initial, open]);
+  }, [initial, open, resetAutoTitle, seedTitle]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,11 +104,31 @@ function SettingsDialog({
         <div className="space-y-6 px-12 py-10">
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Название документа</Label>
-            <Input value={state.title} onChange={(e) => setState({ ...state, title: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+            <Input
+              value={state.title}
+              onChange={(e) => {
+                auto.markTouched();
+                setState({ ...state, title: e.target.value });
+              }}
+              className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
+            />
           </div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Дата аудита</Label>
-            <Input type="date" value={state.documentDate} onChange={(e) => setState({ ...state, documentDate: e.target.value })} className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]" />
+            <Input
+              type="date"
+              value={state.documentDate}
+              onChange={(e) => {
+                const value = e.target.value;
+                const next = auto.titleForPeriod({ dateFrom: value });
+                setState((current) => ({
+                  ...current,
+                  documentDate: value,
+                  ...(next !== null ? { title: next } : {}),
+                }));
+              }}
+              className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
+            />
           </div>
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Основание проверки</Label>
@@ -129,6 +164,19 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
       auditedObject: config.auditedObject,
     };
   }, []);
+
+  // Мемоизируем: `initial` — зависимость эффекта сброса в диалоге, литерал
+  // на каждый рендер перетирал бы ввод.
+  const settingsState = useMemo<SettingsState>(() => {
+    if (!settingsDocument) return createState;
+    const config = normalizeAuditReportConfig(settingsDocument.config);
+    return {
+      title: settingsDocument.title,
+      documentDate: config.documentDate,
+      basisTitle: config.basisTitle,
+      auditedObject: config.auditedObject,
+    };
+  }, [createState, settingsDocument]);
 
   async function createDocument(payload: SettingsState) {
     const config = {
@@ -252,13 +300,14 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
         </div>
       </div>
 
-      <SettingsDialog open={createOpen} onOpenChange={setCreateOpen} initial={createState} dialogTitle="Создание документа" submitLabel="Создать" onSubmit={createDocument} />
+      <SettingsDialog open={createOpen} onOpenChange={setCreateOpen} initial={createState} dialogTitle="Создание документа" submitLabel="Создать" mode="create" onSubmit={createDocument} />
       <SettingsDialog
         open={!!settingsDocument}
         onOpenChange={(open) => { if (!open) setSettingsDocument(null); }}
-        initial={settingsDocument ? { title: settingsDocument.title, ...(() => { const config = normalizeAuditReportConfig(settingsDocument.config); return { documentDate: config.documentDate, basisTitle: config.basisTitle, auditedObject: config.auditedObject }; })() } : createState}
+        initial={settingsState}
         dialogTitle="Настройки документа"
         submitLabel="Сохранить"
+        mode="edit"
         onSubmit={async (value) => { if (!settingsDocument) return; await saveDocument(settingsDocument, value); }}
       />
       <Dialog open={!!deleteDocument} onOpenChange={(open) => !open && setDeleteDocument(null)}>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 import {
   DropdownMenu,
@@ -44,7 +44,10 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 type JournalListDocument = {
@@ -81,6 +84,30 @@ export function EquipmentMaintenanceDocumentsClient({
   const [responsibleRole, setResponsibleRole] = useState("");
   const [responsibleEmployeeId, setResponsibleEmployeeId] = useState("");
   const [responsibleEmployee, setResponsibleEmployee] = useState("");
+  const approveCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: approveRole,
+    userId: approveEmployeeId,
+    onChange: (next) => {
+      const user = users.find((item) => item.id === next.userId);
+      setApproveRole(next.positionTitle);
+      setApproveEmployeeId(next.userId);
+      setApproveEmployee(user?.name || approveEmployee);
+    },
+    autoPick: "first",
+  });
+  const responsibleCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: responsibleRole,
+    userId: responsibleEmployeeId,
+    onChange: (next) => {
+      const user = users.find((item) => item.id === next.userId);
+      setResponsibleRole(next.positionTitle);
+      setResponsibleEmployeeId(next.userId);
+      setResponsibleEmployee(user?.name || responsibleEmployee);
+    },
+    autoPick: "first",
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -274,12 +301,7 @@ export function EquipmentMaintenanceDocumentsClient({
             </div>
             <div className="space-y-2">
               <Label>Должность &quot;Утверждаю&quot;</Label>
-              <Select value={approveRole} onValueChange={(value) => {
-                const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                setApproveRole(value);
-                setApproveEmployeeId(user?.id || "");
-                setApproveEmployee(user?.name || approveEmployee);
-              }}>
+              <Select value={approveRole} onValueChange={approveCascade.handlePositionChange}>
                 <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
                   <PositionSelectItems users={users} />
@@ -293,10 +315,10 @@ export function EquipmentMaintenanceDocumentsClient({
                 setApproveEmployeeId(value);
                 setApproveEmployee(user?.name || approveEmployee);
                 if (user) setApproveRole(getUserRoleLabel(user.role));
-              }}>
+              }} open={approveCascade.employeeOpen} onOpenChange={approveCascade.setEmployeeOpen}>
                 <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
-                  {(approveRole ? getUsersForRoleLabel(users, approveRole) : users).map((u) => (
+                  {(approveRole ? approveCascade.candidates : users).map((u) => (
                     <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>
                   ))}
                 </SelectContent>
@@ -304,12 +326,7 @@ export function EquipmentMaintenanceDocumentsClient({
             </div>
             <div className="space-y-2">
               <Label>Должность ответственного</Label>
-              <Select value={responsibleRole} onValueChange={(value) => {
-                const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                setResponsibleRole(value);
-                setResponsibleEmployeeId(user?.id || "");
-                setResponsibleEmployee(user?.name || responsibleEmployee);
-              }}>
+              <Select value={responsibleRole} onValueChange={responsibleCascade.handlePositionChange}>
                 <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
                   <PositionSelectItems users={users} />
@@ -323,10 +340,10 @@ export function EquipmentMaintenanceDocumentsClient({
                 setResponsibleEmployeeId(value);
                 setResponsibleEmployee(user?.name || responsibleEmployee);
                 if (user) setResponsibleRole(getUserRoleLabel(user.role));
-              }}>
+              }} open={responsibleCascade.employeeOpen} onOpenChange={responsibleCascade.setEmployeeOpen}>
                 <SelectTrigger><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
-                  {(responsibleRole ? getUsersForRoleLabel(users, responsibleRole) : users).map((u) => (
+                  {(responsibleRole ? responsibleCascade.candidates : users).map((u) => (
                     <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>
                   ))}
                 </SelectContent>

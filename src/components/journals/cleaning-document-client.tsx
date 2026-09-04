@@ -78,7 +78,7 @@ import {
   normalizeMask,
   toggleWeekdayBit,
 } from "@/lib/weekday-mask";
-import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
+import { getDistinctRoleLabels } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
   DOC_AUTOFILL_STRIP_CLASS,
@@ -105,7 +105,10 @@ import {
 } from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { useMobileView } from "@/lib/use-mobile-view";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
@@ -197,7 +200,6 @@ type RowDescriptor =
 // чтобы /settings/buildings UI использовал тот же редактор. См. spec
 // docs/superpowers/specs/2026-05-08-cleaning-unification.md (stages 2-3).
 
-const primaryUserId = (users: UserItem[], roleLabel: string) => getUsersForRoleLabel(users, roleLabel)[0]?.id || "";
 const userNameById = (users: UserItem[], userId: string) => users.find((user) => user.id === userId)?.name || "";
 const buildSettingsState = (config: CleaningDocumentConfig): SettingsState => ({
   title: config.documentTitle || config.title || CLEANING_DOCUMENT_TITLE,
@@ -453,6 +455,42 @@ export function CleaningDocumentClient(props: Props) {
   const [responsibleDialog, setResponsibleDialog] = useState<ResponsibleFormState | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsState, setSettingsState] = useState(buildSettingsState(normalized));
+  // Каскады «Должность → Сотрудник»: общая логика (автоподбор, автооткрытие
+  // списка сотрудников) в usePositionEmployeeCascade.
+  const responsibleCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: responsibleDialog?.title ?? "",
+    userId: responsibleDialog?.userId ?? "",
+    onChange: (next) =>
+      setResponsibleDialog((current) =>
+        current ? { ...current, title: next.positionTitle, userId: next.userId } : current
+      ),
+    autoPick: "first",
+  });
+  const cleaningCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: settingsState.cleaningRole,
+    userId: settingsState.cleaningUserId,
+    onChange: (next) =>
+      setSettingsState((current) => ({
+        ...current,
+        cleaningRole: next.positionTitle,
+        cleaningUserId: next.userId,
+      })),
+    autoPick: "first",
+  });
+  const controlCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: settingsState.controlRole,
+    userId: settingsState.controlUserId,
+    onChange: (next) =>
+      setSettingsState((current) => ({
+        ...current,
+        controlRole: next.positionTitle,
+        controlUserId: next.userId,
+      })),
+    autoPick: "first",
+  });
   // «Сохранить как шаблон по умолчанию» — confirm dialog для записи
   // текущего config'а в Organization.defaultCleaningDocumentConfig.
   const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
@@ -1688,8 +1726,6 @@ export function CleaningDocumentClient(props: Props) {
     await patchDocument(nextConfig);
   }
 
-  const responsibleUsers = responsibleDialog ? getUsersForRoleLabel(props.users, responsibleDialog.title) : [];
-
   const cleaningAddToolbar = (
     <>
         {/* ОБЫЧНЫЙ инлайновый тулбар между КАПС-заголовком и таблицей
@@ -2657,9 +2693,7 @@ export function CleaningDocumentClient(props: Props) {
                     <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
                     <Select
                       value={responsibleDialog.title}
-                      onValueChange={(value) => {
-                        setResponsibleDialog((current) => current ? { ...current, title: value, userId: primaryUserId(props.users, value) } : current);
-                      }}
+                      onValueChange={responsibleCascade.handlePositionChange}
                     >
                       <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]">
                         <SelectValue placeholder="— выберите —" />
@@ -2673,15 +2707,15 @@ export function CleaningDocumentClient(props: Props) {
                     <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
                     <Select
                       value={responsibleDialog.userId}
-                      onValueChange={(value) => {
-                        setResponsibleDialog((current) => current ? { ...current, userId: value } : current);
-                      }}
+                      onValueChange={responsibleCascade.handleEmployeeChange}
+                      open={responsibleCascade.employeeOpen}
+                      onOpenChange={responsibleCascade.setEmployeeOpen}
                     >
                       <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[14px]">
                         <SelectValue placeholder="— выберите —" />
                       </SelectTrigger>
                       <SelectContent>
-                        {responsibleUsers.map((user) => (
+                        {responsibleCascade.candidates.map((user) => (
                           <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -2742,13 +2776,7 @@ export function CleaningDocumentClient(props: Props) {
             </Label>
             <Select
               value={settingsState.cleaningRole}
-              onValueChange={(value) =>
-                setSettingsState((current) => ({
-                  ...current,
-                  cleaningRole: value,
-                  cleaningUserId: primaryUserId(props.users, value),
-                }))
-              }
+              onValueChange={cleaningCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
@@ -2764,15 +2792,15 @@ export function CleaningDocumentClient(props: Props) {
             </Label>
             <Select
               value={settingsState.cleaningUserId}
-              onValueChange={(value) =>
-                setSettingsState((current) => ({ ...current, cleaningUserId: value }))
-              }
+              onValueChange={cleaningCascade.handleEmployeeChange}
+              open={cleaningCascade.employeeOpen}
+              onOpenChange={cleaningCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
-                {getUsersForRoleLabel(props.users, settingsState.cleaningRole).map((user) => (
+                {cleaningCascade.candidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -2786,13 +2814,7 @@ export function CleaningDocumentClient(props: Props) {
             </Label>
             <Select
               value={settingsState.controlRole}
-              onValueChange={(value) =>
-                setSettingsState((current) => ({
-                  ...current,
-                  controlRole: value,
-                  controlUserId: primaryUserId(props.users, value),
-                }))
-              }
+              onValueChange={controlCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
@@ -2808,15 +2830,15 @@ export function CleaningDocumentClient(props: Props) {
             </Label>
             <Select
               value={settingsState.controlUserId}
-              onValueChange={(value) =>
-                setSettingsState((current) => ({ ...current, controlUserId: value }))
-              }
+              onValueChange={controlCascade.handleEmployeeChange}
+              open={controlCascade.employeeOpen}
+              onOpenChange={controlCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
-                {getUsersForRoleLabel(props.users, settingsState.controlRole).map((user) => (
+                {controlCascade.candidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

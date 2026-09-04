@@ -60,7 +60,7 @@ import {
   getHygienePositionLabel,
 } from "@/lib/hygiene-document";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
-import { buildJournalDocumentTitle } from "@/lib/journal-document-title";
+import { buildDocumentAutoTitle } from "@/lib/journal-document-title";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
 import { getDefaultControlPeriodicity } from "@/lib/control-periodicity";
 import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
@@ -214,14 +214,16 @@ export function CreateDocumentDialog({
   /**
    * Название документа. Собирается из названия журнала и ПЕРИОДА
    * («Гигиенический журнал — 1–15 сентября 2026»), см.
-   * `buildJournalDocumentTitle`. Пересчитывается при смене дат, но
+   * `buildDocumentAutoTitle` (годовые журналы → «2026 год»,
+   * бессрочные — без периода). Пересчитывается при смене дат, но
    * только пока человек не правил поле руками (`titleTouched`) —
    * правил, значит знает лучше.
    * Поле остаётся обязательным: если человек стёр значение, при сабмите
    * рамка краснеет и под ней появляется «Поле не заполнено».
    */
   const [title, setTitle] = useState(() =>
-    buildJournalDocumentTitle({
+    buildDocumentAutoTitle({
+      templateCode,
       journalName: templateName,
       dateFrom: defaultPeriod.dateFrom,
       dateTo: defaultPeriod.dateTo,
@@ -244,7 +246,8 @@ export function CreateDocumentDialog({
     if (next.dateTo !== undefined) setDateTo(next.dateTo);
     if (titleTouched) return;
     setTitle(
-      buildJournalDocumentTitle({
+      buildDocumentAutoTitle({
+      templateCode,
         journalName: templateName,
         dateFrom: nextFrom,
         dateTo: nextTo,
@@ -505,7 +508,8 @@ export function CreateDocumentDialog({
     if (next && !title.trim()) {
       setTitleTouched(false);
       setTitle(
-        buildJournalDocumentTitle({
+        buildDocumentAutoTitle({
+      templateCode,
           journalName: templateName,
           dateFrom,
           dateTo,

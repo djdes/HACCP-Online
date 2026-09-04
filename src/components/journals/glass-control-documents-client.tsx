@@ -36,7 +36,7 @@ import {
   normalizeGlassControlConfig,
   toIsoDate,
 } from "@/lib/glass-control-document";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { usePositionEmployeeCascade } from "@/components/shared/position-select";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -112,6 +112,19 @@ function GlassControlFormDialog(props: {
     () => getGlassControlResponsibleOptions(props.users),
     [props.users]
   );
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: state.responsibleTitle,
+    userId: state.responsibleUserId,
+    onChange: (next) =>
+      setState((prev) => ({
+        ...prev,
+        responsibleTitle: next.positionTitle,
+        responsibleUserId: next.userId,
+      })),
+    autoPick: "none",
+  });
+  const employeeCandidates = state.responsibleTitle ? cascade.candidates : props.users;
 
   useEffect(() => {
     if (!props.open) return;
@@ -176,9 +189,7 @@ function GlassControlFormDialog(props: {
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
             <Select
               value={state.responsibleTitle}
-              onValueChange={(value) =>
-                setState((prev) => ({ ...prev, responsibleTitle: value, responsibleUserId: "" }))
-              }
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -197,20 +208,15 @@ function GlassControlFormDialog(props: {
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select
               value={state.responsibleUserId}
-              onValueChange={(value) =>
-                setState((prev) => ({ ...prev, responsibleUserId: value }))
-              }
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(state.responsibleTitle
-                  ? getUsersForRoleLabel(props.users, state.responsibleTitle, {
-                      keepUserId: state.responsibleUserId,
-                    })
-                  : props.users
-                ).map((user) => (
+                {employeeCandidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

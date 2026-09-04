@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
@@ -33,6 +33,7 @@ import {
   type CleaningDocumentConfig,
 } from "@/lib/cleaning-document";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { buildDocumentAutoTitle } from "@/lib/journal-document-title";
 import {
   EMPTY_STATE_CREATE_BUTTON_CLASS,
   EmptyDocumentsState,
@@ -117,16 +118,22 @@ function getUserName(users: UserItem[], userId: string) {
   return users.find((user) => user.id === userId)?.name || "";
 }
 
-function buildCreateState(_users: UserItem[]): CreateState {
+function buildCreateState(existingTitles: readonly string[]): CreateState {
   return {
     /**
-     * P8: название НЕ предзаполняем «Журналом уборки». Управляющая обычно
-     * заводит несколько документов подряд («Уборка кухни», «Уборка зала»),
-     * и одинаковый дефолт приводил к списку из клонов с одним именем.
-     * Пустое поле + плейсхолдер + валидация «Поле не заполнено» — как во
-     * всех остальных журналах после P2.
+     * Название предзаполняем «Журнал уборки — 1–15 сентября 2026» (владелец,
+     * 2026-09-04: во всех журналах название должно собираться из журнала и
+     * периода). Опасение P8 — управляющая заводит несколько документов за
+     * период («Уборка кухни», «Уборка зала») и получала клоны с одним
+     * именем — снимает `uniqueDocumentTitle`: занятое название получает
+     * суффикс « (2)», « (3)». Поле остаётся редактируемым и обязательным.
      */
-    title: "",
+    title: buildDocumentAutoTitle({
+      templateCode: CLEANING_DOCUMENT_TEMPLATE_CODE,
+      journalName: CLEANING_DOCUMENT_TITLE,
+      ...getCleaningCreatePeriodBounds(),
+      existingTitles,
+    }),
     /**
      * Должности НЕ предзаполняем. Раньше сюда падал первый ответственный
      * из `defaultCleaningDocumentConfig`, и если такой должности не было
@@ -205,17 +212,23 @@ function CreateDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   users: UserItem[];
+  /** Существующие документы — чтобы автоназвание не повторяло занятое. */
+  documents: DocumentItem[];
   onSubmit: (state: CreateState) => Promise<void>;
 }) {
-  const [state, setState] = useState<CreateState>(buildCreateState(props.users));
+  const existingTitles = useMemo(
+    () => props.documents.map((document) => document.title),
+    [props.documents]
+  );
+  const [state, setState] = useState<CreateState>(() => buildCreateState(existingTitles));
   const [submitting, setSubmitting] = useState(false);
   const [titleError, setTitleError] = useState("");
 
   useEffect(() => {
     if (!props.open) return;
-    setState(buildCreateState(props.users));
+    setState(buildCreateState(existingTitles));
     setTitleError("");
-  }, [props.open, props.users]);
+  }, [props.open, existingTitles]);
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -757,6 +770,7 @@ export function CleaningDocumentsClient(props: Props) {
         open={createOpen}
         onOpenChange={setCreateOpen}
         users={props.users}
+        documents={props.documents}
         onSubmit={createDocument}
       />
 

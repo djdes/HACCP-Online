@@ -92,7 +92,10 @@ function filterUsersByBucket<T extends { role?: string | null }>(
 
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { useTodayKey } from "@/lib/use-today-key";
 type UserItem = {
   id: string;
@@ -260,6 +263,22 @@ function DocumentSettingsDialog(props: {
 }) {
   const [state, setState] = useState<SettingsState>(props.initial);
   const [submitting, setSubmitting] = useState(false);
+  const mainCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: state.mainResponsibleTitle,
+    userId: state.mainResponsibleUserId,
+    onChange: (next) =>
+      setState((current) => ({
+        ...current,
+        mainResponsibleTitle: next.positionTitle,
+        mainResponsibleUserId: next.userId,
+      })),
+    resolveCandidates: (bucket) => filterUsersByBucket(props.users, bucket),
+    autoPick: "first",
+  });
+  const mainCandidates = state.mainResponsibleTitle
+    ? mainCascade.candidates
+    : props.users;
 
   async function handleSave() {
     setSubmitting(true);
@@ -334,21 +353,7 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.mainResponsibleTitle}
-            onValueChange={(value) =>
-              setState((current) => {
-                const candidates = filterUsersByBucket(props.users, value);
-                const stillValid =
-                  current.mainResponsibleUserId &&
-                  candidates.some((u) => u.id === current.mainResponsibleUserId);
-                return {
-                  ...current,
-                  mainResponsibleTitle: value,
-                  mainResponsibleUserId: stillValid
-                    ? current.mainResponsibleUserId
-                    : candidates[0]?.id || "",
-                };
-              })
-            }
+            onValueChange={mainCascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
@@ -364,15 +369,15 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.mainResponsibleUserId}
-            onValueChange={(value) =>
-              setState((current) => ({ ...current, mainResponsibleUserId: value }))
-            }
+            onValueChange={mainCascade.handleEmployeeChange}
+            open={mainCascade.employeeOpen}
+            onOpenChange={mainCascade.setEmployeeOpen}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
-              {filterUsersByBucket(props.users, state.mainResponsibleTitle).map(
+              {mainCandidates.map(
                 (user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
@@ -447,21 +452,7 @@ function DocumentSettingsDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={state.mainResponsibleTitle}
-              onValueChange={(value) =>
-                setState((current) => {
-                  const candidates = filterUsersByBucket(props.users, value);
-                  const stillValid =
-                    current.mainResponsibleUserId &&
-                    candidates.some((u) => u.id === current.mainResponsibleUserId);
-                  return {
-                    ...current,
-                    mainResponsibleTitle: value,
-                    mainResponsibleUserId: stillValid
-                      ? current.mainResponsibleUserId
-                      : candidates[0]?.id || "",
-                  };
-                })
-              }
+              onValueChange={mainCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -475,15 +466,15 @@ function DocumentSettingsDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
             <Select
               value={state.mainResponsibleUserId}
-              onValueChange={(value) =>
-                setState((current) => ({ ...current, mainResponsibleUserId: value }))
-              }
+              onValueChange={mainCascade.handleEmployeeChange}
+              open={mainCascade.employeeOpen}
+              onOpenChange={mainCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {filterUsersByBucket(props.users, state.mainResponsibleTitle).map((user) => (
+                {mainCandidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -523,6 +514,18 @@ function AddResponsibleDialog(props: {
 }) {
   const [title, setTitle] = useState("");
   const [userId, setUserId] = useState("");
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: title,
+    userId,
+    onChange: (next) => {
+      setTitle(next.positionTitle);
+      setUserId(next.userId);
+    },
+    resolveCandidates: (bucket) => filterUsersByBucket(props.users, bucket),
+    autoPick: "first",
+  });
+  const candidates = title ? cascade.candidates : props.users;
 
   return (
     <Dialog
@@ -548,15 +551,7 @@ function AddResponsibleDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={title}
-              onValueChange={(value) => {
-                setTitle(value);
-                const candidates = filterUsersByBucket(props.users, value);
-                if (userId && !candidates.some((u) => u.id === userId)) {
-                  setUserId(candidates[0]?.id || "");
-                } else if (!userId && candidates[0]) {
-                  setUserId(candidates[0].id);
-                }
-              }}
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -568,12 +563,17 @@ function AddResponsibleDialog(props: {
           </div>
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-            <Select value={userId} onValueChange={setUserId}>
+            <Select
+              value={userId}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {filterUsersByBucket(props.users, title).map((user) => (
+                {candidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

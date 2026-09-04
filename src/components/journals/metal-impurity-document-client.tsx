@@ -54,7 +54,11 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  EMPTY_SELECT_VALUE,
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
@@ -182,16 +186,31 @@ function RowDialog({
   const [materialOptions, setMaterialOptions] = useState<MetalImpurityOption[]>([]);
   const [supplierOptions, setSupplierOptions] = useState<MetalImpurityOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const employeeOptions = useMemo(
-    () =>
+  const rowCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: draftPosition,
+    userId: draftEmployeeId,
+    onChange: (next) => {
+      const user = users.find((item) => item.id === next.userId) || null;
+      setDraftPosition(next.positionTitle);
+      setDraftEmployeeId(next.userId);
+      setDraft((current) => ({
+        ...current,
+        responsibleRole: next.positionTitle,
+        responsibleEmployeeId: next.userId || null,
+        responsibleName: user?.name || "",
+      }));
+    },
+    resolveCandidates: (roleLabel) =>
       getMetalImpurityEmployeeOptions(
         users,
-        draftPosition,
+        roleLabel,
         draftEmployeeId || responsibleEmployeeId || null,
         [responsibleEmployeeId, draft.responsibleEmployeeId]
       ),
-    [draft.responsibleEmployeeId, draftEmployeeId, draftPosition, responsibleEmployeeId, users]
-  );
+    autoPick: "first",
+  });
+  const employeeOptions = rowCascade.candidates;
 
   useEffect(() => {
     if (!open) return;
@@ -332,21 +351,7 @@ function RowDialog({
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
             <Select
               value={draftPosition}
-              onValueChange={(value) => {
-                const nextEmployee =
-                  getMetalImpurityEmployeeOptions(users, value, draftEmployeeId, [
-                    responsibleEmployeeId,
-                    draft.responsibleEmployeeId,
-                  ])[0] || null;
-                setDraftPosition(value);
-                setDraftEmployeeId(nextEmployee?.id || "");
-                setDraft((current) => ({
-                  ...current,
-                  responsibleRole: value,
-                  responsibleEmployeeId: nextEmployee?.id || null,
-                  responsibleName: nextEmployee?.name || "",
-                }));
-              }}
+              onValueChange={rowCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -360,27 +365,16 @@ function RowDialog({
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
             <Select
-              value={draftEmployeeId || "__empty__"}
-              onValueChange={(value) => {
-                if (value === "__empty__") {
-                  setDraftEmployeeId("");
-                  setDraft({ ...draft, responsibleEmployeeId: null, responsibleName: "" });
-                  return;
-                }
-                const user = users.find((item) => item.id === value) || null;
-                setDraftEmployeeId(value);
-                setDraft({
-                  ...draft,
-                  responsibleEmployeeId: value,
-                  responsibleName: user?.name || "",
-                });
-              }}
+              value={draftEmployeeId || EMPTY_SELECT_VALUE}
+              onValueChange={rowCascade.handleEmployeeChange}
+              open={rowCascade.employeeOpen}
+              onOpenChange={rowCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__empty__">- Выберите значение -</SelectItem>
+                <SelectItem value={EMPTY_SELECT_VALUE}>- Выберите значение -</SelectItem>
                 {employeeOptions.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {buildStaffOptionLabel(employee)}
@@ -456,16 +450,34 @@ function SettingsDialog({
     setSubmitting(false);
   }, [config, open, title]);
 
-  const filteredEmployees = useMemo(
-    () =>
+  const settingsCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: draftConfig.responsiblePosition,
+    userId: draftConfig.responsibleEmployeeId || "",
+    onChange: (next) =>
+      setDraftConfig((current) => {
+        const user = users.find((item) => item.id === next.userId) || null;
+        return {
+          ...current,
+          responsiblePosition: next.positionTitle,
+          responsibleEmployeeId: next.userId || null,
+          responsibleEmployee: user
+            ? user.name
+            : next.positionTitle !== current.responsiblePosition
+              ? current.responsibleEmployee
+              : "",
+        };
+      }),
+    resolveCandidates: (roleLabel) =>
       getMetalImpurityEmployeeOptions(
         users,
-        draftConfig.responsiblePosition,
+        roleLabel,
         draftConfig.responsibleEmployeeId || null,
         employeeOptions.map((employee) => employee.id)
       ),
-    [draftConfig.responsibleEmployeeId, draftConfig.responsiblePosition, employeeOptions, users]
-  );
+    autoPick: "first",
+  });
+  const filteredEmployees = settingsCascade.candidates;
 
   useEffect(() => {
     if (!open || filteredEmployees.length === 0) return;
@@ -529,17 +541,7 @@ function SettingsDialog({
           </Label>
           <Select
             value={draftConfig.responsiblePosition}
-            onValueChange={(value) => {
-              const nextEmployee =
-                getMetalImpurityEmployeeOptions(users, value, draftConfig.responsibleEmployeeId)[0] ||
-                null;
-              setDraftConfig({
-                ...draftConfig,
-                responsiblePosition: value,
-                responsibleEmployeeId: nextEmployee?.id || draftConfig.responsibleEmployeeId || null,
-                responsibleEmployee: nextEmployee?.name || draftConfig.responsibleEmployee,
-              });
-            }}
+            onValueChange={settingsCascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
@@ -554,29 +556,16 @@ function SettingsDialog({
             Сотрудник
           </Label>
           <Select
-            value={draftConfig.responsibleEmployeeId || "__empty__"}
-            onValueChange={(value) => {
-              if (value === "__empty__") {
-                setDraftConfig({
-                  ...draftConfig,
-                  responsibleEmployeeId: null,
-                  responsibleEmployee: "",
-                });
-                return;
-              }
-              const user = users.find((item) => item.id === value) || null;
-              setDraftConfig({
-                ...draftConfig,
-                responsibleEmployeeId: value,
-                responsibleEmployee: user?.name || "",
-              });
-            }}
+            value={draftConfig.responsibleEmployeeId || EMPTY_SELECT_VALUE}
+            onValueChange={settingsCascade.handleEmployeeChange}
+            open={settingsCascade.employeeOpen}
+            onOpenChange={settingsCascade.setEmployeeOpen}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__empty__">— не выбран —</SelectItem>
+              <SelectItem value={EMPTY_SELECT_VALUE}>— не выбран —</SelectItem>
               {filteredEmployees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
                   {buildStaffOptionLabel(employee)}
@@ -624,17 +613,7 @@ function SettingsDialog({
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
             <Select
               value={draftConfig.responsiblePosition}
-              onValueChange={(value) => {
-                const nextEmployee =
-                  getMetalImpurityEmployeeOptions(users, value, draftConfig.responsibleEmployeeId)[0] ||
-                  null;
-                setDraftConfig({
-                  ...draftConfig,
-                  responsiblePosition: value,
-                  responsibleEmployeeId: nextEmployee?.id || draftConfig.responsibleEmployeeId || null,
-                  responsibleEmployee: nextEmployee?.name || draftConfig.responsibleEmployee,
-                });
-              }}
+              onValueChange={settingsCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -647,29 +626,16 @@ function SettingsDialog({
           <div className="space-y-3">
             <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
             <Select
-              value={draftConfig.responsibleEmployeeId || "__empty__"}
-              onValueChange={(value) => {
-                if (value === "__empty__") {
-                  setDraftConfig({
-                    ...draftConfig,
-                    responsibleEmployeeId: null,
-                    responsibleEmployee: "",
-                  });
-                  return;
-                }
-                const user = users.find((item) => item.id === value) || null;
-                setDraftConfig({
-                  ...draftConfig,
-                  responsibleEmployeeId: value,
-                  responsibleEmployee: user?.name || "",
-                });
-              }}
+              value={draftConfig.responsibleEmployeeId || EMPTY_SELECT_VALUE}
+              onValueChange={settingsCascade.handleEmployeeChange}
+              open={settingsCascade.employeeOpen}
+              onOpenChange={settingsCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__empty__">- Выберите значение -</SelectItem>
+                <SelectItem value={EMPTY_SELECT_VALUE}>- Выберите значение -</SelectItem>
                 {filteredEmployees.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {buildStaffOptionLabel(employee)}

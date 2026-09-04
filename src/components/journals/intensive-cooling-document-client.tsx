@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUsersForRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES } from "@/lib/user-roles";
 import {
   Select,
   SelectContent,
@@ -49,7 +49,10 @@ import {
 } from "@/lib/intensive-cooling-document";
 
 import { toast } from "sonner";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -138,6 +141,19 @@ function RowDialog(props: {
   ) {
     setRow((current) => ({ ...current, [key]: value }));
   }
+
+  const responsibleCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: row.responsibleTitle,
+    userId: row.responsibleUserId,
+    onChange: (next) =>
+      setRow((current) => ({
+        ...current,
+        responsibleTitle: next.positionTitle,
+        responsibleUserId: next.userId,
+      })),
+    autoPick: "first",
+  });
 
   async function handleSave() {
     setSubmitting(true);
@@ -261,22 +277,7 @@ function RowDialog(props: {
             </Label>
             <Select
               value={row.responsibleTitle || "__empty__"}
-              onValueChange={(value) => {
-                const nextTitle = value === "__empty__" ? "" : value;
-                setRow((current) => {
-                  const candidates = nextTitle ? getUsersForRoleLabel(props.users, nextTitle) : props.users;
-                  const stillValid = !current.responsibleUserId || candidates.some((u) => u.id === current.responsibleUserId);
-                  return {
-                    ...current,
-                    responsibleTitle: nextTitle,
-                    responsibleUserId: stillValid
-                      ? current.responsibleUserId
-                      : nextTitle
-                        ? candidates[0]?.id || ""
-                        : "",
-                  };
-                });
-              }}
+              onValueChange={responsibleCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                 <SelectValue placeholder="Лицо, проводившее контроль" />
@@ -305,13 +306,15 @@ function RowDialog(props: {
                     current.responsibleTitle || getResponsibleTitleByRole(user?.role),
                 }));
               }}
+              open={responsibleCascade.employeeOpen}
+              onOpenChange={responsibleCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
                 <SelectValue placeholder="Сотрудник" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-                {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle, { keepUserId: row.responsibleUserId }) : props.users).map((user) => (
+                {(row.responsibleTitle ? responsibleCascade.candidates : props.users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>

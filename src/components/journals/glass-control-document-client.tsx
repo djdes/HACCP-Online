@@ -21,7 +21,7 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { usePositionEmployeeCascade } from "@/components/shared/position-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -199,6 +199,17 @@ function GlassControlSettingsDialog(props: {
     () => getGlassControlResponsibleOptions(props.users),
     [props.users]
   );
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: responsibleTitle,
+    userId: responsibleUserId,
+    onChange: (next) => {
+      setResponsibleTitle(next.positionTitle);
+      setResponsibleUserId(next.userId);
+    },
+    autoPick: "first",
+  });
+  const employeeCandidates = responsibleTitle ? cascade.candidates : props.users;
 
   useEffect(() => {
     if (!props.open) return;
@@ -277,15 +288,7 @@ function GlassControlSettingsDialog(props: {
           </Label>
           <Select
             value={responsibleTitle}
-            onValueChange={(value) => {
-              setResponsibleTitle(value);
-              const candidates = getUsersForRoleLabel(props.users, value);
-              if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
-                setResponsibleUserId(candidates[0]?.id || "");
-              } else if (!responsibleUserId && candidates[0]) {
-                setResponsibleUserId(candidates[0].id);
-              }
-            }}
+            onValueChange={cascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
@@ -303,12 +306,17 @@ function GlassControlSettingsDialog(props: {
           <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
             Сотрудник
           </Label>
-          <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+          <Select
+            value={responsibleUserId}
+            onValueChange={cascade.handleEmployeeChange}
+            open={cascade.employeeOpen}
+            onOpenChange={cascade.setEmployeeOpen}
+          >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
-              {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map(
+              {employeeCandidates.map(
                 (user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
@@ -371,15 +379,7 @@ function GlassControlSettingsDialog(props: {
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
-              onValueChange={(value) => {
-                setResponsibleTitle(value);
-                const candidates = getUsersForRoleLabel(props.users, value);
-                if (responsibleUserId && !candidates.some((u) => u.id === responsibleUserId)) {
-                  setResponsibleUserId(candidates[0]?.id || "");
-                } else if (!responsibleUserId && candidates[0]) {
-                  setResponsibleUserId(candidates[0].id);
-                }
-              }}
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -396,15 +396,17 @@ function GlassControlSettingsDialog(props: {
 
           <div className="space-y-1">
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
-            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+            <Select
+              value={responsibleUserId}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle
-                  ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId })
-                  : props.users
-                ).map((user) => (
+                {employeeCandidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}
                   </SelectItem>
@@ -449,6 +451,22 @@ function RowDialog(props: {
     () => getGlassControlResponsibleOptions(props.users),
     [props.users]
   );
+  // P0-fix: keepUserId (дефолт хука) сохраняет уже выбранного сотрудника в
+  // dropdown даже если его должность не совпадает с filter'ом.
+  // Без этого после сохранения row'а с employee≠title — dialog
+  // показывал пустое значение «Сотрудник», и manager думал
+  // что данные не сохранились.
+  const rowCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: draftTitle,
+    userId: draft.employeeId,
+    onChange: (next) => {
+      setDraftTitle(next.positionTitle);
+      setDraft((prev) => ({ ...prev, employeeId: next.userId }));
+    },
+    autoPick: "none",
+  });
+  const employeeCandidates = draftTitle ? rowCascade.candidates : props.users;
 
   useEffect(() => {
     if (!props.open) return;
@@ -531,7 +549,7 @@ function RowDialog(props: {
             <Label className="text-[16px] text-[#6f7282]">Должность ответственного</Label>
             <Select
               value={draftTitle}
-              onValueChange={setDraftTitle}
+              onValueChange={rowCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -550,31 +568,19 @@ function RowDialog(props: {
             <Label className="text-[16px] text-[#6f7282]">Сотрудник</Label>
             <Select
               value={draft.employeeId}
-              onValueChange={(value) =>
-                setDraft((prev) => ({ ...prev, employeeId: value }))
-              }
+              onValueChange={rowCascade.handleEmployeeChange}
+              open={rowCascade.employeeOpen}
+              onOpenChange={rowCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
-                {(() => {
-                  // P0-fix: keepUserId сохраняет уже выбранного сотрудника в
-                  // dropdown даже если его должность не совпадает с filter'ом.
-                  // Без этого после сохранения row'а с employee≠title — dialog
-                  // показывал пустое значение «Сотрудник», и manager думал
-                  // что данные не сохранились.
-                  return (draftTitle
-                    ? getUsersForRoleLabel(props.users, draftTitle, {
-                        keepUserId: draft.employeeId,
-                      })
-                    : props.users
-                  ).map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ));
-                })()}
+                {employeeCandidates.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

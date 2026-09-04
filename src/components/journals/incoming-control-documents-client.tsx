@@ -59,6 +59,7 @@ import {
   readControlPeriodicity,
 } from "@/lib/control-periodicity";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 
 type User = { id: string; name: string; role: string };
 
@@ -121,7 +122,8 @@ function getDefaultDialogState(
   });
 
   return {
-    // Название пустое: пользователь вводит своё (S7 аудита).
+    // Название при создании подставляет диалог: имя журнала + период
+    // (`useAutoDocumentTitle`, просьба владельца 2026-09-04).
     title: "",
     startDate: localDayKey(),
     expiryFieldLabel: config.expiryFieldLabel,
@@ -141,6 +143,8 @@ function SettingsDialog({
   users,
   showExpiryLabelChoice,
   requireTitle,
+  templateCode,
+  journalName,
   onSubmit,
 }: {
   open: boolean;
@@ -149,6 +153,8 @@ function SettingsDialog({
   submitLabel: string;
   initial: DialogState;
   users: User[];
+  templateCode: string;
+  journalName: string;
   /**
    * Выбор подписи колонки срока имеет смысл только для журнала входного
    * контроля СЫРЬЯ. В журнале приёмки продукции колонка называется
@@ -156,20 +162,35 @@ function SettingsDialog({
    * incoming_control-grid.png).
    */
   showExpiryLabelChoice: boolean;
-  /** Создание: название обязательно и приходит пустым (S7 аудита). */
+  /**
+   * Создание: название обязательно; подставляется автоматически из
+   * имени журнала и периода (просьба владельца 2026-09-04), человек
+   * может переписать.
+   */
   requireTitle?: boolean;
   onSubmit: (value: DialogState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
   const [titleError, setTitleError] = useState("");
+  const auto = useAutoDocumentTitle({
+    templateCode,
+    journalName,
+    period: { dateFrom: state.startDate },
+    enabled: !!requireTitle,
+  });
+
+  // Колбэки хука стабильны (useCallback); сам объект — нет, поэтому в
+  // deps идут именно они, иначе эффект сбрасывал бы форму на каждый ввод.
+  const { reset: resetAutoTitle, seedTitle } = auto;
 
   useEffect(() => {
     if (!open) return;
-    setState(initial);
+    resetAutoTitle();
+    setState({ ...initial, title: initial.title || seedTitle() });
     setSubmitting(false);
     setTitleError("");
-  }, [initial, open]);
+  }, [initial, open, resetAutoTitle, seedTitle]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -183,6 +204,7 @@ function SettingsDialog({
             placeholder="Введите название документа"
             value={state.title}
             onChange={(value) => {
+              auto.markTouched();
               setState({ ...state, title: value });
               if (titleError) setTitleError("");
             }}
@@ -191,7 +213,14 @@ function SettingsDialog({
           <DateField
             label="Дата начала"
             value={state.startDate}
-            onChange={(value) => setState({ ...state, startDate: value })}
+            onChange={(value) => {
+              const next = auto.titleForPeriod({ dateFrom: value });
+              setState((current) => ({
+                ...current,
+                startDate: value,
+                ...(next !== null ? { title: next } : {}),
+              }));
+            }}
           />
           {showExpiryLabelChoice ? (
             <FloatingLabelField label="Колонка срока">
@@ -548,6 +577,8 @@ export function IncomingControlDocumentsClient({
         users={users}
         showExpiryLabelChoice={!isProductAcceptance}
         requireTitle
+        templateCode={templateCode}
+        journalName={defaultDocumentTitle}
         onSubmit={createDocument}
       />
 
@@ -583,6 +614,8 @@ export function IncomingControlDocumentsClient({
         }
         users={users}
         showExpiryLabelChoice={!isProductAcceptance}
+        templateCode={templateCode}
+        journalName={defaultDocumentTitle}
         onSubmit={async (value) => {
           if (!settingsDocument) return;
           await saveSettings(settingsDocument, value);

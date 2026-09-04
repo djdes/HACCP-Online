@@ -21,6 +21,7 @@ import {
   normalizeAuditProtocolConfig,
 } from "@/lib/audit-protocol-document";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 
 import { toast } from "sonner";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
@@ -61,6 +62,7 @@ function DocumentDialog({
   title,
   initial,
   submitLabel,
+  mode,
   onSubmit,
 }: {
   open: boolean;
@@ -68,17 +70,30 @@ function DocumentDialog({
   title: string;
   initial: SettingsState;
   submitLabel: string;
+  /** Создание — название подставляется автоматически (просьба владельца 2026-09-04). */
+  mode: "create" | "edit";
   onSubmit: (value: SettingsState) => Promise<void>;
 }) {
   const [state, setState] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
+  const auto = useAutoDocumentTitle({
+    templateCode: AUDIT_PROTOCOL_TEMPLATE_CODE,
+    journalName: AUDIT_PROTOCOL_DOCUMENT_TITLE,
+    period: { dateFrom: state.documentDate },
+    enabled: mode === "create",
+  });
+  // Колбэки хука стабильны, объект — нет: в deps только колбэки.
+  const { reset: resetAutoTitle, seedTitle } = auto;
 
   useEffect(() => {
     if (open) {
-      setState(initial);
+      resetAutoTitle();
+      // В create-режиме `initial.title` — константа, поэтому автоназвание
+      // важнее; в edit-режиме хук отключён и вернёт "".
+      setState({ ...initial, title: seedTitle() || initial.title });
       setSubmitting(false);
     }
-  }, [initial, open]);
+  }, [initial, open, resetAutoTitle, seedTitle]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,7 +106,10 @@ function DocumentDialog({
             <Label className="text-[14px] text-[#73738a]">Название документа</Label>
             <Input
               value={state.title}
-              onChange={(event) => setState({ ...state, title: event.target.value })}
+              onChange={(event) => {
+                auto.markTouched();
+                setState({ ...state, title: event.target.value });
+              }}
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
@@ -100,7 +118,15 @@ function DocumentDialog({
             <Input
               type="date"
               value={state.documentDate}
-              onChange={(event) => setState({ ...state, documentDate: event.target.value })}
+              onChange={(event) => {
+                const value = event.target.value;
+                const next = auto.titleForPeriod({ dateFrom: value });
+                setState((current) => ({
+                  ...current,
+                  documentDate: value,
+                  ...(next !== null ? { title: next } : {}),
+                }));
+              }}
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
@@ -163,6 +189,19 @@ export function AuditProtocolDocumentsClient({
       auditedObject: config.auditedObject,
     };
   }, []);
+
+  // Мемоизируем: `initial` — зависимость эффекта сброса в диалоге, литерал
+  // на каждый рендер перетирал бы ввод.
+  const settingsState = useMemo<SettingsState>(() => {
+    if (!settingsDocument) return createState;
+    const config = normalizeAuditProtocolConfig(settingsDocument.config);
+    return {
+      title: settingsDocument.title,
+      documentDate: config.documentDate,
+      basisTitle: config.basisTitle,
+      auditedObject: config.auditedObject,
+    };
+  }, [createState, settingsDocument]);
 
   async function createDocument(payload: SettingsState) {
     const config = {
@@ -340,7 +379,7 @@ export function AuditProtocolDocumentsClient({
         </div>
       </div>
 
-      <DocumentDialog open={createOpen} onOpenChange={setCreateOpen} title="Создание документа" initial={createState} submitLabel="Создать" onSubmit={createDocument} />
+      <DocumentDialog open={createOpen} onOpenChange={setCreateOpen} title="Создание документа" initial={createState} submitLabel="Создать" mode="create" onSubmit={createDocument} />
 
       <DocumentDialog
         open={!!settingsDocument}
@@ -348,22 +387,9 @@ export function AuditProtocolDocumentsClient({
           if (!open) setSettingsDocument(null);
         }}
         title="Настройки документа"
-        initial={
-          settingsDocument
-            ? {
-                title: settingsDocument.title,
-                ...(() => {
-                  const config = normalizeAuditProtocolConfig(settingsDocument.config);
-                  return {
-                    documentDate: config.documentDate,
-                    basisTitle: config.basisTitle,
-                    auditedObject: config.auditedObject,
-                  };
-                })(),
-              }
-            : createState
-        }
+        initial={settingsState}
         submitLabel="Сохранить"
+        mode="edit"
         onSubmit={async (value) => {
           if (!settingsDocument) return;
           await saveDocument(settingsDocument, value);

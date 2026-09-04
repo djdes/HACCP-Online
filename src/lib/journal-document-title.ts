@@ -11,6 +11,7 @@
  * Функции здесь чистые (никакого `new Date()` без аргументов), чтобы их
  * можно было звать прямо в обработчиках диалога и покрыть юнит-тестом.
  */
+import { resolveJournalPeriodKind } from "@/lib/journal-period";
 
 /** Месяцы в родительном падеже: «1 сентября 2026». */
 const MONTHS_GENITIVE = [
@@ -150,4 +151,110 @@ export function buildJournalDocumentTitle(input: {
   if (!name) return period;
   if (!period) return name;
   return `${name}${NAME_SEPARATOR}${period}`;
+}
+
+/**
+ * Период ДЛЯ НАЗВАНИЯ документа по типу журнала (`journal-period.ts`).
+ *
+ * Диалоги создания шлют на сервер то, что у них есть (годовые — один
+ * день «Дата документа», месячные — «Дата начала»), а название должно
+ * отражать период журнала: «2026 год», «сентябрь 2026», «1–15 сентября
+ * 2026». Бессрочные журналы (дез. средства, интенсивное охлаждение,
+ * стеклоконтроль) периода в названии не имеют — `null`.
+ *
+ * - `yearly`       → весь год: из `year`, иначе из года `dateFrom`
+ * - `perpetual`    → `null`
+ * - `half-monthly` → как пришло (bounds уже полумесячные)
+ * - `single-day`   → один день `dateFrom`
+ * - `monthly`/…    → если пришла одна дата (или `dateTo === dateFrom`) —
+ *                    её календарный месяц; реальный диапазон — как есть
+ */
+export function getDocumentTitlePeriod(
+  templateCode: string,
+  input: {
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    year?: string | number | null;
+  }
+): { dateFrom: string; dateTo: string } | null {
+  const kind = resolveJournalPeriodKind(templateCode);
+  if (kind === "perpetual") return null;
+
+  const from = normalizeIsoDay(input.dateFrom);
+  const to = normalizeIsoDay(input.dateTo);
+
+  if (kind === "yearly") {
+    const explicitYear = Number(input.year);
+    const year =
+      Number.isInteger(explicitYear) && explicitYear >= 1970
+        ? explicitYear
+        : from
+          ? Number(from.slice(0, 4))
+          : null;
+    if (!year) return null;
+    return { dateFrom: `${year}-01-01`, dateTo: `${year}-12-31` };
+  }
+
+  if (!from) return null;
+  if (kind === "half-monthly") return { dateFrom: from, dateTo: to || from };
+  if (kind === "single-day") return { dateFrom: from, dateTo: from };
+
+  if (!to || to === from) {
+    const parsed = parseIsoDate(from);
+    if (!parsed) return null;
+    const mm = String(parsed.month).padStart(2, "0");
+    const last = String(daysInMonth(parsed.year, parsed.month)).padStart(2, "0");
+    return {
+      dateFrom: `${parsed.year}-${mm}-01`,
+      dateTo: `${parsed.year}-${mm}-${last}`,
+    };
+  }
+  return { dateFrom: from, dateTo: to };
+}
+
+/** `YYYY-MM-DD` из строки (полный ISO тоже подходит); мусор → `""`. */
+function normalizeIsoDay(value: string | null | undefined): string {
+  if (typeof value !== "string") return "";
+  const day = value.trim().slice(0, 10);
+  return parseIsoDate(day) ? day : "";
+}
+
+/**
+ * Уникальное название среди уже существующих: «Журнал уборки — 1–15
+ * сентября 2026 (2)». Управляющая заводит несколько документов за один
+ * период («Уборка кухни», «Уборка зала») — одинаковый дефолт давал
+ * список клонов с одним именем (решение P8). Регистр и пробелы по краям
+ * не учитываются.
+ */
+export function uniqueDocumentTitle(base: string, existing: Iterable<string>): string {
+  const taken = new Set(Array.from(existing, (t) => t.trim().toLowerCase()));
+  const clean = base.trim();
+  if (!clean || !taken.has(clean.toLowerCase())) return clean;
+  for (let n = 2; n < 1000; n += 1) {
+    const candidate = `${clean} (${n})`;
+    if (!taken.has(candidate.toLowerCase())) return candidate;
+  }
+  return clean;
+}
+
+/**
+ * Автоназвание для диалога создания: имя журнала + период по типу
+ * журнала + суффикс уникальности. Единая точка для всех диалогов и
+ * серверного fallback.
+ */
+export function buildDocumentAutoTitle(input: {
+  templateCode: string;
+  journalName: string;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  year?: string | number | null;
+  existingTitles?: Iterable<string>;
+}): string {
+  const period = getDocumentTitlePeriod(input.templateCode, input);
+  const base = buildJournalDocumentTitle({
+    journalName: input.journalName,
+    dateFrom: period?.dateFrom,
+    dateTo: period?.dateTo,
+  });
+  return input.existingTitles ? uniqueDocumentTitle(base, input.existingTitles) : base;
 }

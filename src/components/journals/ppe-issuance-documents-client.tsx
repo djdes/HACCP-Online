@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpenText,
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import {
   PPE_ISSUANCE_DOCUMENT_TITLE,
+  PPE_ISSUANCE_TEMPLATE_CODE,
   getPpeIssuanceDefaultConfig,
   normalizePpeIssuanceConfig,
   type PpeIssuanceConfig,
@@ -55,6 +56,7 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = { id: string; name: string; role: string };
 
@@ -111,6 +113,8 @@ function toSettingsState(document: DocumentItem, users: UserItem[]): SettingsSta
 function defaultCreateState(users: UserItem[]): SettingsState {
   const config = getPpeIssuanceDefaultConfig(users);
   return {
+    // Название подставляется автоматически из имени журнала + периода
+    // (`useAutoDocumentTitle`, просьба владельца 2026-09-04).
     title: "",
     dateFrom: localDayKey(),
     showGloves: false,
@@ -161,11 +165,40 @@ function SettingsDialog(props: {
   users: UserItem[];
   initial: SettingsState | null;
   onSubmit: (value: SettingsState) => Promise<void>;
+  mode: "create" | "edit";
 }) {
   const [state, setState] = useState<SettingsState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const titles = useMemo(() => roleOptions(props.users), [props.users]);
   const active = state || props.initial;
+
+  const auto = useAutoDocumentTitle({
+    templateCode: PPE_ISSUANCE_TEMPLATE_CODE,
+    journalName: PPE_ISSUANCE_DOCUMENT_TITLE,
+    period: { dateFrom: active?.dateFrom },
+    enabled: props.mode === "create",
+  });
+
+  /**
+   * Сброс и автоназвание — на открытии по `props.open`, а не в
+   * `Dialog.onOpenChange`: тот не срабатывает при программном
+   * `setCreateOpen(true)`. `initial` читаем через ref, чтобы нестабильный
+   * объект из родителя не сбрасывал форму на каждом рендере.
+   */
+  const initialRef = useRef(props.initial);
+  useEffect(() => {
+    initialRef.current = props.initial;
+  });
+  const { reset: resetAuto, seedTitle } = auto;
+  useEffect(() => {
+    if (!props.open) {
+      setState(null);
+      return;
+    }
+    const initial = initialRef.current;
+    resetAuto();
+    setState(initial ? { ...initial, title: initial.title || seedTitle() } : initial);
+  }, [props.open, resetAuto, seedTitle]);
 
   async function handleSubmit() {
     if (!active) return;
@@ -181,10 +214,7 @@ function SettingsDialog(props: {
   return (
     <Dialog
       open={props.open}
-      onOpenChange={(value) => {
-        if (value) setState(props.initial);
-        props.onOpenChange(value);
-      }}
+      onOpenChange={props.onOpenChange}
     >
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
@@ -208,7 +238,10 @@ function SettingsDialog(props: {
               <Input
                 value={active.title}
                 placeholder="Введите название документа"
-                onChange={(e) => setState({ ...active, title: e.target.value })}
+                onChange={(e) => {
+                  auto.markTouched();
+                  setState({ ...active, title: e.target.value });
+                }}
                 className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
@@ -218,7 +251,15 @@ function SettingsDialog(props: {
                 <Input
                   type="date"
                   value={active.dateFrom}
-                  onChange={(e) => setState({ ...active, dateFrom: e.target.value })}
+                  onChange={(e) => {
+                    const dateFrom = e.target.value;
+                    const next = auto.titleForPeriod({ dateFrom });
+                    setState({
+                      ...active,
+                      dateFrom,
+                      ...(next !== null ? { title: next } : {}),
+                    });
+                  }}
                   className="h-9 rounded-xl border-[#d8dae6] px-7 pr-14 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-6 top-1/2 size-7 -translate-y-1/2 text-[#6e7080]" />
@@ -354,6 +395,7 @@ export function PpeIssuanceDocumentsClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsTarget, setSettingsTarget] = useState<DocumentItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentItem | null>(null);
+  const createInitial = useMemo(() => defaultCreateState(users), [users]);
 
   async function createDocument(value: SettingsState) {
     const config: PpeIssuanceConfig = {
@@ -560,8 +602,9 @@ export function PpeIssuanceDocumentsClient({
         title="Создание документа"
         submitText="Создать"
         users={users}
-        initial={defaultCreateState(users)}
+        initial={createInitial}
         onSubmit={createDocument}
+        mode="create"
       />
 
       <SettingsDialog
@@ -576,6 +619,7 @@ export function PpeIssuanceDocumentsClient({
         onSubmit={async (value) => {
           if (settingsTarget) await saveSettings(settingsTarget.id, value);
         }}
+        mode="edit"
       />
 
       <DeleteDialog

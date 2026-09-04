@@ -40,7 +40,6 @@ import {
   type StaffTrainingRow,
 } from "@/lib/staff-training-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -55,7 +54,10 @@ import {
 import { toast } from "sonner";
 import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
@@ -114,6 +116,22 @@ export function StaffTrainingDocumentClient({
         : "",
     })
   );
+  const draftCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: draftRow.employeePosition,
+    userId: draftRow.employeeId || "",
+    onChange: (next) =>
+      setDraftRow((prev) => {
+        const user = next.userId ? users.find((u) => u.id === next.userId) : undefined;
+        return {
+          ...prev,
+          employeePosition: next.positionTitle,
+          employeeId: user?.id || null,
+          employeeName: user?.name || "",
+        };
+      }),
+    autoPick: "none",
+  });
 
   const isClosed = status === "closed";
   // История отмены: только правки этого человека в этой вкладке.
@@ -650,21 +668,7 @@ export function StaffTrainingDocumentClient({
             <Label>Должность инструктируемого</Label>
             <Select
               value={draftRow.employeePosition}
-              onValueChange={(val) =>
-                setDraftRow((prev) => {
-                  const candidates = getUsersForRoleLabel(users, val);
-                  const stillValid = prev.employeeId
-                    ? candidates.some((u) => u.id === prev.employeeId)
-                    : true;
-                  return {
-                    ...prev,
-                    employeePosition: val,
-                    ...(stillValid
-                      ? {}
-                      : { employeeId: null, employeeName: "" }),
-                  };
-                })
-              }
+              onValueChange={draftCascade.handlePositionChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="- Выберите значение -" />
@@ -688,13 +692,15 @@ export function StaffTrainingDocumentClient({
                     : prev.employeePosition,
                 }));
               }}
+              open={draftCascade.employeeOpen}
+              onOpenChange={draftCascade.setEmployeeOpen}
             >
               <SelectTrigger>
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-                {(draftRow.employeePosition ? getUsersForRoleLabel(users, draftRow.employeePosition) : users).map((user) => (
+                {(draftRow.employeePosition ? draftCascade.candidates : users).map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {buildStaffOptionLabel(user)}
                   </SelectItem>

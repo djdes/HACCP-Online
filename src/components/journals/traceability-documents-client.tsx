@@ -39,6 +39,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 type TraceabilityDocumentItem = {
   id: string;
   title: string;
@@ -110,6 +111,8 @@ function buildConfig(state: TraceabilityFormState, baseConfig?: Record<string, u
 
 function TraceabilitySettingsDialog(props: {
   open: boolean;
+  mode: "create" | "edit";
+  templateCode: string;
   title: string;
   initial: TraceabilityFormState | null;
   submitLabel: string;
@@ -120,10 +123,25 @@ function TraceabilitySettingsDialog(props: {
   const [submitting, setSubmitting] = useState(false);
 
   const activeState = state || props.initial;
+  const auto = useAutoDocumentTitle({
+    templateCode: props.templateCode,
+    journalName: DEFAULT_TITLE,
+    period: { dateFrom: activeState?.dateFrom },
+    enabled: props.mode === "create",
+  });
 
+  const { initial, open, mode } = props;
+  const { reset: resetAutoTitle, titleForPeriod } = auto;
   useEffect(() => {
-    if (props.open) setState(props.initial);
-  }, [props.initial, props.open]);
+    if (!open) return;
+    resetAutoTitle();
+    if (!initial) {
+      setState(null);
+      return;
+    }
+    const seeded = mode === "create" ? titleForPeriod({ dateFrom: initial.dateFrom }) : null;
+    setState({ ...initial, title: seeded || initial.title });
+  }, [initial, open, mode, resetAutoTitle, titleForPeriod]);
 
   async function handleSubmit() {
     if (!activeState) return;
@@ -159,7 +177,10 @@ function TraceabilitySettingsDialog(props: {
               <Label className="text-[14px] text-[#7a7c8e]">Название документа</Label>
               <Input
                 value={activeState.title}
-                onChange={(e) => setState({ ...activeState, title: e.target.value })}
+                onChange={(e) => {
+                  auto.markTouched();
+                  setState({ ...activeState, title: e.target.value });
+                }}
                 placeholder="Введите название документа"
                 className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px] tracking-[-0.02em]"
               />
@@ -171,7 +192,15 @@ function TraceabilitySettingsDialog(props: {
                 <Input
                   type="date"
                   value={activeState.dateFrom}
-                  onChange={(e) => setState({ ...activeState, dateFrom: toIsoDate(e.target.value) })}
+                  onChange={(e) => {
+                    const dateFrom = toIsoDate(e.target.value);
+                    const next = auto.titleForPeriod({ dateFrom });
+                    setState({
+                      ...activeState,
+                      dateFrom,
+                      ...(next !== null ? { title: next } : {}),
+                    });
+                  }}
                   className="h-9 rounded-xl border-[#d8dae6] px-7 pr-14 text-[13.5px] tracking-[-0.02em]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-6 top-1/2 size-7 -translate-y-1/2 text-[#6e7080]" />
@@ -290,6 +319,14 @@ export function TraceabilityDocumentsClient({
   const [editingDocument, setEditingDocument] = useState<TraceabilityDocumentItem | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<TraceabilityDocumentItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TraceabilityDocumentItem | null>(null);
+  const autoTitleTemplateCode = templateCode || "traceability_test";
+
+  // Stable identities: both feed the dialog's `useEffect([initial, open])`.
+  const createInitialState = useMemo(() => readFormState(), []);
+  const editInitialState = useMemo(
+    () => (editingDocument ? readFormState(editingDocument) : null),
+    [editingDocument]
+  );
 
   const heading = useMemo(
     () =>
@@ -454,8 +491,10 @@ export function TraceabilityDocumentsClient({
 
       <TraceabilitySettingsDialog
         open={createOpen}
+        mode="create"
+        templateCode={autoTitleTemplateCode}
         title="Создание документа"
-        initial={readFormState()}
+        initial={createInitialState}
         submitLabel="Создать"
         onOpenChange={setCreateOpen}
         onSubmit={handleCreate}
@@ -463,8 +502,10 @@ export function TraceabilityDocumentsClient({
 
       <TraceabilitySettingsDialog
         open={!!editingDocument}
+        mode="edit"
+        templateCode={autoTitleTemplateCode}
         title="Настройки документа"
-        initial={editingDocument ? readFormState(editingDocument) : null}
+        initial={editInitialState}
         submitLabel="Сохранить"
         onOpenChange={(open) => !open && setEditingDocument(null)}
         onSubmit={handleSaveSettings}

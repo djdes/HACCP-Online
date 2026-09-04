@@ -24,8 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getDistinctRoleLabels, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
+import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
+import { usePositionEmployeeCascade } from "@/components/shared/position-select";
 import {
   DISINFECTANT_HEADING,
   DISINFECTANT_DOCUMENT_TITLE,
@@ -509,6 +510,27 @@ function ReceiptDialog(props: {
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
   const active = row || props.initial;
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: active?.responsibleRole ?? "",
+    userId: active?.responsibleEmployeeId ?? "",
+    onChange: (next) => {
+      if (!active) return;
+      const user = props.users.find((item) => item.id === next.userId);
+      setRow({
+        ...active,
+        responsibleRole: next.positionTitle,
+        responsibleEmployeeId: next.userId || null,
+        responsibleEmployee: user
+          ? user.name
+          : next.positionTitle !== active.responsibleRole
+            ? active.responsibleEmployee
+            : "",
+      });
+    },
+    resolveCandidates: (roleLabel) => usersForRole(props.users, roleLabel),
+    autoPick: "first",
+  });
 
   return (
     <Dialog
@@ -622,16 +644,7 @@ function ReceiptDialog(props: {
               </Label>
               <Select
                 value={active.responsibleRole}
-                onValueChange={(v) => {
-                  const user = usersForRole(props.users, v)[0];
-                  setRow({
-                    ...active,
-                    responsibleRole: v,
-                    responsibleEmployeeId: user?.id || null,
-                    responsibleEmployee:
-                      user?.name || active.responsibleEmployee,
-                  });
-                }}
+                onValueChange={cascade.handlePositionChange}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
@@ -649,21 +662,16 @@ function ReceiptDialog(props: {
               <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
               <Select
                 value={active.responsibleEmployeeId || "__empty__"}
-                onValueChange={(v) => {
-                  if (v === "__empty__") {
-                    setRow({ ...active, responsibleEmployeeId: null, responsibleEmployee: "" });
-                    return;
-                  }
-                  const user = props.users.find((item) => item.id === v);
-                  setRow({ ...active, responsibleEmployeeId: v, responsibleEmployee: user?.name || "" });
-                }}
+                onValueChange={cascade.handleEmployeeChange}
+                open={cascade.employeeOpen}
+                onOpenChange={cascade.setEmployeeOpen}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-                  {usersForRole(props.users, active.responsibleRole).map(
+                  {cascade.candidates.map(
                     (u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {buildStaffOptionLabel(u)}
@@ -712,6 +720,27 @@ function ConsumptionDialog(props: {
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
   const active = row || props.initial;
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: active?.responsibleRole ?? "",
+    userId: active?.responsibleEmployeeId ?? "",
+    onChange: (next) => {
+      if (!active) return;
+      const user = props.users.find((item) => item.id === next.userId);
+      setRow({
+        ...active,
+        responsibleRole: next.positionTitle,
+        responsibleEmployeeId: next.userId || null,
+        responsibleEmployee: user
+          ? user.name
+          : next.positionTitle !== active.responsibleRole
+            ? active.responsibleEmployee
+            : "",
+      });
+    },
+    resolveCandidates: (roleLabel) => usersForRole(props.users, roleLabel),
+    autoPick: "first",
+  });
 
   return (
     <Dialog
@@ -862,16 +891,7 @@ function ConsumptionDialog(props: {
               </Label>
               <Select
                 value={active.responsibleRole}
-                onValueChange={(v) => {
-                  const user = usersForRole(props.users, v)[0];
-                  setRow({
-                    ...active,
-                    responsibleRole: v,
-                    responsibleEmployeeId: user?.id || null,
-                    responsibleEmployee:
-                      user?.name || active.responsibleEmployee,
-                  });
-                }}
+                onValueChange={cascade.handlePositionChange}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
@@ -889,21 +909,16 @@ function ConsumptionDialog(props: {
               <Label className="text-[16px] text-[#73738a]">Сотрудник</Label>
               <Select
                 value={active.responsibleEmployeeId || "__empty__"}
-                onValueChange={(v) => {
-                  if (v === "__empty__") {
-                    setRow({ ...active, responsibleEmployeeId: null, responsibleEmployee: "" });
-                    return;
-                  }
-                  const user = props.users.find((item) => item.id === v);
-                  setRow({ ...active, responsibleEmployeeId: v, responsibleEmployee: user?.name || "" });
-                }}
+                onValueChange={cascade.handleEmployeeChange}
+                open={cascade.employeeOpen}
+                onOpenChange={cascade.setEmployeeOpen}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-                  {usersForRole(props.users, active.responsibleRole).map(
+                  {cascade.candidates.map(
                     (u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {buildStaffOptionLabel(u)}
@@ -961,6 +976,27 @@ function DocumentSettingsDialog(props: {
   const [state, setState] = useState(props.initial);
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: state.responsibleRole,
+    userId: state.responsibleEmployeeId,
+    onChange: (next) =>
+      setState((current) => {
+        const user = props.users.find((item) => item.id === next.userId);
+        return {
+          ...current,
+          responsibleRole: next.positionTitle,
+          responsibleEmployeeId: next.userId,
+          responsibleEmployee: user
+            ? user.name
+            : next.positionTitle !== current.responsibleRole
+              ? current.responsibleEmployee
+              : "",
+        };
+      }),
+    resolveCandidates: (roleLabel) => usersForRole(props.users, roleLabel),
+    autoPick: "first",
+  });
 
   async function handleSave() {
     setSubmitting(true);
@@ -1003,15 +1039,7 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.responsibleRole}
-            onValueChange={(v) => {
-              const user = usersForRole(props.users, v)[0];
-              setState({
-                ...state,
-                responsibleRole: v,
-                responsibleEmployeeId: user?.id || "",
-                responsibleEmployee: user?.name || state.responsibleEmployee,
-              });
-            }}
+            onValueChange={cascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
@@ -1031,29 +1059,16 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.responsibleEmployeeId || "__empty__"}
-            onValueChange={(v) => {
-              if (v === "__empty__") {
-                setState({
-                  ...state,
-                  responsibleEmployeeId: "",
-                  responsibleEmployee: "",
-                });
-                return;
-              }
-              const user = props.users.find((item) => item.id === v);
-              setState({
-                ...state,
-                responsibleEmployeeId: v,
-                responsibleEmployee: user?.name || "",
-              });
-            }}
+            onValueChange={cascade.handleEmployeeChange}
+            open={cascade.employeeOpen}
+            onOpenChange={cascade.setEmployeeOpen}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__empty__">— не выбран —</SelectItem>
-              {usersForRole(props.users, state.responsibleRole).map((u) => (
+              {cascade.candidates.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {buildStaffOptionLabel(u)}
                 </SelectItem>
@@ -1107,16 +1122,7 @@ function DocumentSettingsDialog(props: {
             </Label>
             <Select
               value={state.responsibleRole}
-              onValueChange={(v) => {
-                const user = usersForRole(props.users, v)[0];
-                setState({
-                  ...state,
-                  responsibleRole: v,
-                  responsibleEmployeeId: user?.id || "",
-                  responsibleEmployee:
-                    user?.name || state.responsibleEmployee,
-                });
-              }}
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue />
@@ -1134,21 +1140,16 @@ function DocumentSettingsDialog(props: {
             <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
             <Select
               value={state.responsibleEmployeeId || "__empty__"}
-              onValueChange={(v) => {
-                if (v === "__empty__") {
-                  setState({ ...state, responsibleEmployeeId: "", responsibleEmployee: "" });
-                  return;
-                }
-                const user = props.users.find((item) => item.id === v);
-                setState({ ...state, responsibleEmployeeId: v, responsibleEmployee: user?.name || "" });
-              }}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-                {usersForRole(props.users, state.responsibleRole).map(
+                {cascade.candidates.map(
                   (u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {buildStaffOptionLabel(u)}

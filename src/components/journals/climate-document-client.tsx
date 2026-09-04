@@ -41,7 +41,6 @@ import {
   type ClimateRoomConfig,
 } from "@/lib/climate-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
@@ -74,7 +73,10 @@ import {
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { StickyActionBar } from "@/components/journals/sticky-action-bar";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import {
   GRID_ADD_CELL_SOLID_CLASS,
   GRID_CELL_CLASS,
@@ -388,6 +390,17 @@ function ResponsibleDialog({
     setEmployeeId(row.employeeId || defaultResponsibleUserId || employees[0]?.id || "");
   }, [defaultResponsibleTitle, defaultResponsibleUserId, employees, open, row, titleOptions]);
 
+  const cascade = usePositionEmployeeCascade({
+    users: employees,
+    positionTitle: responsibleTitle,
+    userId: employeeId,
+    onChange: (next) => {
+      setResponsibleTitle(next.positionTitle);
+      setEmployeeId(next.userId);
+    },
+    autoPick: "first",
+  });
+
   async function handleSubmit() {
     if (!row) return;
     setIsSubmitting(true);
@@ -419,15 +432,7 @@ function ResponsibleDialog({
             <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
-              onValueChange={(value) => {
-                setResponsibleTitle(value);
-                const candidates = getUsersForRoleLabel(employees, value);
-                if (employeeId && !candidates.some((u) => u.id === employeeId)) {
-                  setEmployeeId(candidates[0]?.id || "");
-                } else if (!employeeId && candidates[0]) {
-                  setEmployeeId(candidates[0].id);
-                }
-              }}
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите должность" />
@@ -440,15 +445,17 @@ function ResponsibleDialog({
 
           <div className="space-y-3">
             <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
+            <Select
+              value={employeeId}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle
-                  ? getUsersForRoleLabel(employees, responsibleTitle)
-                  : employees
-                ).map((employee) => (
+                {(responsibleTitle ? cascade.candidates : employees).map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
                   </SelectItem>
@@ -511,6 +518,17 @@ function AddRowDialog({
     setEmployeeId(defaultResponsibleUserId || employees[0]?.id || "");
   }, [defaultResponsibleTitle, defaultResponsibleUserId, employees, open, titleOptions]);
 
+  const cascade = usePositionEmployeeCascade({
+    users: employees,
+    positionTitle: responsibleTitle,
+    userId: employeeId,
+    onChange: (next) => {
+      setResponsibleTitle(next.positionTitle);
+      setEmployeeId(next.userId);
+    },
+    autoPick: "first",
+  });
+
   async function handleSubmit() {
     setIsSubmitting(true);
     try {
@@ -554,15 +572,7 @@ function AddRowDialog({
             <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
             <Select
               value={responsibleTitle}
-              onValueChange={(value) => {
-                setResponsibleTitle(value);
-                const candidates = getUsersForRoleLabel(employees, value);
-                if (employeeId && !candidates.some((u) => u.id === employeeId)) {
-                  setEmployeeId(candidates[0]?.id || "");
-                } else if (!employeeId && candidates[0]) {
-                  setEmployeeId(candidates[0].id);
-                }
-              }}
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите должность" />
@@ -575,15 +585,17 @@ function AddRowDialog({
 
           <div className="space-y-3">
             <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
+            <Select
+              value={employeeId}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle
-                  ? getUsersForRoleLabel(employees, responsibleTitle)
-                  : employees
-                ).map((employee) => (
+                {(responsibleTitle ? cascade.candidates : employees).map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
                   </SelectItem>
@@ -657,6 +669,17 @@ function JournalSettingsDialog({
     setSkipWeekends(config.skipWeekends);
   }, [config.controlTimes, config.skipWeekends, employees, open, responsibleTitle, responsibleUserId, title, titleOptions]);
 
+  const cascade = usePositionEmployeeCascade({
+    users: employees,
+    positionTitle: position,
+    userId,
+    onChange: (next) => {
+      setPosition(next.positionTitle);
+      setUserId(next.userId);
+    },
+    autoPick: "first",
+  });
+
   async function handleSave() {
     if (!timeOne && !timeTwo) {
       toast.error("Нужно указать хотя бы одно время контроля.");
@@ -719,15 +742,7 @@ function JournalSettingsDialog({
             </Label>
             <Select
               value={position}
-              onValueChange={(value) => {
-                setPosition(value);
-                const candidates = getUsersForRoleLabel(employees, value);
-                if (userId && !candidates.some((u) => u.id === userId)) {
-                  setUserId(candidates[0]?.id || "");
-                } else if (!userId && candidates[0]) {
-                  setUserId(candidates[0].id);
-                }
-              }}
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
@@ -741,12 +756,17 @@ function JournalSettingsDialog({
             <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
               Сотрудник по умолчанию
             </Label>
-            <Select value={userId} onValueChange={setUserId}>
+            <Select
+              value={userId}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
-                {(position ? getUsersForRoleLabel(employees, position) : employees).map(
+                {(position ? cascade.candidates : employees).map(
                   (employee) => (
                     <SelectItem key={employee.id} value={employee.id}>
                       {employee.name}
@@ -828,15 +848,7 @@ function JournalSettingsDialog({
               <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
               <Select
                 value={position}
-                onValueChange={(value) => {
-                  setPosition(value);
-                  const candidates = getUsersForRoleLabel(employees, value);
-                  if (userId && !candidates.some((u) => u.id === userId)) {
-                    setUserId(candidates[0]?.id || "");
-                  } else if (!userId && candidates[0]) {
-                    setUserId(candidates[0].id);
-                  }
-                }}
+                onValueChange={cascade.handlePositionChange}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Выберите должность" />
@@ -849,15 +861,17 @@ function JournalSettingsDialog({
 
             <div className="space-y-3">
               <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник по умолчанию</Label>
-              <Select value={userId} onValueChange={setUserId}>
+              <Select
+                value={userId}
+                onValueChange={cascade.handleEmployeeChange}
+                open={cascade.employeeOpen}
+                onOpenChange={cascade.setEmployeeOpen}
+              >
                 <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="Выберите сотрудника" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(position
-                    ? getUsersForRoleLabel(employees, position)
-                    : employees
-                  ).map((employee) => (
+                  {(position ? cascade.candidates : employees).map((employee) => (
                     <SelectItem key={employee.id} value={employee.id}>
                       {employee.name}
                     </SelectItem>

@@ -35,7 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -77,7 +77,10 @@ import {
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { Switch } from "@/components/ui/switch";
 import { DateField } from "@/components/journals/journal-dialog-field";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -310,6 +313,19 @@ function RowDialog(props: {
   function setValue<K extends keyof AcceptanceRow>(key: K, value: AcceptanceRow[K]) {
     setRow((current) => ({ ...current, [key]: value }));
   }
+
+  const responsibleCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: row.responsibleTitle,
+    userId: row.responsibleUserId,
+    onChange: (next) =>
+      setRow((current) => ({
+        ...current,
+        responsibleTitle: next.positionTitle,
+        responsibleUserId: next.userId,
+      })),
+    autoPick: "first",
+  });
 
   function appendUnique(list: string[], value: string) {
     const normalized = value.trim();
@@ -598,17 +614,7 @@ function RowDialog(props: {
               <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
               <Select
                 value={toNone(row.responsibleTitle)}
-                onValueChange={(value) => {
-                  const v = fromNone(value);
-                  const candidates = getUsersForRoleLabel(props.users, v);
-                  const stillValid = candidates.some((u) => u.id === row.responsibleUserId);
-                  setValue("responsibleTitle", v);
-                  if (!stillValid) {
-                    setValue("responsibleUserId", candidates[0]?.id || "");
-                  } else if (!row.responsibleUserId && candidates[0]) {
-                    setValue("responsibleUserId", candidates[0].id);
-                  }
-                }}
+                onValueChange={(value) => responsibleCascade.handlePositionChange(fromNone(value))}
               >
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}>
                   <SelectValue placeholder="— выберите —" />
@@ -631,13 +637,15 @@ function RowDialog(props: {
                     if (user) setValue("responsibleTitle", getUserRoleLabel(user.role));
                   }
                 }}
+                open={responsibleCascade.employeeOpen}
+                onOpenChange={responsibleCascade.setEmployeeOpen}
               >
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}>
                   <SelectValue placeholder="— выберите —" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
-                  {(row.responsibleTitle ? getUsersForRoleLabel(props.users, row.responsibleTitle, { keepUserId: row.responsibleUserId }) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                  {(row.responsibleTitle ? responsibleCascade.candidates : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -736,6 +744,19 @@ function IncomingControlRowDialog(props: {
   function setValue<K extends keyof AcceptanceRow>(key: K, value: AcceptanceRow[K]) {
     setRow((current) => ({ ...current, [key]: value }));
   }
+
+  const responsibleCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: row.responsibleTitle,
+    userId: row.responsibleUserId,
+    onChange: (next) =>
+      setRow((current) => ({
+        ...current,
+        responsibleTitle: next.positionTitle,
+        responsibleUserId: next.userId,
+      })),
+    autoPick: "first",
+  });
 
   function appendUnique(list: string[], value: string) {
     const normalized = value.trim();
@@ -1055,17 +1076,7 @@ function IncomingControlRowDialog(props: {
               <Label className="text-[13px] font-medium text-[#3c4053]">Должность ответственного</Label>
               <Select
                 value={toNone(row.responsibleTitle)}
-                onValueChange={(value) => {
-                  const v = fromNone(value);
-                  const candidates = getUsersForRoleLabel(props.users, v);
-                  const stillValid = candidates.some((u) => u.id === row.responsibleUserId);
-                  setValue("responsibleTitle", v);
-                  if (!stillValid) {
-                    setValue("responsibleUserId", candidates[0]?.id || "");
-                  } else if (!row.responsibleUserId && candidates[0]) {
-                    setValue("responsibleUserId", candidates[0].id);
-                  }
-                }}
+                onValueChange={(value) => responsibleCascade.handlePositionChange(fromNone(value))}
               >
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}>
                   <SelectValue placeholder="— выберите —" />
@@ -1088,6 +1099,8 @@ function IncomingControlRowDialog(props: {
                     if (user) setValue("responsibleTitle", getUserRoleLabel(user.role));
                   }
                 }}
+                open={responsibleCascade.employeeOpen}
+                onOpenChange={responsibleCascade.setEmployeeOpen}
               >
                 <SelectTrigger className={SELECT_TRIGGER_CLASS}>
                   <SelectValue placeholder="— выберите —" />
@@ -1095,9 +1108,7 @@ function IncomingControlRowDialog(props: {
                 <SelectContent>
                   <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
                   {(row.responsibleTitle
-                    ? getUsersForRoleLabel(props.users, row.responsibleTitle, {
-                        keepUserId: row.responsibleUserId,
-                      })
+                    ? responsibleCascade.candidates
                     : props.users
                   ).map((u) => (
                     <SelectItem key={u.id} value={u.id}>
@@ -1457,6 +1468,17 @@ function SettingsDialog(props: {
   const [responsibleUserId, setResponsibleUserId] = useState(props.config.defaultResponsibleUserId || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const settingsCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: responsibleTitle,
+    userId: responsibleUserId,
+    onChange: (next) => {
+      setResponsibleTitle(next.positionTitle);
+      setResponsibleUserId(next.userId);
+    },
+    autoPick: "none",
+  });
+
   useEffect(() => {
     if (!props.open) return;
     setTitle(props.title);
@@ -1551,11 +1573,7 @@ function SettingsDialog(props: {
               return u ? getUserRoleLabel(u.role) : "";
             })()
           }
-          onValueChange={(v) => {
-            // Не очищаем employee при смене title — keepUserId в Сотрудник
-            // dropdown ниже его всё равно покажет, manager сам сменит.
-            setResponsibleTitle(v);
-          }}
+          onValueChange={settingsCascade.handlePositionChange}
         >
           <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
             <SelectValue placeholder="— Выберите —" />
@@ -1578,15 +1596,15 @@ function SettingsDialog(props: {
             const user = props.users.find((u) => u.id === v);
             if (user) setResponsibleTitle(getUserRoleLabel(user.role));
           }}
+          open={settingsCascade.employeeOpen}
+          onOpenChange={settingsCascade.setEmployeeOpen}
         >
           <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
             <SelectValue placeholder="— Выберите —" />
           </SelectTrigger>
           <SelectContent>
             {(responsibleTitle
-              ? getUsersForRoleLabel(props.users, responsibleTitle, {
-                  keepUserId: responsibleUserId,
-                })
+              ? settingsCascade.candidates
               : props.users
             ).map((u) => (
               <SelectItem key={u.id} value={u.id}>
@@ -1654,7 +1672,7 @@ function SettingsDialog(props: {
                   return u ? getUserRoleLabel(u.role) : "";
                 })()
               }
-              onValueChange={(v) => setResponsibleTitle(v)}
+              onValueChange={settingsCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#f3f4fb] px-3.5 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
@@ -1668,10 +1686,10 @@ function SettingsDialog(props: {
               setResponsibleUserId(v);
               const user = props.users.find((u) => u.id === v);
               if (user) setResponsibleTitle(getUserRoleLabel(user.role));
-            }}>
+            }} open={settingsCascade.employeeOpen} onOpenChange={settingsCascade.setEmployeeOpen}>
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#f3f4fb] px-3.5 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
               <SelectContent>
-                {(responsibleTitle ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId }) : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                {(responsibleTitle ? settingsCascade.candidates : props.users).map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

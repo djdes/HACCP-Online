@@ -34,6 +34,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 type ComplaintListDocument = {
   id: string;
   title: string;
@@ -59,15 +60,25 @@ function CreateDialog({
 }) {
   const router = useRouter();
   const today = localDayKey();
-  const [title, setTitle] = useState(COMPLAINT_REGISTER_TITLE);
   const [dateFrom, setDateFrom] = useState(today);
   const [submitting, setSubmitting] = useState(false);
+  // Автоназвание «Журнал … — 2026 год» из имени журнала и года даты начала
+  // (просьба владельца 2026-09-04); диалог только для создания.
+  const auto = useAutoDocumentTitle({
+    templateCode: COMPLAINT_REGISTER_TEMPLATE_CODE,
+    journalName: COMPLAINT_REGISTER_TITLE,
+    period: { dateFrom },
+    enabled: true,
+  });
+  const { reset: resetAutoTitle, seedTitle } = auto;
+  const [title, setTitle] = useState(() => seedTitle() || COMPLAINT_REGISTER_TITLE);
 
   useEffect(() => {
     if (!open) return;
-    setTitle(COMPLAINT_REGISTER_TITLE);
+    resetAutoTitle();
     setDateFrom(today);
-  }, [open, today]);
+    setTitle(seedTitle() || COMPLAINT_REGISTER_TITLE);
+  }, [open, resetAutoTitle, seedTitle, today]);
 
   async function handleCreate() {
     setSubmitting(true);
@@ -114,7 +125,10 @@ function CreateDialog({
             <Input
               id="complaint-doc-title"
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(event) => {
+                auto.markTouched();
+                setTitle(event.target.value);
+              }}
               placeholder="Введите название документа"
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
@@ -127,7 +141,12 @@ function CreateDialog({
               id="complaint-doc-start"
               type="date"
               value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                const next = auto.titleForPeriod({ dateFrom: value });
+                setDateFrom(value);
+                if (next !== null) setTitle(next);
+              }}
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>

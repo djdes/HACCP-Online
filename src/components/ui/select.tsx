@@ -5,6 +5,15 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import {
+  MENU_INDICATOR_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_LABEL_CLASS,
+  MENU_MOTION_CLASS,
+  MENU_PANEL_CLASS,
+  MENU_PANEL_PADDING_CLASS,
+  MENU_SEPARATOR_CLASS,
+} from "@/components/ui/menu-styles"
 
 function Select({
   ...props
@@ -12,10 +21,24 @@ function Select({
   return <SelectPrimitive.Root data-slot="select" {...props} />
 }
 
+/**
+ * Группа опций. Между соседними группами — тонкий разделитель, чтобы
+ * «Руководство» и «Сотрудники» читались как отдельные блоки.
+ */
 function SelectGroup({
+  className,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Group>) {
-  return <SelectPrimitive.Group data-slot="select-group" {...props} />
+  return (
+    <SelectPrimitive.Group
+      data-slot="select-group"
+      className={cn(
+        "[&+&]:mt-1.5 [&+&]:border-t [&+&]:border-[#ececf4] [&+&]:pt-1.5",
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function SelectValue({
@@ -50,11 +73,18 @@ function SelectTrigger({
   )
 }
 
+/**
+ * Список открывается ПОД полем на всю его ширину (`popper`), а не поверх
+ * поля как нативный select (`item-aligned` — случайность шаблона shadcn).
+ * `align="start"` — дефолт Radix для popper; обёртка раньше навязывала
+ * `center`.
+ */
 function SelectContent({
   className,
   children,
-  position = "item-aligned",
-  align = "center",
+  position = "popper",
+  align = "start",
+  sideOffset = 6,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (
@@ -62,21 +92,22 @@ function SelectContent({
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(
-          "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
-          position === "popper" &&
-            "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+          "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto",
+          MENU_PANEL_CLASS,
+          MENU_MOTION_CLASS,
           className
         )}
         position={position}
         align={align}
+        sideOffset={sideOffset}
         {...props}
       >
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
-            "p-1",
+            MENU_PANEL_PADDING_CLASS,
             position === "popper" &&
-              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1"
+              "h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width) scroll-my-1.5"
           )}
         >
           {children}
@@ -94,7 +125,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      className={cn("px-2 py-1.5 text-xs text-muted-foreground", className)}
+      className={cn(MENU_LABEL_CLASS, className)}
       {...props}
     />
   )
@@ -109,17 +140,18 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        MENU_ITEM_CLASS,
+        "pr-9 data-[state=checked]:bg-[#eef1ff] data-[state=checked]:font-medium data-[state=checked]:text-[#3848c7] data-[state=checked]:focus:bg-[#e6eaff] *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className
       )}
       {...props}
     >
       <span
         data-slot="select-item-indicator"
-        className="absolute right-2 flex size-3.5 items-center justify-center"
+        className="absolute right-3 flex size-4 items-center justify-center"
       >
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <CheckIcon className={cn("size-4", MENU_INDICATOR_CLASS)} />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -134,7 +166,7 @@ function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn("pointer-events-none -mx-1 my-1 h-px bg-border", className)}
+      className={cn(MENU_SEPARATOR_CLASS, className)}
       {...props}
     />
   )
@@ -148,7 +180,7 @@ function SelectScrollUpButton({
     <SelectPrimitive.ScrollUpButton
       data-slot="select-scroll-up-button"
       className={cn(
-        "flex cursor-default items-center justify-center py-1",
+        "flex cursor-default items-center justify-center bg-white py-1 text-[#9b9fb3]",
         className
       )}
       {...props}
@@ -166,7 +198,7 @@ function SelectScrollDownButton({
     <SelectPrimitive.ScrollDownButton
       data-slot="select-scroll-down-button"
       className={cn(
-        "flex cursor-default items-center justify-center py-1",
+        "flex cursor-default items-center justify-center bg-white py-1 text-[#9b9fb3]",
         className
       )}
       {...props}

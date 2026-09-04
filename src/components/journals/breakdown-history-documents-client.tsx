@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpenText,
@@ -46,6 +46,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 type DocumentItem = {
   id: string;
   title: string;
@@ -84,6 +85,8 @@ type DialogState = {
 function SettingsDialog(props: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
+  mode: "create" | "edit";
+  templateCode: string;
   initial: DialogState | null;
   onSubmit: (value: DialogState) => Promise<void>;
   submitText: string;
@@ -93,6 +96,24 @@ function SettingsDialog(props: {
   const [submitting, setSubmitting] = useState(false);
 
   const activeState = state || props.initial;
+  const auto = useAutoDocumentTitle({
+    templateCode: props.templateCode,
+    journalName: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+    period: { dateFrom: activeState?.dateFrom },
+    enabled: props.mode === "create",
+  });
+  const { reset: resetAutoTitle, titleForPeriod } = auto;
+  const { initial, open, mode } = props;
+
+  // Reset-on-open lives in an effect: Radix `onOpenChange` does not fire
+  // for the programmatic `setCreateOpen(true)`, so seeding there is skipped.
+  useEffect(() => {
+    if (!open) return;
+    resetAutoTitle();
+    const seeded =
+      initial && mode === "create" ? titleForPeriod({ dateFrom: initial.dateFrom }) : null;
+    setState(initial ? { ...initial, title: seeded || initial.title } : null);
+  }, [initial, mode, open, resetAutoTitle, titleForPeriod]);
 
   async function handleSubmit() {
     if (!activeState) return;
@@ -108,12 +129,7 @@ function SettingsDialog(props: {
   return (
     <Dialog
       open={props.open}
-      onOpenChange={(value) => {
-        if (value) {
-          setState(props.initial);
-        }
-        props.onOpenChange(value);
-      }}
+      onOpenChange={props.onOpenChange}
     >
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
@@ -136,7 +152,10 @@ function SettingsDialog(props: {
               <Label className="text-[15px] text-[#7a7c8e]">Название документа</Label>
               <Input
                 value={activeState.title}
-                onChange={(e) => setState({ ...activeState, title: e.target.value })}
+                onChange={(e) => {
+                  auto.markTouched();
+                  setState({ ...activeState, title: e.target.value });
+                }}
                 className="h-9 rounded-xl border-[#d8dae6] px-5 text-[16px] tracking-[-0.02em]"
               />
             </div>
@@ -147,9 +166,15 @@ function SettingsDialog(props: {
                 <Input
                   type="date"
                   value={activeState.dateFrom}
-                  onChange={(e) =>
-                    setState({ ...activeState, dateFrom: toIsoDate(e.target.value) })
-                  }
+                  onChange={(e) => {
+                    const dateFrom = toIsoDate(e.target.value);
+                    const next = auto.titleForPeriod({ dateFrom });
+                    setState({
+                      ...activeState,
+                      dateFrom,
+                      ...(next !== null ? { title: next } : {}),
+                    });
+                  }}
                   className="h-9 rounded-xl border-[#d8dae6] px-5 pr-12 text-[16px] tracking-[-0.02em]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080] sm:right-6 sm:size-8" />
@@ -243,10 +268,23 @@ export function BreakdownHistoryDocumentsClient({
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DocumentItem | null>(null);
 
-  const defaultCreateState: DialogState = {
-    title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
-    dateFrom: localDayKey(),
-  };
+  const defaultCreateState = useMemo<DialogState>(
+    () => ({
+      title: BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+      dateFrom: localDayKey(),
+    }),
+    []
+  );
+  const settingsInitialState = useMemo<DialogState | null>(
+    () =>
+      settingsTarget
+        ? {
+            title: settingsTarget.title || BREAKDOWN_HISTORY_DOCUMENT_TITLE,
+            dateFrom: settingsTarget.dateFrom,
+          }
+        : null,
+    [settingsTarget]
+  );
 
   async function createDocument(payload: DialogState) {
     const response = await fetch("/api/journal-documents", {
@@ -256,6 +294,7 @@ export function BreakdownHistoryDocumentsClient({
         templateCode,
         title: payload.title.trim() || BREAKDOWN_HISTORY_DOCUMENT_TITLE,
         dateFrom: payload.dateFrom,
+        dateTo: payload.dateFrom,
         config: { rows: [] },
       }),
     });
@@ -426,6 +465,8 @@ export function BreakdownHistoryDocumentsClient({
       <SettingsDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        mode="create"
+        templateCode={templateCode}
         initial={defaultCreateState}
         onSubmit={createDocument}
         submitText="Создать"
@@ -438,14 +479,9 @@ export function BreakdownHistoryDocumentsClient({
         onOpenChange={(value) => {
           if (!value) setSettingsTarget(null);
         }}
-        initial={
-          settingsTarget
-            ? {
-                title: settingsTarget.title || BREAKDOWN_HISTORY_DOCUMENT_TITLE,
-                dateFrom: settingsTarget.dateFrom,
-              }
-            : null
-        }
+        mode="edit"
+        templateCode={templateCode}
+        initial={settingsInitialState}
         onSubmit={async (value) => {
           if (!settingsTarget) return;
           await saveSettings(settingsTarget.id, value);

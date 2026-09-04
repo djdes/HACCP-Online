@@ -1,0 +1,82 @@
+{
+  "login": "http://localhost:3020/dashboard",
+  "impersonate": 404,
+  "ac1_title": "Журнал уборки — 1–15 сентября 2026",
+  "ac5_position_list": {
+    "open": true,
+    "focusInside": true,
+    "box": {
+      "x": 449.1000061035156,
+      "y": 375.53436279296875,
+      "w": 383.8000183105469,
+      "h": 248.3062744140625,
+      "right": 832.9000244140625
+    },
+    "viewportW": 1280,
+    "options": [
+      "Выберите должность",
+      "Шеф-повар",
+      "Управляющий",
+      "Повар",
+      "Официант"
+    ],
+    "groupLabels": [
+      "РУКОВОДСТВО\n· 2",
+      "СОТРУДНИКИ\n· 2"
+    ],
+    "panelClass": "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-[#ececf4] bg-white text-[#0b1024] shadow-[0_24px_60px_-24px_rgba(11,16,36,0.35)] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-150"
+  },
+  "picked_position": "Повар",
+  "ac4_employee_list_after_position": {
+    "open": true,
+    "focusInside": true,
+    "box": {
+      "x": 439,
+      "y": 415,
+      "w": 404,
+      "h": 112.625,
+      "right": 843
+    },
+    "viewportW": 1280,
+    "options": [
+      "Выберите сотрудника",
+      "Михайлова Анна Дмитриевна",
+      "Сидоров Алексей Викторович"
+    ],
+    "groupLabels": [],
+    "panelClass": "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-[#ececf4] bg-white text-[#0b1024] shadow-[0_24px_60px_-24px_rgba(11,16,36,0.35)] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-150"
+  },
+  "ac4_escape_closes": true,
+  "employee_trigger_text": "Выберите сотрудника",
+  "dropdown_panel_class": "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto border-[#ececf4] bg-white text-[#0b1024] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-150 max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]",
+  "ac6_mobile": {
+    "right": 341,
+    "viewportW": 390,
+    "fits": true
+  },
+  "ac2_audit_plan_title": "План-программа аудитов — 2026 год",
+  "ac2_audit_plan_title_after_year": "План-программа аудитов — 2027 год",
+  "ac2_ppe_title": "Журнал учета выдачи СИЗ — 2026 год",
+  "ac3_disinfectant_title": "Журнал учета дез. средств",
+  "ac7_hygiene_position_before": "Повар",
+  "ac7_hygiene_pick": "Официант",
+  "ac7_hygiene_employee_list": {
+    "open": true,
+    "focusInside": true,
+    "box": {
+      "x": 439,
+      "y": 443,
+      "w": 404,
+      "h": 112.625,
+      "right": 843
+    },
+    "viewportW": 1280,
+    "options": [
+      "Выберите сотрудника",
+      "Кузнецов Дмитрий Андреевич",
+      "Соколова Екатерина Игоревна"
+    ],
+    "groupLabels": [],
+    "panelClass": "relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-[#ececf4] bg-white text-[#0b1024] shadow-[0_24px_60px_-24px_rgba(11,16,36,0.35)] data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-150"
+  }
+}

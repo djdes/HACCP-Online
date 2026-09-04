@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpenText,
@@ -85,6 +85,7 @@ import {
   readControlPeriodicity,
 } from "@/lib/control-periodicity";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 type UserItem = {
   id: string;
   name: string;
@@ -151,6 +152,7 @@ function toUiState(document: SanitationDocumentItem): SettingsState {
 function SettingsDialog(props: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
+  mode: "create" | "edit";
   users: UserItem[];
   initial: SettingsState | null;
   onSubmit: (value: SettingsState) => Promise<void>;
@@ -163,6 +165,26 @@ function SettingsDialog(props: {
   const [submitting, setSubmitting] = useState(false);
 
   const activeState = state || props.initial;
+  const auto = useAutoDocumentTitle({
+    templateCode: SANITATION_DAY_TEMPLATE_CODE,
+    journalName: SANITATION_DAY_DOCUMENT_TITLE,
+    period: { dateFrom: activeState?.documentDate, year: activeState?.year },
+    enabled: props.mode === "create",
+  });
+  const { reset: resetAutoTitle, titleForPeriod } = auto;
+  const { initial, open, mode } = props;
+
+  // Reset-on-open lives in an effect: Radix `onOpenChange` does not fire
+  // for the programmatic `setCreateOpen(true)`, so seeding there is skipped.
+  useEffect(() => {
+    if (!open) return;
+    resetAutoTitle();
+    const seeded =
+      initial && mode === "create"
+        ? titleForPeriod({ dateFrom: initial.documentDate, year: initial.year })
+        : null;
+    setState(initial ? { ...initial, title: seeded || initial.title } : null);
+  }, [initial, mode, open, resetAutoTitle, titleForPeriod]);
 
   async function handleSubmit() {
     if (!activeState) return;
@@ -178,10 +200,7 @@ function SettingsDialog(props: {
   return (
     <Dialog
       open={props.open}
-      onOpenChange={(value) => {
-        if (value) setState(props.initial);
-        props.onOpenChange(value);
-      }}
+      onOpenChange={props.onOpenChange}
     >
       <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
         <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
@@ -202,23 +221,43 @@ function SettingsDialog(props: {
             <FloatingInputField
               label="Название документа"
               value={activeState.title}
-              onChange={(value) => setState({ ...activeState, title: value })}
+              onChange={(value) => {
+                auto.markTouched();
+                setState({ ...activeState, title: value });
+              }}
             />
 
             <DateField
               label="Дата начала"
               value={activeState.documentDate}
-              onChange={(value) =>
-                setState({ ...activeState, documentDate: toIsoDate(value) })
-              }
+              onChange={(value) => {
+                const documentDate = toIsoDate(value);
+                const next = auto.titleForPeriod({
+                  dateFrom: documentDate,
+                  year: activeState.year,
+                });
+                setState({
+                  ...activeState,
+                  documentDate,
+                  ...(next !== null ? { title: next } : {}),
+                });
+              }}
             />
 
             <FloatingLabelField label="Год">
               <Select
                 value={activeState.year}
-                onValueChange={(value) =>
-                  setState({ ...activeState, year: value })
-                }
+                onValueChange={(value) => {
+                  const next = auto.titleForPeriod({
+                    dateFrom: activeState.documentDate,
+                    year: value,
+                  });
+                  setState({
+                    ...activeState,
+                    year: value,
+                    ...(next !== null ? { title: next } : {}),
+                  });
+                }}
               >
                 <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
                   <SelectValue />
@@ -449,6 +488,10 @@ export function SanitationDayDocumentsClient({
       controlPeriodicity: getDefaultControlPeriodicity(SANITATION_DAY_TEMPLATE_CODE),
     };
   }, []);
+  const settingsInitialState = useMemo(
+    () => (settingsTarget ? toUiState(settingsTarget) : null),
+    [settingsTarget]
+  );
 
   return (
     <div className={JOURNAL_LIST_STACK_CLASS}>
@@ -630,6 +673,7 @@ export function SanitationDayDocumentsClient({
       <SettingsDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        mode="create"
         users={users}
         initial={defaultCreateState}
         onSubmit={createDocument}
@@ -643,8 +687,9 @@ export function SanitationDayDocumentsClient({
         onOpenChange={(value) => {
           if (!value) setSettingsTarget(null);
         }}
+        mode="edit"
         users={users}
-        initial={settingsTarget ? toUiState(settingsTarget) : null}
+        initial={settingsInitialState}
         onSubmit={async (value) => {
           if (!settingsTarget) return;
           await saveSettings(settingsTarget.id, value);

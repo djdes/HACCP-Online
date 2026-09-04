@@ -28,7 +28,6 @@ import {
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import {
   getDistinctRoleLabels,
-  getUserRoleLabel,
   getUsersForRoleLabel,
 } from "@/lib/user-roles";
 import {
@@ -68,7 +67,10 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
@@ -298,6 +300,52 @@ function DocumentSettingsDialog(props: {
   const [state, setState] = useState<SettingsState>(props.initial);
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
+  const resolveRoleCandidates = (roleLabel: string) =>
+    usersForRole(props.users, roleLabel);
+
+  const approveCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: state.approveRole,
+    userId: state.approveEmployeeId,
+    onChange: (next) =>
+      setState((current) => {
+        const user = props.users.find((item) => item.id === next.userId);
+        return {
+          ...current,
+          approveRole: next.positionTitle,
+          approveEmployeeId: next.userId,
+          approveEmployee: user
+            ? user.name
+            : next.positionTitle !== current.approveRole
+              ? current.approveEmployee
+              : "",
+        };
+      }),
+    resolveCandidates: resolveRoleCandidates,
+    autoPick: "first",
+  });
+
+  const responsibleCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: state.responsibleRole,
+    userId: state.responsibleEmployeeId,
+    onChange: (next) =>
+      setState((current) => {
+        const user = props.users.find((item) => item.id === next.userId);
+        return {
+          ...current,
+          responsibleRole: next.positionTitle,
+          responsibleEmployeeId: next.userId,
+          responsibleEmployee: user
+            ? user.name
+            : next.positionTitle !== current.responsibleRole
+              ? current.responsibleEmployee
+              : "",
+        };
+      }),
+    resolveCandidates: resolveRoleCandidates,
+    autoPick: "first",
+  });
 
   async function handleSave() {
     setSubmitting(true);
@@ -387,15 +435,7 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.approveRole}
-            onValueChange={(value) => {
-              const user = usersForRole(props.users, value)[0];
-              setState((current) => ({
-                ...current,
-                approveRole: value,
-                approveEmployeeId: user?.id || "",
-                approveEmployee: user?.name || current.approveEmployee,
-              }));
-            }}
+            onValueChange={approveCascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
@@ -411,30 +451,16 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.approveEmployeeId || "__empty__"}
-            onValueChange={(value) => {
-              if (value === "__empty__") {
-                setState((current) => ({
-                  ...current,
-                  approveEmployeeId: "",
-                  approveEmployee: "",
-                }));
-                return;
-              }
-              const user = props.users.find((item) => item.id === value);
-              setState((current) => ({
-                ...current,
-                approveEmployeeId: value,
-                approveEmployee: user?.name || "",
-                approveRole: user ? getUserRoleLabel(user.role) : current.approveRole,
-              }));
-            }}
+            onValueChange={approveCascade.handleEmployeeChange}
+            open={approveCascade.employeeOpen}
+            onOpenChange={approveCascade.setEmployeeOpen}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__empty__">— не выбран —</SelectItem>
-              {usersForRole(props.users, state.approveRole).map((user) => (
+              {approveCascade.candidates.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   {buildStaffOptionLabel(user)}
                 </SelectItem>
@@ -448,15 +474,7 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.responsibleRole}
-            onValueChange={(value) => {
-              const user = usersForRole(props.users, value)[0];
-              setState((current) => ({
-                ...current,
-                responsibleRole: value,
-                responsibleEmployeeId: user?.id || "",
-                responsibleEmployee: user?.name || current.responsibleEmployee,
-              }));
-            }}
+            onValueChange={responsibleCascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
@@ -472,32 +490,16 @@ function DocumentSettingsDialog(props: {
           </Label>
           <Select
             value={state.responsibleEmployeeId || "__empty__"}
-            onValueChange={(value) => {
-              if (value === "__empty__") {
-                setState((current) => ({
-                  ...current,
-                  responsibleEmployeeId: "",
-                  responsibleEmployee: "",
-                }));
-                return;
-              }
-              const user = props.users.find((item) => item.id === value);
-              setState((current) => ({
-                ...current,
-                responsibleEmployeeId: value,
-                responsibleEmployee: user?.name || "",
-                responsibleRole: user
-                  ? getUserRoleLabel(user.role)
-                  : current.responsibleRole,
-              }));
-            }}
+            onValueChange={responsibleCascade.handleEmployeeChange}
+            open={responsibleCascade.employeeOpen}
+            onOpenChange={responsibleCascade.setEmployeeOpen}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__empty__">— не выбран —</SelectItem>
-              {usersForRole(props.users, state.responsibleRole).map((user) => (
+              {responsibleCascade.candidates.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   {buildStaffOptionLabel(user)}
                 </SelectItem>
@@ -574,15 +576,7 @@ function DocumentSettingsDialog(props: {
 
           <Select
             value={state.approveRole}
-            onValueChange={(value) => {
-              const user = usersForRole(props.users, value)[0];
-              setState((current) => ({
-                ...current,
-                approveRole: value,
-                approveEmployeeId: user?.id || "",
-                approveEmployee: user?.name || current.approveEmployee,
-              }));
-            }}
+            onValueChange={approveCascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder='Должность "Утверждаю"' />
@@ -594,32 +588,16 @@ function DocumentSettingsDialog(props: {
 
           <Select
             value={state.approveEmployeeId || "__empty__"}
-            onValueChange={(value) => {
-              if (value === "__empty__") {
-                setState((current) => ({
-                  ...current,
-                  approveEmployeeId: "",
-                  approveEmployee: "",
-                }));
-                return;
-              }
-              const user = props.users.find((item) => item.id === value);
-              setState((current) => ({
-                ...current,
-                approveEmployeeId: value,
-                approveEmployee: user?.name || "",
-                approveRole: user
-                  ? getUserRoleLabel(user.role)
-                  : current.approveRole,
-              }));
-            }}
+            onValueChange={approveCascade.handleEmployeeChange}
+            open={approveCascade.employeeOpen}
+            onOpenChange={approveCascade.setEmployeeOpen}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Сотрудник" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-              {usersForRole(props.users, state.approveRole).map((user) => (
+              {approveCascade.candidates.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   {buildStaffOptionLabel(user)}
                 </SelectItem>
@@ -629,15 +607,7 @@ function DocumentSettingsDialog(props: {
 
           <Select
             value={state.responsibleRole}
-            onValueChange={(value) => {
-              const user = usersForRole(props.users, value)[0];
-              setState((current) => ({
-                ...current,
-                responsibleRole: value,
-                responsibleEmployeeId: user?.id || "",
-                responsibleEmployee: user?.name || current.responsibleEmployee,
-              }));
-            }}
+            onValueChange={responsibleCascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Должность ответственного" />
@@ -649,32 +619,16 @@ function DocumentSettingsDialog(props: {
 
           <Select
             value={state.responsibleEmployeeId || "__empty__"}
-            onValueChange={(value) => {
-              if (value === "__empty__") {
-                setState((current) => ({
-                  ...current,
-                  responsibleEmployeeId: "",
-                  responsibleEmployee: "",
-                }));
-                return;
-              }
-              const user = props.users.find((item) => item.id === value);
-              setState((current) => ({
-                ...current,
-                responsibleEmployeeId: value,
-                responsibleEmployee: user?.name || "",
-                responsibleRole: user
-                  ? getUserRoleLabel(user.role)
-                  : current.responsibleRole,
-              }));
-            }}
+            onValueChange={responsibleCascade.handleEmployeeChange}
+            open={responsibleCascade.employeeOpen}
+            onOpenChange={responsibleCascade.setEmployeeOpen}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
               <SelectValue placeholder="Сотрудник" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-              {usersForRole(props.users, state.responsibleRole).map((user) => (
+              {responsibleCascade.candidates.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   {buildStaffOptionLabel(user)}
                 </SelectItem>

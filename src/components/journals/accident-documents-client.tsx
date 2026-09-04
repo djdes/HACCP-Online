@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpenText,
@@ -46,6 +46,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 type DocumentItem = {
   id: string;
   title: string;
@@ -74,6 +75,8 @@ function formatDateDMY(value: string) {
 function SettingsDialog(props: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
+  mode: "create" | "edit";
+  templateCode: string;
   initial: DialogState | null;
   onSubmit: (value: DialogState) => Promise<void>;
   submitText: string;
@@ -83,6 +86,24 @@ function SettingsDialog(props: {
   const [submitting, setSubmitting] = useState(false);
 
   const activeState = state || props.initial;
+  const auto = useAutoDocumentTitle({
+    templateCode: props.templateCode,
+    journalName: ACCIDENT_DOCUMENT_TITLE,
+    period: { dateFrom: activeState?.dateFrom },
+    enabled: props.mode === "create",
+  });
+  const { reset: resetAutoTitle, titleForPeriod } = auto;
+  const { initial, open, mode } = props;
+
+  // Reset-on-open lives in an effect: Radix `onOpenChange` does not fire
+  // for the programmatic `setCreateOpen(true)`, so seeding there is skipped.
+  useEffect(() => {
+    if (!open) return;
+    resetAutoTitle();
+    const seeded =
+      initial && mode === "create" ? titleForPeriod({ dateFrom: initial.dateFrom }) : null;
+    setState(initial ? { ...initial, title: seeded || initial.title } : null);
+  }, [initial, mode, open, resetAutoTitle, titleForPeriod]);
 
   async function handleSubmit() {
     if (!activeState) return;
@@ -98,10 +119,7 @@ function SettingsDialog(props: {
   return (
     <Dialog
       open={props.open}
-      onOpenChange={(value) => {
-        if (value) setState(props.initial);
-        props.onOpenChange(value);
-      }}
+      onOpenChange={props.onOpenChange}
     >
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[720px]">
         <DialogHeader className="border-b px-8 py-7">
@@ -124,9 +142,10 @@ function SettingsDialog(props: {
               <Label className="text-base text-[#6e7387]">Название документа</Label>
               <Input
                 value={activeState.title}
-                onChange={(event) =>
-                  setState({ ...activeState, title: event.target.value })
-                }
+                onChange={(event) => {
+                  auto.markTouched();
+                  setState({ ...activeState, title: event.target.value });
+                }}
                 className="h-9 rounded-xl border-[#d7dbea] px-3.5 text-[13.5px]"
               />
             </div>
@@ -136,9 +155,15 @@ function SettingsDialog(props: {
                 <Input
                   type="date"
                   value={activeState.dateFrom}
-                  onChange={(event) =>
-                    setState({ ...activeState, dateFrom: event.target.value })
-                  }
+                  onChange={(event) => {
+                    const dateFrom = event.target.value;
+                    const next = auto.titleForPeriod({ dateFrom });
+                    setState({
+                      ...activeState,
+                      dateFrom,
+                      ...(next !== null ? { title: next } : {}),
+                    });
+                  }}
                   className="h-9 rounded-xl border-[#d7dbea] px-3.5 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-5 top-1/2 size-6 -translate-y-1/2 text-[#6e7387]" />
@@ -222,10 +247,23 @@ export function AccidentDocumentsClient({
   const [settingsTarget, setSettingsTarget] = useState<DocumentItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentItem | null>(null);
 
-  const createInitialState: DialogState = {
-    title: ACCIDENT_DOCUMENT_TITLE,
-    dateFrom: localDayKey(),
-  };
+  const createInitialState = useMemo<DialogState>(
+    () => ({
+      title: ACCIDENT_DOCUMENT_TITLE,
+      dateFrom: localDayKey(),
+    }),
+    []
+  );
+  const settingsInitialState = useMemo<DialogState | null>(
+    () =>
+      settingsTarget
+        ? {
+            title: settingsTarget.title || ACCIDENT_DOCUMENT_TITLE,
+            dateFrom: settingsTarget.dateFrom,
+          }
+        : null,
+    [settingsTarget]
+  );
 
   async function createDocument(payload: DialogState) {
     const response = await fetch("/api/journal-documents", {
@@ -408,6 +446,8 @@ export function AccidentDocumentsClient({
       <SettingsDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        mode="create"
+        templateCode={templateCode}
         initial={createInitialState}
         onSubmit={createDocument}
         submitText="Создать"
@@ -419,14 +459,9 @@ export function AccidentDocumentsClient({
         onOpenChange={(value) => {
           if (!value) setSettingsTarget(null);
         }}
-        initial={
-          settingsTarget
-            ? {
-                title: settingsTarget.title || ACCIDENT_DOCUMENT_TITLE,
-                dateFrom: settingsTarget.dateFrom,
-              }
-            : null
-        }
+        mode="edit"
+        templateCode={templateCode}
+        initial={settingsInitialState}
         onSubmit={async (payload) => {
           if (!settingsTarget) return;
           await saveSettings(settingsTarget.id, payload);

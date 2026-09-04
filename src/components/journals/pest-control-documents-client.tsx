@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,10 @@ import {
 import {
   PEST_CONTROL_DOCUMENT_TITLE,
   PEST_CONTROL_PAGE_TITLE,
+  PEST_CONTROL_TEMPLATE_CODE,
   formatPestControlDate,
 } from "@/lib/pest-control-document";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 
@@ -69,25 +71,37 @@ function SettingsDialog(props: {
   submitLabel: string;
   initial: EditingState | null;
   onSubmit: (payload: { title: string; dateFrom: string }) => Promise<void>;
+  mode: "create" | "edit";
 }) {
   const [form, setForm] = useState({ title: "", dateFrom: "" });
   const [submitting, setSubmitting] = useState(false);
 
+  const auto = useAutoDocumentTitle({
+    templateCode: PEST_CONTROL_TEMPLATE_CODE,
+    journalName: PEST_CONTROL_DOCUMENT_TITLE,
+    period: { dateFrom: form.dateFrom },
+    enabled: props.mode === "create",
+  });
+  const { reset: resetAuto, seedTitle } = auto;
+
+  const initial = props.initial;
   useEffect(() => {
-    if (!props.initial) return;
+    if (!initial) return;
+    resetAuto();
     setForm({
-      title: props.initial.title,
-      dateFrom: props.initial.dateFrom,
+      title: initial.title || seedTitle(),
+      dateFrom: initial.dateFrom,
     });
-  }, [props.initial]);
+  }, [initial, resetAuto, seedTitle]);
 
   return (
     <Dialog
       open={props.open}
       onOpenChange={(open) => {
         if (open && props.initial) {
+          auto.reset();
           setForm({
-            title: props.initial.title,
+            title: props.initial.title || auto.seedTitle(),
             dateFrom: props.initial.dateFrom,
           });
         }
@@ -111,18 +125,25 @@ function SettingsDialog(props: {
         <div className="space-y-5 px-7 py-6">
           <Input
             value={form.title}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, title: event.target.value }))
-            }
+            onChange={(event) => {
+              auto.markTouched();
+              setForm((current) => ({ ...current, title: event.target.value }));
+            }}
             placeholder="Введите название документа"
             className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <Input
             type="date"
             value={form.dateFrom}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, dateFrom: event.target.value }))
-            }
+            onChange={(event) => {
+              const dateFrom = event.target.value;
+              const next = auto.titleForPeriod({ dateFrom });
+              setForm((current) => ({
+                ...current,
+                dateFrom,
+                ...(next !== null ? { title: next } : {}),
+              }));
+            }}
             className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           />
           <div className="flex justify-end">
@@ -207,11 +228,18 @@ export function PestControlDocumentsClient(props: Props) {
   const [deleting, setDeleting] = useState<DocumentItem | null>(null);
   const [seeding, setSeeding] = useState(false);
 
-  const createState: EditingState = {
-    id: "",
-    title: PEST_CONTROL_DOCUMENT_TITLE,
-    dateFrom: localDayKey(),
-  };
+  // useMemo: раньше объект пересоздавался каждый рендер, и `useEffect`
+  // в SettingsDialog перетирал набранный текст. Название подставляется
+  // автоматически из имени журнала + периода (`useAutoDocumentTitle`,
+  // просьба владельца 2026-09-04).
+  const createState = useMemo<EditingState>(
+    () => ({
+      id: "",
+      title: "",
+      dateFrom: localDayKey(),
+    }),
+    []
+  );
 
   useEffect(() => {
     if (props.activeTab !== "active" || props.documents.length > 0 || seeding) {
@@ -529,6 +557,7 @@ export function PestControlDocumentsClient(props: Props) {
         submitLabel="Создать"
         initial={createState}
         onSubmit={createDocument}
+        mode="create"
       />
 
       <SettingsDialog
@@ -543,6 +572,7 @@ export function PestControlDocumentsClient(props: Props) {
           if (!editing) return;
           await saveDocumentSettings(editing.id, payload);
         }}
+        mode="edit"
       />
 
       <ConfirmDialog

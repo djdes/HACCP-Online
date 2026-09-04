@@ -66,6 +66,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 type DocumentItem = {
   id: string;
   title: string;
@@ -136,21 +137,42 @@ function SettingsDialog(props: {
   onSubmit: (value: SettingsState) => Promise<void>;
   submitText: string;
   title: string;
-  /** Создание: название обязательно и приходит пустым (S7 аудита). */
+  /**
+   * Создание: название обязательно; подставляется автоматически из
+   * имени журнала и периода (просьба владельца 2026-09-04), человек
+   * может переписать.
+   */
   requireTitle?: boolean;
+  templateCode: string;
 }) {
   const [state, setState] = useState<SettingsState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [titleError, setTitleError] = useState("");
-  const activeState = state || props.initial;
+  const auto = useAutoDocumentTitle({
+    templateCode: props.templateCode,
+    journalName: CLEANING_VENTILATION_CHECKLIST_TITLE,
+    period: { dateFrom: (state || props.initial)?.dateFrom },
+    enabled: !!props.requireTitle,
+  });
+  // Диалог открывается кнопкой снаружи (Radix не зовёт onOpenChange(true)),
+  // поэтому автоназвание подставляем и в fallback «состояния ещё нет».
+  const activeState =
+    state ||
+    (props.initial
+      ? { ...props.initial, title: props.initial.title || auto.seedTitle() }
+      : null);
 
   return (
     <Dialog
       open={props.open}
       onOpenChange={(value) => {
+        auto.reset();
         if (value) {
-          setState(props.initial);
+          setState(activeState);
           setTitleError("");
+        } else {
+          // Сброс на закрытии — следующее открытие снова от `initial`.
+          setState(null);
         }
         props.onOpenChange(value);
       }}
@@ -170,6 +192,7 @@ function SettingsDialog(props: {
               placeholder="Введите название документа"
               value={activeState.title}
               onChange={(value) => {
+                auto.markTouched();
                 setState({ ...activeState, title: value });
                 if (titleError) setTitleError("");
               }}
@@ -181,7 +204,14 @@ function SettingsDialog(props: {
             <DateField
               label="Дата начала"
               value={activeState.dateFrom}
-              onChange={(value) => setState({ ...activeState, dateFrom: value })}
+              onChange={(value) => {
+                const next = auto.titleForPeriod({ dateFrom: value });
+                setState({
+                  ...activeState,
+                  dateFrom: value,
+                  ...(next !== null ? { title: next } : {}),
+                });
+              }}
             />
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -256,7 +286,8 @@ export function CleaningVentilationChecklistDocumentsClient({
 
   const createInitial = useMemo<SettingsState>(
     () => ({
-      // Название пустое: пользователь вводит своё (S7 аудита).
+      // Название при создании подставляет диалог: имя журнала + период
+      // (`useAutoDocumentTitle`, просьба владельца 2026-09-04).
       title: "",
       dateFrom: getDefaultDate(),
       controlPeriodicity: getDefaultControlPeriodicity(templateCode),
@@ -464,6 +495,7 @@ export function CleaningVentilationChecklistDocumentsClient({
         submitText="Создать"
         title="Создание документа"
         requireTitle
+        templateCode={templateCode}
       />
 
       <SettingsDialog
@@ -492,6 +524,7 @@ export function CleaningVentilationChecklistDocumentsClient({
         }}
         submitText="Сохранить"
         title="Настройки журнала"
+        templateCode={templateCode}
       />
     </div>
   );

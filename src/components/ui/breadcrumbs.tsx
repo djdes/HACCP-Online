@@ -14,6 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import {
+  MENU_ITEM_ACTIVE_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_LABEL_CLASS,
+  MENU_PANEL_CLASS,
+  MENU_PANEL_PADDING_CLASS,
+} from "@/components/ui/menu-styles";
 
 /**
  * Хлебные крошки кабинета: «<Организация> › Журналы › <Журнал> › <Документ>».
@@ -95,18 +102,15 @@ function segmentClass(current?: boolean): string {
   );
 }
 
-/** Панель меню — карточка дизайн-системы, а не shadcn-дефолт. */
-const PANEL_CLASS =
-  "w-72 rounded-2xl border border-[#ececf4] bg-white p-1 text-[#0b1024] shadow-[0_24px_60px_-24px_rgba(11,16,36,0.35)]";
+/** Панель меню — общие константы дизайн-системы (`menu-styles.ts`). */
+const PANEL_CLASS = cn("w-72", MENU_PANEL_CLASS, MENU_PANEL_PADDING_CLASS);
 
-const ITEM_CLASS =
-  "cursor-pointer rounded-xl px-2 py-1.5 text-[13px] transition-colors focus:bg-[#fafbff] focus:text-[#0b1024]";
+const ITEM_CLASS = MENU_ITEM_CLASS;
 
 /** Подсветка ТЕКУЩЕГО пункта — мягкая заливка, как в ProjectsFlow. */
-const CURRENT_ITEM_CLASS = "bg-[#f5f6ff] font-medium text-[#3848c7]";
+const CURRENT_ITEM_CLASS = MENU_ITEM_ACTIVE_CLASS;
 
-const PANEL_LABEL_CLASS =
-  "px-2 pt-1.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9b9fb3]";
+const PANEL_LABEL_CLASS = MENU_LABEL_CLASS;
 
 /**
  * Раскрытие по наведению с задержкой на закрытие: между сегментом и

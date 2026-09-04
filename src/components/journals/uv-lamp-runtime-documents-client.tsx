@@ -26,9 +26,7 @@ import {
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -39,7 +37,15 @@ import {
   normalizeUvRuntimeDocumentConfig,
   type UvRuntimeDocumentConfig,
 } from "@/lib/uv-lamp-runtime-document";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { MENU_ITEM_MUTED_CLASS } from "@/components/ui/menu-styles";
+import {
+  EMPTY_SELECT_VALUE,
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
+
+/** Старые документы хранят плейсхолдер как значение должности — считаем его «не выбрано». */
+const UV_LEGACY_EMPTY_TITLE = "- Выберите значение -";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -108,6 +114,16 @@ function UvRuntimeSettingsDialog(props: {
   const [dateFrom, setDateFrom] = useState("");
   const [responsibleTitle, setResponsibleTitle] = useState("");
   const [responsibleUserId, setResponsibleUserId] = useState("");
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: responsibleTitle,
+    userId: responsibleUserId,
+    onChange: (n) => {
+      setResponsibleTitle(n.positionTitle);
+      setResponsibleUserId(n.userId);
+    },
+    autoPick: "first",
+  });
 
   const options = useMemo(() => getUvResponsibleTitleOptions(props.users), [props.users]);
 
@@ -194,49 +210,38 @@ function UvRuntimeSettingsDialog(props: {
 
           <FloatingLabelField label="Должность ответственного">
             <Select
-              value={responsibleTitle}
-              onValueChange={(value) => {
-                setResponsibleTitle(value);
-                setResponsibleUserId("");
-              }}
+              value={
+                responsibleTitle && responsibleTitle !== UV_LEGACY_EMPTY_TITLE
+                  ? responsibleTitle
+                  : EMPTY_SELECT_VALUE
+              }
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
                 <SelectValue placeholder="Выберите должность" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="- Выберите значение -">- Выберите значение -</SelectItem>
-                {options.management.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[14px] font-semibold italic text-black">Руководство</SelectLabel>
-                    {options.management.map((title) => (
-                      <SelectItem key={`mgmt:${title}`} value={title}>
-                        {title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {options.staff.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel className="text-[14px] font-semibold italic text-black">Сотрудники</SelectLabel>
-                    {options.staff.map((title) => (
-                      <SelectItem key={`staff:${title}`} value={title}>
-                        {title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
+                <SelectItem value={EMPTY_SELECT_VALUE} className={MENU_ITEM_MUTED_CLASS}>
+                  - Выберите значение -
+                </SelectItem>
+                <PositionSelectItems users={props.users} groups={options} />
               </SelectContent>
             </Select>
           </FloatingLabelField>
 
           <FloatingLabelField label="Ответственный">
-            <Select value={responsibleUserId} onValueChange={setResponsibleUserId}>
+            <Select
+              value={responsibleUserId}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
+            >
               <SelectTrigger className={JOURNAL_DIALOG_FIELD_TRIGGER_CLASS}>
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {(responsibleTitle
-                  ? getUsersForRoleLabel(props.users, responsibleTitle, { keepUserId: responsibleUserId })
+                {(responsibleTitle && responsibleTitle !== UV_LEGACY_EMPTY_TITLE
+                  ? cascade.candidates
                   : props.users
                 ).map((user) => (
                   <SelectItem key={user.id} value={user.id}>

@@ -31,6 +31,7 @@ import {
   type CleaningMatrixMap,
 } from "@/lib/cleaning-document";
 import { buildDateKeys } from "@/lib/hygiene-document";
+import { buildDocumentAutoTitle } from "@/lib/journal-document-title";
 import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   buildFinishedProductConfigFromUsers,
@@ -811,7 +812,17 @@ export async function POST(request: Request) {
     data: {
       templateId: template.id,
       organizationId: getActiveOrgId(session),
-      title: title || template.name,
+      // Пустое название → «Имя журнала — период» (как в диалогах создания),
+      // а не голое имя шаблона: список документов иначе состоял из клонов.
+      title:
+        (typeof title === "string" && title.trim()) ||
+        buildDocumentAutoTitle({
+          templateCode: resolvedTemplateCode,
+          journalName: template.name,
+          dateFrom: String(dateFrom),
+          dateTo: String(dateTo),
+          year: (config as { year?: string | number } | undefined)?.year,
+        }),
       config: finalConfigWithUvDefaults as Prisma.InputJsonValue | undefined,
       dateFrom: new Date(dateFrom),
       dateTo: new Date(dateTo),

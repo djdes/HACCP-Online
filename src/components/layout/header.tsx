@@ -647,7 +647,7 @@ export function Header({
               {/* Шапка меню: кто вошёл + строка тарифа. Тариф здесь, а
                   не отдельной пилюлей в header'е: это редко нужная,
                   но важная справка — ровно формат меню аккаунта. */}
-              <DropdownMenuLabel className="px-3 py-3 font-normal">
+              <DropdownMenuLabel className="block px-3 py-3 font-normal normal-case tracking-normal">
                 <div className="min-w-0 space-y-1">
                   <p className="truncate text-[14px] font-semibold leading-tight text-[#0b1024]">
                     {userName}

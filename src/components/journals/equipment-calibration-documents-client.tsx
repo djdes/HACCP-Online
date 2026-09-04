@@ -43,7 +43,10 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 type JournalListDocument = {
@@ -79,6 +82,18 @@ export function EquipmentCalibrationDocumentsClient({
   const [approveRole, setApproveRole] = useState("");
   const [approveEmployeeId, setApproveEmployeeId] = useState("");
   const [approveEmployee, setApproveEmployee] = useState("");
+  const approveCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: approveRole,
+    userId: approveEmployeeId,
+    onChange: (next) => {
+      const user = users.find((item) => item.id === next.userId);
+      setApproveRole(next.positionTitle);
+      setApproveEmployeeId(next.userId);
+      setApproveEmployee(user?.name || approveEmployee);
+    },
+    autoPick: "first",
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -265,12 +280,7 @@ export function EquipmentCalibrationDocumentsClient({
             </div>
             <div className="space-y-1">
               <Label className="text-[14px] text-[#6f7282]">Должность &quot;Утверждаю&quot;</Label>
-              <Select value={approveRole} onValueChange={(value) => {
-                const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                setApproveRole(value);
-                setApproveEmployeeId(user?.id || "");
-                setApproveEmployee(user?.name || approveEmployee);
-              }}>
+              <Select value={approveRole} onValueChange={approveCascade.handlePositionChange}>
                 <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
                   <PositionSelectItems users={users} />
@@ -284,7 +294,7 @@ export function EquipmentCalibrationDocumentsClient({
                 setApproveEmployeeId(value);
                 setApproveEmployee(user?.name || approveEmployee);
                 if (user) setApproveRole(getUserRoleLabel(user.role));
-              }}>
+              }} open={approveCascade.employeeOpen} onOpenChange={approveCascade.setEmployeeOpen}>
                 <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-5 text-[16px]"><SelectValue placeholder="- Выберите значение -" /></SelectTrigger>
                 <SelectContent>
                   {users.map((u) => <SelectItem key={u.id} value={u.id}>{buildStaffOptionLabel(u)}</SelectItem>)}

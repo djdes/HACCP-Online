@@ -2,8 +2,11 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 
 import {
+  buildDocumentAutoTitle,
   buildJournalDocumentTitle,
   formatJournalPeriodLabel,
+  getDocumentTitlePeriod,
+  uniqueDocumentTitle,
 } from "./journal-document-title";
 
 describe("formatJournalPeriodLabel", () => {
@@ -101,5 +104,119 @@ describe("buildJournalDocumentTitle", () => {
       "7 сентября 2026"
     );
     assert.equal(buildJournalDocumentTitle({ journalName: "", dateFrom: "" }), "");
+  });
+});
+
+describe("getDocumentTitlePeriod", () => {
+  it("годовой журнал — весь год из селекта «Год»", () => {
+    assert.deepEqual(getDocumentTitlePeriod("audit_plan", { dateFrom: "2026-09-07", year: 2027 }), {
+      dateFrom: "2027-01-01",
+      dateTo: "2027-12-31",
+    });
+  });
+
+  it("годовой журнал без «Года» — год выбранной даты", () => {
+    assert.deepEqual(
+      getDocumentTitlePeriod("accident_journal", { dateFrom: "2026-09-07", dateTo: "2026-09-07" }),
+      { dateFrom: "2026-01-01", dateTo: "2026-12-31" }
+    );
+  });
+
+  it("бессрочный журнал — без периода", () => {
+    assert.equal(getDocumentTitlePeriod("disinfectant_usage", { dateFrom: "2026-09-07" }), null);
+    assert.equal(getDocumentTitlePeriod("glass_control", { dateFrom: "2026-09-07" }), null);
+  });
+
+  it("полумесячный — как пришло", () => {
+    assert.deepEqual(getDocumentTitlePeriod("cleaning", { dateFrom: "2026-09-16", dateTo: "2026-09-30" }), {
+      dateFrom: "2026-09-16",
+      dateTo: "2026-09-30",
+    });
+  });
+
+  it("месячный с одной датой — календарный месяц", () => {
+    assert.deepEqual(getDocumentTitlePeriod("metal_impurity", { dateFrom: "2026-02-07" }), {
+      dateFrom: "2026-02-01",
+      dateTo: "2026-02-28",
+    });
+    assert.deepEqual(
+      getDocumentTitlePeriod("incoming_control", { dateFrom: "2026-09-07", dateTo: "2026-09-07" }),
+      { dateFrom: "2026-09-01", dateTo: "2026-09-30" }
+    );
+  });
+
+  it("месячный с реальным диапазоном — без изменений; полный ISO режется до дня", () => {
+    assert.deepEqual(
+      getDocumentTitlePeriod("climate_control", {
+        dateFrom: "2026-09-01T00:00:00.000Z",
+        dateTo: "2026-09-30T00:00:00.000Z",
+      }),
+      { dateFrom: "2026-09-01", dateTo: "2026-09-30" }
+    );
+  });
+
+  it("мусор вместо даты — null", () => {
+    assert.equal(getDocumentTitlePeriod("metal_impurity", { dateFrom: "" }), null);
+    assert.equal(getDocumentTitlePeriod("audit_plan", { dateFrom: "nope" }), null);
+  });
+});
+
+describe("uniqueDocumentTitle", () => {
+  it("свободное название — без изменений", () => {
+    assert.equal(
+      uniqueDocumentTitle("Журнал уборки — сентябрь 2026", ["Другое"]),
+      "Журнал уборки — сентябрь 2026"
+    );
+  });
+
+  it("занято — « (2)», занято и оно — « (3)»", () => {
+    assert.equal(uniqueDocumentTitle("Журнал", ["Журнал"]), "Журнал (2)");
+    assert.equal(uniqueDocumentTitle("Журнал", ["Журнал", "Журнал (2)"]), "Журнал (3)");
+  });
+
+  it("регистр и пробелы не учитываются", () => {
+    assert.equal(uniqueDocumentTitle("Журнал ", ["  журнал"]), "Журнал (2)");
+  });
+
+  it("пустая база — пустая строка", () => {
+    assert.equal(uniqueDocumentTitle("   ", ["x"]), "");
+  });
+});
+
+describe("buildDocumentAutoTitle", () => {
+  it("уборка: имя + полумесяц + суффикс", () => {
+    assert.equal(
+      buildDocumentAutoTitle({
+        templateCode: "cleaning",
+        journalName: "Журнал уборки",
+        dateFrom: "2026-09-01",
+        dateTo: "2026-09-15",
+        existingTitles: ["Журнал уборки — 1–15 сентября 2026"],
+      }),
+      "Журнал уборки — 1–15 сентября 2026 (2)"
+    );
+  });
+
+  it("годовой: «2026 год»", () => {
+    assert.equal(
+      buildDocumentAutoTitle({
+        templateCode: "training_plan",
+        journalName: "План обучения",
+        dateFrom: "2026-09-07",
+        year: "2026",
+      }),
+      "План обучения — 2026 год"
+    );
+  });
+
+  it("бессрочный: только имя", () => {
+    assert.equal(
+      buildDocumentAutoTitle({
+        templateCode: "intensive_cooling",
+        journalName: "Журнал контроля",
+        dateFrom: "2026-09-07",
+      }),
+      "Журнал контроля"
+    );
   });
 });

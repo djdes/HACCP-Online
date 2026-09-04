@@ -42,7 +42,10 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = { id: string; name: string; role: string };
@@ -249,6 +252,28 @@ function DocumentSettingsDialog(props: {
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
 
+  const approveCascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: state.approveRole,
+    userId: state.approveEmployeeId,
+    onChange: (next) =>
+      setState((current) => {
+        const user = props.users.find((item) => item.id === next.userId);
+        return {
+          ...current,
+          approveRole: next.positionTitle,
+          approveEmployeeId: next.userId,
+          approveEmployee: user
+            ? user.name
+            : next.positionTitle !== current.approveRole
+              ? current.approveEmployee
+              : "",
+        };
+      }),
+    resolveCandidates: (roleLabel) => usersForRole(props.users, roleLabel),
+    autoPick: "first",
+  });
+
   const handleSave = async () => {
     setSubmitting(true);
     try {
@@ -317,15 +342,7 @@ function DocumentSettingsDialog(props: {
             <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Должность «Утверждаю»</Label>
             <Select
               value={state.approveRole}
-              onValueChange={(value) => {
-                const user = usersForRole(props.users, value)[0];
-                setState({
-                  ...state,
-                  approveRole: value,
-                  approveEmployeeId: user?.id || "",
-                  approveEmployee: user?.name || state.approveEmployee,
-                });
-              }}
+              onValueChange={approveCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                 <SelectValue placeholder="— Выберите значение —" />
@@ -339,26 +356,16 @@ function DocumentSettingsDialog(props: {
             <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">Сотрудник</Label>
             <Select
               value={state.approveEmployeeId || "__empty__"}
-              onValueChange={(value) => {
-                if (value === "__empty__") {
-                  setState({ ...state, approveEmployeeId: "", approveEmployee: "" });
-                  return;
-                }
-                const user = props.users.find((item) => item.id === value);
-                setState({
-                  ...state,
-                  approveEmployeeId: value,
-                  approveEmployee: user?.name || "",
-                  approveRole: user ? getUserRoleLabel(user.role) : state.approveRole,
-                });
-              }}
+              onValueChange={approveCascade.handleEmployeeChange}
+              open={approveCascade.employeeOpen}
+              onOpenChange={approveCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
                 <SelectValue placeholder="— Выберите значение —" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__empty__">— Выберите значение —</SelectItem>
-                {usersForRole(props.users, state.approveRole).map((user) => (
+                {approveCascade.candidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {buildStaffOptionLabel(user)}
                   </SelectItem>
@@ -433,15 +440,7 @@ function DocumentSettingsDialog(props: {
             <Label className="text-[14px] text-[#73738a]">Должность &quot;Утверждаю&quot;</Label>
             <Select
               value={state.approveRole}
-              onValueChange={(value) => {
-                const user = usersForRole(props.users, value)[0];
-                setState({
-                  ...state,
-                  approveRole: value,
-                  approveEmployeeId: user?.id || "",
-                  approveEmployee: user?.name || state.approveEmployee,
-                });
-              }}
+              onValueChange={approveCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -455,26 +454,16 @@ function DocumentSettingsDialog(props: {
             <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
             <Select
               value={state.approveEmployeeId || "__empty__"}
-              onValueChange={(value) => {
-                if (value === "__empty__") {
-                  setState({ ...state, approveEmployeeId: "", approveEmployee: "" });
-                  return;
-                }
-                const user = props.users.find((item) => item.id === value);
-                setState({
-                  ...state,
-                  approveEmployeeId: value,
-                  approveEmployee: user?.name || "",
-                  approveRole: user ? getUserRoleLabel(user.role) : state.approveRole,
-                });
-              }}
+              onValueChange={approveCascade.handleEmployeeChange}
+              open={approveCascade.employeeOpen}
+              onOpenChange={approveCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__empty__">- Выберите значение -</SelectItem>
-                {usersForRole(props.users, state.approveRole).map((user) => (
+                {approveCascade.candidates.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {buildStaffOptionLabel(user)}
                   </SelectItem>

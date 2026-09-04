@@ -47,6 +47,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { PositionNativeOptions } from "@/components/shared/position-select";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 type UserItem = {
   id: string;
   name: string;
@@ -99,6 +100,7 @@ function getDefaultFormState(users: UserItem[]): FormState {
 function GlassListFormDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: "create" | "edit";
   dialogTitle: string;
   submitLabel: string;
   users: UserItem[];
@@ -108,10 +110,22 @@ function GlassListFormDialog(props: {
   const [state, setState] = useState<FormState>(props.initialState);
   const [submitting, setSubmitting] = useState(false);
 
+  const auto = useAutoDocumentTitle({
+    templateCode: GLASS_LIST_TEMPLATE_CODE,
+    journalName: GLASS_LIST_DOCUMENT_TITLE,
+    period: { dateFrom: state.documentDate },
+    enabled: props.mode === "create",
+  });
+  const { reset: resetAutoTitle, titleForPeriod } = auto;
+  const { initialState, open, mode } = props;
+
   useEffect(() => {
-    if (!props.open) return;
-    setState(props.initialState);
-  }, [props.initialState, props.open]);
+    if (!open) return;
+    resetAutoTitle();
+    const seeded =
+      mode === "create" ? titleForPeriod({ dateFrom: initialState.documentDate }) : null;
+    setState({ ...initialState, documentName: seeded || initialState.documentName });
+  }, [initialState, mode, open, resetAutoTitle, titleForPeriod]);
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -133,9 +147,10 @@ function GlassListFormDialog(props: {
             <Label className="text-[14px] text-[#73738a]">Название документа</Label>
             <Input
               value={state.documentName}
-              onChange={(event) =>
-                setState((prev) => ({ ...prev, documentName: event.target.value }))
-              }
+              onChange={(event) => {
+                auto.markTouched();
+                setState((prev) => ({ ...prev, documentName: event.target.value }));
+              }}
               placeholder="Введите название документа"
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
@@ -156,9 +171,15 @@ function GlassListFormDialog(props: {
             <Input
               type="date"
               value={state.documentDate}
-              onChange={(event) =>
-                setState((prev) => ({ ...prev, documentDate: event.target.value }))
-              }
+              onChange={(event) => {
+                const documentDate = event.target.value;
+                const next = auto.titleForPeriod({ dateFrom: documentDate });
+                setState((prev) => ({
+                  ...prev,
+                  documentDate,
+                  ...(next !== null ? { documentName: next } : {}),
+                }));
+              }}
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
@@ -278,6 +299,23 @@ export function GlassListDocumentsClient(props: Props) {
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
   const [archiveDocument, setArchiveDocument] = useState<DocumentItem | null>(null);
   const [deleteDocument, setDeleteDocument] = useState<DocumentItem | null>(null);
+
+  // Stable identity: feeds the dialog's `useEffect([initialState, open])`.
+  const settingsFormState = useMemo<FormState>(() => {
+    if (!settingsDocument) return defaultFormState;
+    const config = normalizeGlassListConfig(settingsDocument.config);
+    return {
+      documentName: config.documentName || settingsDocument.title,
+      location: config.location,
+      documentDate: config.documentDate || settingsDocument.dateFrom,
+      responsibleTitle:
+        config.responsibleTitle || settingsDocument.responsibleTitle || "Управляющий",
+      responsibleUserId:
+        config.responsibleUserId ||
+        settingsDocument.responsibleUserId ||
+        defaultFormState.responsibleUserId,
+    };
+  }, [defaultFormState, settingsDocument]);
 
   async function createDocument(state: FormState) {
     const response = await fetch("/api/journal-documents", {
@@ -545,6 +583,7 @@ export function GlassListDocumentsClient(props: Props) {
       <GlassListFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        mode="create"
         dialogTitle="Создание документа"
         submitLabel="Создать"
         users={props.users}
@@ -555,29 +594,11 @@ export function GlassListDocumentsClient(props: Props) {
       <GlassListFormDialog
         open={!!settingsDocument}
         onOpenChange={(open) => !open && setSettingsDocument(null)}
+        mode="edit"
         dialogTitle="Настройки документа"
         submitLabel="Сохранить"
         users={props.users}
-        initialState={
-          settingsDocument
-            ? (() => {
-                const config = normalizeGlassListConfig(settingsDocument.config);
-                return {
-                  documentName: config.documentName || settingsDocument.title,
-                  location: config.location,
-                  documentDate: config.documentDate || settingsDocument.dateFrom,
-                  responsibleTitle:
-                    config.responsibleTitle ||
-                    settingsDocument.responsibleTitle ||
-                    "Управляющий",
-                  responsibleUserId:
-                    config.responsibleUserId ||
-                    settingsDocument.responsibleUserId ||
-                    defaultFormState.responsibleUserId,
-                };
-              })()
-            : defaultFormState
-        }
+        initialState={settingsFormState}
         onSubmit={saveSettings}
       />
 

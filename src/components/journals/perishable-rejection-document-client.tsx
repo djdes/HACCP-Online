@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUsersForRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES } from "@/lib/user-roles";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,10 @@ import {
   type PerishableRejectionRow,
 } from "@/lib/perishable-rejection-document";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import {
   Select,
   SelectContent,
@@ -270,6 +273,16 @@ export function PerishableRejectionDocumentClient({
   );
   const [draftPosition, setDraftPosition] = useState(RESPONSIBLE_POSITIONS[0]);
   const [draftUserId, setDraftUserId] = useState("");
+  const draftCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: draftPosition,
+    userId: draftUserId,
+    onChange: (next) => {
+      setDraftPosition(next.positionTitle);
+      setDraftUserId(next.userId);
+    },
+    autoPick: "none",
+  });
 
   const productOptions = useMemo(() => {
     const fromLists = config.productLists.flatMap((list) => list.items);
@@ -1514,13 +1527,7 @@ export function PerishableRejectionDocumentClient({
                 </Label>
                 <Select
                   value={draftPosition}
-                  onValueChange={(pos) => {
-                    setDraftPosition(pos);
-                    const candidates = getUsersForRoleLabel(users, pos);
-                    if (draftUserId && !candidates.some((u) => u.id === draftUserId)) {
-                      setDraftUserId("");
-                    }
-                  }}
+                  onValueChange={draftCascade.handlePositionChange}
                 >
                   <SelectTrigger className={SELECT_TRIGGER_CLASS}>
                     <SelectValue placeholder="— выберите должность —" />
@@ -1537,13 +1544,15 @@ export function PerishableRejectionDocumentClient({
                 <Select
                   value={toNone(draftUserId)}
                   onValueChange={(value) => setDraftUserId(fromNone(value))}
+                  open={draftCascade.employeeOpen}
+                  onOpenChange={draftCascade.setEmployeeOpen}
                 >
                   <SelectTrigger className={SELECT_TRIGGER_CLASS}>
                     <SelectValue placeholder="— выберите —" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE_VALUE}>— выберите —</SelectItem>
-                    {getUsersForRoleLabel(users, draftPosition).map((u) => (
+                    {draftCascade.candidates.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.name}
                       </SelectItem>

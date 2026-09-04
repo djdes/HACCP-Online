@@ -92,8 +92,10 @@ import { useMobileView } from "@/lib/use-mobile-view";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { PositionSelectItems } from "@/components/shared/position-select";
-import { getUsersForRoleLabel } from "@/lib/user-roles";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 import {
   GRID_BORDER_CLASS,
   GRID_CELL_CLASS,
@@ -463,6 +465,17 @@ function JournalSettingsDialog({
     setSkipWeekends(config.skipWeekends);
   }, [config.skipWeekends, employees, open, responsibleTitle, responsibleUserId, title, titleOptions]);
 
+  const cascade = usePositionEmployeeCascade({
+    users: employees,
+    positionTitle: position,
+    userId,
+    onChange: (next) => {
+      setPosition(next.positionTitle);
+      setUserId(next.userId);
+    },
+    autoPick: "first",
+  });
+
   async function handleSave() {
     setIsSubmitting(true);
     try {
@@ -513,15 +526,7 @@ function JournalSettingsDialog({
           </Label>
           <Select
             value={position}
-            onValueChange={(value) => {
-              setPosition(value);
-              const candidates = getUsersForRoleLabel(employees, value);
-              if (userId && !candidates.some((u) => u.id === userId)) {
-                setUserId(candidates[0]?.id || "");
-              } else if (!userId && candidates[0]) {
-                setUserId(candidates[0].id);
-              }
-            }}
+            onValueChange={cascade.handlePositionChange}
           >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
@@ -535,15 +540,17 @@ function JournalSettingsDialog({
           <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
             Сотрудник
           </Label>
-          <Select value={userId} onValueChange={setUserId}>
+          <Select
+            value={userId}
+            onValueChange={cascade.handleEmployeeChange}
+            open={cascade.employeeOpen}
+            onOpenChange={cascade.setEmployeeOpen}
+          >
             <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
               <SelectValue placeholder="— Выберите —" />
             </SelectTrigger>
             <SelectContent>
-              {(position
-                ? getUsersForRoleLabel(employees, position, { keepUserId: userId })
-                : employees
-              ).map((employee) => (
+              {(position ? cascade.candidates : employees).map((employee) => (
                 <SelectItem key={employee.id} value={employee.id}>
                   {employee.name}
                 </SelectItem>
@@ -591,15 +598,7 @@ function JournalSettingsDialog({
             </Label>
             <Select
               value={position}
-              onValueChange={(value) => {
-                setPosition(value);
-                const candidates = getUsersForRoleLabel(employees, value);
-                if (userId && !candidates.some((u) => u.id === userId)) {
-                  setUserId(candidates[0]?.id || "");
-                } else if (!userId && candidates[0]) {
-                  setUserId(candidates[0].id);
-                }
-              }}
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#fafbff] px-8 text-[15px]">
                 <SelectValue placeholder="Выберите должность" />
@@ -612,15 +611,17 @@ function JournalSettingsDialog({
 
           <div className="space-y-3">
             <Label className="text-[13px] font-medium text-[#3c4053]">Сотрудник</Label>
-            <Select value={userId} onValueChange={setUserId}>
+            <Select
+              value={userId}
+              onValueChange={cascade.handleEmployeeChange}
+              open={cascade.employeeOpen}
+              onOpenChange={cascade.setEmployeeOpen}
+            >
               <SelectTrigger className="h-22 rounded-[24px] border-[#dfe1ec] bg-[#fafbff] px-8 text-[15px]">
                 <SelectValue placeholder="Выберите сотрудника" />
               </SelectTrigger>
               <SelectContent>
-                {(position
-                  ? getUsersForRoleLabel(employees, position, { keepUserId: userId })
-                  : employees
-                ).map((employee) => (
+                {(position ? cascade.candidates : employees).map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
                   </SelectItem>

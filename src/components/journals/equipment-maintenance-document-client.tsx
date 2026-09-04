@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import {
   Dialog,
   DialogContent,
@@ -50,7 +50,10 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 type Props = {
   documentId: string;
   title: string;
@@ -109,6 +112,30 @@ export function EquipmentMaintenanceDocumentClient({
     config.responsibleEmployeeId || ""
   );
   const [settingsResponsibleEmployee, setSettingsResponsibleEmployee] = useState(config.responsibleEmployee);
+  const approveCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: settingsApproveRole,
+    userId: settingsApproveEmployeeId,
+    onChange: (next) => {
+      const user = users.find((item) => item.id === next.userId);
+      setSettingsApproveRole(next.positionTitle);
+      setSettingsApproveEmployeeId(next.userId);
+      setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
+    },
+    autoPick: "first",
+  });
+  const responsibleCascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: settingsResponsibleRole,
+    userId: settingsResponsibleEmployeeId,
+    onChange: (next) => {
+      const user = users.find((item) => item.id === next.userId);
+      setSettingsResponsibleRole(next.positionTitle);
+      setSettingsResponsibleEmployeeId(next.userId);
+      setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
+    },
+    autoPick: "first",
+  });
 
   // Add row draft state
   const [draftEquipmentName, setDraftEquipmentName] = useState("");
@@ -847,12 +874,7 @@ export function EquipmentMaintenanceDocumentClient({
             </Label>
             <Select
               value={settingsApproveRole}
-              onValueChange={(value) => {
-                const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                setSettingsApproveRole(value);
-                setSettingsApproveEmployeeId(user?.id || "");
-                setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
-              }}
+              onValueChange={approveCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
@@ -874,12 +896,14 @@ export function EquipmentMaintenanceDocumentClient({
                 setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
                 if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
               }}
+              open={approveCascade.employeeOpen}
+              onOpenChange={approveCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
-                {(settingsApproveRole ? getUsersForRoleLabel(users, settingsApproveRole) : users).map((u) => (
+                {(settingsApproveRole ? approveCascade.candidates : users).map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {buildStaffOptionLabel(u)}
                   </SelectItem>
@@ -893,12 +917,7 @@ export function EquipmentMaintenanceDocumentClient({
             </Label>
             <Select
               value={settingsResponsibleRole}
-              onValueChange={(value) => {
-                const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                setSettingsResponsibleRole(value);
-                setSettingsResponsibleEmployeeId(user?.id || "");
-                setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
-              }}
+              onValueChange={responsibleCascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
@@ -920,12 +939,14 @@ export function EquipmentMaintenanceDocumentClient({
                 setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
                 if (user) setSettingsResponsibleRole(getUserRoleLabel(user.role));
               }}
+              open={responsibleCascade.employeeOpen}
+              onOpenChange={responsibleCascade.setEmployeeOpen}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]">
                 <SelectValue placeholder="— Выберите —" />
               </SelectTrigger>
               <SelectContent>
-                {(settingsResponsibleRole ? getUsersForRoleLabel(users, settingsResponsibleRole) : users).map((u) => (
+                {(settingsResponsibleRole ? responsibleCascade.candidates : users).map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {buildStaffOptionLabel(u)}
                   </SelectItem>
@@ -974,12 +995,7 @@ export function EquipmentMaintenanceDocumentClient({
               <Label>Должность &laquo;Утверждаю&raquo;</Label>
               <Select
                 value={settingsApproveRole}
-                onValueChange={(value) => {
-                  const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                  setSettingsApproveRole(value);
-                  setSettingsApproveEmployeeId(user?.id || "");
-                  setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
-                }}
+                onValueChange={approveCascade.handlePositionChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="- Выберите значение -" />
@@ -998,12 +1014,14 @@ export function EquipmentMaintenanceDocumentClient({
                   setSettingsApproveEmployee(user?.name || settingsApproveEmployee);
                   if (user) setSettingsApproveRole(getUserRoleLabel(user.role));
                 }}
+                open={approveCascade.employeeOpen}
+                onOpenChange={approveCascade.setEmployeeOpen}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(settingsApproveRole ? getUsersForRoleLabel(users, settingsApproveRole) : users).map((u) => (
+                  {(settingsApproveRole ? approveCascade.candidates : users).map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {buildStaffOptionLabel(u)}
                     </SelectItem>
@@ -1014,12 +1032,7 @@ export function EquipmentMaintenanceDocumentClient({
               <Label>Должность ответственного</Label>
               <Select
                 value={settingsResponsibleRole}
-                onValueChange={(value) => {
-                  const user = users.find((item) => getUserRoleLabel(item.role) === value);
-                  setSettingsResponsibleRole(value);
-                  setSettingsResponsibleEmployeeId(user?.id || "");
-                  setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
-                }}
+                onValueChange={responsibleCascade.handlePositionChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="- Выберите значение -" />
@@ -1038,12 +1051,14 @@ export function EquipmentMaintenanceDocumentClient({
                   setSettingsResponsibleEmployee(user?.name || settingsResponsibleEmployee);
                   if (user) setSettingsResponsibleRole(getUserRoleLabel(user.role));
                 }}
+                open={responsibleCascade.employeeOpen}
+                onOpenChange={responsibleCascade.setEmployeeOpen}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(settingsResponsibleRole ? getUsersForRoleLabel(users, settingsResponsibleRole) : users).map((u) => (
+                  {(settingsResponsibleRole ? responsibleCascade.candidates : users).map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {buildStaffOptionLabel(u)}
                     </SelectItem>

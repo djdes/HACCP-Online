@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpenText,
@@ -35,10 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getDistinctRoleLabels, getUsersForRoleLabel } from "@/lib/user-roles";
+import { getDistinctRoleLabels } from "@/lib/user-roles";
 import {
   TRAINING_PLAN_DOCUMENT_TITLE,
   TRAINING_PLAN_HEADING,
+  TRAINING_PLAN_TEMPLATE_CODE,
   getTrainingPlanApproveLabel,
   getTrainingPlanDefaultConfig,
   getTrainingPlanDocumentDateLabel,
@@ -61,7 +62,11 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = { id: string; name: string; role: string };
 
@@ -95,10 +100,6 @@ function roleOptionsFromUsers(users: UserItem[]) {
   return getDistinctRoleLabels(users);
 }
 
-function usersForRole(users: UserItem[], roleLabel: string) {
-  return getUsersForRoleLabel(users, roleLabel);
-}
-
 function toIsoDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const date = new Date(value);
@@ -126,11 +127,57 @@ function SettingsDialog(props: {
   onSubmit: (value: SettingsState) => Promise<void>;
   submitText: string;
   title: string;
+  mode: "create" | "edit";
 }) {
   const [state, setState] = useState<SettingsState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
   const activeState = state || props.initial;
+
+  const auto = useAutoDocumentTitle({
+    templateCode: TRAINING_PLAN_TEMPLATE_CODE,
+    journalName: TRAINING_PLAN_DOCUMENT_TITLE,
+    period: { dateFrom: activeState?.documentDate, year: activeState?.year },
+    enabled: props.mode === "create",
+  });
+
+  /**
+   * Сброс и автоназвание — на открытии по `props.open`, а не в
+   * `Dialog.onOpenChange`: тот не срабатывает при программном
+   * `setCreateOpen(true)`. `initial` читаем через ref, чтобы нестабильный
+   * объект из родителя не сбрасывал форму на каждом рендере.
+   */
+  const initialRef = useRef(props.initial);
+  useEffect(() => {
+    initialRef.current = props.initial;
+  });
+  const { reset: resetAuto, seedTitle } = auto;
+  useEffect(() => {
+    if (!props.open) {
+      setState(null);
+      return;
+    }
+    const initial = initialRef.current;
+    resetAuto();
+    setState(initial ? { ...initial, title: initial.title || seedTitle() } : initial);
+  }, [props.open, resetAuto, seedTitle]);
+
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: activeState?.approveRole ?? "",
+    userId: activeState?.approveEmployeeId ?? "",
+    onChange: (next) => {
+      if (!activeState) return;
+      const user = props.users.find((item) => item.id === next.userId);
+      setState({
+        ...activeState,
+        approveRole: next.positionTitle,
+        approveEmployeeId: next.userId,
+        approveEmployee: user?.name || activeState.approveEmployee,
+      });
+    },
+    autoPick: "first",
+  });
 
   async function handleSubmit() {
     if (!activeState) return;
@@ -146,10 +193,7 @@ function SettingsDialog(props: {
   return (
     <Dialog
       open={props.open}
-      onOpenChange={(value) => {
-        if (value) setState(props.initial);
-        props.onOpenChange(value);
-      }}
+      onOpenChange={props.onOpenChange}
     >
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
@@ -172,7 +216,10 @@ function SettingsDialog(props: {
               <Label className="text-[14px] text-[#7a7c8e]">Название документа</Label>
               <Input
                 value={activeState.title}
-                onChange={(event) => setState({ ...activeState, title: event.target.value })}
+                onChange={(event) => {
+                  auto.markTouched();
+                  setState({ ...activeState, title: event.target.value });
+                }}
                 className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
             </div>
@@ -182,9 +229,18 @@ function SettingsDialog(props: {
                 <Input
                   type="date"
                   value={activeState.documentDate}
-                  onChange={(event) =>
-                    setState({ ...activeState, documentDate: toIsoDate(event.target.value) })
-                  }
+                  onChange={(event) => {
+                    const documentDate = toIsoDate(event.target.value);
+                    const next = auto.titleForPeriod({
+                      dateFrom: documentDate,
+                      year: activeState.year,
+                    });
+                    setState({
+                      ...activeState,
+                      documentDate,
+                      ...(next !== null ? { title: next } : {}),
+                    });
+                  }}
                   className="h-9 rounded-xl border-[#d8dae6] px-7 pr-14 text-[13.5px]"
                 />
                 <CalendarDays className="pointer-events-none absolute right-6 top-1/2 size-7 -translate-y-1/2 text-[#6e7080]" />
@@ -194,7 +250,17 @@ function SettingsDialog(props: {
               <Label className="text-[14px] text-[#7a7c8e]">Год</Label>
               <Select
                 value={activeState.year}
-                onValueChange={(value) => setState({ ...activeState, year: value })}
+                onValueChange={(value) => {
+                  const next = auto.titleForPeriod({
+                    dateFrom: activeState.documentDate,
+                    year: value,
+                  });
+                  setState({
+                    ...activeState,
+                    year: value,
+                    ...(next !== null ? { title: next } : {}),
+                  });
+                }}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue />
@@ -215,15 +281,7 @@ function SettingsDialog(props: {
               <Label className="text-[14px] text-[#7a7c8e]">Должность &quot;Утверждаю&quot;</Label>
               <Select
                 value={activeState.approveRole}
-                onValueChange={(value) => {
-                  const user = usersForRole(props.users, value)[0];
-                  setState({
-                    ...activeState,
-                    approveRole: value,
-                    approveEmployeeId: user?.id || "",
-                    approveEmployee: user?.name || activeState.approveEmployee,
-                  });
-                }}
+                onValueChange={cascade.handlePositionChange}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
@@ -237,20 +295,15 @@ function SettingsDialog(props: {
               <Label className="text-[14px] text-[#7a7c8e]">Сотрудник</Label>
               <Select
                 value={activeState.approveEmployeeId}
-                onValueChange={(value) => {
-                  const user = props.users.find((item) => item.id === value);
-                  setState({
-                    ...activeState,
-                    approveEmployeeId: value,
-                    approveEmployee: user?.name || activeState.approveEmployee,
-                  });
-                }}
+                onValueChange={cascade.handleEmployeeChange}
+                open={cascade.employeeOpen}
+                onOpenChange={cascade.setEmployeeOpen}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-[#f1f2f8] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {usersForRole(props.users, activeState.approveRole).map((user) => (
+                  {cascade.candidates.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {buildStaffOptionLabel(user)}
                     </SelectItem>
@@ -305,7 +358,7 @@ export function TrainingPlanDocumentsClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         templateCode,
-        title: payload.title.trim() || `${TRAINING_PLAN_DOCUMENT_TITLE} ${payload.year}`,
+        title: payload.title.trim() || TRAINING_PLAN_DOCUMENT_TITLE,
         dateFrom: payload.documentDate,
         dateTo: payload.documentDate,
         config,
@@ -381,6 +434,8 @@ export function TrainingPlanDocumentsClient({
   const defaultCreateState = useMemo<SettingsState>(() => {
     const defaultConfig = getTrainingPlanDefaultConfig();
     return {
+      // Название подставляется автоматически из имени журнала + периода
+      // (`useAutoDocumentTitle`, просьба владельца 2026-09-04).
       title: "",
       documentDate: defaultConfig.documentDate,
       year: String(defaultConfig.year),
@@ -543,6 +598,7 @@ export function TrainingPlanDocumentsClient({
         onSubmit={createDocument}
         submitText="Создать"
         title="Создание документа"
+        mode="create"
       />
       <SettingsDialog
         open={Boolean(settingsTarget)}
@@ -556,6 +612,7 @@ export function TrainingPlanDocumentsClient({
         }}
         submitText="Сохранить"
         title="Настройки документа"
+        mode="edit"
       />
 
       <Dialog

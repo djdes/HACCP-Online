@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpenText,
@@ -40,6 +40,7 @@ import {
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { getUsersForRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 
 import { toast } from "sonner";
 import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
@@ -53,7 +54,11 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
-import { PositionSelectItems } from "@/components/shared/position-select";
+import {
+  EMPTY_SELECT_VALUE,
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
 type DocumentItem = {
   id: string;
   title: string;
@@ -134,6 +139,7 @@ function getDefaultState(
 function DocumentDialog({
   open,
   onOpenChange,
+  mode,
   initial,
   submitLabel,
   title,
@@ -144,6 +150,7 @@ function DocumentDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: "create" | "edit";
   initial: SettingsState;
   submitLabel: string;
   title: string;
@@ -155,6 +162,8 @@ function DocumentDialog({
   const [state, setState] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
   const defaultEmployeeId = pickPrimaryManager(users)?.id || "";
+  // Rendered list: keeps the currently selected employee even if the
+  // position no longer matches (hydrated documents).
   const employeeOptions = useMemo(
     () =>
       collectEmployeeOptions(
@@ -166,13 +175,50 @@ function DocumentDialog({
       ),
     [defaultEmployeeId, documents, state.responsibleEmployeeId, state.responsiblePosition, users]
   );
+  // Cascade candidates: without the current id, so a position change
+  // re-picks the first employee of the new position (previous behaviour).
+  const resolveCandidates = useCallback(
+    (positionTitle: string) =>
+      collectEmployeeOptions(users, documents, positionTitle, defaultEmployeeId),
+    [defaultEmployeeId, documents, users]
+  );
+  const handleCascadeChange = useCallback(
+    (next: { positionTitle: string; userId: string }) => {
+      setState((current) => ({
+        ...current,
+        responsiblePosition: next.positionTitle,
+        responsibleEmployeeId: next.userId,
+        responsibleEmployee: users.find((item) => item.id === next.userId)?.name || "",
+      }));
+    },
+    [users]
+  );
+  const cascade = usePositionEmployeeCascade({
+    users,
+    positionTitle: state.responsiblePosition,
+    userId: state.responsibleEmployeeId,
+    onChange: handleCascadeChange,
+    resolveCandidates,
+    autoPick: "first",
+  });
+
+  const auto = useAutoDocumentTitle({
+    templateCode: METAL_IMPURITY_TEMPLATE_CODE,
+    journalName: METAL_IMPURITY_DOCUMENT_TITLE,
+    period: { dateFrom: state.startDate },
+    enabled: mode === "create",
+  });
+  const { reset: resetAutoTitle, titleForPeriod } = auto;
 
   useEffect(() => {
     if (open) {
-      setState(initial);
+      resetAutoTitle();
+      const seeded =
+        mode === "create" ? titleForPeriod({ dateFrom: initial.startDate }) : null;
+      setState({ ...initial, title: seeded || initial.title });
       setSubmitting(false);
     }
-  }, [initial, open]);
+  }, [initial, mode, open, resetAutoTitle, titleForPeriod]);
 
   useEffect(() => {
     if (!open || employeeOptions.length === 0) return;
@@ -197,7 +243,10 @@ function DocumentDialog({
             <Input
               value={state.title}
               placeholder="Введите название документа"
-              onChange={(event) => setState({ ...state, title: event.target.value })}
+              onChange={(event) => {
+                auto.markTouched();
+                setState({ ...state, title: event.target.value });
+              }}
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
@@ -206,7 +255,15 @@ function DocumentDialog({
             <Input
               type="date"
               value={state.startDate}
-              onChange={(event) => setState({ ...state, startDate: event.target.value })}
+              onChange={(event) => {
+                const startDate = event.target.value;
+                const next = auto.titleForPeriod({ dateFrom: startDate });
+                setState({
+                  ...state,
+                  startDate,
+                  ...(next !== null ? { title: next } : {}),
+                });
+              }}
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
@@ -214,17 +271,7 @@ function DocumentDialog({
             <Label className="text-[14px] text-[#73738a]">Должность ответственного</Label>
             <Select
               value={state.responsiblePosition}
-              onValueChange={(value) =>
-                setState((current) => {
-                  const user = getUsersForRoleLabel(users, value)[0] || null;
-                  return {
-                    ...current,
-                    responsiblePosition: value,
-                    responsibleEmployeeId: user?.id || current.responsibleEmployeeId,
-                    responsibleEmployee: user?.name || current.responsibleEmployee,
-                  };
-                })
-              }
+              onValueChange={cascade.handlePositionChange}
             >
               <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                 <SelectValue placeholder="- Выберите значение -" />
@@ -238,25 +285,16 @@ function DocumentDialog({
             <div className="space-y-3">
               <Label className="text-[14px] text-[#73738a]">Сотрудник</Label>
               <Select
-                value={state.responsibleEmployeeId || "__empty__"}
-                onValueChange={(value) => {
-                  if (value === "__empty__") {
-                    setState({ ...state, responsibleEmployeeId: "", responsibleEmployee: "" });
-                    return;
-                  }
-                  const user = users.find((item) => item.id === value) || null;
-                  setState({
-                    ...state,
-                    responsibleEmployeeId: value,
-                    responsibleEmployee: user?.name || "",
-                  });
-                }}
+                value={state.responsibleEmployeeId || EMPTY_SELECT_VALUE}
+                onValueChange={cascade.handleEmployeeChange}
+                open={cascade.employeeOpen}
+                onOpenChange={cascade.setEmployeeOpen}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__empty__">- Выберите значение -</SelectItem>
+                  <SelectItem value={EMPTY_SELECT_VALUE}>- Выберите значение -</SelectItem>
                   {employeeOptions.map((employee) => (
                     <SelectItem key={employee.id} value={employee.id}>
                       {buildStaffOptionLabel(employee)}
@@ -351,6 +389,18 @@ export function MetalImpurityDocumentsClient({
     () => getDefaultState(users, availableMaterials, availableSuppliers),
     [availableMaterials, availableSuppliers, users]
   );
+  // Stable identity: feeds the dialog's `useEffect([initial, open])`.
+  const settingsState = useMemo<SettingsState>(() => {
+    if (!settingsDocument) return createState;
+    const config = normalizeMetalImpurityConfig(settingsDocument.config);
+    return {
+      title: settingsDocument.title,
+      startDate: config.startDate,
+      responsiblePosition: config.responsiblePosition,
+      responsibleEmployeeId: config.responsibleEmployeeId || "",
+      responsibleEmployee: config.responsibleEmployee,
+    };
+  }, [createState, settingsDocument]);
 
   async function createDocument(payload: SettingsState) {
     const config = getDefaultMetalImpurityConfig({
@@ -581,6 +631,7 @@ export function MetalImpurityDocumentsClient({
       <DocumentDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        mode="create"
         initial={createState}
         submitLabel="Создать"
         title="Создание документа"
@@ -595,22 +646,8 @@ export function MetalImpurityDocumentsClient({
         onOpenChange={(open) => {
           if (!open) setSettingsDocument(null);
         }}
-        initial={
-          settingsDocument
-            ? {
-                title: settingsDocument.title,
-                ...(() => {
-                  const config = normalizeMetalImpurityConfig(settingsDocument.config);
-                  return {
-                    startDate: config.startDate,
-                    responsiblePosition: config.responsiblePosition,
-                    responsibleEmployeeId: config.responsibleEmployeeId || "",
-                    responsibleEmployee: config.responsibleEmployee,
-                  };
-                })(),
-              }
-            : createState
-        }
+        mode="edit"
+        initial={settingsState}
         submitLabel="Сохранить"
         title="Настройки документа"
         users={users}

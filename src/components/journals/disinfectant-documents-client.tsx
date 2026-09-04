@@ -36,7 +36,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getDistinctRoleLabels, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
+import {
+  PositionSelectItems,
+  usePositionEmployeeCascade,
+} from "@/components/shared/position-select";
+import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import {
   DISINFECTANT_HEADING,
@@ -82,27 +86,51 @@ type SettingsState = {
   responsibleEmployee: string;
 };
 
-function roleOptionsFromUsers(users: UserItem[]) {
-  return getDistinctRoleLabels(users);
-}
-
-function usersForRole(users: UserItem[], roleLabel: string) {
-  return getUsersForRoleLabel(users, roleLabel);
-}
-
 function SettingsDialog(props: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
   users: UserItem[];
+  /** Бессрочный журнал: периода в названии нет, автоназвание — имя журнала. */
+  templateCode: string;
   initial: SettingsState | null;
   onSubmit: (value: SettingsState) => Promise<void>;
   submitText: string;
   dialogTitle: string;
+  /** Создание — название подставляется автоматически (просьба владельца 2026-09-04). */
+  mode: "create" | "edit";
 }) {
   const [state, setState] = useState<SettingsState | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
-  const activeState = state || props.initial;
+  const auto = useAutoDocumentTitle({
+    templateCode: props.templateCode,
+    journalName: DISINFECTANT_DOCUMENT_TITLE,
+    period: {},
+    enabled: props.mode === "create",
+  });
+  // Диалог открывается кнопкой снаружи (Radix не зовёт onOpenChange(true)),
+  // поэтому автоназвание подставляем и в fallback «состояния ещё нет».
+  const activeState =
+    state ||
+    (props.initial
+      ? { ...props.initial, title: props.initial.title || auto.seedTitle() }
+      : null);
+
+  const cascade = usePositionEmployeeCascade({
+    users: props.users,
+    positionTitle: activeState?.responsibleRole || "",
+    userId: activeState?.responsibleEmployeeId || "",
+    onChange: (next) => {
+      if (!activeState) return;
+      const user = props.users.find((item) => item.id === next.userId);
+      setState({
+        ...activeState,
+        responsibleRole: next.positionTitle,
+        responsibleEmployeeId: next.userId,
+        responsibleEmployee: user?.name || activeState.responsibleEmployee,
+      });
+    },
+    autoPick: "first",
+  });
 
   async function handleSubmit() {
     if (!activeState) return;
@@ -119,7 +147,9 @@ function SettingsDialog(props: {
     <Dialog
       open={props.open}
       onOpenChange={(v) => {
-        if (v) setState(props.initial);
+        auto.reset();
+        // На закрытии — сброс, чтобы следующее открытие шло от `initial`.
+        setState(v ? activeState : null);
         props.onOpenChange(v);
       }}
     >
@@ -146,9 +176,10 @@ function SettingsDialog(props: {
               </Label>
               <Input
                 value={activeState.title}
-                onChange={(e) =>
-                  setState({ ...activeState, title: e.target.value })
-                }
+                onChange={(e) => {
+                  auto.markTouched();
+                  setState({ ...activeState, title: e.target.value });
+                }}
                 placeholder="Введите название документа"
                 className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
               />
@@ -159,26 +190,13 @@ function SettingsDialog(props: {
               </Label>
               <Select
                 value={activeState.responsibleRole}
-                onValueChange={(v) => {
-                  const user = usersForRole(props.users, v)[0];
-                  setState({
-                    ...activeState,
-                    responsibleRole: v,
-                    responsibleEmployeeId: user?.id || "",
-                    responsibleEmployee:
-                      user?.name || activeState.responsibleEmployee,
-                  });
-                }}
+                onValueChange={cascade.handlePositionChange}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
+                  <PositionSelectItems users={props.users} />
                 </SelectContent>
               </Select>
             </div>
@@ -186,26 +204,19 @@ function SettingsDialog(props: {
               <Label className="text-[14px] text-[#6f7282]">Сотрудник</Label>
               <Select
                 value={activeState.responsibleEmployeeId}
-                onValueChange={(v) => {
-                  const user = props.users.find((item) => item.id === v);
-                  setState({
-                    ...activeState,
-                    responsibleEmployeeId: v,
-                    responsibleEmployee: user?.name || activeState.responsibleEmployee,
-                  });
-                }}
+                onValueChange={cascade.handleEmployeeChange}
+                open={cascade.employeeOpen}
+                onOpenChange={cascade.setEmployeeOpen}
               >
                 <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px]">
                   <SelectValue placeholder="- Выберите значение -" />
                 </SelectTrigger>
                 <SelectContent>
-                  {usersForRole(props.users, activeState.responsibleRole).map(
-                    (u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {buildStaffOptionLabel(u)}
-                      </SelectItem>
-                    )
-                  )}
+                  {cascade.candidates.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {buildStaffOptionLabel(u)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -468,10 +479,12 @@ export function DisinfectantDocumentsClient({
         open={createOpen}
         onOpenChange={setCreateOpen}
         users={users}
+        templateCode={templateCode}
         initial={defaultCreateState}
         onSubmit={createDocument}
         submitText="Создать"
         dialogTitle="Создание документа"
+        mode="create"
       />
       <SettingsDialog
         open={!!settingsTarget}
@@ -479,6 +492,7 @@ export function DisinfectantDocumentsClient({
           if (!v) setSettingsTarget(null);
         }}
         users={users}
+        templateCode={templateCode}
         initial={
           settingsTarget
             ? {
@@ -501,6 +515,7 @@ export function DisinfectantDocumentsClient({
         }}
         submitText="Сохранить"
         dialogTitle="Настройки документа"
+        mode="edit"
       />
 
     </div>
