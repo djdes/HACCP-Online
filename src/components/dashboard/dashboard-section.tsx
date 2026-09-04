@@ -66,6 +66,11 @@ export function DashboardSection({
   actions,
   children,
 }: Props) {
+  // «Обязательные журналы» → head «Обязательные », tail «журналы».
+  const lastSpace = title.lastIndexOf(" ");
+  const titleHead = lastSpace > 0 ? title.slice(0, lastSpace + 1) : "";
+  const titleTail = lastSpace > 0 ? title.slice(lastSpace + 1) : title;
+
   return (
     <details
       // open — нужно прокинуть как boolean prop (не через open={false})
@@ -116,14 +121,25 @@ export function DashboardSection({
                   с последним словом («…журналы 3/5»), а на десктопе стоит
                   там же, где стоял. */}
               <h3 className="text-[15px] font-semibold leading-tight tracking-[-0.01em] text-[#0b1024] sm:text-[16px]">
-                {title}
                 {badge ? (
-                  <span
-                    className={`ml-2 inline-flex translate-y-[-1px] items-center whitespace-nowrap rounded-full px-2 py-0.5 align-middle text-[11px] font-semibold ${TONE_CLS[badge.tone ?? "default"]}`}
-                  >
-                    {badge.text}
-                  </span>
-                ) : null}
+                  // Последнее слово и бейдж — одним неразрывным куском:
+                  // перед inline-элементом браузер переносит строку даже
+                  // через nbsp, и бейдж оказывался один на новой строке.
+                  // Так, если всё не влезает, переносится «журналы 3/5».
+                  <>
+                    {titleHead}
+                    <span className="whitespace-nowrap">
+                      {titleTail}
+                      <span
+                        className={`ml-1.5 inline-flex translate-y-[-1px] items-center rounded-full px-2 py-0.5 align-middle text-[11px] font-semibold ${TONE_CLS[badge.tone ?? "default"]}`}
+                      >
+                        {badge.text}
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  title
+                )}
               </h3>
               {titleAction}
             </div>

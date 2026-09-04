@@ -1,0 +1,120 @@
+{
+  "login": "http://localhost:3020/dashboard",
+  "dashboard": {
+    "paperCount": 5,
+    "paperClasses": "group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ececf4] bg-[#fafbff] transition-colors duration-150 hover:border-[#5566f6]/40",
+    "electronicCount": 35,
+    "electronicClasses": [
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]",
+      "border-[#ffd2cd]"
+    ],
+    "previewImgs": 20,
+    "sampleImgs": 20,
+    "partnerHint": true
+  },
+  "previewFetch": {
+    "status": 200,
+    "type": "image/png",
+    "cache": "private, max-age=31536000, immutable",
+    "bytes": 84332
+  },
+  "partnerModal": {
+    "h": 676.45849609375,
+    "w": 548.1162109375,
+    "vh": 900,
+    "hasRates": true,
+    "hasCta": true,
+    "text": "Ваш бренд в WeSetup\n\nВедите клиентов по СанПиН и ХАССП под своим логотипом и получайте вознаграждение с их подписки и оборудования.\n\nКАК ЭТО ВЫГЛЯДИТ У КЛИЕНТА\nВАШ ЛОГОТИП\nКафе «Ромашка»\nПодготовлено: Ваша компания · +7 900 000-00-00\nPDF\nВОЗНАГРАЖДЕНИЕ\n20%\nс подписки, 12 мес.\n15%\nс оборудования\n3 000 ₽\nбонус после 2-го платежа\nЧТО МОЖНО НАСТРОИТЬ\nЛоготип и акцентный цвет кабинета\nПриветствие при в"
+  },
+  "hideButtonCount": 35,
+  "hidden": {
+    "name": "Гигиенический журнал",
+    "disabledSectionVisible": true
+  },
+  "enabledBack": {
+    "stillHasHideBtnFor": 1
+  },
+  "mobile": {
+    "title": {
+      "x": 85,
+      "y": 1042.390625,
+      "width": 192,
+      "height": 37.578125,
+      "top": 1042.390625,
+      "right": 277,
+      "bottom": 1079.96875,
+      "left": 85
+    },
+    "badge": null,
+    "settings": {
+      "x": 289,
+      "y": 1043.1875,
+      "width": 36,
+      "height": 36,
+      "top": 1043.1875,
+      "right": 325,
+      "bottom": 1079.1875,
+      "left": 289
+    },
+    "settingsText": "",
+    "closeDay": {
+      "x": 33,
+      "y": 1093.1875,
+      "width": 158,
+      "height": 44,
+      "top": 1093.1875,
+      "right": 191,
+      "bottom": 1137.1875,
+      "left": 33
+    },
+    "selective": {
+      "x": 199,
+      "y": 1093.1875,
+      "width": 158,
+      "height": 44,
+      "top": 1093.1875,
+      "right": 357,
+      "bottom": 1137.1875,
+      "left": 199
+    },
+    "selectiveText": "Выборочно",
+    "sameRowTitleBadge": null,
+    "sameRowButtons": true,
+    "vw": 390,
+    "scrollW": 390
+  },
+  "mobileTitleText": "Обязательные журналы0/35"
+}
