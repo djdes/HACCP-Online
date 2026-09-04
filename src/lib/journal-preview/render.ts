@@ -1,6 +1,7 @@
-import { createRequire } from "node:module";
+import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { createCanvas } from "@napi-rs/canvas";
 
 /** Геометрия образцов в public/journal-samples — карточки ждут её же. */
 export const PREVIEW_WIDTH = 1228;
@@ -12,42 +13,30 @@ export type RenderedPreview = {
   height: number;
 };
 
-type CanvasModule = typeof import("@napi-rs/canvas");
-
 /**
- * require относительно корня приложения, а не `import.meta.url`: в
- * production-сборке Next (webpack, CJS) `import.meta.url` превращается в
- * числовой id модуля, и `createRequire` падает с «path must be a string».
- * `process.cwd()` — каталог приложения и у PM2, и у `next dev`, и у тестов.
+ * Каталог пакета pdfjs-dist. Берём от `process.cwd()`, а не через
+ * `createRequire`/`import.meta.url`: в webpack-сборке Next (`next build
+ * --webpack`, как на проде) `import.meta.url` становится числовым id
+ * модуля, а `createRequire` выдаёт объект без `resolve` — оба варианта
+ * падали только на проде. `process.cwd()` — каталог приложения и у PM2
+ * (`exec cwd`), и у `next dev`, и у тестов; `pdfjs-dist` — прямая
+ * зависимость, поэтому лежит в корневом node_modules.
  */
-function appRequire(): NodeJS.Require {
-  return createRequire(path.join(process.cwd(), "package.json"));
-}
-
-let canvasModule: CanvasModule | null = null;
-function loadCanvas(): CanvasModule {
-  if (!canvasModule) {
-    // require, а не import: pdfjs сам грузит @napi-rs/canvas через
-    // require, и второй экземпляр модуля нам ни к чему.
-    const req = appRequire();
-    canvasModule = req("@napi-rs/canvas") as CanvasModule;
+function pdfjsDir(): string {
+  const dir = path.join(process.cwd(), "node_modules", "pdfjs-dist");
+  if (!fs.existsSync(path.join(dir, "package.json"))) {
+    throw new Error(`pdfjs-dist не найден в ${dir} (process.cwd()=${process.cwd()})`);
   }
-  return canvasModule;
+  return dir;
 }
 
 function workerFileUrl(): string {
-  const req = appRequire();
-  const pkg = req.resolve("pdfjs-dist/package.json");
-  const file = path.join(path.dirname(pkg), "legacy", "build", "pdf.worker.mjs");
-  return pathToFileURL(file).href;
+  return pathToFileURL(path.join(pdfjsDir(), "legacy", "build", "pdf.worker.mjs")).href;
 }
 
 function standardFontsDir(): string {
-  const req = appRequire();
-  const pkg = req.resolve("pdfjs-dist/package.json");
-  const dir = path.join(path.dirname(pkg), "standard_fonts");
   // pdfjs склеивает url + имя файла как строки, поэтому нужен trailing slash.
-  return dir.split(path.sep).join("/") + "/";
+  return path.join(pdfjsDir(), "standard_fonts").split(path.sep).join("/") + "/";
 }
 
 /**
@@ -92,7 +81,6 @@ export async function renderPdfFirstPageToPng(
     const scale = width / base.width;
     const viewport = page.getViewport({ scale });
 
-    const { createCanvas } = loadCanvas();
     const pageCanvas = createCanvas(
       Math.ceil(viewport.width),
       Math.ceil(viewport.height)
