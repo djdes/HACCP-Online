@@ -15,7 +15,11 @@
 | AC7 раздача PNG | PASS | `previewFetch`: 200, `image/png`, `Cache-Control: private, max-age=31536000, immutable`, 84–236 КБ |
 | AC8 карточки со снимками | PASS | `results.dashboard.previewImgs = 20`, `sampleImgs = 20` (остальные без активного документа → образец); на мобиле видны снимки «Карточка истории поломок · 2026 г.» и др.; бумажные — `paper_*.png` |
 | AC9 typecheck/lint/tests | PASS | `npm run typecheck` exit 0; `npm test` 542 pass; `npm run lint` — 24 ошибок все в `.claude/skills/animate/examples/*` и `prisma/seed-admin.ts` (pre-existing, `require()`), в изменённых файлах 0 ошибок |
-| AC10 деплой и crontab | см. ниже | заполняется после push |
+| AC10 деплой и crontab | PASS | Деплой 8b145777 (GitHub Actions success), PM2 online, `/login` 200. Crontab прода: `*/10 * * * * curl … /api/cron/journal-previews`. Ручной вызов на проде: `{"ok":true,"rendered":60,"failed":0,"skipped":218,"deleted":0,"ms":21296}` |
+
+## Прод: два промежуточных деплоя
+- 593854e8 — рендер падал: `import.meta.url` в webpack-сборке → числовой id модуля.
+- 8b145777 — исправлено: пути pdfjs от `process.cwd()/node_modules`, canvas статическим импортом; локальная проверка через `NEXT_DIST_DIR=.next-prodcheck npm run build` (webpack, как на проде) дала 60/0 до пуша.
 
 ## Найдено и исправлено по ходу
 - pdfjs в Next-бандле не находил `pdf.worker.mjs` → `serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"]` + `GlobalWorkerOptions.workerSrc` = file:// на node_modules.

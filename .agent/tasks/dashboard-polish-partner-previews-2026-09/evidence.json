@@ -17,6 +17,11 @@
     "AC7": "PASS",
     "AC8": "PASS",
     "AC9": "PASS",
-    "AC10": "PENDING_DEPLOY"
+    "AC10": "PASS"
+  },
+  "prod": {
+    "deployedSha": "8b145777",
+    "cron": { "ok": true, "rendered": 60, "failed": 0, "skipped": 218, "deleted": 0, "ms": 21296 },
+    "crontab": "*/10 * * * * curl -s -m 280 -H 'Authorization: Bearer $CRON_SECRET' http://127.0.0.1:3002/api/cron/journal-previews"
   }
 }
