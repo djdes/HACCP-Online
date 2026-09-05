@@ -565,8 +565,8 @@ function CompleteProfileModal({
                   </>
                 )}
               </button>
-              <p className="mt-1.5 text-center text-[11px] leading-snug text-[#9b9fb3]">
-                Отдельная организация на 7 дней
+              <p className="mt-1.5 whitespace-nowrap text-center text-[11px] leading-snug text-[#9b9fb3]">
+                Отдельная организация, 7 дней
               </p>
             </div>
             <button
