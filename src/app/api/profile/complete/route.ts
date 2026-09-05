@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { sendPasswordChangedEmail } from "@/lib/email";
+import { innDigits, isValidInn } from "@/lib/inn";
+import { refreshOrganizationLegalProfile } from "@/lib/org-legal-profile";
 import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 import {
@@ -156,6 +158,14 @@ export async function POST(request: Request) {
       },
     });
   });
+
+  // Снимок ЕГРЮЛ по ИНН — реквизиты, руководитель, ОКВЭД, численность —
+  // в организацию; показывается в /settings/organization. Ошибки DaData
+  // анкету не ломают.
+  const inn = innDigits(data.inn);
+  if (isValidInn(inn)) {
+    await refreshOrganizationLegalProfile(organizationId, inn);
+  }
 
   // Анкета подставляет пароль сама, и пароль из письма о регистрации после
   // сохранения не подходит. Новый дублируем на почту — не дожидаясь

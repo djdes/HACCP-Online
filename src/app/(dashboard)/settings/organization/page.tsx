@@ -3,6 +3,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { OrganizationInfoForm } from "@/components/settings/organization-info-form";
+import { readLegalProfile } from "@/lib/org-legal-profile";
 import { PageGuide } from "@/components/ui/page-guide";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -24,6 +25,8 @@ export default async function OrganizationInfoPage() {
       address: true,
       phone: true,
       accountantEmail: true,
+      legalProfileJson: true,
+      legalProfileUpdatedAt: true,
       locale: true,
       timezone: true,
       brandColor: true,
@@ -75,6 +78,10 @@ export default async function OrganizationInfoPage() {
           shiftEndHour: org.shiftEndHour,
           lockPastDayEdits: org.lockPastDayEdits,
           requireAdminForJournalEdit: org.requireAdminForJournalEdit,
+        }}
+        legal={{
+          profile: readLegalProfile(org.legalProfileJson),
+          updatedAt: org.legalProfileUpdatedAt?.toISOString() ?? null,
         }}
         meta={{
           locationsCount: org.locationsCount,

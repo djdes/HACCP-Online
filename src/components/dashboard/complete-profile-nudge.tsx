@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import {
   Check,
   ChevronDown,
+  CircleAlert,
   Loader2,
   RefreshCw,
+  Search,
   Sparkles,
   UserRoundPen,
   X,
@@ -124,6 +126,8 @@ type InnLookup = {
   address?: string;
   sphere?: string | null;
   ownershipKind?: string | null;
+  personName?: string;
+  personPost?: string;
 };
 
 /** Телефон считаем годным, если в нём 11 цифр и он начинается с 7/8. */
@@ -193,8 +197,10 @@ function CompleteProfileModal({
   const [address, setAddress] = useState("");
   const [innState, setInnState] = useState<"idle" | "loading" | "found" | "missing">("idle");
   const autoNameRef = useRef("");
+  const autoPersonRef = useRef("");
   const sphereTouchedRef = useRef(false);
   const ownershipTouchedRef = useRef(false);
+  const positionTouchedRef = useRef(false);
   useEffect(() => {
     const digits = innDigits(inn);
     if (!isValidInn(digits)) return;
@@ -219,6 +225,16 @@ function CompleteProfileModal({
           setOwnershipKind(found.ownershipKind);
         }
         setAddress(found.address ?? "");
+        // Руководитель юрлица или сам ИП — почти всегда тот, кто регистрирует
+        // организацию. Своё имя не перетираем.
+        const person = found.personName ?? "";
+        if (person) {
+          setName((current) =>
+            current.trim() === "" || current === autoPersonRef.current ? person : current,
+          );
+          autoPersonRef.current = person;
+        }
+        if (found.personPost && !positionTouchedRef.current) setPositionName(found.personPost);
         setInnState("found");
         toast.success(`Из ЕГРЮЛ: ${found.name}`);
       } catch {
@@ -354,7 +370,7 @@ function CompleteProfileModal({
       {/* dvh, а не vh: на iPhone Safari vh считается без учёта панелей
           браузера, и низ модалки уезжал под нижнюю панель. */}
       <div className="flex max-h-[94dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_40px_100px_-40px_rgba(11,16,36,0.6)]">
-        <div className="flex shrink-0 items-start gap-3 border-b border-[#eef0f6] px-4 py-3.5 sm:p-5">
+        <div className="flex shrink-0 items-start gap-3 px-4 pb-1 pt-3.5 sm:px-5 sm:pt-5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
             <UserRoundPen className="size-[18px]" />
           </span>
@@ -467,7 +483,10 @@ function CompleteProfileModal({
               <Field label="Должность" className="min-w-0 flex-1">
                 <input
                   value={positionName}
-                  onChange={(e) => setPositionName(e.target.value)}
+                  onChange={(e) => {
+                    positionTouchedRef.current = true;
+                    setPositionName(e.target.value);
+                  }}
                   list="owner-position-suggestions"
                   maxLength={120}
                   placeholder={DEFAULT_OWNER_POSITION}
@@ -541,6 +560,8 @@ function CompleteProfileModal({
             </Field>
 
             <Field label="ИНН">
+              {/* Иконка справа обещает автозаполнение: лупа до ввода, спиннер,
+                  галочка или предупреждение после. */}
               <span className="flex items-center gap-1">
                 <input
                   value={inn}
@@ -563,7 +584,19 @@ function CompleteProfileModal({
                     className="size-4 shrink-0 text-[#116b2a]"
                     aria-label="Найдено в ЕГРЮЛ"
                   />
-                ) : null}
+                ) : innState === "missing" ? (
+                  <CircleAlert
+                    className="size-4 shrink-0 text-[#a13a32]"
+                    aria-label="По этому ИНН ничего не нашли"
+                  />
+                ) : (
+                  <span
+                    title="Введите ИНН: название, адрес, руководителя и реквизиты подставим из ЕГРЮЛ"
+                    className="flex shrink-0 text-[#9b9fb3]"
+                  >
+                    <Search className="size-4" aria-label="Подставим данные из ЕГРЮЛ по ИНН" />
+                  </span>
+                )}
               </span>
             </Field>
           </div>

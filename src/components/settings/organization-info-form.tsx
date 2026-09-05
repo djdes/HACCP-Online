@@ -7,6 +7,7 @@ import {
   AtSign,
   Building2,
   CreditCard,
+  FileText,
   Globe,
   Hash,
   Image as ImageIcon,
@@ -15,6 +16,7 @@ import {
   MapPin,
   Palette,
   Phone,
+  RefreshCw,
   Save,
   Search,
   ShieldCheck,
@@ -27,6 +29,7 @@ import {
   normalizeSphere,
 } from "@/lib/org-profile";
 import { planLabel } from "@/lib/plan-limits";
+import type { LegalProfile } from "@/lib/org-legal-profile";
 
 type Form = {
   name: string;
@@ -44,6 +47,12 @@ type Form = {
   shiftEndHour: number;
   lockPastDayEdits: boolean;
   requireAdminForJournalEdit: boolean;
+};
+
+type Legal = {
+  /// Снимок ЕГРЮЛ/ЕГРИП по ИНН (см. org-legal-profile.ts); null — ещё не запрашивали.
+  profile: LegalProfile | null;
+  updatedAt: string | null;
 };
 
 type Meta = {
@@ -76,14 +85,41 @@ const TIMEZONE_OPTIONS = [
 export function OrganizationInfoForm({
   initial,
   meta,
+  legal: legalInitial = { profile: null, updatedAt: null },
 }: {
   initial: Form;
   meta: Meta;
+  legal?: Legal;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<Form>(initial);
   const [saving, setSaving] = useState(false);
   const [innLookup, setInnLookup] = useState(false);
+  const [legal, setLegal] = useState<Legal>(legalInitial);
+  const [legalLoading, setLegalLoading] = useState(false);
+
+  /** Снимок ЕГРЮЛ в организацию: кнопка «Обновить из ЕГРЮЛ» и после «Найти». */
+  async function refreshLegal(inn: string, quiet = false) {
+    setLegalLoading(true);
+    try {
+      const res = await fetch("/api/settings/organization/legal-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inn }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        if (!quiet) toast.error(data?.error ?? "Не удалось получить данные из ЕГРЮЛ");
+        return;
+      }
+      setLegal({ profile: data.profile as LegalProfile, updatedAt: new Date().toISOString() });
+      if (!quiet) toast.success("Данные из ЕГРЮЛ обновлены");
+    } catch (err) {
+      if (!quiet) toast.error(err instanceof Error ? err.message : "Ошибка сети");
+    } finally {
+      setLegalLoading(false);
+    }
+  }
 
   const dirty =
     form.name !== initial.name ||
@@ -191,6 +227,7 @@ export function OrganizationInfoForm({
         address: data.address || prev.address,
       }));
       toast.success(`Найдено: ${data.name}`);
+      void refreshLegal(inn, true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Ошибка сети");
     } finally {
@@ -338,6 +375,19 @@ export function OrganizationInfoForm({
             placeholder={RU_PHONE_PLACEHOLDER}
           />
         </FormRow>
+      </FormSection>
+
+      <FormSection
+        title="Данные из ЕГРЮЛ"
+        subtitle="Реквизиты, руководитель, ОКВЭД и статистика по ИНН. Только для справки — в журналы идут поля выше."
+        icon={<FileText className="size-4" />}
+      >
+        <LegalProfileView
+          legal={legal}
+          loading={legalLoading}
+          canRefresh={Boolean((form.inn ?? "").replace(/\D/g, ""))}
+          onRefresh={() => void refreshLegal((form.inn ?? "").replace(/\D/g, ""))}
+        />
       </FormSection>
 
       {/* === КОНТАКТЫ === */}
@@ -592,6 +642,132 @@ export function OrganizationInfoForm({
           color: #9b9fb3;
         }
       `}</style>
+    </div>
+  );
+}
+
+const LEGAL_STATUS: Record<string, string> = {
+  ACTIVE: "Действует",
+  LIQUIDATING: "Ликвидируется",
+  LIQUIDATED: "Ликвидирована",
+  BANKRUPT: "Банкротство",
+  REORGANIZING: "Реорганизация",
+};
+
+const rub = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
+const formatRub = (value: number | null | undefined) =>
+  typeof value === "number" ? `${rub.format(value)} \u20bd` : null;
+const formatDate = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleDateString("ru-RU") : null;
+
+/**
+ * Снимок ЕГРЮЛ читаемыми строками. Пустые поля не показываем: у ИП нет
+ * КПП и капитала, у большинства — финансов в открытых данных.
+ */
+function LegalProfileView({
+  legal,
+  loading,
+  canRefresh,
+  onRefresh,
+}: {
+  legal: Legal;
+  loading: boolean;
+  canRefresh: boolean;
+  onRefresh: () => void;
+}) {
+  const p = legal.profile;
+  const rows: Array<[string, string | null]> = p
+    ? [
+        ["Полное название", p.nameFull],
+        ["Форма", p.opfFull ?? p.opfShort],
+        ["ОГРН", p.ogrn ? `${p.ogrn}${p.ogrnDate ? ` от ${formatDate(p.ogrnDate)}` : ""}` : null],
+        ["КПП", p.kpp],
+        ["Юридический адрес", p.address],
+        [
+          p.type === "INDIVIDUAL" ? "Предприниматель" : "Руководитель",
+          p.management
+            ? `${p.management.name}${p.management.post ? `, ${p.management.post.toLowerCase()}` : ""}`
+            : null,
+        ],
+        [
+          "Основной ОКВЭД",
+          p.okvedMain ? `${p.okvedMain.code}${p.okvedMain.name ? ` — ${p.okvedMain.name}` : ""}` : null,
+        ],
+        [
+          "Дополнительные ОКВЭД",
+          p.okvedsExtra.length
+            ? `${p.okvedsExtra.length}: ${p.okvedsExtra.slice(0, 4).map((o) => o.code).join(", ")}${p.okvedsExtra.length > 4 ? "…" : ""}`
+            : null,
+        ],
+        [
+          "Статус",
+          p.status
+            ? `${LEGAL_STATUS[p.status] ?? p.status}${p.registrationDate ? `, зарегистрирована ${formatDate(p.registrationDate)}` : ""}`
+            : null,
+        ],
+        ["Сотрудников (по данным ФНС)", typeof p.employeeCount === "number" ? rub.format(p.employeeCount) : null],
+        ["Уставный капитал", p.capital ? formatRub(p.capital.value) : null],
+        ["Филиалов", typeof p.branchCount === "number" && p.branchCount > 0 ? String(p.branchCount) : null],
+        ["Налоговый режим", p.finance?.taxSystem ?? null],
+        [
+          p.finance?.year ? `Финансы за ${p.finance.year}` : "Финансы",
+          p.finance && (p.finance.revenue ?? p.finance.income ?? p.finance.expense) !== null
+            ? [
+                p.finance.revenue !== null ? `выручка ${formatRub(p.finance.revenue)}` : null,
+                p.finance.income !== null ? `доход ${formatRub(p.finance.income)}` : null,
+                p.finance.expense !== null ? `расход ${formatRub(p.finance.expense)}` : null,
+              ]
+                .filter(Boolean)
+                .join(", ")
+            : null,
+        ],
+        [
+          "Учредители",
+          p.founders.length
+            ? p.founders
+                .slice(0, 5)
+                .map((f) => `${f.name}${f.share !== null ? ` (${f.share}%)` : ""}`)
+                .join("; ")
+            : null,
+        ],
+        ["Телефон из реестра", p.phones[0] ?? null],
+        ["Почта из реестра", p.emails[0] ?? null],
+      ]
+    : [];
+  const visible = rows.filter(([, value]) => value);
+
+  return (
+    <div className="space-y-3">
+      {visible.length ? (
+        <dl className="divide-y divide-[#f0f1f7] rounded-2xl border border-[#ececf4] bg-[#fafbff]">
+          {visible.map(([label, value]) => (
+            <div key={label} className="grid gap-0.5 px-4 py-2.5 md:grid-cols-[220px_1fr] md:gap-4">
+              <dt className="text-[12px] font-medium text-[#6f7282]">{label}</dt>
+              <dd className="text-[13px] leading-snug text-[#0b1024]">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="text-[13px] leading-snug text-[#6f7282]">
+          Введите ИНН и нажмите «Найти» — подтянем реквизиты, руководителя, ОКВЭД и статистику из ЕГРЮЛ.
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={loading || !canRefresh}
+          className="inline-flex h-10 items-center gap-1.5 rounded-2xl border border-[#dcdfed] bg-white px-3.5 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:text-[#9b9fb3]"
+        >
+          {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+          Обновить из ЕГРЮЛ
+        </button>
+        {legal.updatedAt ? (
+          <span className="text-[12px] text-[#9b9fb3]">
+            Обновлено {new Date(legal.updatedAt).toLocaleDateString("ru-RU")}
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

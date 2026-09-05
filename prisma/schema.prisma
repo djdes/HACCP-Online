@@ -92,6 +92,10 @@ model Organization {
   /// аналитики.
   locationsCount                 Int                            @default(1)
   inn                            String?
+  /// Профиль из ЕГРЮЛ/ЕГРИП по ИНН (DaData): реквизиты, руководитель, ОКВЭД,
+  /// численность, капитал, финансы. Обновляется анкетой и кнопкой в настройках.
+  legalProfileJson               Json?
+  legalProfileUpdatedAt          DateTime?
   address                        String?
   phone                          String?
   /// Аккаунт-владелец. Nullable только на время миграции существующих

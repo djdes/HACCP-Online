@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { innLookupRateLimiter } from "@/lib/rate-limit";
 import { isValidInn } from "@/lib/inn";
 import { ownershipFromOpf, sphereFromOkved } from "@/lib/org-lookup-map";
+import { humanizeName, partyPersonName } from "@/lib/org-legal-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,6 +111,7 @@ export async function GET(request: Request) {
           };
           address?: { value?: string; unrestricted_value?: string };
           management?: { name?: string; post?: string };
+          fio?: { surname?: string; name?: string; patronymic?: string } | null;
           okved?: string;
           state?: { status?: string };
           opf?: { type?: string; full?: string; short?: string };
@@ -156,6 +158,10 @@ export async function GET(request: Request) {
       address: trim(d.address?.value, 500),
       directorName: trim(d.management?.name, 200),
       directorPost: trim(d.management?.post, 100),
+      // Человек за ИНН для поля «Ваше имя»: руководитель юрлица или сам ИП,
+      // в нормальном регистре.
+      personName: partyPersonName(d) ?? "",
+      personPost: humanizeName(d.management?.post) ?? "",
       kpp: trim(d.kpp, 20),
       ogrn: trim(d.ogrn, 20),
       type: trim(d.type, 20),
