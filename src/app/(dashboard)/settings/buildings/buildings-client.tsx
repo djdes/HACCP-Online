@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, MapPin, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Building2, Check, Copy, MapPin, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -58,11 +58,17 @@ export function BuildingsClient({
   initial,
   users,
   perLocationJournals = false,
+  readOnly = false,
+  unnamedCount = 0,
 }: {
   initial: Building[];
   users: RoomResponsibleUser[];
   /** Точки (2026-09-05): документы журналов ведутся отдельно по зданиям. */
   perLocationJournals?: boolean;
+  /** Консультант уровня «просмотр»: всё видно, ничего не меняется. */
+  readOnly?: boolean;
+  /** Сколько точек ещё называются «Точка N» — подсказать переименовать. */
+  unnamedCount?: number;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -159,6 +165,16 @@ export function BuildingsClient({
   // режима точек: после включения в шапке появляется выбор точки, а ночное
   // автосоздание делает документ на каждую.
   async function togglePerLocation(next: boolean) {
+    if (!next) {
+      const ok = await confirmAsync({
+        title: "Выключить раздельные журналы?",
+        description:
+          "Документы всех точек будут показываться вместе, а ночное автосоздание вернётся к одному общему документу на журнал. Уже созданные документы точек останутся.",
+        variant: "warn",
+        confirmLabel: "Выключить",
+      });
+      if (!ok) return;
+    }
     setFlagPending(true);
     try {
       const res = await fetch("/api/settings/buildings", {
@@ -228,10 +244,22 @@ export function BuildingsClient({
           </div>
           <Switch
             checked={perLocationJournals}
-            disabled={flagPending}
+            disabled={flagPending || readOnly}
+            title={readOnly ? "Изменяет клиент — у консультанта только просмотр" : undefined}
             onCheckedChange={(next) => void togglePerLocation(next)}
             aria-label="Вести журналы отдельно по точкам"
           />
+        </div>
+      ) : null}
+
+      {perLocationJournals && unnamedCount > 0 && !readOnly ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-[#ffe1b5] bg-[#fff8ec] px-4 py-3 text-[13px] leading-snug text-[#8a5a12]">
+          <Pencil className="mt-0.5 size-4 shrink-0" />
+          <span>
+            {unnamedCount === 1 ? "Одна точка ещё называется" : `${unnamedCount} точки ещё называются`}{" "}
+            «Точка N». Название и адрес печатаются в шапке журналов и PDF —
+            нажмите карандаш у точки и впишите настоящие.
+          </span>
         </div>
       ) : null}
 
@@ -240,6 +268,10 @@ export function BuildingsClient({
           key={b.id}
           building={b}
           userNameById={userNameById}
+          readOnly={readOnly}
+          donors={initial
+            .filter((x) => x.id !== b.id && x.rooms.length > 0)
+            .map((x) => ({ id: x.id, name: x.name, roomsCount: x.rooms.length }))}
           onRefresh={refresh}
           onDelete={() => deleteBuilding(b.id, b.name)}
           onEditRoom={openEditor}
@@ -258,7 +290,7 @@ export function BuildingsClient({
         roomsPerVerifier={roomsPerVerifier}
       />
 
-      {adding ? (
+      {readOnly ? null : adding ? (
         <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-[14px] font-semibold text-[#0b1024]">Новая точка</div>
@@ -309,12 +341,17 @@ export function BuildingsClient({
 function BuildingCard({
   building,
   userNameById,
+  readOnly = false,
+  donors,
   onRefresh,
   onDelete,
   onEditRoom,
 }: {
   building: Building;
   userNameById: Map<string, string>;
+  readOnly?: boolean;
+  /** Другие точки с помещениями — откуда можно скопировать справочник. */
+  donors: Array<{ id: string; name: string; roomsCount: number }>;
   onRefresh: () => void;
   onDelete: () => void;
   onEditRoom: (room: Room) => void;
@@ -322,6 +359,59 @@ function BuildingCard({
   const [addingRoom, setAddingRoom] = useState(false);
   const [roomName, setRoomName] = useState("");
   const [roomKind, setRoomKind] = useState<string>("other");
+  // Название и адрес точки правятся на месте: они печатаются в шапке
+  // журналов и PDF, и «Точка 1» из анкеты должна стать настоящим адресом.
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(building.name);
+  const [draftAddress, setDraftAddress] = useState(building.address ?? "");
+  const [savingHead, setSavingHead] = useState(false);
+  const [donorId, setDonorId] = useState<string>(donors[0]?.id ?? "");
+  const [copying, setCopying] = useState(false);
+
+  async function saveHead() {
+    const name = draftName.trim();
+    if (!name) {
+      toast.error("Введите название точки");
+      return;
+    }
+    setSavingHead(true);
+    try {
+      const res = await fetch(`/api/settings/buildings/${building.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, address: draftAddress.trim() || null }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d?.error ?? "Не удалось сохранить");
+      toast.success("Точка обновлена");
+      setEditing(false);
+      onRefresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setSavingHead(false);
+    }
+  }
+
+  async function copyRooms() {
+    if (!donorId) return;
+    setCopying(true);
+    try {
+      const res = await fetch(`/api/settings/buildings/${building.id}/copy-rooms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromBuildingId: donorId }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { copied?: number; error?: string };
+      if (!res.ok) throw new Error(d?.error ?? "Не удалось скопировать");
+      toast.success(`Скопировано помещений: ${d.copied ?? 0}`);
+      onRefresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setCopying(false);
+    }
+  }
 
   async function addRoom() {
     if (!roomName.trim()) return;
@@ -370,25 +460,83 @@ function BuildingCard({
   return (
     <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Building2 className="size-4 text-[#5566f6]" />
-            <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0b1024]">
-              {building.name}
-            </h2>
+        {editing ? (
+          <div className="min-w-0 flex-1 space-y-2">
+            <input
+              type="text"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              aria-label="Название точки"
+              autoFocus
+              className="h-10 w-full rounded-xl border border-[#dcdfed] px-3 text-[15px] font-semibold text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+            <input
+              type="text"
+              value={draftAddress}
+              onChange={(e) => setDraftAddress(e.target.value)}
+              placeholder="Адрес — печатается в шапке журналов"
+              aria-label="Адрес точки"
+              className="h-10 w-full rounded-xl border border-[#dcdfed] px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void saveHead()}
+                disabled={savingHead}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5566f6] px-3 text-[13px] font-medium text-white hover:bg-[#4a5bf0] disabled:opacity-60"
+              >
+                <Check className="size-3.5" />
+                Сохранить
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(false);
+                  setDraftName(building.name);
+                  setDraftAddress(building.address ?? "");
+                }}
+                className="inline-flex h-9 items-center rounded-xl px-3 text-[13px] text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#0b1024]"
+              >
+                Отмена
+              </button>
+            </div>
           </div>
-          {building.address ? (
-            <div className="mt-0.5 text-[13px] text-[#6f7282]">{building.address}</div>
-          ) : null}
-        </div>
-        <button
-          type="button"
-          onClick={onDelete}
-          aria-label="Удалить точку"
-          className="rounded-full p-1.5 text-[#9b9fb3] hover:bg-[#fff4f2] hover:text-[#d2453d]"
-        >
-          <Trash2 className="size-4" />
-        </button>
+        ) : (
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Building2 className="size-4 text-[#5566f6]" />
+              <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+                {building.name}
+              </h2>
+            </div>
+            {building.address ? (
+              <div className="mt-0.5 text-[13px] text-[#6f7282]">{building.address}</div>
+            ) : (
+              <div className="mt-0.5 text-[13px] text-[#9b9fb3]">Адрес не указан</div>
+            )}
+          </div>
+        )}
+        {!readOnly && !editing ? (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-label="Переименовать точку и адрес"
+              title="Название и адрес"
+              className="rounded-full p-1.5 text-[#9b9fb3] hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+            >
+              <Pencil className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              aria-label="Удалить точку"
+              className="rounded-full p-1.5 text-[#9b9fb3] hover:bg-[#fff4f2] hover:text-[#d2453d]"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-1.5">
@@ -396,6 +544,32 @@ function BuildingCard({
           <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-3 text-center text-[13px] text-[#6f7282]">
             Помещений пока нет — добавьте, чтобы они появились в журналах
             уборки.
+            {!readOnly && donors.length > 0 ? (
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <span className="text-[#3c4053]">или скопируйте из</span>
+                <select
+                  value={donorId}
+                  onChange={(e) => setDonorId(e.target.value)}
+                  aria-label="Точка, откуда скопировать помещения"
+                  className="h-9 rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[13px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none"
+                >
+                  {donors.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} · {d.roomsCount}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void copyRooms()}
+                  disabled={copying}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+                >
+                  <Copy className="size-3.5 text-[#5566f6]" />
+                  {copying ? "Копируем…" : "Скопировать"}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {building.rooms.map((room) => {

@@ -55,6 +55,10 @@ export async function POST(request: Request) {
 
   const organizationId = getActiveOrgId(session);
   await setActiveBuildingCookie(organizationId, building.id);
+  // В аккаунт — чтобы на другом устройстве открылась та же точка.
+  await db.user
+    .update({ where: { id: session.user.id }, data: { lastActiveBuildingId: building.id } })
+    .catch(() => {});
 
   await db.auditLog
     .create({

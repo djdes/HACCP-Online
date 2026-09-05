@@ -316,6 +316,17 @@ export function Header({
           )}
         </Link>
         {partnerHint ? <PartnerHint rates={partnerHint} className="-ml-1" /> : null}
+        {/* Точки на телефоне: пилюля сразу после логотипа — иначе точку
+            видно только внутри меню-шторки. */}
+        {buildings.length >= 2 ? (
+          <LocationSwitcherPill
+            buildings={buildings}
+            activeBuildingId={activeBuildingId}
+            compact
+            manageHref={fullAccess ? "/settings/buildings" : null}
+            className="md:hidden"
+          />
+        ) : null}
 
         {/*
           Desktop: only the home pill is visible. Secondary nav lives in a
@@ -395,6 +406,7 @@ export function Header({
             <LocationSwitcherPill
               buildings={buildings}
               activeBuildingId={activeBuildingId}
+              manageHref={fullAccess ? "/settings/buildings" : null}
             />
           ) : null}
 
@@ -538,10 +550,15 @@ export function Header({
               className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-3"
             >
               {buildings.length >= 2 ? (
-                <LocationSwitcherList
-                  buildings={buildings}
-                  activeBuildingId={activeBuildingId}
-                />
+                <>
+                  <LocationSwitcherList
+                    buildings={buildings}
+                    activeBuildingId={activeBuildingId}
+                  />
+                  <div className="px-3 pb-1 pt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#9b9fb3]">
+                    Разделы
+                  </div>
+                </>
               ) : null}
               {navItems.map((item) => {
                 const isActive =

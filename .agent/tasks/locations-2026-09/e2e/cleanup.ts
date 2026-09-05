@@ -21,6 +21,8 @@ async function main() {
   const obligations = await db.journalObligation.deleteMany({ where: { buildingId: { in: buildingIds } } });
   await db.user.update({ where: { id: creds.id }, data: { buildingIds: [] } }).catch(() => {});
   const buildings = await db.building.deleteMany({ where: { id: { in: buildingIds }, organizationId: state.org } });
+  // Legacy-зеркало Room → Area: комнату «E2E Кухня» зеркалил POST /api/settings/rooms.
+  await db.area.deleteMany({ where: { organizationId: state.org, name: { startsWith: "E2E " } } });
   await db.organization.update({ where: { id: state.org }, data: { perLocationJournals: state.prevFlag } });
   console.log({ docs: docs.count, obligations: obligations.count, buildings: buildings.count, flagRestored: state.prevFlag });
 }

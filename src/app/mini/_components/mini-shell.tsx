@@ -6,7 +6,7 @@ import { PartnerHint } from "@/components/partner/partner-hint";
 import type { PartnerHintRates } from "@/lib/partners/partner-hint";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { UserRound } from "lucide-react";
+import { UserRound, MapPin } from "lucide-react";
 import { getTelegramWebApp } from "./telegram-web-app";
 import { useMiniTheme } from "./mini-theme";
 
@@ -145,9 +145,12 @@ function formatClock(d: Date): string {
 
 export function MiniTopBar({
   partnerHint = null,
+  locationName = null,
 }: {
   /** Ставки для иконки «партнёрская программа» у логотипа; null — скрыть. */
   partnerHint?: PartnerHintRates | null;
+  /** Активная точка (режим точек включён); null — не показывать. */
+  locationName?: string | null;
 } = {}) {
   const pathname = usePathname();
   const title = titleForPath(pathname);
@@ -210,6 +213,15 @@ export function MiniTopBar({
             >
               {title}
             </div>
+            {locationName ? (
+              <div
+                className="flex items-center gap-1 truncate text-[12px]"
+                style={{ color: "var(--mini-text-muted)", marginTop: 1 }}
+              >
+                <MapPin className="size-3 shrink-0" />
+                <span className="truncate">{locationName}</span>
+              </div>
+            ) : null}
           </div>
         </Link>
 

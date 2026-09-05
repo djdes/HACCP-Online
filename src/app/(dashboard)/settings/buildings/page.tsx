@@ -92,6 +92,10 @@ export default async function BuildingsPage() {
         initial={buildings}
         users={users}
         perLocationJournals={organization?.perLocationJournals === true}
+        // Консультант уровня «просмотр» видит точки, но не меняет их:
+        // отказ по клику выглядел бы как поломка.
+        readOnly={session.user.partnerAccess?.level === "view"}
+        unnamedCount={buildings.filter((b) => /^Точка \d+$/.test(b.name)).length}
       />
     </div>
   );

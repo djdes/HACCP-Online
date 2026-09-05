@@ -1,0 +1,23 @@
+{
+  "manageLink": true,
+  "mobilePillVisible": true,
+  "mobilePillText": "E2E Точка А",
+  "sheetHasSections": true,
+  "renamedAddress": true,
+  "copyControlVisible": true,
+  "copiedRoomVisible": true,
+  "toggleOffConfirm": true,
+  "stillEnabled": "true",
+  "staffBanner": true,
+  "defaultChipA": 1,
+  "addDialogHeight": {
+    "h": 627,
+    "vh": 780,
+    "fits": true
+  },
+  "autoJournalsNote": true,
+  "miniTopBarLocation": true,
+  "rememberedBuilding": "B",
+  "crumbSharedHint": true,
+  "searchHintHasLocation": true
+}

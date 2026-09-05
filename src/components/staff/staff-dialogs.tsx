@@ -251,6 +251,8 @@ export function StaffAddFlowDialog(props: {
   /** Точки организации и включён ли режим точек — чипы «Точки». */
   buildings?: BuildingOption[];
   perLocationJournals?: boolean;
+  /** Точки нового сотрудника по умолчанию — активная точка менеджера. */
+  defaultBuildingIds?: string[];
   /** Должность создана: обновить список, но диалог оставить открытым. */
   onPositionCreated?: () => void;
   /**
@@ -288,7 +290,9 @@ export function StaffAddFlowDialog(props: {
   const [subStep, setSubStep] = useState<AddStep>({ kind: "form" });
   // Выходные нового сотрудника: по умолчанию Сб+Вс, чтобы график не
   // пришлось прокликивать руками сразу после найма.
-  const [buildingIds, setBuildingIds] = useState<string[]>([]);
+  const [buildingIds, setBuildingIds] = useState<string[]>(
+    () => props.defaultBuildingIds ?? []
+  );
   const [weeklyDaysOff, setWeeklyDaysOff] = useState<number[]>([
     ...DEFAULT_WEEKLY_DAYS_OFF,
   ]);

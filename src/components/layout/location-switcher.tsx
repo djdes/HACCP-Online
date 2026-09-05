@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Loader2, MapPin } from "lucide-react";
+import { Check, ChevronDown, Loader2, MapPin, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { BuildingOption } from "@/lib/building-scope";
@@ -55,10 +57,16 @@ export function LocationSwitcherPill({
   buildings,
   activeBuildingId,
   className,
+  compact = false,
+  manageHref = null,
 }: {
   buildings: BuildingOption[];
   activeBuildingId: string | null;
   className?: string;
+  /** Узкая пилюля для мобильной шапки: ниже и с коротким названием. */
+  compact?: boolean;
+  /** Ссылка «Настроить точки» внизу меню — только тем, кто может их менять. */
+  manageHref?: string | null;
 }) {
   const { switchTo, busyId } = useSwitchBuilding();
   const active = buildings.find((building) => building.id === activeBuildingId) ?? buildings[0];
@@ -73,12 +81,17 @@ export function LocationSwitcherPill({
           aria-label={`Точка: ${active.name}. Сменить точку`}
           data-tour="location-switcher"
           className={cn(
-            "ml-1 flex h-10 max-w-[220px] min-w-0 items-center gap-2 rounded-lg bg-[#5566f6]/[0.04] px-3 text-[14px] font-semibold text-[#5566f6] transition-colors duration-200 hover:bg-[#5566f6]/[0.09] data-[state=open]:bg-[#5566f6]/[0.09]",
+            "flex min-w-0 items-center rounded-lg bg-[#5566f6]/[0.04] font-semibold text-[#5566f6] transition-colors duration-200 hover:bg-[#5566f6]/[0.09] data-[state=open]:bg-[#5566f6]/[0.09]",
+            // В тесной мобильной строке пилюля растягивается на свободное
+            // место (до 170px), а название усекается, но не исчезает.
+            compact
+              ? "h-9 flex-1 max-w-[170px] gap-1.5 px-2.5 text-[13px]"
+              : "ml-1 h-10 max-w-[220px] gap-2 px-3 text-[14px]",
             className,
           )}
         >
-          <MapPin className="size-5 shrink-0" />
-          <span className="truncate">{active.name}</span>
+          <MapPin className={cn("shrink-0", compact ? "size-4" : "size-5")} />
+          <span className="min-w-0 flex-1 truncate text-left">{active.name}</span>
           <ChevronDown
             className="size-4 shrink-0 opacity-60 transition-transform duration-150 data-[state=open]:rotate-180"
             aria-hidden
@@ -122,6 +135,17 @@ export function LocationSwitcherPill({
             </DropdownMenuItem>
           );
         })}
+        {manageHref ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href={manageHref} className="gap-2.5 text-[#3848c7]">
+                <Settings2 className="size-4 shrink-0" />
+                Настроить точки
+              </Link>
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

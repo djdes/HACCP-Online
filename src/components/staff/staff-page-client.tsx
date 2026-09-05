@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
 import { useRouter } from "next/navigation";
 import {
+  MapPin,
   Users,
   Archive,
   ArrowUpDown,
@@ -600,6 +601,20 @@ export function StaffPageClient(props: StaffPageProps) {
     const today = new Date().toISOString().slice(0, 10);
     return s.dateFrom <= today && today <= s.dateTo;
   }).length;
+  // Точки: сотрудники без точки получают задачи со всех точек — об этом
+  // стоит сказать сразу, а не ждать вопросов «почему мне пришло втрое».
+  const staffWithoutBuilding = props.perLocationJournals
+    ? props.employees.filter(
+        (e) => e.isActive && !e.isRoot && (e.buildingIds ?? []).length === 0
+      ).length
+    : 0;
+  const staffWord = (n: number) => {
+    const m10 = n % 10;
+    const m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return "сотрудник";
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "сотрудника";
+    return "сотрудников";
+  };
 
   return (
     <div className="space-y-6">
@@ -648,6 +663,17 @@ export function StaffPageClient(props: StaffPageProps) {
           </>
         }
       />
+
+      {staffWithoutBuilding > 0 ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-[#ffe1b5] bg-[#fff8ec] px-4 py-2.5 text-[13px] leading-snug text-[#8a5a12]">
+          <MapPin className="size-4 shrink-0" />
+          <span>
+            <b className="font-semibold">{staffWithoutBuilding}</b> {staffWord(staffWithoutBuilding)} без
+            точки — задачи по журналам приходят им со всех точек. Точки ставятся
+            чипами в карточке сотрудника.
+          </span>
+        </div>
+      ) : null}
 
       {/* Bulk-action toolbar. */}
       {anySelected ? (
@@ -928,6 +954,11 @@ export function StaffPageClient(props: StaffPageProps) {
           hasTasksflowIntegration={props.hasTasksflowIntegration}
           buildings={props.buildings ?? []}
           perLocationJournals={props.perLocationJournals === true}
+          defaultBuildingIds={
+            props.perLocationJournals && props.activeBuildingId
+              ? [props.activeBuildingId]
+              : []
+          }
           open
           onClose={() => setDlg(null)}
           // Должность создана — список обновляем, но диалог остаётся

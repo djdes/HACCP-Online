@@ -37,23 +37,27 @@ export const loadBuildingContext = cache(
       listOrganizationBuildings(organizationId),
       db.user.findUnique({
         where: { id: session.user.id },
-        select: { organizationId: true, buildingIds: true },
+        select: { organizationId: true, buildingIds: true, lastActiveBuildingId: true },
       }),
       cookies(),
     ]);
     // Ограничение «работает на точках» действует только в домашней
     // организации: партнёр в кабинете клиента и ROOT при импёрсонации
     // видят все точки той организации, в которую вошли.
-    const userBuildingIds =
-      user && user.organizationId === organizationId ? user.buildingIds : [];
+    const homeOrg = Boolean(user && user.organizationId === organizationId);
+    const userBuildingIds = homeOrg && user ? user.buildingIds : [];
+    // Cookie — быстрый выбор на этом устройстве; без неё берём точку,
+    // запомненную в аккаунте (новый телефон открывает ту же точку).
+    const cookieBuildingId = decodeBuildingCookie(
+      cookieStore.get(ACTIVE_BUILDING_COOKIE)?.value,
+      organizationId,
+    );
     return resolveActiveBuilding({
       enabled: organization?.perLocationJournals === true,
       buildings,
       userBuildingIds,
-      cookieBuildingId: decodeBuildingCookie(
-        cookieStore.get(ACTIVE_BUILDING_COOKIE)?.value,
-        organizationId,
-      ),
+      cookieBuildingId:
+        cookieBuildingId ?? (homeOrg && user ? user.lastActiveBuildingId : null),
     });
   },
 );

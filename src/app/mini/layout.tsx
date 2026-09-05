@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { getServerSession } from "@/lib/server-session";
+import { loadBuildingContext } from "@/lib/active-building";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
@@ -72,6 +73,15 @@ export default async function MiniLayout({
     return user?.themePreference === "light" ? "light" : "dark";
   })();
 
+  // Точки: название активной точки в верхней панели на всех экранах
+  // Mini App — зеркало пилюли в шапке сайта (П-3).
+  const buildingContext = session?.user?.id
+    ? await loadBuildingContext(session).catch(() => null)
+    : null;
+  const locationName = buildingContext?.enabled
+    ? buildingContext.activeBuilding?.name ?? null
+    : null;
+
   // Та же иконка партнёрской программы, что на сайте (П-3). Mini App
   // без white-label шапки, поэтому логотип-условие всегда false.
   const partnerHint = session?.user?.id
@@ -121,7 +131,7 @@ export default async function MiniLayout({
             suppressHydrationWarning
           >
             <MiniThemeBootstrap />
-            <MiniTopBar partnerHint={partnerHint} />
+            <MiniTopBar partnerHint={partnerHint} locationName={locationName} />
             {/* Safe-area-inset для iPhone notch и home-indicator. На
                 iPhone X+ Telegram WebApp в expand-режиме растягивается
                 на всю высоту, и без учёта env(safe-area-inset-*) контент

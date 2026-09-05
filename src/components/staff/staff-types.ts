@@ -70,6 +70,8 @@ export type StaffPageProps = {
   buildings?: BuildingOption[];
   /** Журналы ведутся отдельно по точкам — чипы показываются только тогда. */
   perLocationJournals?: boolean;
+  /** Активная точка — новый сотрудник по умолчанию привязывается к ней. */
+  activeBuildingId?: string | null;
   telegramBotUrl: string | null;
   /** Интеграция TasksFlow подключена — промо-блок не показываем. */
   hasTasksflowIntegration: boolean;

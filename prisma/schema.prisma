@@ -528,6 +528,9 @@ model User {
   /// Организация, в которой человек работал в прошлый раз. Подставляется
   /// при входе, если членство ещё в силе.
   lastActiveOrganizationId    String?
+  /// Точки (2026-09-05): последняя выбранная точка. Подставляется, когда
+  /// cookie нет — на новом устройстве человек попадает в ту же точку.
+  lastActiveBuildingId        String?
   organizationMemberships     OrganizationMember[]     @relation("OrganizationMemberships")
   ownedAccount                Account?                 @relation("AccountOwner")
   telegramChatId              String?

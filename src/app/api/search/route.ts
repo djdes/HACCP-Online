@@ -115,6 +115,7 @@ export async function GET(request: Request) {
         title: true,
         status: true,
         template: { select: { code: true, name: true } },
+        building: { select: { name: true } },
       },
       take: LIMIT_PER_KIND,
       orderBy: { createdAt: "desc" },
@@ -165,7 +166,9 @@ export async function GET(request: Request) {
     hits.push({
       kind: "document",
       label: d.title,
-      hint: `${d.template.name} · ${d.status === "closed" ? "Закрыт" : "Активный"}`,
+      hint: [d.template.name, d.building?.name, d.status === "closed" ? "Закрыт" : "Активный"]
+        .filter(Boolean)
+        .join(" · "),
       href: `/journals/${d.template.code}/documents/${d.id}`,
     });
   }

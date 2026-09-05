@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { MapPin, Sparkles } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
-import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingTargets, getActiveBuildingId } from "@/lib/active-building";
 import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
@@ -80,6 +80,10 @@ export default async function AutoJournalsPage() {
       hasActiveDocumentToday: activeTemplateIds.has(t.id),
     }));
 
+  // Точки: документы создаются на каждую точку — скажем об этом прямо
+  // над списком, чтобы «35 журналов» не превратились неожиданно в 105.
+  const locationsCount = (await buildingTargets(organizationId)).filter(Boolean).length;
+
   return (
     <div className="space-y-5">
       <div>
@@ -102,6 +106,16 @@ export default async function AutoJournalsPage() {
           </div>
         </div>
       </div>
+
+      {locationsCount >= 2 ? (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-[#dfe3ff] bg-[#f5f6ff] px-4 py-2.5 text-[13px] text-[#3848c7]">
+          <MapPin className="size-4 shrink-0" />
+          <span>
+            Точек: <b className="font-semibold tabular-nums">{locationsCount}</b> — каждый
+            отмеченный журнал создаётся на каждую точку отдельно.
+          </span>
+        </div>
+      ) : null}
 
       <PageGuide
         title="Как настроить авто-создание"

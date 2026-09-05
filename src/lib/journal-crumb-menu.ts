@@ -124,7 +124,9 @@ export const getDocumentCrumbMenu = cache(
       status: doc.status === "active" ? ("ok" as const) : ("muted" as const),
       hint: doc.building
         ? `${doc.building.name} · ${formatPeriodStart(doc.dateFrom)}`
-        : formatPeriodStart(doc.dateFrom),
+        : buildingId
+          ? `Общий · ${formatPeriodStart(doc.dateFrom)}`
+          : formatPeriodStart(doc.dateFrom),
       current: doc.id === currentDocumentId,
     }));
   },

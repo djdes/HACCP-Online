@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { listOrganizationBuildings } from "@/lib/active-building";
+import { getActiveBuildingId, listOrganizationBuildings } from "@/lib/active-building";
 import { positionSuggestionsFor } from "@/lib/sphere-positions";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -103,6 +103,7 @@ export default async function StaffPage() {
   const existingPositionNames = positions.map((p) => p.name);
   // Точки: список для чипов «Точки» в диалогах сотрудника.
   const staffBuildings = await listOrganizationBuildings(orgId);
+  const activeBuildingId = await getActiveBuildingId(session);
 
   const positionSuggestions: Record<PositionCategory, string[]> = {
     management: positionSuggestionsFor(
@@ -127,6 +128,7 @@ export default async function StaffPage() {
       positionSuggestions={positionSuggestions}
       buildings={staffBuildings}
       perLocationJournals={organization?.perLocationJournals === true}
+      activeBuildingId={activeBuildingId}
       hasTasksflowIntegration={Boolean(tasksflowIntegration)}
       organization={{
         id: organization?.id ?? orgId,
