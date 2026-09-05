@@ -1,0 +1,80 @@
+{
+  "results": {
+    "flagOff": 200,
+    "pillWhenOff": 0,
+    "flagOn": 200,
+    "addDialogHasChips": true,
+    "editDialogHasChips": true,
+    "partnerOpen": 200,
+    "partnerPill": 1,
+    "partnerSwitch": 200,
+    "partnerCreateBuilding": 409,
+    "partnerToggleFlag": 200,
+    "partnerPillAfterSwitch": "",
+    "partnerExit": 200,
+    "flagOnAfterPartner": 200,
+    "strayDeleted": 1,
+    "flagAfterPartner": true,
+    "mobileSheetHasLocations": true,
+    "miniMeSwitcher": false,
+    "restrict": 200,
+    "restrictedPill": 0,
+    "miniRestrictedSwitcher": false,
+    "reset": 200
+  },
+  "fits": {
+    "mobile-menu-sheet": {
+      "top": 0,
+      "bottom": 756,
+      "height": 756,
+      "vh": 780,
+      "fitsViewport": true,
+      "primary": null,
+      "primaryVisible": null,
+      "innerScroll": {
+        "scrollHeight": 732,
+        "clientHeight": 650
+      }
+    },
+    "mobile-delete-point-confirm": {
+      "top": 0,
+      "bottom": 780,
+      "height": 780,
+      "vh": 780,
+      "fitsViewport": true,
+      "primary": "Удалить точку",
+      "primaryVisible": true,
+      "innerScroll": null
+    },
+    "mobile-staff-add-dialog": {
+      "top": 58,
+      "bottom": 722,
+      "height": 664,
+      "vh": 780,
+      "fitsViewport": true,
+      "primary": "Добавить",
+      "primaryVisible": true,
+      "innerScroll": null
+    },
+    "mobile-staff-edit-dialog": {
+      "top": 44,
+      "bottom": 736,
+      "height": 693,
+      "vh": 780,
+      "fitsViewport": true,
+      "primary": "Сохранить",
+      "primaryVisible": true,
+      "innerScroll": null
+    },
+    "mobile-profile-nudge-two-locations": {
+      "top": 0,
+      "bottom": 780,
+      "height": 780,
+      "vh": 780,
+      "fitsViewport": true,
+      "primary": "Готово",
+      "primaryVisible": true,
+      "innerScroll": null
+    }
+  }
+}
