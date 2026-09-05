@@ -206,17 +206,17 @@ a{color:var(--accent-ink)}
 </style>
 <div class="wrap">
 <div class="eyebrow">Wesetup · точки внутри организации · 5 сентября 2026</div>
-<h1>Дым точек: 37 экранов, партнёр, телефон, всплывашки</h1>
+<h1>Дым точек: 44 экрана, партнёр, телефон, всплывашки</h1>
 <p class="lead">Прогон по тестовой организации «Кафе «Тестовое 1»» с двумя точками (Точка А на Ленина, 5 и Точка Б): dev-сервер для экранов клиента и продакшен для консультанта. Ниже — что проверено, снимки, два круга критики и двадцать предложений.</p>
 ''')
 
 ok = sum(1 for _, v, _ in CHECKS if v == "ok")
 warn = sum(1 for _, v, _ in CHECKS if v == "warn")
 html.write(f'''<div class="strip">
-<div><b>37</b><span>снимков экрана</span></div>
+<div><b>44</b><span>снимков экрана</span></div>
 <div><b>{ok}</b><span>проверок прошли</span></div>
 <div><b>{warn}</b><span>замечания, не блокируют</span></div>
-<div><b>13 / 20</b><span>предложений уже сделано</span></div>
+<div><b>19 / 20</b><span>предложений сделано (кроме GPS)</span></div>
 </div>''')
 
 html.write('<h2>Что проверено</h2><p class="lead">Клиентские сценарии — на dev, партнёрские — на проде: там guard записи для консультанта уровня «просмотр» работает, на dev он не применяется.</p><div class="tablewrap"><table><tr><th>Проверка</th><th>Где</th><th>Итог</th></tr>')
@@ -261,7 +261,7 @@ for title, body in ROUND2:
 html.write("</div>")
 
 html.write('<h2>Двадцать предложений</h2><p class="legend">S — час-два, M — день, L — несколько дней или миграция. Отмеченные «сделано» закрыты во втором круге.</p><ol class="improve">')
-DONE_INDEXES = {1, 2, 4, 5, 6, 7, 8, 10, 14, 15, 17, 18, 19}
+DONE_INDEXES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20}
 for idx, (size, area, text) in enumerate(IMPROVEMENTS, start=1):
     status = "<span class='chip ok'>сделано</span> " if idx in DONE_INDEXES else ""
     html.write(f"<li><span class='chip size'>{size}</span><span class='area'>{area}</span><span>{status}{text}</span></li>")
@@ -297,6 +297,40 @@ for name, cap in ROUND2_DESKTOP:
     html.write(figure(name, cap, "desktop"))
 html.write('</div><ol class="improve" style="margin-top:18px">')
 for num, text in DONE2:
+    html.write(f"<li><span class='chip ok'>готово</span><span class='area'>№ {num}</span><span>{text}</span></li>")
+html.write("</ol>")
+
+ROUND3_DESKTOP = [
+    ("r3-07-prod-dashboard-strip", "Прод: сводка по точкам на дашборде — заполнено сегодня на каждой, клик переключает точку"),
+    ("r3-08-prod-shared-badge", "Прод: бейдж «Общий» у документов без точки рядом с документами точек"),
+    ("r3-03-point-staff-picker", "Карточка точки: «Сотрудники точки» — мультивыбор, «везде» у тех, кто без точки"),
+    ("r3-09-prod-point-card", "Прод: карточка точки с КПП и телефоном для шапки PDF"),
+    ("r3-05-reports-point", "Отчёты: графики и счётчики по документам считаются для активной точки"),
+]
+ROUND3_MOBILE = [
+    ("r3-06-naming-step", "Шаг «Назовите точки» после анкеты: имена и адреса сразу, всё в первом экране"),
+    ("r3-10-prod-mobile-dashboard", "Прод, телефон: дашборд со сводкой по точкам"),
+]
+DONE3 = [
+    ("3", "Сводка по точкам на дашборде: строка на точку с заполненностью, клик переключает точку."),
+    ("2", "Бейдж «Общий» у документов без точки в 31 списочном клиенте (флаг считается по списку)."),
+    ("6 (шаг)", "После анкеты — шаг «Назовите точки»: имена и адреса сразу, «Позже» рядом."),
+    ("9", "Точка в отчётах, экспорте (buildings.json), инспекторской ссылке и её PDF, сводном ZIP."),
+    ("11", "«Закрыть день без событий» и снимки журналов — свои у каждой точки (ключ buildingKey, миграция применена на прод)."),
+    ("12", "КПП и телефон точки в карточке и в шапке PDF."),
+    ("16", "«Сотрудники точки» в карточке точки — зеркало чипов сотрудника."),
+    ("19 (скорость)", "Главная Mini App: сверка обязательств в фоне, второй запрос ~100 мс вместо 2–3 с."),
+    ("20", "Причина «guard партнёра не работает на dev» найдена: корневой middleware.ts перекрывал src/; теперь один src/proxy.ts, на dev 403 воспроизводится."),
+    ("+", "Шапка страницы «Сотрудники»: действия переносятся под заголовок вместо сжатия описания."),
+]
+html.write('<h2>Третий круг: сделано всё, кроме геолокации</h2><p class="lead">Оставшиеся пункты закрыты и проверены на dev и на проде; не сделан только автоподбор точки по GPS (пункт 13) — по решению владельца.</p><div class="gallery desktop">')
+for name, cap in ROUND3_DESKTOP:
+    html.write(figure(name, cap, "desktop"))
+html.write('</div><div class="gallery mobile" style="margin-top:18px">')
+for name, cap in ROUND3_MOBILE:
+    html.write(figure(name, cap, "mobile"))
+html.write('</div><ol class="improve" style="margin-top:18px">')
+for num, text in DONE3:
     html.write(f"<li><span class='chip ok'>готово</span><span class='area'>№ {num}</span><span>{text}</span></li>")
 html.write("</ol>")
 

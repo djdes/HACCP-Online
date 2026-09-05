@@ -1,0 +1,8 @@
+{
+  "proxyTrailingSlash": "308 -> /journals/hygiene",
+  "dashboardStrip": true,
+  "sharedBadges": 1,
+  "miniHomeSecondMs": 24,
+  "miniHomeStatus": 200,
+  "staffSection": true
+}
