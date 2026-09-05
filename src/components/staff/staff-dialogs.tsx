@@ -22,6 +22,8 @@ import type {
 } from "@/components/staff/staff-types";
 import { TasksFlowPromoHint } from "@/components/tasksflow/tasksflow-promo-hint";
 import { WeekdayChips } from "@/components/staff/weekday-chips";
+import { BuildingChips } from "@/components/staff/building-chips";
+import type { BuildingOption } from "@/lib/building-scope";
 import {
   DEFAULT_WEEKLY_DAYS_OFF,
   normalizeWeeklyDaysOff,
@@ -246,6 +248,9 @@ export function StaffAddFlowDialog(props: {
   positionSuggestions?: string[];
   /** Интеграция TasksFlow уже подключена — промо не показываем. */
   hasTasksflowIntegration?: boolean;
+  /** Точки организации и включён ли режим точек — чипы «Точки». */
+  buildings?: BuildingOption[];
+  perLocationJournals?: boolean;
   /** Должность создана: обновить список, но диалог оставить открытым. */
   onPositionCreated?: () => void;
   /**
@@ -283,6 +288,7 @@ export function StaffAddFlowDialog(props: {
   const [subStep, setSubStep] = useState<AddStep>({ kind: "form" });
   // Выходные нового сотрудника: по умолчанию Сб+Вс, чтобы график не
   // пришлось прокликивать руками сразу после найма.
+  const [buildingIds, setBuildingIds] = useState<string[]>([]);
   const [weeklyDaysOff, setWeeklyDaysOff] = useState<number[]>([
     ...DEFAULT_WEEKLY_DAYS_OFF,
   ]);
@@ -376,6 +382,7 @@ export function StaffAddFlowDialog(props: {
           jobPositionId: positionId,
           fullName: fullName.trim(),
           weeklyDaysOff: normalizeWeeklyDaysOff(weeklyDaysOff),
+          buildingIds,
           // Телефон необязателен — пустую строку не отправляем вовсе.
           ...(phone.trim() ? { phone: phone.trim() } : {}),
         }),
@@ -585,6 +592,14 @@ export function StaffAddFlowDialog(props: {
                 не приходят. День правится в графике.
               </p>
             </div>
+            {props.perLocationJournals ? (
+              <BuildingChips
+                buildings={props.buildings ?? []}
+                value={buildingIds}
+                onChange={setBuildingIds}
+                ariaLabel="Точки нового сотрудника"
+              />
+            ) : null}
           </div>,
           primaryBtn("Добавить", () => void submitEmployee(), pending),
           {
@@ -615,10 +630,14 @@ export function StaffAddFlowDialog(props: {
 export function StaffEditEmployeeDialog(props: {
   employee: StaffEmployee;
   pending: boolean;
+  /** Точки организации и включён ли режим точек — чипы «Точки». */
+  buildings?: BuildingOption[];
+  perLocationJournals?: boolean;
   onSave: (patch: {
     name?: string;
     phone?: string | null;
     weeklyDaysOff?: number[];
+    buildingIds?: string[];
   }) => void;
   /** Открыть окно выдачи доступа вместо этого диалога. */
   onOpenAccess?: () => void;
@@ -630,6 +649,9 @@ export function StaffEditEmployeeDialog(props: {
     () => normalizeWeeklyDaysOff(employee.weeklyDaysOff)
   );
   const savedWeeklyDaysOff = normalizeWeeklyDaysOff(employee.weeklyDaysOff);
+  const [buildingIds, setBuildingIds] = useState<string[]>(
+    () => employee.buildingIds ?? []
+  );
 
   // Reset local state when dialog opens on a different employee.
   useEffect(() => {
@@ -637,8 +659,16 @@ export function StaffEditEmployeeDialog(props: {
       setName(employee.name);
       setPhone(employee.phone ?? "");
       setWeeklyDaysOff(normalizeWeeklyDaysOff(employee.weeklyDaysOff));
+      setBuildingIds(employee.buildingIds ?? []);
     }
-  }, [open, employee.id, employee.name, employee.phone, employee.weeklyDaysOff]);
+  }, [
+    open,
+    employee.id,
+    employee.name,
+    employee.phone,
+    employee.weeklyDaysOff,
+    employee.buildingIds,
+  ]);
 
   function submit() {
     const trimmedName = name.trim();
@@ -650,10 +680,15 @@ export function StaffEditEmployeeDialog(props: {
       name?: string;
       phone?: string | null;
       weeklyDaysOff?: number[];
+      buildingIds?: string[];
     } = {};
     const nextWeekly = normalizeWeeklyDaysOff(weeklyDaysOff);
     if (nextWeekly.join(",") !== savedWeeklyDaysOff.join(",")) {
       patch.weeklyDaysOff = nextWeekly;
+    }
+    const savedBuildings = [...(employee.buildingIds ?? [])].sort().join(",");
+    if ([...buildingIds].sort().join(",") !== savedBuildings) {
+      patch.buildingIds = buildingIds;
     }
     if (trimmedName !== employee.name) patch.name = trimmedName;
     const trimmedPhone = phone.trim();
@@ -708,6 +743,14 @@ export function StaffEditEmployeeDialog(props: {
                 в графике выходных.
               </p>
             </div>
+            {props.perLocationJournals ? (
+              <BuildingChips
+                buildings={props.buildings ?? []}
+                value={buildingIds}
+                onChange={setBuildingIds}
+                ariaLabel={`Точки: ${employee.name}`}
+              />
+            ) : null}
           </div>,
           <>
             {onOpenAccess ? (

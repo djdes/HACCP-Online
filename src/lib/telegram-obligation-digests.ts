@@ -60,7 +60,10 @@ function formatObligationList(openObligations: OpenJournalObligation[]): string[
     const suffix = obligation.template.description
       ? ` (${escapeTelegramText(obligation.template.description)})`
       : "";
-    return `• ${escapeTelegramText(obligation.template.name)}${suffix}`;
+    const location = obligation.buildingName
+      ? ` · ${escapeTelegramText(obligation.buildingName)}`
+      : "";
+    return `• ${escapeTelegramText(obligation.template.name)}${location}${suffix}`;
   });
 
   if (openObligations.length > preview.length) {

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
+import { buildingTargets } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { resolveJournalPeriod, parseJournalPeriodsJson } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
@@ -79,6 +81,9 @@ export async function POST() {
   let skipped = 0;
   const errors: string[] = [];
 
+  // Точки: пересоздаём документ на каждую точку (или один общий).
+  const targets = await buildingTargets(organizationId);
+
   for (const tpl of templates) {
     if (disabledCodes.has(tpl.code)) {
       skipped += 1;
@@ -93,12 +98,18 @@ export async function POST() {
         journalCode: tpl.code,
         baseConfig: {},
       });
+      for (const buildingId of targets) {
       // Атомарно: close existing + create new. Если что-то фейлит —
       // откатим. Без этого можно остаться с закрытыми старыми и без
       // нового → юзер открывает /journals и видит пустой журнал.
       const newDoc = await db.$transaction(async (tx) => {
         const existing = await tx.journalDocument.findMany({
-          where: { organizationId, templateId: tpl.id, status: "active" },
+          where: {
+            organizationId,
+            templateId: tpl.id,
+            status: "active",
+            ...buildingWhere(buildingId),
+          },
           select: { id: true },
         });
         if (existing.length > 0) {
@@ -112,6 +123,7 @@ export async function POST() {
           data: {
             organizationId,
             templateId: tpl.id,
+            buildingId,
             title: `${tpl.name} · ${period.label}`,
             dateFrom: period.dateFrom,
             dateTo: period.dateTo,
@@ -151,6 +163,7 @@ export async function POST() {
         );
       });
       created += 1;
+      }
     } catch (err) {
       errors.push(
         `${tpl.code}: ${err instanceof Error ? err.message : "unknown"}`

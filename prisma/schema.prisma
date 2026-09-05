@@ -87,10 +87,16 @@ model Organization {
   type                           String
   /// Форма собственности: private | chain | state | other.
   ownershipKind                  String                         @default("private")
-  /// Сколько точек назвали при регистрации. Отдельных организаций под
-  /// них пока не создаётся — это счётчик обещанного и материал для
-  /// аналитики.
+  /// Сколько точек назвали при регистрации. С 2026-09-05 по этому числу
+  /// анкета заводит здания-точки (`Building`) и включает
+  /// `perLocationJournals`; само поле остаётся ответом анкеты.
   locationsCount                 Int                            @default(1)
+  /// Точки (2026-09-05): вести документы журналов отдельно по каждому
+  /// зданию (`Building` = точка). Пока false, здания — просто группы
+  /// помещений, переключателя точек нет, документы создаются без
+  /// `buildingId`. Включает анкета при «Точек» ≥ 2 и тумблер на
+  /// /settings/buildings. См. docs/superpowers/specs/2026-09-05-locations-design.md
+  perLocationJournals            Boolean                        @default(false)
   inn                            String?
   /// Профиль из ЕГРЮЛ/ЕГРИП по ИНН (DaData): реквизиты, руководитель, ОКВЭД,
   /// численность, капитал, финансы. Обновляется анкетой и кнопкой в настройках.
@@ -377,6 +383,11 @@ model Building {
   address        String?
   sortOrder      Int          @default(0)
   rooms          Room[]
+  /// Точки (2026-09-05): документы и обязательства, привязанные к этому
+  /// зданию как к точке. При удалении здания связь обнуляется —
+  /// документы остаются в организации и становятся общими.
+  journalDocuments   JournalDocument[]
+  journalObligations JournalObligation[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -564,6 +575,11 @@ model User {
   /// StaffWorkOffDay). Правило избавляет управляющую от «прокликивания»
   /// Сб/Вс каждому сотруднику на месяц вперёд.
   weeklyDaysOff               Int[]                    @default([])
+  /// Точки (2026-09-05): на каких зданиях-точках работает сотрудник.
+  /// Пустой массив = на всех (обратная совместимость). Читатели
+  /// пересекают с существующими зданиями организации: удалённая точка
+  /// оставляет висящий id, который просто игнорируется.
+  buildingIds                 String[]                 @default([])
   journalEntries              JournalEntry[]
   journalAccess               UserJournalAccess[]
   inviteToken                 InviteToken?
@@ -1134,6 +1150,10 @@ model JournalObligation {
   targetPath     String
   source         String          @default("daily-journal-sync")
   dedupeKey      String
+  /// Точки (2026-09-05): по какой точке обязательство. null — общее
+  /// (организация без точек). Сегмент точки входит в dedupeKey.
+  buildingId     String?
+  building       Building?       @relation(fields: [buildingId], references: [id], onDelete: SetNull)
   openedAt       DateTime?
   completedAt    DateTime?
   /// Когда сотрудник «забрал» премиальное obligation через
@@ -1152,6 +1172,7 @@ model JournalObligation {
   @@index([organizationId, dateKey, status])
   @@index([templateId])
   @@index([claimedById])
+  @@index([buildingId])
 }
 
 model JournalTemplate {
@@ -1724,6 +1745,12 @@ model JournalDocument {
   status                   String                 @default("active") // active | closed
   autoFill                 Boolean                @default(false)
   createdById              String?
+  /// Точки (2026-09-05): к какой точке (`Building`) относится документ.
+  /// null — общий документ: создан до включения точек или организацией
+  /// без точек; виден на каждой точке (см. buildingWhere в
+  /// src/lib/building-scope.ts).
+  buildingId               String?
+  building                 Building?              @relation(fields: [buildingId], references: [id], onDelete: SetNull)
   createdAt                DateTime               @default(now())
   updatedAt                DateTime               @updatedAt
   entries                  JournalDocumentEntry[]
@@ -1732,6 +1759,7 @@ model JournalDocument {
 
   @@index([organizationId, templateId, status])
   @@index([organizationId, dateFrom])
+  @@index([organizationId, buildingId])
 }
 
 model JournalDocumentEntry {

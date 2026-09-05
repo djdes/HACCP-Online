@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { isImpersonating, requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { loadBuildingContext } from "@/lib/active-building";
 import { AuthSessionProvider } from "@/components/layout/session-provider";
 import { Header } from "@/components/layout/header";
 import { ImpersonationBanner } from "@/components/dashboard/impersonation-banner";
@@ -130,6 +131,10 @@ export default async function DashboardLayout({
       // того, скрыл клиент брендинг или нет.
       partnerAccess ? getPartnerBrandById(partnerAccess.partnerId) : Promise.resolve(null),
     ]);
+
+  // Точки: список для переключателя в шапке и активная точка запроса.
+  // Тот же контекст (кэш на запрос) читают страницы журналов.
+  const buildingContext = await loadBuildingContext(session);
 
   // Тариф и лимит мест живут на аккаунте: у сети из трёх кафе один
   // договор и общие бесплатные места (FREE_MAX_USERS). Пока организация не привязана
@@ -280,6 +285,8 @@ export default async function DashboardLayout({
             billingTestMode={BILLING_TEST_MODE}
             organizations={organizations}
             activeOrganizationId={activeOrgId}
+            buildings={buildingContext.canSwitch ? buildingContext.buildings : []}
+            activeBuildingId={buildingContext.activeBuildingId}
             canCreateOrganization={Boolean(ownedAccount)}
             organizationSphere={brandedOrg?.type ?? "restaurant"}
             partnerCabinet={partnerCabinet}

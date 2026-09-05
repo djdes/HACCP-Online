@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { listOrganizationBuildings } from "@/lib/active-building";
 import { positionSuggestionsFor } from "@/lib/sphere-positions";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -37,7 +38,7 @@ export default async function StaffPage() {
         where: { id: orgId },
         // `type` — сфера организации (см. src/lib/org-profile.ts):
         // из неё берём подсказки типовых должностей.
-        select: { id: true, name: true, type: true },
+        select: { id: true, name: true, type: true, perLocationJournals: true },
       }),
       db.jobPosition.findMany({
         where: { organizationId: orgId },
@@ -59,6 +60,7 @@ export default async function StaffPage() {
           isRoot: true,
           archivedAt: true,
           weeklyDaysOff: true,
+          buildingIds: true,
         },
       }),
       db.staffWorkOffDay.findMany({
@@ -99,6 +101,9 @@ export default async function StaffPage() {
   // заведены: предлагать «Повар», когда «Повар» уже есть, бессмысленно.
   const sphere = normalizeSphere(organization?.type);
   const existingPositionNames = positions.map((p) => p.name);
+  // Точки: список для чипов «Точки» в диалогах сотрудника.
+  const staffBuildings = await listOrganizationBuildings(orgId);
+
   const positionSuggestions: Record<PositionCategory, string[]> = {
     management: positionSuggestionsFor(
       sphere,
@@ -120,6 +125,8 @@ export default async function StaffPage() {
     <>
     <StaffPageClient
       positionSuggestions={positionSuggestions}
+      buildings={staffBuildings}
+      perLocationJournals={organization?.perLocationJournals === true}
       hasTasksflowIntegration={Boolean(tasksflowIntegration)}
       organization={{
         id: organization?.id ?? orgId,
@@ -145,6 +152,7 @@ export default async function StaffPage() {
         isSelf: u.id === session.user.id,
         telegramLinked: Boolean(u.telegramChatId),
         weeklyDaysOff: u.weeklyDaysOff,
+        buildingIds: u.buildingIds,
       }))}
       workOffDays={workOffDays.map((w) => ({
         userId: w.userId,

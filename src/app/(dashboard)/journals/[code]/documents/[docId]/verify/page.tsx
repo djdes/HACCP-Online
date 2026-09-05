@@ -9,6 +9,7 @@ import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
 import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
 import { getCrumbOrganizationName } from "@/lib/crumb-organization";
 import { getDocumentCrumbMenu } from "@/lib/journal-crumb-menu";
+import { getActiveBuildingId } from "@/lib/active-building";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,7 +87,7 @@ export default async function VerifyDocumentPage({
   const [crumbOrganizationName, journalMenu, documentMenu] = await Promise.all([
     getCrumbOrganizationName(orgId),
     getJournalCrumbMenu(session, code),
-    getDocumentCrumbMenu(orgId, code, docId),
+    getDocumentCrumbMenu(orgId, code, docId, await getActiveBuildingId(session)),
   ]);
 
   return (

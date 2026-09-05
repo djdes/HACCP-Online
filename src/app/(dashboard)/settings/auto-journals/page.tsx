@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { AutoJournalsClient } from "./auto-journals-client";
@@ -46,6 +48,7 @@ export default async function AutoJournalsPage() {
         status: "active",
         dateFrom: { lte: new Date() },
         dateTo: { gte: new Date() },
+        ...buildingWhere(await getActiveBuildingId(session)),
       },
       select: { templateId: true },
       distinct: ["templateId"],

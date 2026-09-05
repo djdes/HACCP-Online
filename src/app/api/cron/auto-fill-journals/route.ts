@@ -62,6 +62,7 @@ async function handle(request: Request) {
     select: {
       id: true,
       organizationId: true,
+      buildingId: true,
       config: true,
       responsibleUserId: true,
       responsibleTitle: true,

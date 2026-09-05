@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
   Loader2,
+  MapPin,
   Play,
   ShieldAlert,
   Zap,
@@ -33,6 +34,12 @@ type HomeUser = {
 
 type AreaLoc = { id: string; name: string; lat: number; lng: number };
 
+/** Точка (здание), в которой человек сейчас работает; см. /api/mini/home. */
+type HomeLocation = {
+  activeBuilding: { id: string; name: string } | null;
+  canSwitch: boolean;
+};
+
 type HomeJournal = {
   code: string;
   name: string;
@@ -45,12 +52,15 @@ type StaffHomeData = {
   user: HomeUser;
   permissions: string[];
   areas: AreaLoc[];
+  location?: HomeLocation;
   now: Array<{
     id: string;
     code: string;
     name: string;
     description: string | null;
     href: string;
+    /** Точка обязательства — подпись карточки в сети точек. */
+    buildingName?: string | null;
     bonusAmountKopecks?: number;
     claimedById?: string | null;
     claimedByName?: string | null;
@@ -70,6 +80,7 @@ type ManagerHomeData = {
     employeesWithPending: number;
   };
   areas: AreaLoc[];
+  location?: HomeLocation;
   all: HomeJournal[];
 };
 
@@ -78,6 +89,7 @@ type ReadonlyHomeData = {
   user: HomeUser;
   permissions: string[];
   areas: AreaLoc[];
+  location?: HomeLocation;
   all: HomeJournal[];
 };
 
@@ -423,12 +435,29 @@ export default function MiniHomePage() {
                 ,
               </span>
             </h1>
-            {home.user.organizationName ? (
+            {home.user.organizationName || home.location?.activeBuilding ? (
               <p
-                className="mt-1.5 truncate text-[13px]"
+                className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[13px]"
                 style={{ color: "var(--mini-text-muted)" }}
               >
-                {home.user.organizationName}
+                {home.user.organizationName ? (
+                  <span className="truncate">{home.user.organizationName}</span>
+                ) : null}
+                {/* Точка: чип ведёт в профиль, где её можно сменить. */}
+                {home.location?.activeBuilding ? (
+                  <Link
+                    href="/mini/me"
+                    aria-label={`Точка: ${home.location.activeBuilding.name}. Сменить`}
+                    className="inline-flex max-w-[45%] shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium"
+                    style={{
+                      background: "var(--mini-accent-soft, rgba(85,102,246,0.12))",
+                      color: "var(--mini-accent, #5566f6)",
+                    }}
+                  >
+                    <MapPin className="size-3 shrink-0" />
+                    <span className="truncate">{home.location.activeBuilding.name}</span>
+                  </Link>
+                ) : null}
               </p>
             ) : null}
           </div>
@@ -535,7 +564,11 @@ export default function MiniHomePage() {
                   <MiniBonusCard
                     obligationId={item.id}
                     title={item.name}
-                    subtitle={item.description}
+                    subtitle={
+                      item.buildingName
+                        ? [item.buildingName, item.description].filter(Boolean).join(" · ")
+                        : item.description
+                    }
                     bonusAmountKopecks={item.bonusAmountKopecks ?? 0}
                     initialClaimedByName={item.claimedByName ?? null}
                     initialClaimedAt={item.claimedAt ?? null}
@@ -545,7 +578,11 @@ export default function MiniHomePage() {
                   <MiniCard
                     href={item.href}
                     title={item.name}
-                    subtitle={item.description}
+                    subtitle={
+                      item.buildingName
+                        ? [item.buildingName, item.description].filter(Boolean).join(" · ")
+                        : item.description
+                    }
                     status={{ kind: "todo", label: "нужно заполнить" }}
                     index={idx + 1}
                   />

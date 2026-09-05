@@ -4,6 +4,8 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
@@ -103,6 +105,7 @@ export async function GET() {
       organizationId,
       status: "active",
       templateId: { in: templates.map((t) => t.id) },
+      ...buildingWhere(await getActiveBuildingId(session)),
     },
     select: {
       id: true,

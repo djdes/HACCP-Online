@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * GET — список зданий + помещений для активной org.
  * POST — { name, address?, sortOrder? } создать здание.
+ * PATCH — { perLocationJournals } вести журналы отдельно по точкам.
  *
  * Auth: management (owner/manager/head_chef/technologist) или ROOT.
  */
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
   });
   if (exists) {
     return NextResponse.json(
-      { error: "Здание с таким названием уже есть" },
+      { error: "Точка с таким названием уже есть" },
       { status: 409 }
     );
   }
@@ -81,4 +82,52 @@ export async function POST(request: Request) {
     include: { rooms: true },
   });
   return NextResponse.json({ building: created });
+}
+
+const FlagSchema = z.object({
+  perLocationJournals: z.boolean(),
+});
+
+/**
+ * Точки (2026-09-05): тумблер «Вести журналы отдельно по точкам».
+ * Включить можно только при двух и более зданиях — иначе точек нет и
+ * режим ничего не меняет. Выключение оставляет `buildingId` у уже
+ * созданных документов: они просто снова видны все вместе.
+ */
+export async function PATCH(request: Request) {
+  const auth = await requireApiAuth();
+  if (!auth.ok) return auth.response;
+  if (!hasFullWorkspaceAccess(auth.session.user)) {
+    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+  }
+  const orgId = getActiveOrgId(auth.session);
+
+  let body: z.infer<typeof FlagSchema>;
+  try {
+    body = FlagSchema.parse(await request.json());
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: err.issues[0]?.message ?? "Bad input" },
+        { status: 400 }
+      );
+    }
+    throw err;
+  }
+
+  if (body.perLocationJournals) {
+    const count = await db.building.count({ where: { organizationId: orgId } });
+    if (count < 2) {
+      return NextResponse.json(
+        { error: "Добавьте хотя бы две точки, чтобы вести журналы отдельно" },
+        { status: 400 }
+      );
+    }
+  }
+
+  await db.organization.update({
+    where: { id: orgId },
+    data: { perLocationJournals: body.perLocationJournals },
+  });
+  return NextResponse.json({ ok: true, perLocationJournals: body.perLocationJournals });
 }

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { getServerSession } from "@/lib/server-session";
 import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { isDocumentTemplate } from "@/lib/journal-document-helpers";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +58,12 @@ export async function GET(
     // recent documents + a deep-link to the existing dashboard grid so the
     // line worker can still fill hygiene / cold-equipment / etc. today.
     const documents = await db.journalDocument.findMany({
-      where: { templateId: template.id, organizationId: orgId },
+      where: {
+        templateId: template.id,
+        organizationId: orgId,
+        // Точки: документы активной точки и общие.
+        ...buildingWhere(await getActiveBuildingId(session)),
+      },
       orderBy: [{ status: "asc" }, { dateFrom: "desc" }],
       take: 10,
       select: {

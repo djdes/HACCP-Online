@@ -6,6 +6,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { sendPasswordChangedEmail } from "@/lib/email";
 import { innDigits, isValidInn } from "@/lib/inn";
+import { ensureLocationBuildings } from "@/lib/location-buildings";
 import { refreshOrganizationLegalProfile } from "@/lib/org-legal-profile";
 import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
@@ -158,6 +159,16 @@ export async function POST(request: Request) {
       },
     });
   });
+
+  // Точки: «Точек» ≥ 2 → заводим здания-точки и включаем раздельные
+  // журналы. Одна точка — обычная организация, ничего не создаём.
+  if (data.locationsCount >= 2) {
+    await ensureLocationBuildings(organizationId, data.locationsCount, {
+      firstAddress: data.address?.trim() || null,
+    }).catch((error) => {
+      console.error("[profile/complete] ensureLocationBuildings failed", error);
+    });
+  }
 
   // Снимок ЕГРЮЛ по ИНН — реквизиты, руководитель, ОКВЭД, численность —
   // в организацию; показывается в /settings/organization. Ошибки DaData

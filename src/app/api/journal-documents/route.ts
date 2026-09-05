@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { db } from "@/lib/db";
 import {
   buildColdEquipmentConfigFromEquipment,
@@ -137,6 +139,8 @@ export async function GET(request: Request) {
       organizationId: getActiveOrgId(session),
       templateId: template.id,
       status,
+      // Точки: документы активной точки и общие (без точки).
+      ...buildingWhere(await getActiveBuildingId(session)),
     },
     orderBy: { dateFrom: "desc" },
     include: {
@@ -341,13 +345,21 @@ export async function POST(request: Request) {
         })
       : [];
 
+  // Точки: новый документ принадлежит активной точке, помещения — её же.
+  const activeBuildingId = await getActiveBuildingId(session);
+
   // 2026-09-04: единый справочник помещений. Климат и график ген. уборок
   // сидируются из Room (/settings/buildings), а не из legacy Area.
   const directoryRooms =
     resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE ||
     resolvedTemplateCode === SANITATION_DAY_TEMPLATE_CODE
       ? await db.room.findMany({
-          where: { building: { organizationId: getActiveOrgId(session) } },
+          where: {
+            building: {
+              organizationId: getActiveOrgId(session),
+              ...(activeBuildingId ? { id: activeBuildingId } : {}),
+            },
+          },
           select: { id: true, name: true, climateNorms: true },
           orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
         })
@@ -359,7 +371,12 @@ export async function POST(request: Request) {
   const cleaningRooms =
     resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? await db.room.findMany({
-          where: { building: { organizationId: getActiveOrgId(session) } },
+          where: {
+            building: {
+              organizationId: getActiveOrgId(session),
+              ...(activeBuildingId ? { id: activeBuildingId } : {}),
+            },
+          },
           select: {
             id: true,
             currentDays: true,
@@ -823,6 +840,7 @@ export async function POST(request: Request) {
     data: {
       templateId: template.id,
       organizationId: getActiveOrgId(session),
+      buildingId: activeBuildingId,
       // Пустое название → «Имя журнала — период» (как в диалогах создания),
       // а не голое имя шаблона: список документов иначе состоял из клонов.
       title:

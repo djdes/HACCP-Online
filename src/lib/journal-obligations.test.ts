@@ -30,6 +30,7 @@ test("syncDailyJournalObligationsForUser creates obligations only for allowed da
       getDisabledJournalCodes: async () => new Set<string>(),
       // Сотрудник допущен до всех шаблонов: этот тест не про белый список.
       getEligibleUserIds: async () => new Set(["user_1"]),
+      getBuildingTargets: async () => [null],
       listTemplates: async () => [
         {
           id: "tpl_in",
@@ -93,6 +94,7 @@ test("syncDailyJournalObligationsForUser sends incoming_control to the entry for
       getAllowedJournalCodes: async () => ["incoming_control"],
       getDisabledJournalCodes: async () => new Set<string>(),
       getEligibleUserIds: async () => new Set(["user_1"]),
+      getBuildingTargets: async () => [null],
       listTemplates: async () => [
         {
           id: "tpl_in",
@@ -134,6 +136,7 @@ test("syncDailyJournalObligationsForUser clears stale sync rows that are no long
       getAllowedJournalCodes: async () => ["hygiene"],
       getDisabledJournalCodes: async () => new Set<string>(),
       getEligibleUserIds: async () => new Set(["user_1"]),
+      getBuildingTargets: async () => [null],
       listTemplates: async () => [
         {
           id: "tpl_hy",
@@ -189,6 +192,7 @@ test("syncDailyJournalObligationsForUser preserves the original completedAt when
       getAllowedJournalCodes: async () => ["incoming_control"],
       getDisabledJournalCodes: async () => new Set<string>(),
       getEligibleUserIds: async () => new Set(["user_1"]),
+      getBuildingTargets: async () => [null],
       listTemplates: async () => [
         {
           id: "tpl_in",
@@ -320,6 +324,7 @@ test("syncDailyJournalObligationsForOrganization syncs each active staff user", 
       getAllowedJournalCodes: async () => ["hygiene"],
       getDisabledJournalCodes: async () => new Set<string>(),
       getEligibleUserIds: async () => new Set(["user_1", "user_2"]),
+      getBuildingTargets: async () => [null],
       listTemplates: async () => [
         {
           id: "tpl_hy",
@@ -414,6 +419,7 @@ test("syncDailyJournalObligationsForUser skips templates the employee is not eli
       ],
       getEligibleUserIds: async (_organizationId, templateId) =>
         templateId === "tpl_hy" ? new Set(["user_1"]) : new Set(["user_9"]),
+      getBuildingTargets: async () => [null],
       listExistingDailyObligations: async () => [],
       deleteStaleDailyObligations: async () => {},
       getTemplateTodaySummary: async () => ({

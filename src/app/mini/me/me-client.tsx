@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { MiniOrgSwitcher } from "@/app/mini/_components/mini-org-switcher";
+import { MiniLocationSwitcher } from "@/app/mini/_components/mini-location-switcher";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
@@ -105,6 +106,7 @@ export function MiniMeClient({
       </header>
 
       <MiniOrgSwitcher />
+      <MiniLocationSwitcher />
 
       <section className="mini-card p-4">
         <dl className="space-y-3 text-[14px]">

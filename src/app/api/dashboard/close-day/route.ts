@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { logAudit } from "@/lib/audit";
@@ -114,6 +116,8 @@ export async function POST(request: Request) {
     : null;
 
   const organizationId = getActiveOrgId(session);
+  // Точки: закрываем день и создаём документ для активной точки.
+  const activeBuildingId = await getActiveBuildingId(session);
   const org = await db.organization.findUnique({
     where: { id: organizationId },
     select: {
@@ -179,6 +183,7 @@ export async function POST(request: Request) {
           status: "active",
           dateFrom: { lte: upToDate },
           dateTo: { gte: upToDate },
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "desc" },
         select: {
@@ -198,6 +203,7 @@ export async function POST(request: Request) {
           templateCode: tpl.code,
           now: upToDate,
           inheritResponsiblesFromLastDocument: true,
+          buildingId: activeBuildingId,
         });
         if (!created.documentId) {
           summary.skippedReason = "no_document";

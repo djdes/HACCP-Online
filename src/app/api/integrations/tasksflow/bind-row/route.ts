@@ -1,3 +1,4 @@
+import { withBuildingSuffix } from "@/lib/building-scope";
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
 
   const doc = await db.journalDocument.findUnique({
     where: { id: payload.documentId },
-    include: { template: true },
+    include: { template: true, building: { select: { name: true } } },
   });
   if (
     !doc ||
@@ -168,10 +169,12 @@ export async function POST(request: Request) {
       workerWeSetupId = row.responsibleUserId;
       label = row.label;
       storedRowKey = row.rowKey;
-      title =
+      title = withBuildingSuffix(
         payload.title?.trim() ||
-        adapter.titleForRow?.(row, adapterDoc) ||
-        row.label;
+          adapter.titleForRow?.(row, adapterDoc) ||
+          row.label,
+        doc.building?.name ?? null,
+      );
       description = adapter.descriptionForRow?.(row, adapterDoc);
       const sched = adapter.scheduleForRow(row, adapterDoc);
       weekDays = payload.weekDays?.length ? payload.weekDays : sched.weekDays;

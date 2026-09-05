@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { buildingTargets } from "@/lib/active-building";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { ensureDocumentsFor } from "@/lib/journal-auto-create";
@@ -57,6 +58,8 @@ export async function POST(request: Request) {
   const results = await ensureDocumentsFor(db, {
     organizationId,
     templateCodes: parsed.codes,
+    // Точки: по документу на каждую точку организации.
+    buildingIds: await buildingTargets(organizationId),
   });
   const created = results.filter((r) => r.created).length;
   const skipped = results.length - created;

@@ -1,3 +1,4 @@
+import { withBuildingSuffix } from "@/lib/building-scope";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { checkCronSecret } from "@/lib/cron-auth";
@@ -91,7 +92,7 @@ async function handle(request: Request) {
           status: "active",
           template: { code: CLEANING_DOCUMENT_TEMPLATE_CODE },
         },
-        select: { id: true, title: true, config: true },
+        select: { id: true, title: true, config: true, building: { select: { name: true } } },
       }),
       // Назначения помещений (кто проверяет) — для эффективного конфига.
       db.room.findMany({
@@ -188,13 +189,13 @@ async function handle(request: Request) {
         try {
           const client = tasksflowClientFor(integration);
           const task = await client.createTask({
-            title: `Контроль уборки · ${todayKey}`,
+            title: withBuildingSuffix(`Контроль уборки · ${todayKey}`, doc.building?.name ?? null),
             workerId: verifierLink.tasksflowUserId,
             requiresPhoto: false,
             isRecurring: false,
             weekDays: [],
             category: "WeSetup · Уборка · Контроль",
-            description: `Журнал: ${doc.title}\nПроверь выполненные сегодня уборки:\n${lines}`,
+            description: `Журнал: ${withBuildingSuffix(doc.title, doc.building?.name ?? null)}\nПроверь выполненные сегодня уборки:\n${lines}`,
           });
           await db.tasksFlowTaskLink.create({
             data: {

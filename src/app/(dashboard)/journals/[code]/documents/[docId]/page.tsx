@@ -50,6 +50,7 @@ import {
 import { PpeIssuanceDocumentClient } from "@/components/journals/ppe-issuance-document-client";
 import { isRegisterDocumentTemplate } from "@/lib/register-document";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+import { withBuildingLabel } from "@/lib/building-scope";
 import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { SANITATION_DAY_TEMPLATE_CODE } from "@/lib/sanitation-day-document";
@@ -236,6 +237,7 @@ async function JournalDocumentBody({
         where: { id: docId },
         include: {
           template: true,
+          building: { select: { name: true, address: true } },
           entries: {
             orderBy: [{ employeeId: "asc" }, { date: "asc" }],
           },
@@ -300,6 +302,12 @@ async function JournalDocumentBody({
     notFound();
   }
 
+  // Точки: в шапке бланка под организацией — точка с адресом.
+  const organizationName = withBuildingLabel(
+    organization?.name || ORG_NAME_FALLBACK,
+    document.building,
+  );
+
   // Org-level toggle. If the journal was disabled in /settings/journals,
   // surface the soft disabled screen instead of silently rendering the
   // editor — otherwise a stale deep-link would keep working after the
@@ -353,7 +361,7 @@ async function JournalDocumentBody({
         controlPeriodicity={controlPeriodicity}
         routeCode={code}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -385,7 +393,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -439,7 +447,7 @@ async function JournalDocumentBody({
         routeCode={code}
         title={document.title}
         templateCode={resolvedCode}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status as "active" | "closed"}
         dateFrom={toDateKey(document.dateFrom)}
         config={normalizeEquipmentCleaningConfig(document.config)}
@@ -485,7 +493,7 @@ async function JournalDocumentBody({
         controlPeriodicity={controlPeriodicity}
         title={document.title}
         templateCode={code}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         config={medConfig}
         employees={enrichedEmployees}
@@ -502,7 +510,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizePerishableRejectionConfig(document.config)}
@@ -516,7 +524,7 @@ async function JournalDocumentBody({
       <ProductWriteoffDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeProductWriteoffConfig(document.config)}
@@ -531,7 +539,7 @@ async function JournalDocumentBody({
       <GlassListDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         initialConfig={normalizeGlassListConfig(document.config)}
         users={enrichedEmployees}
@@ -546,7 +554,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         routeCode={code}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -572,7 +580,7 @@ async function JournalDocumentBody({
       <StaffTrainingDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeStaffTrainingConfig(document.config)}
@@ -587,7 +595,7 @@ async function JournalDocumentBody({
       <EquipmentMaintenanceDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeEquipmentMaintenanceConfig(document.config)}
@@ -602,7 +610,7 @@ async function JournalDocumentBody({
       <EquipmentCalibrationDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeEquipmentCalibrationConfig(document.config)}
@@ -618,7 +626,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         title={document.title}
         routeCode={code}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeTraceabilityDocumentConfig(document.config)}
@@ -633,7 +641,7 @@ async function JournalDocumentBody({
       <ComplaintDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         initialConfig={normalizeComplaintConfig(document.config)}
@@ -649,7 +657,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -678,7 +686,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         users={enrichedEmployees}
         buildings={directoryBuildings}
@@ -693,7 +701,7 @@ async function JournalDocumentBody({
       <DisinfectantDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
@@ -707,7 +715,7 @@ async function JournalDocumentBody({
       <TrainingPlanDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         users={enrichedEmployees}
         config={document.config}
@@ -721,7 +729,7 @@ async function JournalDocumentBody({
       <AuditPlanDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         users={enrichedEmployees}
         config={normalizeAuditPlanConfig(document.config, {
@@ -738,7 +746,7 @@ async function JournalDocumentBody({
       <AuditProtocolDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         config={normalizeAuditProtocolConfig(document.config)}
         useV2={organization?.experimentalUiV2 ?? true}
@@ -751,7 +759,7 @@ async function JournalDocumentBody({
       <AuditReportDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         config={normalizeAuditReportConfig(document.config)}
         useV2={organization?.experimentalUiV2 ?? true}
@@ -764,7 +772,7 @@ async function JournalDocumentBody({
       <MetalImpurityDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         status={document.status}
         config={normalizeMetalImpurityConfig(document.config)}
         users={enrichedEmployees}
@@ -778,7 +786,7 @@ async function JournalDocumentBody({
       <BreakdownHistoryDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
@@ -792,7 +800,7 @@ async function JournalDocumentBody({
       <AccidentDocumentClient
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
@@ -807,7 +815,7 @@ async function JournalDocumentBody({
         routeCode={code}
         documentId={document.id}
         title={document.title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
@@ -824,7 +832,7 @@ async function JournalDocumentBody({
         controlPeriodicity={controlPeriodicity}
         routeCode={code}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         status={document.status}
@@ -840,7 +848,7 @@ async function JournalDocumentBody({
       <PpeIssuanceDocumentClient
         documentId={document.id}
         title={document.title || "Журнал учета выдачи СИЗ"}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         users={enrichedEmployees}
@@ -862,7 +870,7 @@ async function JournalDocumentBody({
           currentUserId={session.user.id}
           controlPeriodicity={controlPeriodicity}
           title={document.title || "Журнал учета использования фритюрных жиров"}
-          organizationName={organization?.name || ORG_NAME_FALLBACK}
+          organizationName={organizationName}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           config={fryerConfig}
@@ -887,7 +895,7 @@ async function JournalDocumentBody({
           controlPeriodicity={controlPeriodicity}
           routeCode={code}
           title={buildUvRuntimeDocumentTitle(uvConfig)}
-          organizationName={organization?.name || ORG_NAME_FALLBACK}
+          organizationName={organizationName}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           dateTo={toIsoDate(document.dateTo)}
@@ -912,7 +920,7 @@ async function JournalDocumentBody({
           documentId={document.id}
           controlPeriodicity={controlPeriodicity}
           title={document.title || CLEANING_VENTILATION_CHECKLIST_TITLE}
-          organizationName={organization?.name || ORG_NAME_FALLBACK}
+          organizationName={organizationName}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           users={enrichedEmployees}
@@ -933,7 +941,7 @@ async function JournalDocumentBody({
         <SanitaryDayChecklistDocumentClient
           documentId={document.id}
           title={document.title || "Чек-лист"}
-          organizationName={organization?.name || ORG_NAME_FALLBACK}
+          organizationName={organizationName}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           users={enrichedEmployees}
@@ -991,7 +999,7 @@ async function JournalDocumentBody({
         templateCode={document.template.code}
         documentId={document.id}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -1019,7 +1027,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -1075,7 +1083,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         responsibleTitle={document.responsibleTitle}
@@ -1141,7 +1149,7 @@ async function JournalDocumentBody({
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
         title={document.title}
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
         dateTo={toDateKey(document.dateTo)}
         status={document.status}

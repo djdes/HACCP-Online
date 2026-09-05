@@ -1,5 +1,8 @@
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { getActiveOrgId } from "@/lib/auth-helpers";
+import { ACTIVE_BUILDING_COOKIE, decodeBuildingCookie } from "@/lib/building-scope";
 import {
   buildMiniAppAuthBootstrapPath,
   sanitizeMiniAppRedirectPath,
@@ -29,6 +32,26 @@ export default async function MiniObligationRedirectPage({
   const targetPath = sanitizeMiniAppRedirectPath(obligation.targetPath);
   if (!targetPath) {
     notFound();
+  }
+
+  // Точки: обязательство другой точки сначала переключает активную точку.
+  // Cookie ставит route handler — серверная страница писать её не может.
+  if (obligation.buildingId) {
+    const cookieStore = await cookies();
+    const currentBuildingId = decodeBuildingCookie(
+      cookieStore.get(ACTIVE_BUILDING_COOKIE)?.value,
+      getActiveOrgId(session),
+    );
+    if (currentBuildingId !== obligation.buildingId) {
+      try {
+        await markJournalObligationOpened(id, session.user.id);
+      } catch (error) {
+        console.error("Failed to mark journal obligation as opened", { id, error });
+      }
+      redirect(
+        `/api/me/active-building/go?building=${encodeURIComponent(obligation.buildingId)}&next=${encodeURIComponent(targetPath)}`,
+      );
+    }
   }
 
   try {

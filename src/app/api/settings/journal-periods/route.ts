@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   parseJournalPeriodsJson,
@@ -122,6 +124,7 @@ export async function PUT(request: Request) {
   const todayUtcStart = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
   );
+  const activeBuildingId = await getActiveBuildingId(auth.session);
   const allCodes = new Set([...Object.keys(beforeMap), ...Object.keys(map)]);
   const result: Array<{
     code: string;
@@ -146,6 +149,7 @@ export async function PUT(request: Request) {
         status: "active",
         dateFrom: { lte: todayUtcStart },
         dateTo: { gte: todayUtcStart },
+        ...buildingWhere(activeBuildingId),
       },
       select: {
         id: true,

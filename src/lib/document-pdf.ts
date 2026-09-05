@@ -5,6 +5,7 @@ import { jsPDF } from "jspdf";
 import autoTable, { type CellDef, type CellHookData, type RowInput } from "jspdf-autotable";
 import { getCalendarDayKind } from "@/lib/production-calendar-data";
 import { db } from "@/lib/db";
+import { withBuildingLabel } from "@/lib/building-scope";
 import { isAutoSeededEntry } from "@/lib/journal-entry-filters";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
@@ -5889,6 +5890,8 @@ export type JournalDocumentForPdf = Prisma.JournalDocumentGetPayload<{
   include: {
     template: true;
     organization: { select: { name: true; inn: true; address: true; phone: true } };
+    /// Точка документа — печатается под названием организации.
+    building: { select: { name: true; address: true } };
     entries: true;
   };
 }>;
@@ -5952,6 +5955,7 @@ export async function loadJournalDocumentPdfInput(params: {
       organization: {
         select: { name: true, inn: true, address: true, phone: true },
       },
+      building: { select: { name: true, address: true } },
       // ВАЖНО: берём ВСЕ строки, включая `_autoSeeded` плейсхолдеры.
       // Экран документа (page.tsx) рендерит их как структуру таблицы
       // (ростер сотрудников в гигиене/здоровье, дневные строки в
@@ -6021,7 +6025,12 @@ export async function loadJournalDocumentPdfInput(params: {
           // правды. Раньше detergent/scope читались из config.rooms,
           // и после перевода документа на Room справочник под бланком
           // печатался пустым, а колонка «средства» — прочерками.
-          where: { building: { organizationId } },
+          where: {
+            building: {
+              organizationId,
+              ...(document.buildingId ? { id: document.buildingId } : {}),
+            },
+          },
           select: {
             id: true,
             name: true,
@@ -6076,7 +6085,11 @@ export function renderJournalDocumentPdf(
   // если эти поля заполнены в /settings/organization. У инспектора СЭС
   // должны быть реквизиты прямо на печатной форме без дополнительной
   // сверки. Если что-то не задано — просто пропускаем разделитель.
-  const orgName = document.organization?.name || 'ООО "Тест"';
+  // Точки: под названием организации печатается точка с адресом.
+  const orgName = withBuildingLabel(
+    document.organization?.name || 'ООО "Тест"',
+    document.building,
+  );
   const orgInn = document.organization?.inn ?? null;
   const orgAddress = document.organization?.address ?? null;
   const organizationName = [

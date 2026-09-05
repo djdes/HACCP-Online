@@ -12,7 +12,7 @@ export default async function BuildingsPage() {
   if (!hasFullWorkspaceAccess(session.user)) redirect("/journals");
   const orgId = getActiveOrgId(session);
 
-  const [buildings, users] = await Promise.all([
+  const [buildings, users, organization] = await Promise.all([
     db.building.findMany({
     where: { organizationId: orgId },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -56,23 +56,27 @@ export default async function BuildingsPage() {
         jobPosition: { select: { name: true } },
       },
     }),
+    db.organization.findUnique({
+      where: { id: orgId },
+      select: { perLocationJournals: true },
+    }),
   ]);
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-          Здания и помещения
+          Точки и помещения
         </h1>
         <p className="mt-1.5 max-w-[640px] text-[14px] leading-[1.6] text-[#6f7282]">
-          Заведите корпуса (точки бизнеса) и помещения внутри них. По
-          помещениям дальше будут раздаваться задачи в журналах уборки —
-          одна задача на помещение в день, кто первый из уборщиков
-          выполнит, тот и закрепит за собой.
+          Точки бизнеса (здания с адресом) и помещения внутри них. По
+          помещениям раздаются задачи в журналах уборки — одна задача на
+          помещение в день. Если точек несколько, журналы можно вести
+          отдельно по каждой: включается тумблером ниже.
         </p>
       </div>
       <PageGuide
-        title="Как настроить здания и помещения"
+        title="Как настроить точки и помещения"
         storageKey="settings-buildings-v3"
         bullets={[
           { title: "Это единое место для цехов", body: "Корпуса (точки бизнеса) и помещения внутри них — горячий цех, холодный цех, бар, склад. Используются и в журнале уборки (как строки матрицы), и для привязки оборудования. Не нужно дублировать в /settings/areas — мы автоматически создаём «Цех» с тем же именем." },
@@ -84,7 +88,11 @@ export default async function BuildingsPage() {
           { q: "Что если я создал и в Buildings и в Areas?", a: "Будут оба — Equipment dropdown покажет всё. Дубликаты не страшны, но захламляют список. Удалить лишнее можно в /settings/areas." },
         ]}
       />
-      <BuildingsClient initial={buildings} users={users} />
+      <BuildingsClient
+        initial={buildings}
+        users={users}
+        perLocationJournals={organization?.perLocationJournals === true}
+      />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
 import { db } from "@/lib/db";
 import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
 import {
@@ -66,7 +67,7 @@ export default async function JournalDocumentLayout({
   const [journalMenu, documentMenu] = showCrumbs
     ? await Promise.all([
         getJournalCrumbMenu(session, code),
-        getDocumentCrumbMenu(activeOrgId, code, docId),
+        getDocumentCrumbMenu(activeOrgId, code, docId, await getActiveBuildingId(session)),
       ])
     : [undefined, undefined];
 

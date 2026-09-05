@@ -1,0 +1,47 @@
+{
+  "pillInitial": "E2E Точка А",
+  "menuItems": [
+    "E2E Точка А ул. Ленина, 5",
+    "E2E Точка Б"
+  ],
+  "cookieAfterB": "cmoe6rpt4000097ts71yb922y%3Acmto7plb20001jk9mxbhf1qhi",
+  "pillAfterB": "E2E Точка Б",
+  "docsAtB": [
+    "E2E точка Б"
+  ],
+  "docsAtBAllVisibleOk": true,
+  "pageShowsB": true,
+  "pageHidesA": true,
+  "switchToAStatus": 200,
+  "docsAtA": [
+    "E2E точка А"
+  ],
+  "docHeaderHasBuilding": true,
+  "foreignBuildingStatus": 403,
+  "settingsTitle": "Точки и помещения",
+  "toggleVisible": true,
+  "toggleChecked": "true",
+  "miniLocation": {
+    "canSwitch": true,
+    "active": "cmto7plak0000jk9m204rw7ud",
+    "names": [
+      "E2E Точка А",
+      "E2E Точка Б"
+    ]
+  },
+  "miniMeHasSwitcher": false,
+  "restrictStatus": 200,
+  "restrictedLocation": {
+    "canSwitch": false,
+    "active": "B",
+    "names": [
+      "E2E Точка Б"
+    ]
+  },
+  "restrictedSwitchToAStatus": 403,
+  "docsRestricted": [
+    "E2E точка Б"
+  ],
+  "pillHiddenWhenRestricted": true,
+  "resetStatus": 200
+}

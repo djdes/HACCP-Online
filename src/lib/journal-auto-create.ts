@@ -13,6 +13,7 @@
  * трогаем — возвращаем существующий id, чтобы клиент мог отправить в
  * отчёте «уже был».
  */
+import { buildingWhere } from "@/lib/building-scope";
 import type { PrismaClient } from "@prisma/client";
 import {
   parseJournalPeriodsJson,
@@ -61,12 +62,15 @@ async function fetchPreviousDocConfigForReuse(
   db: PrismaClient,
   organizationId: string,
   templateCode: string,
+  /** Точка: конфиг наследуется от документа той же точки (или общего). */
+  buildingId: string | null = null,
 ): Promise<Record<string, unknown> | null> {
   if (templateCode !== CLEANING_DOCUMENT_TEMPLATE_CODE) return null;
   const prev = await db.journalDocument.findFirst({
     where: {
       organizationId,
       template: { code: templateCode },
+      ...buildingWhere(buildingId),
     },
     orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
     select: { config: true },
@@ -102,9 +106,13 @@ export async function fetchCleaningRooms(
   // весь PrismaClient, а полный тип не дал бы передать юнит-тестовый стаб.
   db: Pick<PrismaClient, "room">,
   organizationId: string,
+  /** Точка: только помещения этого здания; null — все помещения организации. */
+  buildingId: string | null = null,
 ): Promise<CleaningRoomFromDb[]> {
   return db.room.findMany({
-    where: { building: { organizationId } },
+    where: {
+      building: { organizationId, ...(buildingId ? { id: buildingId } : {}) },
+    },
     select: {
       id: true,
       currentDays: true,
@@ -222,6 +230,7 @@ export async function closeExpiredDocuments(
     select: {
       id: true,
       templateId: true,
+      buildingId: true,
       dateTo: true,
       template: { select: { code: true } },
     },
@@ -243,6 +252,9 @@ export async function closeExpiredDocuments(
         templateId: doc.templateId,
         dateFrom: { gt: doc.dateTo },
         id: { not: doc.id },
+        // Точки: преемник — той же точки или общий; общий документ
+        // закрывает любой преемник.
+        ...buildingWhere(doc.buildingId),
       },
       select: { id: true },
     });
@@ -265,12 +277,13 @@ export async function closeExpiredDocuments(
  */
 async function inheritResponsiblesFromLastDocument(
   db: PrismaClient,
-  args: { organizationId: string; templateId: string }
+  args: { organizationId: string; templateId: string; buildingId?: string | null }
 ): Promise<{ responsibleUserId: string | null; verifierUserId: string | null }> {
   const last = await db.journalDocument.findFirst({
     where: {
       organizationId: args.organizationId,
       templateId: args.templateId,
+      ...buildingWhere(args.buildingId),
     },
     orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
     select: { responsibleUserId: true, verifierUserId: true },
@@ -466,6 +479,12 @@ export async function ensureActiveDocument(
      * иначе созданный им документ никто не заполнит.
      */
     autoFill?: boolean;
+    /**
+     * Точка (2026-09-05): документ создаётся на эту точку. Guard «уже
+     * есть активный» видит документы точки и общие (без точки): пока жив
+     * общий документ периода, по точкам дублей не появляется.
+     */
+    buildingId?: string | null;
   }
 ): Promise<CreateReport> {
   const now = args.now ?? new Date();
@@ -498,6 +517,7 @@ export async function ensureActiveDocument(
       status: "active",
       dateFrom: { lte: todayUtcStart },
       dateTo: { gte: todayUtcStart },
+      ...buildingWhere(args.buildingId),
     },
     select: { id: true, title: true },
   });
@@ -541,6 +561,7 @@ export async function ensureActiveDocument(
     db,
     args.organizationId,
     args.templateCode,
+    args.buildingId ?? null,
   );
   // Подтягиваем сохранённых в /settings/journal-responsibles
   // ответственных в config + responsibleUserId.
@@ -553,7 +574,7 @@ export async function ensureActiveDocument(
   // C1: cleaning собирается от Room организации, а не от blueprint'ов.
   const cleaningRooms =
     args.templateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
-      ? await fetchCleaningRooms(db, args.organizationId)
+      ? await fetchCleaningRooms(db, args.organizationId, args.buildingId ?? null)
       : [];
   const roomAwareConfig = applyRoomsToCleaningConfig(
     prefill.config,
@@ -571,6 +592,7 @@ export async function ensureActiveDocument(
     ? await inheritResponsiblesFromLastDocument(db, {
         organizationId: args.organizationId,
         templateId: template.id,
+        buildingId: args.buildingId ?? null,
       })
     : { responsibleUserId: null, verifierUserId: null };
   const responsibleUserId =
@@ -592,6 +614,7 @@ export async function ensureActiveDocument(
       dateTo: period.dateTo,
       status: "active",
       autoFill: args.autoFill === true,
+      buildingId: args.buildingId ?? null,
       config: planCfg as never,
       responsibleUserId,
       responsibleTitle,
@@ -627,17 +650,23 @@ export async function ensureDocumentsFor(
     organizationId: string;
     templateCodes: string[];
     now?: Date;
+    /** Точки: на какие точки создавать; `[null]` — один общий документ. */
+    buildingIds?: Array<string | null>;
   }
 ): Promise<CreateReport[]> {
   const results: CreateReport[] = [];
+  const targets = args.buildingIds && args.buildingIds.length > 0 ? args.buildingIds : [null];
   for (const code of args.templateCodes) {
-    results.push(
-      await ensureActiveDocument(db, {
-        organizationId: args.organizationId,
-        templateCode: code,
-        now: args.now,
-      })
-    );
+    for (const buildingId of targets) {
+      results.push(
+        await ensureActiveDocument(db, {
+          organizationId: args.organizationId,
+          templateCode: code,
+          now: args.now,
+          buildingId,
+        })
+      );
+    }
   }
   return results;
 }
@@ -662,6 +691,8 @@ export async function ensureNextPeriodDocument(
     now?: Date;
     /** См. `ensureActiveDocument.autoFill`. */
     autoFill?: boolean;
+    /** См. `ensureActiveDocument.buildingId`. */
+    buildingId?: string | null;
   }
 ): Promise<CreateReport> {
   const now = args.now ?? new Date();
@@ -691,6 +722,7 @@ export async function ensureNextPeriodDocument(
       status: "active",
       dateFrom: { lte: lookaheadTodayUtcStart },
       dateTo: { gte: lookaheadTodayUtcStart },
+      ...buildingWhere(args.buildingId),
     },
     select: { id: true, dateTo: true },
     orderBy: { dateFrom: "desc" },
@@ -757,6 +789,7 @@ export async function ensureNextPeriodDocument(
       templateId: template.id,
       status: "active",
       dateFrom: nextPeriod.dateFrom,
+      ...buildingWhere(args.buildingId),
     },
     select: { id: true },
   });
@@ -774,6 +807,7 @@ export async function ensureNextPeriodDocument(
     db,
     args.organizationId,
     args.templateCode,
+    args.buildingId ?? null,
   );
   const desiredNext = await resolveDesiredResponsibles(db, {
     organizationId: args.organizationId,
@@ -810,6 +844,7 @@ export async function ensureNextPeriodDocument(
       dateTo: nextPeriod.dateTo,
       status: "active",
       autoFill: args.autoFill === true,
+      buildingId: args.buildingId ?? null,
       config: planCfgNext as never,
       responsibleUserId: prefillNext.responsibleUserId,
       responsibleTitle: responsibleTitleNext,
@@ -896,68 +931,96 @@ export async function ensureCurrentDocumentsForBrokenChains(
   args: {
     organizationId: string;
     now?: Date;
+    /**
+     * Точки (2026-09-05): на какие точки восстанавливать цепочку.
+     * `[null]` (по умолчанию) — один общий документ, как раньше.
+     */
+    buildingIds?: Array<string | null>;
   }
 ): Promise<CreateReport[]> {
   const now = args.now ?? new Date();
   const todayUtcStart = startOfUtcDay(now);
+  const targets =
+    args.buildingIds && args.buildingIds.length > 0 ? args.buildingIds : [null];
 
-  // Один запрос вместо N: шаблоны, у которых в этой орге есть хоть один
-  // документ, вместе с самой поздней датой окончания.
+  // Один запрос вместо N: шаблоны (и точки), у которых в этой орге есть
+  // хоть один документ, вместе с самой поздней датой окончания.
   const groups = await db.journalDocument.groupBy({
-    by: ["templateId"],
+    by: ["templateId", "buildingId"],
     where: { organizationId: args.organizationId },
     _max: { dateTo: true },
   });
   if (groups.length === 0) return [];
 
   const overrides = await loadPeriodOverrides(db, args.organizationId);
+  const templateIds = [...new Set(groups.map((group) => group.templateId))];
   const templates = await db.journalTemplate.findMany({
-    where: { id: { in: groups.map((group) => group.templateId) } },
+    where: { id: { in: templateIds } },
     select: { id: true, code: true, name: true, isActive: true },
   });
   const templateById = new Map(templates.map((tpl) => [tpl.id, tpl]));
+  const isCurrent = (group: { _max: { dateTo: Date | null } }) =>
+    Boolean(
+      group._max.dateTo &&
+        group._max.dateTo.getTime() >= todayUtcStart.getTime(),
+    );
 
   const reports: CreateReport[] = [];
-  for (const group of groups) {
-    const template = templateById.get(group.templateId);
+  for (const templateId of templateIds) {
+    const template = templateById.get(templateId);
     if (!template || !template.isActive) continue;
-
-    // Есть документ, который покрывает сегодня или начинается позже —
-    // цепочка цела (в т.ч. look-ahead документ на следующий период).
-    const maxDateTo = group._max.dateTo;
-    if (maxDateTo && maxDateTo.getTime() >= todayUtcStart.getTime()) {
-      reports.push({
-        code: template.code,
-        name: template.name,
-        created: false,
-        documentId: "",
-        reason: "has-current-document",
-      });
-      continue;
-    }
-
-    const kind: JournalPeriodKind =
-      overrides[template.code]?.kind ?? resolveJournalPeriodKind(template.code);
-    if (kind === "perpetual") {
-      reports.push({
-        code: template.code,
-        name: template.name,
-        created: false,
-        documentId: "",
-        reason: "perpetual-manual-only",
-      });
-      continue;
-    }
-
-    const report = await ensureActiveDocument(db, {
-      organizationId: args.organizationId,
-      templateCode: template.code,
-      now,
-      inheritResponsiblesFromLastDocument: true,
-    });
-    reports.push(
-      report.created ? { ...report, reason: "broken-chain-restored" } : report
+    const tplGroups = groups.filter((group) => group.templateId === templateId);
+    // Общий документ (без точки) покрывает все точки, свой — только свою.
+    const sharedCurrent = tplGroups.some(
+      (group) => (group.buildingId ?? null) === null && isCurrent(group),
     );
+    const anyCurrent = tplGroups.some(isCurrent);
+
+    for (const buildingId of targets) {
+      const hasCurrent =
+        buildingId === null
+          ? anyCurrent
+          : sharedCurrent ||
+            tplGroups.some(
+              (group) => group.buildingId === buildingId && isCurrent(group),
+            );
+      // Есть документ, который покрывает сегодня или начинается позже —
+      // цепочка цела (в т.ч. look-ahead документ на следующий период).
+      if (hasCurrent) {
+        reports.push({
+          code: template.code,
+          name: template.name,
+          created: false,
+          documentId: "",
+          reason: "has-current-document",
+        });
+        continue;
+      }
+
+      const kind: JournalPeriodKind =
+        overrides[template.code]?.kind ?? resolveJournalPeriodKind(template.code);
+      if (kind === "perpetual") {
+        reports.push({
+          code: template.code,
+          name: template.name,
+          created: false,
+          documentId: "",
+          reason: "perpetual-manual-only",
+        });
+        continue;
+      }
+
+      const report = await ensureActiveDocument(db, {
+        organizationId: args.organizationId,
+        templateCode: template.code,
+        now,
+        inheritResponsiblesFromLastDocument: true,
+        buildingId,
+      });
+      reports.push(
+        report.created ? { ...report, reason: "broken-chain-restored" } : report
+      );
+    }
   }
 
   return reports;

@@ -1,3 +1,5 @@
+import type { BuildingOption } from "@/lib/building-scope";
+
 export type PositionCategory = "management" | "staff";
 
 export type StaffPosition = {
@@ -21,6 +23,8 @@ export type StaffEmployee = {
   telegramLinked: boolean;
   /// Недельное правило выходных: 0=Пн … 6=Вс.
   weeklyDaysOff: number[];
+  /// Точки, на которых работает сотрудник; пусто — на всех.
+  buildingIds?: string[];
 };
 
 export type StaffTelegramInvitePayload = {
@@ -62,6 +66,10 @@ export type StaffDismissalRow = {
 
 export type StaffPageProps = {
   organization: { id: string; name: string };
+  /** Точки организации — чипы «Точки» в диалогах сотрудника. */
+  buildings?: BuildingOption[];
+  /** Журналы ведутся отдельно по точкам — чипы показываются только тогда. */
+  perLocationJournals?: boolean;
   telegramBotUrl: string | null;
   /** Интеграция TasksFlow подключена — промо-блок не показываем. */
   hasTasksflowIntegration: boolean;

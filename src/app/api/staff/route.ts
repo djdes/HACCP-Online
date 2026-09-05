@@ -26,6 +26,8 @@ const createSchema = z.object({
   /// Недельное правило выходных (0=Пн … 6=Вс). Форма добавления
   /// предлагает Сб+Вс, чтобы график не пришлось прокликивать руками.
   weeklyDaysOff: z.array(z.number().int().min(0).max(6)).optional(),
+  /// Точки, на которых работает сотрудник; пусто — на всех.
+  buildingIds: z.array(z.string().min(1)).max(50).optional(),
 });
 
 export async function POST(request: Request) {

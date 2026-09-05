@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { buildingTargets } from "@/lib/active-building";
 import { checkCronSecret } from "@/lib/cron-auth";
 import { raisePlatformAlert } from "@/lib/platform-alerts";
 import { toDateKey } from "@/lib/hygiene-document";
@@ -89,6 +90,11 @@ async function runForOrganization(
 
   const rows = listAutomationCodes(org).filter((row) => row.automation.autoCreate);
   if (rows.length === 0) return result;
+  // Точки: каждый журнал автоматики ведётся на каждой точке отдельно.
+  const targets = await buildingTargets(org.id);
+  const jobs = rows.flatMap((row) =>
+    targets.map((buildingId) => ({ ...row, buildingId })),
+  );
 
   const todayDate = new Date(`${todayKey}T00:00:00.000Z`);
 
@@ -109,13 +115,14 @@ async function runForOrganization(
   });
   const employeeIds = employees.map((employee) => employee.id);
 
-  for (const row of rows) {
-    const { code, automation } = row;
+  for (const row of jobs) {
+    const { code, automation, buildingId } = row;
     try {
       const current = await ensureActiveDocument(db, {
         organizationId: org.id,
         templateCode: code,
         autoFill: automation.autoFill,
+        buildingId,
       });
       if (current.created) result.documentsCreated += 1;
 
@@ -124,6 +131,7 @@ async function runForOrganization(
         templateCode: code,
         lookaheadDays: 7,
         autoFill: automation.autoFill,
+        buildingId,
       });
       if (next.created) result.nextPeriodCreated += 1;
 
@@ -142,6 +150,7 @@ async function runForOrganization(
         select: {
           id: true,
           autoFill: true,
+          buildingId: true,
           config: true,
           responsibleUserId: true,
           responsibleTitle: true,

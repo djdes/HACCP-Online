@@ -50,6 +50,7 @@ import { QuickStartCard } from "@/components/dashboard/quick-start-card";
 import { PrintAgentCard } from "@/components/dashboard/print-agent-card";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
+import { getActiveBuildingId } from "@/lib/active-building";
 import { getStrugglingWorkers, getWorkerLeaderboard } from "@/lib/worker-leaderboard";
 import { normalizeSphere } from "@/lib/org-profile";
 import { paperJournalsFor } from "@/lib/sphere-journal-rules";
@@ -117,6 +118,8 @@ export default async function DashboardPage() {
     redirect("/journals");
   }
   const organizationId = getActiveOrgId(session);
+  // Точки: «сегодня» на дашборде считается для активной точки.
+  const activeBuildingId = await getActiveBuildingId(session);
 
   const now = new Date();
   const cutoff48h = new Date(now.getTime() - 48 * 60 * 60 * 1000);
@@ -227,7 +230,7 @@ export default async function DashboardPage() {
         now,
         templates.map((t) => ({ id: t.id, code: t.code })),
         disabledCodes,
-        { treatAperiodicAsFilled: false }
+        { treatAperiodicAsFilled: false, buildingId: activeBuildingId }
       ),
       getWorkerLeaderboard(organizationId, 3, 30),
       getStrugglingWorkers(organizationId, 3, 30),

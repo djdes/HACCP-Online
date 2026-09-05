@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasCapability } from "@/lib/permission-presets";
 import {
   DAILY_JOURNAL_CODES,
@@ -52,6 +54,7 @@ export async function GET() {
       status: "active",
       dateFrom: { lte: todayStart },
       dateTo: { gte: todayStart },
+      ...buildingWhere(await getActiveBuildingId(session)),
     },
     select: {
       id: true,

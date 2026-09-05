@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sanitizeBuildingIds } from "@/lib/building-targets";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
@@ -32,6 +33,8 @@ const updateUserSchema = z.object({
   /// Недельное правило выходных (0=Пн … 6=Вс) — правится и в карточке
   /// сотрудника, и чипами в графике (PATCH /api/staff/[id]).
   weeklyDaysOff: z.array(z.number().int().min(0).max(6)).optional(),
+  /// Точки, на которых работает сотрудник; пусто — на всех.
+  buildingIds: z.array(z.string().min(1)).max(50).optional(),
 });
 
 export async function PUT(
@@ -69,7 +72,11 @@ export async function PUT(
     }
 
     const body = updateUserSchema.parse(await request.json());
-    const { name, role, phone, positionTitle, isActive, weeklyDaysOff } = body;
+    const { name, role, phone, positionTitle, isActive, weeklyDaysOff, buildingIds } = body;
+    const cleanBuildingIds =
+      buildingIds !== undefined
+        ? await sanitizeBuildingIds(getActiveOrgId(session), buildingIds)
+        : undefined;
 
     if (id === session.user.id && role && normalizeUserRole(role) !== "manager") {
       return NextResponse.json(
@@ -124,6 +131,7 @@ export async function PUT(
         ...(weeklyDaysOff !== undefined && {
           weeklyDaysOff: normalizeWeeklyDaysOff(weeklyDaysOff),
         }),
+        ...(cleanBuildingIds !== undefined && { buildingIds: cleanBuildingIds }),
       },
       select: {
         id: true,

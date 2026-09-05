@@ -8,6 +8,8 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { getJournalPreviewMap } from "@/lib/journal-preview/service";
@@ -55,11 +57,14 @@ export default async function JournalsPage() {
     ? templates
     : templates.filter((t) => !disabledCodes.has(t.code));
 
+  // Точки: бейджи «заполнено»/«есть документ» — для активной точки.
+  const activeBuildingId = await getActiveBuildingId(session);
   const filledTodayIds = await getTemplatesFilledToday(
     getActiveOrgId(session),
     new Date(),
     visibleTemplates.map((t) => ({ id: t.id, code: t.code })),
-    disabledCodes
+    disabledCodes,
+    { buildingId: activeBuildingId }
   );
 
   // Которые журналы УЖЕ имеют активный документ на сегодня — их
@@ -73,6 +78,7 @@ export default async function JournalsPage() {
           status: "active",
           dateFrom: { lte: new Date() },
           dateTo: { gte: new Date() },
+          ...buildingWhere(activeBuildingId),
         },
         select: { templateId: true },
         distinct: ["templateId"],

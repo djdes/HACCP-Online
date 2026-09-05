@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { buildingTargets, userBuildingTargets } from "@/lib/building-targets";
+import { buildingWhere } from "@/lib/building-scope";
 import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { getDisabledJournalCodes as loadDisabledJournalCodes } from "@/lib/disabled-journals";
 import {
@@ -67,6 +69,8 @@ export type ObligationRow = {
   targetPath: string;
   source: "daily-journal-sync";
   dedupeKey: string;
+  /// Точка обязательства; null — организация без точек.
+  buildingId: string | null;
   completedAt: Date | null;
 };
 
@@ -75,6 +79,9 @@ export type OpenJournalObligation = {
   journalCode: string;
   targetPath: string;
   template: { name: string; description: string | null };
+  /// Точка обязательства — подпись в Mini App и в сводках.
+  buildingId?: string | null;
+  buildingName?: string | null;
 };
 
 export type ExistingDailyObligation = {
@@ -89,6 +96,7 @@ export type FoundJournalObligation = {
   userId: string;
   targetPath: string;
   openedAt: Date | null;
+  buildingId?: string | null;
 };
 
 type SummaryRow = {
@@ -121,6 +129,13 @@ export type ObligationDeps = {
     organizationId: string,
     templateId: string
   ) => Promise<Set<string>>;
+  /// Точки: на какие точки раздавать обязательства. С userId — точки
+  /// сотрудника (`User.buildingIds` ∩ точки организации, пусто = все),
+  /// без — все точки организации; без точек → `[null]`.
+  getBuildingTargets: (
+    organizationId: string,
+    userId: string | null
+  ) => Promise<Array<string | null>>;
   /// Выбор единственного исполнителя для шаблона с fillMode="single".
   /// `null` если eligible-список пуст.
   pickSingleAssignee: (args: {
@@ -132,7 +147,8 @@ export type ObligationDeps = {
     organizationId: string,
     templateId: string,
     templateCode: string,
-    now: Date
+    now: Date,
+    buildingId?: string | null
   ) => Promise<TemplateTodaySummary>;
   listExistingDailyObligations: (args: {
     userId: string;
@@ -156,6 +172,7 @@ export type ObligationDeps = {
   listSummaryRows: (args: {
     organizationId: string;
     dateKey: Date;
+    buildingId?: string | null;
   }) => Promise<SummaryRow[]>;
 };
 
@@ -169,8 +186,14 @@ function dateStamp(dateKey: Date): string {
   return dateKey.toISOString().slice(0, 10);
 }
 
-function buildDedupeKey(dateKey: Date, templateCode: string): string {
-  return `daily:${dateStamp(dateKey)}:${templateCode}`;
+function buildDedupeKey(
+  dateKey: Date,
+  templateCode: string,
+  buildingId: string | null = null
+): string {
+  // Без точки ключ прежний — существующие строки не пересоздаются.
+  const base = `daily:${dateStamp(dateKey)}:${templateCode}`;
+  return buildingId ? `${base}:${buildingId}` : base;
 }
 
 function normalizeObligationStatus(status: string): "pending" | "done" {
@@ -253,6 +276,11 @@ function createDefaultDeps(): ObligationDeps {
       const eligible = await getEligibleEmployees(organizationId, templateId);
       return new Set(eligible.map((u) => u.id));
     },
+    getBuildingTargets(organizationId, userId) {
+      return userId
+        ? userBuildingTargets(organizationId, userId)
+        : buildingTargets(organizationId);
+    },
     async pickSingleAssignee({ organizationId, template, dateKey }) {
       const picked = await loadSingleAssignee(
         organizationId,
@@ -266,7 +294,10 @@ function createDefaultDeps(): ObligationDeps {
         ? { id: picked.id, organizationId: picked.organizationId }
         : null;
     },
-    getTemplateTodaySummary: loadTemplateTodaySummary,
+    getTemplateTodaySummary: (organizationId, templateId, templateCode, now, buildingId) =>
+      loadTemplateTodaySummary(organizationId, templateId, templateCode, now, {
+        buildingId: buildingId ?? null,
+      }),
     async listExistingDailyObligations({ userId, dateKey, source }) {
       const rows = await db.journalObligation.findMany({
         where: {
@@ -321,6 +352,7 @@ function createDefaultDeps(): ObligationDeps {
               targetPath: row.targetPath,
               source: row.source,
               dedupeKey: row.dedupeKey,
+              buildingId: row.buildingId,
               completedAt: row.completedAt,
             },
             update: {
@@ -328,6 +360,7 @@ function createDefaultDeps(): ObligationDeps {
               journalCode: row.journalCode,
               status: row.status,
               targetPath: row.targetPath,
+              buildingId: row.buildingId,
               completedAt: row.completedAt,
             },
           });
@@ -337,7 +370,7 @@ function createDefaultDeps(): ObligationDeps {
       );
     },
     async listOpenRows({ userId, dateKey }) {
-      return db.journalObligation.findMany({
+      const rows = await db.journalObligation.findMany({
         where: {
           userId,
           dateKey,
@@ -347,6 +380,8 @@ function createDefaultDeps(): ObligationDeps {
           id: true,
           journalCode: true,
           targetPath: true,
+          buildingId: true,
+          building: { select: { name: true } },
           template: {
             select: {
               name: true,
@@ -356,6 +391,14 @@ function createDefaultDeps(): ObligationDeps {
         },
         orderBy: [{ template: { name: "asc" } }, { createdAt: "asc" }],
       });
+      return rows.map((row) => ({
+        id: row.id,
+        journalCode: row.journalCode,
+        targetPath: row.targetPath,
+        template: row.template,
+        buildingId: row.buildingId,
+        buildingName: row.building?.name ?? null,
+      }));
     },
     async findObligationById(id, userId) {
       return db.journalObligation.findFirst({
@@ -365,6 +408,7 @@ function createDefaultDeps(): ObligationDeps {
           userId: true,
           targetPath: true,
           openedAt: true,
+          buildingId: true,
         },
       });
     },
@@ -396,11 +440,12 @@ function createDefaultDeps(): ObligationDeps {
           organizationId: user.organizationId,
         }));
     },
-    async listSummaryRows({ organizationId, dateKey }) {
+    async listSummaryRows({ organizationId, dateKey, buildingId }) {
       const rows = await db.journalObligation.findMany({
         where: {
           organizationId,
           dateKey,
+          ...buildingWhere(buildingId),
         },
         select: {
           userId: true,
@@ -478,21 +523,26 @@ export async function syncDailyJournalObligationsForUser(
     filteredTemplates.push(template);
   }
 
+  // Точки: по обязательству на каждый журнал на каждой точке сотрудника;
+  // без точек — одно, как раньше (buildingId = null).
+  const userTargets = await deps.getBuildingTargets(args.organizationId, args.userId);
   const rows: ObligationRow[] = [];
   const keepDedupeKeys = new Set<string>();
   for (const template of filteredTemplates) {
+    const isDocumentTarget = usesDocumentTarget(template);
+    for (const buildingId of userTargets) {
     const summary = await deps.getTemplateTodaySummary(
       args.organizationId,
       template.id,
       template.code,
-      now
+      now,
+      buildingId
     );
-    const isDocumentTarget = usesDocumentTarget(template);
 
     if (summary.aperiodic) {
       continue;
     }
-    const dedupeKey = buildDedupeKey(dateKey, template.code);
+    const dedupeKey = buildDedupeKey(dateKey, template.code, buildingId);
     const existing = existingByDedupeKey.get(dedupeKey);
     keepDedupeKeys.add(dedupeKey);
     const completedAt =
@@ -524,8 +574,10 @@ export async function syncDailyJournalObligationsForUser(
       targetPath,
       source: DAILY_OBLIGATION_SOURCE,
       dedupeKey,
+      buildingId,
       completedAt,
     });
+    }
   }
 
   const staleIds = existingRows
@@ -599,16 +651,21 @@ export async function syncDailyJournalObligationsForOrganization(
     deps.listTemplates(),
     deps.getDisabledJournalCodes(organizationId),
   ]);
+  // Точки: единственное обязательство — на каждую точку (исполнитель
+  // выбирается тем же раунд-робином; ограничение по точке — в eligibility).
+  const orgTargets = await deps.getBuildingTargets(organizationId, null);
   for (const template of templates) {
     if (!isDailyObligationCode(template.code)) continue;
     if (disabledCodes.has(template.code)) continue;
     if (templateFillMode(template) !== "single") continue;
 
+    for (const buildingId of orgTargets) {
     const summary = await deps.getTemplateTodaySummary(
       organizationId,
       template.id,
       template.code,
-      now
+      now,
+      buildingId
     );
     if (summary.aperiodic) continue;
 
@@ -623,7 +680,7 @@ export async function syncDailyJournalObligationsForOrganization(
     if (await deps.isUserOffOn(assignee.id, dateKey)) continue;
 
     const isDocumentTarget = usesDocumentTarget(template);
-    const dedupeKey = buildDedupeKey(dateKey, template.code);
+    const dedupeKey = buildDedupeKey(dateKey, template.code, buildingId);
     const targetPath = isDocumentTarget
       ? resolveJournalObligationTargetPath({
           journalCode: template.code,
@@ -648,9 +705,11 @@ export async function syncDailyJournalObligationsForOrganization(
         targetPath,
         source: DAILY_OBLIGATION_SOURCE,
         dedupeKey,
+        buildingId,
         completedAt: summary.filled ? now : null,
       },
     ]);
+    }
   }
 
   // Stale-cleanup для шаблонов, переехавших из per-employee в single
@@ -733,6 +792,7 @@ export async function syncDailyJournalObligationsForOrganization(
         targetPath,
         source: DAILY_OBLIGATION_SOURCE,
         dedupeKey,
+        buildingId: null,
         completedAt: summary.filled ? now : null,
       },
     ]);
@@ -742,7 +802,9 @@ export async function syncDailyJournalObligationsForOrganization(
 export async function getManagerObligationSummary(
   organizationId: string,
   now: Date = new Date(),
-  overrides?: Partial<ObligationDeps>
+  overrides?: Partial<ObligationDeps>,
+  /** Точка: сводка только по ней (и общим обязательствам); null — вся организация. */
+  buildingId: string | null = null
 ): Promise<{
   total: number;
   pending: number;
@@ -753,6 +815,7 @@ export async function getManagerObligationSummary(
   const rows = await deps.listSummaryRows({
     organizationId,
     dateKey: utcDayStart(now),
+    buildingId,
   });
 
   const pending = rows.filter((row) => row.status === "pending").length;

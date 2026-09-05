@@ -59,6 +59,11 @@ import { ThemeModeControls } from "@/components/theme/theme-quick-switch";
 import { planLabel } from "@/lib/plan-limits";
 import { orgDisplayName } from "@/lib/org-display-name";
 import {
+  LocationSwitcherList,
+  LocationSwitcherPill,
+} from "@/components/layout/location-switcher";
+import type { BuildingOption } from "@/lib/building-scope";
+import {
   OrganizationSwitcher,
   type CreateDialogKind,
 } from "@/components/layout/organization-switcher";
@@ -129,6 +134,9 @@ type HeaderProps = {
   /** Организации аккаунта — для переключателя в меню профиля. */
   organizations: AccessibleOrganization[];
   activeOrganizationId: string;
+  /** Точки организации, доступные пользователю; меньше двух — переключателя нет. */
+  buildings?: BuildingOption[];
+  activeBuildingId?: string | null;
   /** Заводить новые точки может только владелец аккаунта. */
   canCreateOrganization: boolean;
   organizationSphere: string;
@@ -164,6 +172,8 @@ export function Header({
   balanceRub = null,
   organizations,
   activeOrganizationId,
+  buildings = [],
+  activeBuildingId = null,
   canCreateOrganization,
   organizationSphere,
   activeUsers,
@@ -379,6 +389,15 @@ export function Header({
             ) : null}
           </div>
 
+          {/* Точки: пилюля активной точки со списком — рядом с организацией,
+              потому что журналы и «сегодня» показываются именно для неё. */}
+          {buildings.length >= 2 ? (
+            <LocationSwitcherPill
+              buildings={buildings}
+              activeBuildingId={activeBuildingId}
+            />
+          ) : null}
+
           {/* «Сотрудники» — вытащено из дропдауна в постоянную pill-кнопку
               справа от org-pill. Это самое частое destination управляющего
               (добавить новичка, отметить больничный, выдать TG-приглашение),
@@ -518,6 +537,12 @@ export function Header({
               }}
               className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-3"
             >
+              {buildings.length >= 2 ? (
+                <LocationSwitcherList
+                  buildings={buildings}
+                  activeBuildingId={activeBuildingId}
+                />
+              ) : null}
               {navItems.map((item) => {
                 const isActive =
                   pathname === item.href || pathname.startsWith(item.href + "/");

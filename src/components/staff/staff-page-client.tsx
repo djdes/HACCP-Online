@@ -489,7 +489,12 @@ export function StaffPageClient(props: StaffPageProps) {
 
   async function saveEmployeeEdit(
     id: string,
-    patch: { name?: string; phone?: string | null; weeklyDaysOff?: number[] }
+    patch: {
+      name?: string;
+      phone?: string | null;
+      weeklyDaysOff?: number[];
+      buildingIds?: string[];
+    }
   ) {
     setDlg((current) =>
       current?.kind === "edit-employee" && current.employee.id === id
@@ -921,6 +926,8 @@ export function StaffPageClient(props: StaffPageProps) {
           positions={props.positions}
           positionSuggestions={props.positionSuggestions[dlg.categoryKey]}
           hasTasksflowIntegration={props.hasTasksflowIntegration}
+          buildings={props.buildings ?? []}
+          perLocationJournals={props.perLocationJournals === true}
           open
           onClose={() => setDlg(null)}
           // Должность создана — список обновляем, но диалог остаётся
@@ -960,6 +967,8 @@ export function StaffPageClient(props: StaffPageProps) {
         <StaffEditEmployeeDialog
           employee={dlg.employee}
           pending={dlg.pending}
+          buildings={props.buildings ?? []}
+          perLocationJournals={props.perLocationJournals === true}
           open
           onClose={() => setDlg(null)}
           onSave={(patch) => void saveEmployeeEdit(dlg.employee.id, patch)}

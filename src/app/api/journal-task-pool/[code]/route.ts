@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
 import { generatePoolForDay } from "@/lib/journal-task-pool";
 import {
   getActiveClaimForUser,
@@ -53,9 +54,10 @@ export async function GET(
 
   const organizationId = getActiveOrgId(session);
   const userId = session.user.id;
+  const activeBuildingId = await getActiveBuildingId(session);
 
   const [pool, claims, myActive] = await Promise.all([
-    generatePoolForDay({ organizationId, journalCode: code, date }),
+    generatePoolForDay({ organizationId, journalCode: code, date, buildingId: activeBuildingId }),
     listClaimsForJournal({
       organizationId,
       journalCode: code,

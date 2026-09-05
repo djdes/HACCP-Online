@@ -96,6 +96,8 @@ export type AutoFillUser = { id: string; name: string; role: string };
 export type AutoFillDocumentInput = {
   id: string;
   organizationId: string;
+  /** Точка документа: помещения уборки берутся только её. */
+  buildingId?: string | null;
   templateCode: string;
   config: unknown;
   responsibleUserId: string | null;
@@ -766,7 +768,11 @@ async function applyCleaningConfigAutoFill(
   const { document, dateKeys } = params;
   const todayKey = dateKeys[dateKeys.length - 1];
 
-  const rooms = await fetchCleaningRooms(db, document.organizationId);
+  const rooms = await fetchCleaningRooms(
+    db,
+    document.organizationId,
+    document.buildingId ?? null,
+  );
   const baseline = normalizeCleaningDocumentConfig(document.config);
   let config = applyRoomScheduleToMatrix(
     baseline,

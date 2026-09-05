@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { buildingWhere } from "@/lib/building-scope";
 
 /**
  * Per-journal pool generator. Каждый журнал производит список
@@ -40,6 +41,11 @@ function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Сегмент точки в org-scoped ключах задач: у каждой точки свой набор. */
+function buildingSeg(buildingId?: string | null): string {
+  return buildingId ? `:${buildingId}` : "";
+}
+
 function utcMidnight(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
@@ -52,6 +58,8 @@ export async function generatePoolForDay(args: {
   organizationId: string;
   journalCode: string;
   date: Date;
+  /** Точка: документ и ключи задач ограничиваются ею; null — без точек. */
+  buildingId?: string | null;
 }): Promise<PoolForDayResult> {
   const today = utcMidnight(args.date);
   const todayKey = dayKey(today);
@@ -60,21 +68,21 @@ export async function generatePoolForDay(args: {
   switch (journalCode) {
     case "hygiene":
     case "health_check":
-      return poolHygieneShift({ organizationId: args.organizationId, today, todayKey, journalCode });
+      return poolHygieneShift({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey, journalCode });
     case "cold_equipment_control":
-      return poolColdEquipment({ organizationId: args.organizationId, today, todayKey });
+      return poolColdEquipment({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "climate_control":
-      return poolClimate({ organizationId: args.organizationId, today, todayKey });
+      return poolClimate({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "incoming_control":
-      return poolIncoming({ organizationId: args.organizationId, today, todayKey });
+      return poolIncoming({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "finished_product":
-      return poolFinishedProduct({ organizationId: args.organizationId, today, todayKey });
+      return poolFinishedProduct({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "disinfectant_usage":
-      return poolDisinfectant({ organizationId: args.organizationId, today, todayKey });
+      return poolDisinfectant({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "fryer_oil":
-      return poolFryerOil({ organizationId: args.organizationId, today, todayKey });
+      return poolFryerOil({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "cleaning":
-      return poolCleaning({ organizationId: args.organizationId, today, todayKey });
+      return poolCleaning({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "accident_journal":
     case "complaint_register":
     case "breakdown_history":
@@ -87,6 +95,7 @@ export async function generatePoolForDay(args: {
       // Event-based: pool = «один открытый event-slot на день».
       return poolGenericEvent({
         organizationId: args.organizationId,
+        buildingId: args.buildingId ?? null,
         today,
         todayKey,
         journalCode,
@@ -98,6 +107,7 @@ export async function generatePoolForDay(args: {
       // Периодические: per-day одна задача.
       return poolGenericEvent({
         organizationId: args.organizationId,
+        buildingId: args.buildingId ?? null,
         today,
         todayKey,
         journalCode,
@@ -108,18 +118,20 @@ export async function generatePoolForDay(args: {
     case "glass_control":
       return poolGenericEvent({
         organizationId: args.organizationId,
+        buildingId: args.buildingId ?? null,
         today,
         todayKey,
         journalCode,
         label: GENERIC_EVENT_LABELS[journalCode] ?? journalCode,
       });
     case "uv_lamp_runtime":
-      return poolUvLamp({ organizationId: args.organizationId, today, todayKey });
+      return poolUvLamp({ organizationId: args.organizationId, buildingId: args.buildingId ?? null, today, todayKey });
     case "equipment_maintenance":
     case "equipment_calibration":
     case "equipment_cleaning":
       return poolEquipmentEvent({
         organizationId: args.organizationId,
+        buildingId: args.buildingId ?? null,
         today,
         todayKey,
         journalCode,
@@ -129,6 +141,7 @@ export async function generatePoolForDay(args: {
     case "audit_report":
       return poolGenericEvent({
         organizationId: args.organizationId,
+        buildingId: args.buildingId ?? null,
         today,
         todayKey,
         journalCode,
@@ -137,6 +150,7 @@ export async function generatePoolForDay(args: {
     case "training_plan":
       return poolGenericEvent({
         organizationId: args.organizationId,
+        buildingId: args.buildingId ?? null,
         today,
         todayKey,
         journalCode,
@@ -172,12 +186,13 @@ const GENERIC_EVENT_LABELS: Record<string, string> = {
 
 async function poolHygieneShift(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
   journalCode: string;
 }): Promise<PoolForDayResult> {
   // Активный документ за день (любой in-period).
-  const doc = await activeDocFor(args.organizationId, args.journalCode, args.today);
+  const doc = await activeDocFor(args.organizationId, args.journalCode, args.today, args.buildingId);
   return {
     journalCode: args.journalCode,
     dateKey: args.todayKey,
@@ -200,6 +215,7 @@ async function poolHygieneShift(args: {
 
 async function poolColdEquipment(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
@@ -208,7 +224,7 @@ async function poolColdEquipment(args: {
     select: { id: true, name: true, type: true, area: { select: { name: true } } },
     orderBy: { name: "asc" },
   });
-  const doc = await activeDocFor(args.organizationId, "cold_equipment_control", args.today);
+  const doc = await activeDocFor(args.organizationId, "cold_equipment_control", args.today, args.buildingId);
   const shifts: { code: "morning" | "evening"; label: string }[] = [
     { code: "morning", label: "Утро" },
     { code: "evening", label: "Вечер" },
@@ -229,17 +245,23 @@ async function poolColdEquipment(args: {
 
 async function poolClimate(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
   // 2026-09-04: единый справочник помещений — Room, а не legacy Area.
   // Заявки живут один день, смена ключа `area:` → `room:` безопасна.
   const rooms = await db.room.findMany({
-    where: { building: { organizationId: args.organizationId } },
+    where: {
+      building: {
+        organizationId: args.organizationId,
+        ...(args.buildingId ? { id: args.buildingId } : {}),
+      },
+    },
     select: { id: true, name: true },
     orderBy: [{ buildingId: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
   });
-  const doc = await activeDocFor(args.organizationId, "climate_control", args.today);
+  const doc = await activeDocFor(args.organizationId, "climate_control", args.today, args.buildingId);
   const shifts = ["morning", "evening"] as const;
   const scopes: TaskScope[] = [];
   for (const a of rooms) {
@@ -257,17 +279,18 @@ async function poolClimate(args: {
 
 async function poolIncoming(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
-  const doc = await activeDocFor(args.organizationId, "incoming_control", args.today);
+  const doc = await activeDocFor(args.organizationId, "incoming_control", args.today, args.buildingId);
   return {
     journalCode: "incoming_control",
     dateKey: args.todayKey,
     pool: true,
     scopes: [
       {
-        scopeKey: `incoming:${args.organizationId}:${args.todayKey}`,
+        scopeKey: `incoming:${args.organizationId}:${args.todayKey}${buildingSeg(args.buildingId)}`,
         scopeLabel: "Приёмка сырья сегодня",
         sublabel: doc ? doc.title : "Один сотрудник проводит приёмки за день",
         journalDocumentId: doc?.id,
@@ -278,17 +301,18 @@ async function poolIncoming(args: {
 
 async function poolFinishedProduct(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
-  const doc = await activeDocFor(args.organizationId, "finished_product", args.today);
+  const doc = await activeDocFor(args.organizationId, "finished_product", args.today, args.buildingId);
   const meals: { code: string; label: string }[] = [
     { code: "breakfast", label: "Завтрак" },
     { code: "lunch", label: "Обед" },
     { code: "dinner", label: "Ужин" },
   ];
   const scopes = meals.map((m) => ({
-    scopeKey: `meal:${m.code}:${args.todayKey}`,
+    scopeKey: `meal:${m.code}:${args.todayKey}${buildingSeg(args.buildingId)}`,
     scopeLabel: `Бракераж · ${m.label}`,
     sublabel: doc?.title,
     journalDocumentId: doc?.id,
@@ -298,17 +322,18 @@ async function poolFinishedProduct(args: {
 
 async function poolDisinfectant(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
-  const doc = await activeDocFor(args.organizationId, "disinfectant_usage", args.today);
+  const doc = await activeDocFor(args.organizationId, "disinfectant_usage", args.today, args.buildingId);
   return {
     journalCode: "disinfectant_usage",
     dateKey: args.todayKey,
     pool: true,
     scopes: [
       {
-        scopeKey: `disinf:${args.organizationId}:${args.todayKey}`,
+        scopeKey: `disinf:${args.organizationId}:${args.todayKey}${buildingSeg(args.buildingId)}`,
         scopeLabel: "Учёт дезсредств за день",
         sublabel: doc ? doc.title : "Кто разводит — тот и записывает",
         journalDocumentId: doc?.id,
@@ -319,6 +344,7 @@ async function poolDisinfectant(args: {
 
 async function poolFryerOil(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
@@ -334,7 +360,7 @@ async function poolFryerOil(args: {
     select: { id: true, name: true, area: { select: { name: true } } },
     orderBy: { name: "asc" },
   });
-  const doc = await activeDocFor(args.organizationId, "fryer_oil", args.today);
+  const doc = await activeDocFor(args.organizationId, "fryer_oil", args.today, args.buildingId);
   const scopes: TaskScope[] = fryers.map((f) => ({
     scopeKey: `fryer:${f.id}:${args.todayKey}`,
     scopeLabel: `Фритюр · ${f.name}`,
@@ -344,7 +370,7 @@ async function poolFryerOil(args: {
   // Fallback: если фритюров нет в каталоге — один общий scope за день.
   if (scopes.length === 0) {
     scopes.push({
-      scopeKey: `fryer:default:${args.todayKey}`,
+      scopeKey: `fryer:default:${args.todayKey}${buildingSeg(args.buildingId)}`,
       scopeLabel: "Фритюрный жир — контроль",
       sublabel: doc?.title ?? undefined,
       journalDocumentId: doc?.id,
@@ -355,10 +381,11 @@ async function poolFryerOil(args: {
 
 async function poolCleaning(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
-  const doc = await activeDocFor(args.organizationId, "cleaning", args.today);
+  const doc = await activeDocFor(args.organizationId, "cleaning", args.today, args.buildingId);
   if (!doc) {
     return { journalCode: "cleaning", dateKey: args.todayKey, pool: true, scopes: [] };
   }
@@ -371,7 +398,13 @@ async function poolCleaning(args: {
     return { journalCode: "cleaning", dateKey: args.todayKey, pool: true, scopes: [] };
   }
   const rooms = await db.room.findMany({
-    where: { id: { in: selectedRoomIds }, building: { organizationId: args.organizationId } },
+    where: {
+      id: { in: selectedRoomIds },
+      building: {
+        organizationId: args.organizationId,
+        ...(args.buildingId ? { id: args.buildingId } : {}),
+      },
+    },
     select: { id: true, name: true, building: { select: { name: true } } },
   });
   return {
@@ -389,6 +422,7 @@ async function poolCleaning(args: {
 
 async function poolUvLamp(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
 }): Promise<PoolForDayResult> {
@@ -407,7 +441,7 @@ async function poolUvLamp(args: {
     select: { id: true, name: true, area: { select: { name: true } } },
     orderBy: { name: "asc" },
   });
-  const doc = await activeDocFor(args.organizationId, "uv_lamp_runtime", args.today);
+  const doc = await activeDocFor(args.organizationId, "uv_lamp_runtime", args.today, args.buildingId);
   const scopes: TaskScope[] =
     lamps.length > 0
       ? lamps.map((l) => ({
@@ -418,7 +452,7 @@ async function poolUvLamp(args: {
         }))
       : [
           {
-            scopeKey: `uv:default:${args.todayKey}`,
+            scopeKey: `uv:default:${args.todayKey}${buildingSeg(args.buildingId)}`,
             scopeLabel: "УФ-лампа — отметить наработку",
             sublabel: doc?.title,
             journalDocumentId: doc?.id,
@@ -429,6 +463,7 @@ async function poolUvLamp(args: {
 
 async function poolEquipmentEvent(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
   journalCode: string;
@@ -438,7 +473,7 @@ async function poolEquipmentEvent(args: {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
-  const doc = await activeDocFor(args.organizationId, args.journalCode, args.today);
+  const doc = await activeDocFor(args.organizationId, args.journalCode, args.today, args.buildingId);
   // Один общий event-slot — событийный журнал. Сотрудник выберет
   // оборудование уже в форме.
   return {
@@ -447,7 +482,7 @@ async function poolEquipmentEvent(args: {
     pool: true,
     scopes: [
       {
-        scopeKey: `${args.journalCode}:${args.organizationId}:${args.todayKey}`,
+        scopeKey: `${args.journalCode}:${args.organizationId}:${args.todayKey}${buildingSeg(args.buildingId)}`,
         scopeLabel:
           args.journalCode === "equipment_maintenance"
             ? "Тех. обслуживание оборудования"
@@ -463,19 +498,20 @@ async function poolEquipmentEvent(args: {
 
 async function poolGenericEvent(args: {
   organizationId: string;
+  buildingId?: string | null;
   today: Date;
   todayKey: string;
   journalCode: string;
   label: string;
 }): Promise<PoolForDayResult> {
-  const doc = await activeDocFor(args.organizationId, args.journalCode, args.today);
+  const doc = await activeDocFor(args.organizationId, args.journalCode, args.today, args.buildingId);
   return {
     journalCode: args.journalCode,
     dateKey: args.todayKey,
     pool: true,
     scopes: [
       {
-        scopeKey: `${args.journalCode}:${args.organizationId}:${args.todayKey}`,
+        scopeKey: `${args.journalCode}:${args.organizationId}:${args.todayKey}${buildingSeg(args.buildingId)}`,
         scopeLabel: `${args.label} — записать сегодня`,
         sublabel: doc?.title,
         journalDocumentId: doc?.id,
@@ -489,7 +525,8 @@ async function poolGenericEvent(args: {
 async function activeDocFor(
   organizationId: string,
   journalCode: string,
-  today: Date
+  today: Date,
+  buildingId?: string | null
 ): Promise<{ id: string; title: string; config: unknown } | null> {
   const doc = await db.journalDocument.findFirst({
     where: {
@@ -498,6 +535,7 @@ async function activeDocFor(
       template: { code: journalCode },
       dateFrom: { lte: today },
       dateTo: { gte: today },
+      ...buildingWhere(buildingId),
     },
     select: { id: true, title: true, config: true },
     orderBy: { createdAt: "desc" },

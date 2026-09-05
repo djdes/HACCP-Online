@@ -5,6 +5,8 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { aclActorFromSession, getAllowedJournalCodes } from "@/lib/journal-acl";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import type { CrumbMenuItem } from "@/components/ui/breadcrumbs";
 
@@ -58,6 +60,7 @@ export const getJournalCrumbMenu = cache(
       new Date(),
       visible.map((t) => ({ id: t.id, code: t.code })),
       disabledCodes,
+      { buildingId: await getActiveBuildingId(session) },
     );
 
     return visible.map((template) => {
@@ -95,19 +98,33 @@ export const getDocumentCrumbMenu = cache(
     organizationId: string,
     templateCode: string,
     currentDocumentId?: string,
+    /** Точка: документы активной точки и общие; null — все. */
+    buildingId: string | null = null,
   ): Promise<CrumbMenuItem[]> => {
     const documents = await db.journalDocument.findMany({
-      where: { organizationId, template: { code: templateCode } },
+      where: {
+        organizationId,
+        template: { code: templateCode },
+        ...buildingWhere(buildingId),
+      },
       orderBy: [{ dateFrom: "desc" }, { createdAt: "desc" }],
       take: DOCUMENT_MENU_LIMIT,
-      select: { id: true, title: true, status: true, dateFrom: true },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        dateFrom: true,
+        building: { select: { name: true } },
+      },
     });
 
     return documents.map((doc) => ({
       label: doc.title,
       href: `/journals/${templateCode}/documents/${doc.id}`,
       status: doc.status === "active" ? ("ok" as const) : ("muted" as const),
-      hint: formatPeriodStart(doc.dateFrom),
+      hint: doc.building
+        ? `${doc.building.name} · ${formatPeriodStart(doc.dateFrom)}`
+        : formatPeriodStart(doc.dateFrom),
       current: doc.id === currentDocumentId,
     }));
   },

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { buildingWhere } from "@/lib/building-scope";
 import {
   DAILY_JOURNAL_CODES,
   CONFIG_DAILY_CODES,
@@ -324,6 +325,8 @@ export function rollupConfigDocumentForDay(
  */
 export type TemplatesFilledTodayOptions = {
   treatAperiodicAsFilled?: boolean;
+  /** Точка: считать только её документы (и общие без точки). null — все. */
+  buildingId?: string | null;
 };
 
 export async function getTemplatesFilledToday(
@@ -355,6 +358,7 @@ export async function getTemplatesFilledToday(
         status: "active",
         dateFrom: { lte: todayStart },
         dateTo: { gte: todayStart },
+        ...buildingWhere(options.buildingId),
       },
       select: {
         id: true,
@@ -644,6 +648,8 @@ export type TemplateTodaySummary = {
 
 export type TemplateTodaySummaryOptions = {
   treatAperiodicAsFilled?: boolean;
+  /** Точка: только её документы (и общие без точки). null — все. */
+  buildingId?: string | null;
 };
 
 /**
@@ -695,6 +701,7 @@ export async function getTemplateTodaySummary(
         status: "active",
         dateFrom: { lte: todayStart },
         dateTo: { gte: todayStart },
+        ...buildingWhere(options.buildingId),
       },
       select: { id: true, config: true },
       orderBy: { dateFrom: "desc" },

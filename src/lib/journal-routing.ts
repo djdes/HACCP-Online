@@ -64,7 +64,9 @@ export function getFillMode(template: { fillMode: string | null }): FillMode {
  */
 export async function getEligibleEmployees(
   organizationId: string,
-  templateId: string
+  templateId: string,
+  /** Точка: сотрудники с непустым `buildingIds` подходят только на своих. */
+  buildingId: string | null = null
 ): Promise<EligibleEmployee[]> {
   // UserJournalAccess хранит ссылку на шаблон через `templateCode`,
   // а не `templateId` — резолвим код один раз.
@@ -88,6 +90,7 @@ export async function getEligibleEmployees(
         role: true,
         jobPositionId: true,
         organizationId: true,
+        buildingIds: true,
       },
     }),
     db.jobPositionJournalAccess.findMany({
@@ -108,6 +111,13 @@ export async function getEligibleEmployees(
   );
 
   return users.filter((user) => {
+    if (
+      buildingId &&
+      user.buildingIds.length > 0 &&
+      !user.buildingIds.includes(buildingId)
+    ) {
+      return false;
+    }
     const override = userOverrides.get(user.id);
     if (override === true) return true;
     if (override === false) return false;

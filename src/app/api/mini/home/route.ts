@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
+import { loadBuildingContext } from "@/lib/active-building";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { getDisabledJournalCodes } from "@/lib/disabled-journals";
@@ -34,7 +35,7 @@ export async function GET() {
       isRoot: session.user.isRoot === true,
     },
   });
-  const [allowedCodes, disabledCodes, perms, areas, scope] = await Promise.all([
+  const [allowedCodes, disabledCodes, perms, areas, scope, buildingContext] = await Promise.all([
     getAllowedJournalCodes(actor),
     getDisabledJournalCodes(getActiveOrgId(session)),
     getUserPermissions(session.user.id),
@@ -43,6 +44,7 @@ export async function GET() {
       select: { id: true, name: true, lat: true, lng: true },
     }),
     getManagerScope(session.user.id, getActiveOrgId(session)),
+    loadBuildingContext(session),
   ]);
   const fullAccess = hasFullWorkspaceAccess({
     role: session.user.role,
@@ -87,6 +89,15 @@ export async function GET() {
   // Expose resolved permissions so the client can gate UI without
   // re-implementing the resolve chain.
   const permissionList = Array.from(perms);
+  // Точки: чип на главной и переключатель в профиле Mini App (П-3 —
+  // зеркало пилюли в шапке сайта).
+  const location = {
+    enabled: buildingContext.enabled,
+    buildings: buildingContext.buildings,
+    activeBuildingId: buildingContext.activeBuildingId,
+    activeBuilding: buildingContext.activeBuilding,
+    canSwitch: buildingContext.canSwitch,
+  };
 
   if (isManagerLike) {
     try {
@@ -99,13 +110,16 @@ export async function GET() {
     }
     const summary = await getManagerObligationSummary(
       getActiveOrgId(session),
-      requestNow
+      requestNow,
+      undefined,
+      buildingContext.activeBuildingId
     );
 
     return NextResponse.json({
       user,
       mode: "manager",
       permissions: permissionList,
+      location,
       summary,
       areas,
       all: templates.map((template) => ({
@@ -123,6 +137,7 @@ export async function GET() {
       user,
       mode: "readonly",
       permissions: permissionList,
+      location,
       areas,
       all: templates.map((template) => ({
         code: template.code,
@@ -188,6 +203,7 @@ export async function GET() {
     user,
     mode: "staff",
     permissions: permissionList,
+    location,
     areas,
     now: now.map((row) => {
       const bonus = bonusByObligationId.get(row.id);
@@ -207,6 +223,7 @@ export async function GET() {
         name: row.template.name,
         description: row.template.description,
         href: `/mini/o/${row.id}`,
+        buildingName: row.buildingName ?? null,
         bonusAmountKopecks,
         claimedById,
         claimedByName,

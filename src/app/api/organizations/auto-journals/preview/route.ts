@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   parseJournalPeriodsJson,
@@ -111,6 +113,7 @@ export async function GET(request: Request) {
         status: "active",
         dateFrom: { lte: todayUtcStart },
         dateTo: { gte: todayUtcStart },
+        ...buildingWhere(await getActiveBuildingId(session)),
       },
       select: { id: true },
     }),

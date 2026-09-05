@@ -9,6 +9,8 @@ import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { Prisma } from "@prisma/client";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
 import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
@@ -1373,6 +1375,8 @@ export default async function JournalDocumentsPage({
   }
 
   const activeTab = tab === "closed" ? "closed" : "active";
+  // Точки: списки документов — активная точка + общие документы без точки.
+  const activeBuildingId = await getActiveBuildingId(session);
 
   const orgUsers = await db.user.findMany({
     where: {
@@ -1454,6 +1458,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "asc" },
     });
@@ -1533,6 +1538,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { createdAt: "desc" },
     });
@@ -1684,6 +1690,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { createdAt: "asc" },
     });
@@ -1775,6 +1782,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "asc" },
     });
@@ -1922,6 +1930,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "desc" },
     });
@@ -1964,6 +1973,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "asc" },
     });
@@ -2063,6 +2073,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "asc" },
     });
@@ -2226,6 +2237,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "desc" },
     });
@@ -2306,6 +2318,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "desc" },
     });
@@ -2695,6 +2708,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { dateFrom: "asc" },
     });
@@ -2783,6 +2797,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "asc" },
       });
@@ -2877,6 +2892,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "asc" },
       });
@@ -2955,6 +2971,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "asc" },
       });
@@ -3029,6 +3046,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "asc" },
       });
@@ -3095,6 +3113,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "asc" },
       });
@@ -3229,6 +3248,7 @@ export default async function JournalDocumentsPage({
               organizationId: getActiveOrgId(session),
               templateId: template.id,
               status: activeTab,
+              ...buildingWhere(activeBuildingId),
             },
             orderBy: { createdAt: "asc" },
           });
@@ -3363,6 +3383,7 @@ export default async function JournalDocumentsPage({
                 organizationId: getActiveOrgId(session),
                 templateId: template.id,
                 status: activeTab,
+                ...buildingWhere(activeBuildingId),
               },
               orderBy: { createdAt: "asc" },
             });
@@ -3429,6 +3450,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "asc" },
       });
@@ -3514,6 +3536,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { createdAt: "asc" },
       });
@@ -3548,6 +3571,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { dateFrom: "asc" },
       });
@@ -3627,6 +3651,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { dateFrom: "desc" },
       });
@@ -3695,6 +3720,7 @@ export default async function JournalDocumentsPage({
           organizationId: getActiveOrgId(session),
           templateId: template.id,
           status: activeTab,
+          ...buildingWhere(activeBuildingId),
         },
         orderBy: { dateFrom: "desc" },
       });
@@ -3899,6 +3925,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { createdAt: "asc" },
     });
@@ -3924,6 +3951,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { createdAt: "asc" },
     });
@@ -3949,6 +3977,7 @@ export default async function JournalDocumentsPage({
         organizationId: getActiveOrgId(session),
         templateId: template.id,
         status: activeTab,
+        ...buildingWhere(activeBuildingId),
       },
       orderBy: { createdAt: "asc" },
     });

@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Building2, MapPin, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   RoomEditorDialog,
@@ -56,13 +57,17 @@ const KIND_LABELS: Record<string, string> = {
 export function BuildingsClient({
   initial,
   users,
+  perLocationJournals = false,
 }: {
   initial: Building[];
   users: RoomResponsibleUser[];
+  /** Точки (2026-09-05): документы журналов ведутся отдельно по зданиям. */
+  perLocationJournals?: boolean;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
+  const [flagPending, setFlagPending] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAddr, setNewAddr] = useState("");
   const [editorRoom, setEditorRoom] = useState<RoomEditorInitial | null>(null);
@@ -150,12 +155,38 @@ export function BuildingsClient({
     refresh();
   }
 
+  // Тумблер «Вести журналы отдельно по точкам» — единственный переключатель
+  // режима точек: после включения в шапке появляется выбор точки, а ночное
+  // автосоздание делает документ на каждую.
+  async function togglePerLocation(next: boolean) {
+    setFlagPending(true);
+    try {
+      const res = await fetch("/api/settings/buildings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ perLocationJournals: next }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Не удалось сохранить");
+      toast.success(
+        next
+          ? "Журналы ведутся отдельно по точкам — переключатель в шапке"
+          : "Журналы снова общие для всех зданий",
+      );
+      refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setFlagPending(false);
+    }
+  }
+
   async function deleteBuilding(id: string, name: string) {
     const ok = await confirmAsync({
-      title: "Удалить здание?",
+      title: "Удалить точку?",
       description: `Здание «${name}» и все его помещения будут удалены. Записи журналов с привязкой к ним перестанут связываться с зоной.`,
       variant: "danger",
-      confirmLabel: "Удалить здание",
+      confirmLabel: "Удалить точку",
     });
     if (!ok) return;
     const res = await fetch(`/api/settings/buildings/${id}`, { method: "DELETE" });
@@ -163,7 +194,7 @@ export function BuildingsClient({
       toast.error("Не удалось удалить");
       return;
     }
-    toast.success("Здание удалено");
+    toast.success("Точка удалена");
     refresh();
   }
 
@@ -173,12 +204,34 @@ export function BuildingsClient({
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
           <Building2 className="mx-auto mb-3 size-8 text-[#9b9fb3]" />
           <div className="text-[15px] font-medium text-[#0b1024]">
-            Пока нет ни одного здания
+            Пока нет ни одной точки
           </div>
           <p className="mx-auto mt-1.5 max-w-[400px] text-[13px] text-[#6f7282]">
             Заведите первое — например, основную точку или цех. Внутри
             добавите помещения, по которым будут раздаваться задачи уборки.
           </p>
+        </div>
+      ) : null}
+
+      {initial.length >= 2 ? (
+        <div className="flex items-start justify-between gap-4 rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[14px] font-semibold text-[#0b1024]">
+              <MapPin className="size-4 text-[#5566f6]" />
+              Вести журналы отдельно по точкам
+            </div>
+            <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
+              {perLocationJournals
+                ? "Включено: в шапке есть выбор точки, документы журналов создаются на каждую точку, сотрудники и настройки общие."
+                : "Сейчас здания — просто группы помещений, документы общие. Включите, если это разные точки: у каждой будут свои документы, а в шапке появится выбор точки."}
+            </p>
+          </div>
+          <Switch
+            checked={perLocationJournals}
+            disabled={flagPending}
+            onCheckedChange={(next) => void togglePerLocation(next)}
+            aria-label="Вести журналы отдельно по точкам"
+          />
         </div>
       ) : null}
 
@@ -208,7 +261,7 @@ export function BuildingsClient({
       {adding ? (
         <div className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-[14px] font-semibold text-[#0b1024]">Новое здание</div>
+            <div className="text-[14px] font-semibold text-[#0b1024]">Новая точка</div>
             <button
               type="button"
               onClick={() => setAdding(false)}
@@ -246,7 +299,7 @@ export function BuildingsClient({
           className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-dashed border-[#dcdfed] bg-white px-5 text-[14px] font-medium text-[#3c4053] hover:border-[#5566f6]/50 hover:bg-[#f5f6ff] hover:text-[#5566f6]"
         >
           <Plus className="size-4" />
-          Добавить здание
+          Добавить точку
         </button>
       )}
     </div>

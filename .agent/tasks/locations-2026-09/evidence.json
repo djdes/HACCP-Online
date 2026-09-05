@@ -1,0 +1,38 @@
+{
+  "task": "locations-2026-09",
+  "date": "2026-09-05",
+  "checks": {
+    "prisma_validate_db_push": "PASS",
+    "typecheck": "PASS",
+    "unit_tests": { "status": "PASS", "tests": 570, "fail": 0 },
+    "eslint_changed_files": { "status": "PASS", "errors": 0, "warnings": 24 },
+    "e2e": "PASS"
+  },
+  "acceptance": {
+    "AC1": "PASS",
+    "AC2": "PASS",
+    "AC3": "PASS",
+    "AC4": "PASS",
+    "AC5": "PASS (unit tests + code review; nightly cron loops buildingTargets)",
+    "AC6": "PASS (ensureLocationBuildings wired into /api/profile/complete; idempotent)",
+    "AC7": "PASS",
+    "AC8": "PASS",
+    "AC9": "PASS (dedupe keys unchanged without building; per-building keys carry buildingId)",
+    "AC10": "PASS",
+    "AC11": "PASS (code: bulk-assign iterates docs per building, titles suffixed; unit test withBuildingSuffix)",
+    "AC12": "PASS",
+    "AC13": "PASS",
+    "AC14": "PENDING until SHA commit"
+  },
+  "artifacts": [
+    "e2e/results.json",
+    "shots/01-header-pill.png",
+    "shots/02-location-menu.png",
+    "shots/03-list-at-B.png",
+    "shots/04-document-header.png",
+    "shots/05-settings-buildings.png",
+    "shots/06-mini-me.png",
+    "shots/07-restricted-no-pill.png",
+    "shots/08-mini-home-chip.png"
+  ]
+}

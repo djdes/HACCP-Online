@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getActiveBuildingId } from "@/lib/active-building";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
@@ -45,6 +46,8 @@ export async function GET(
   const items = await getDocumentCrumbMenu(
     getActiveOrgId(session),
     resolvedCode,
+    undefined,
+    await getActiveBuildingId(session),
   );
 
   return NextResponse.json({ items });

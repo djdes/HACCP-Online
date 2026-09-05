@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { buildingTargets } from "@/lib/active-building";
 import { checkCronSecret } from "@/lib/cron-auth";
 import {
   closeExpiredDocuments,
@@ -54,6 +55,9 @@ async function handle(request: Request) {
   const restoredCodes = new Set<string>();
 
   for (const org of orgs) {
+    // Точки: документы создаются на каждую точку организации (или один
+    // общий, если точки не включены).
+    const targets = await buildingTargets(org.id);
     // Догоняющий шаг: документы прошлых периодов, у которых уже есть
     // преемник, переводим в «закрытые» — иначе они висят active до
     // авто-архива (365 дней). Делаем для ВСЕХ орг, даже без
@@ -78,6 +82,7 @@ async function handle(request: Request) {
     try {
       const restored = await ensureCurrentDocumentsForBrokenChains(db, {
         organizationId: org.id,
+        buildingIds: targets,
       });
       for (const report of restored) {
         if (!report.created) continue;
@@ -105,23 +110,27 @@ async function handle(request: Request) {
     orgsTouched += 1;
 
     for (const code of codes) {
-      try {
-        const cur = await ensureActiveDocument(db, {
-          organizationId: org.id,
-          templateCode: code,
-        });
-        if (cur.created) totalCurrentCreated += 1;
+      for (const buildingId of targets) {
+        try {
+          const cur = await ensureActiveDocument(db, {
+            organizationId: org.id,
+            templateCode: code,
+            buildingId,
+          });
+          if (cur.created) totalCurrentCreated += 1;
 
-        const nxt = await ensureNextPeriodDocument(db, {
-          organizationId: org.id,
-          templateCode: code,
-          lookaheadDays: 7,
-        });
-        if (nxt.created) totalNextCreated += 1;
-      } catch (err) {
-        errors.push(
-          `org=${org.id} code=${code}: ${(err as Error).message ?? "ошибка"}`
-        );
+          const nxt = await ensureNextPeriodDocument(db, {
+            organizationId: org.id,
+            templateCode: code,
+            lookaheadDays: 7,
+            buildingId,
+          });
+          if (nxt.created) totalNextCreated += 1;
+        } catch (err) {
+          errors.push(
+            `org=${org.id} code=${code}: ${(err as Error).message ?? "ошибка"}`
+          );
+        }
       }
     }
   }

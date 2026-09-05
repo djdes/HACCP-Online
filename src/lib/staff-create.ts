@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
+import { sanitizeBuildingIds } from "@/lib/building-targets";
 import { notifyManagement } from "@/lib/notifications";
 import { normalizePhone } from "@/lib/phone";
 import { tryAutolinkTasksflowByPhone } from "@/lib/tasksflow-autolink";
@@ -22,6 +23,8 @@ export type CreateStaffInput = {
   fullName: string;
   phone?: string;
   weeklyDaysOff?: number[];
+  /// Точки сотрудника; чужие id отбрасываются.
+  buildingIds?: string[];
 };
 
 export type CreateStaffResult =
@@ -73,6 +76,7 @@ export async function createStaffMember(
     include: { template: { select: { code: true } } },
   });
   const useStrictAcl = positionTemplates.length > 0;
+  const buildingIds = await sanitizeBuildingIds(orgId, input.buildingIds ?? []);
 
   const user = await db.$transaction(async (tx) => {
     const u = await tx.user.create({
@@ -90,6 +94,7 @@ export async function createStaffMember(
         // passwordHash is empty.
         isActive: true,
         weeklyDaysOff: normalizeWeeklyDaysOff(input.weeklyDaysOff ?? []),
+        buildingIds,
         journalAccessMigrated: useStrictAcl,
       },
       select: { id: true, name: true, jobPositionId: true, isActive: true },
