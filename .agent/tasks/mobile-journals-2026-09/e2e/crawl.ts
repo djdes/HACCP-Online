@@ -33,6 +33,8 @@ type Geometry = {
   sameContainer: boolean | null;
   tablesTotal: number;
   paperHeaderFound: boolean;
+  headerWidth: number | null;
+  gridWidth: number | null;
 };
 
 async function measure(page: Page): Promise<Geometry> {
@@ -94,6 +96,8 @@ async function measure(page: Page): Promise<Geometry> {
       sameContainer: hc && gc ? hc === gc : null,
       tablesTotal: tables.length,
       paperHeaderFound: Boolean(paperHeader),
+      headerWidth: paperHeader ? Math.round(paperHeader.getBoundingClientRect().width) : null,
+      gridWidth: grid ? Math.round(grid.getBoundingClientRect().width) : null,
     };
   });
 }

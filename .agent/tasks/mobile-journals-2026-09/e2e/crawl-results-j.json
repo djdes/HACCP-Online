@@ -1,0 +1,100 @@
+{
+  "traceability_test": {
+    "name": "Журнал прослеживаемости продукции",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 998,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": false,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 980,
+      "gridWidth": 980
+    },
+    "cardsPageOverflow": false
+  },
+  "cleaning_ventilation_checklist": {
+    "name": "Чек-лист уборки и проветривания помещений",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 98,
+      "bottom": 682,
+      "height": 585,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1157,
+          "clientWidth": 390,
+          "tables": 3,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": false,
+      "tablesTotal": 3,
+      "paperHeaderFound": true,
+      "headerWidth": 1140,
+      "gridWidth": 1140
+    },
+    "cardsPageOverflow": false
+  }
+}

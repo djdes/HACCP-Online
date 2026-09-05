@@ -156,7 +156,7 @@ function SettingsDialog(props: {
         props.onOpenChange(v);
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
+      <DialogContent showCloseButton={false} className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">

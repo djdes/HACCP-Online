@@ -1096,8 +1096,9 @@ export function CleaningVentilationChecklistDocumentClient({
         <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* Рамку контейнера убрали: границы теперь несут сами ячейки
             бумажной шапки, иначе линия дублировалась. */}
-        <div className="overflow-hidden">
-          <table className="w-full border-collapse text-[13px] text-left">
+        {/* В табличном виде на телефоне шапка той же ширины, что сетка (1140px), — лист панорамируется целиком. */}
+        <div className={`overflow-hidden ${mobileView === "table" ? "max-sm:w-fit max-sm:min-w-full" : ""}`}>
+          <table className={`w-full border-collapse text-[13px] text-left ${mobileView === "table" ? "max-sm:min-w-[1140px]" : ""}`}>
             <tbody>
               <JournalPaperHeaderRows
                 orgName={organizationName || 'ООО "Тест"'}
