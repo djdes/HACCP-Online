@@ -206,17 +206,17 @@ a{color:var(--accent-ink)}
 </style>
 <div class="wrap">
 <div class="eyebrow">Wesetup · точки внутри организации · 5 сентября 2026</div>
-<h1>Дым точек: 29 экранов, партнёр, телефон, всплывашки</h1>
+<h1>Дым точек: 37 экранов, партнёр, телефон, всплывашки</h1>
 <p class="lead">Прогон по тестовой организации «Кафе «Тестовое 1»» с двумя точками (Точка А на Ленина, 5 и Точка Б): dev-сервер для экранов клиента и продакшен для консультанта. Ниже — что проверено, снимки, два круга критики и двадцать предложений.</p>
 ''')
 
 ok = sum(1 for _, v, _ in CHECKS if v == "ok")
 warn = sum(1 for _, v, _ in CHECKS if v == "warn")
 html.write(f'''<div class="strip">
-<div><b>29</b><span>снимков экрана</span></div>
+<div><b>37</b><span>снимков экрана</span></div>
 <div><b>{ok}</b><span>проверок прошли</span></div>
 <div><b>{warn}</b><span>замечания, не блокируют</span></div>
-<div><b>20</b><span>предложений улучшить</span></div>
+<div><b>13 / 20</b><span>предложений уже сделано</span></div>
 </div>''')
 
 html.write('<h2>Что проверено</h2><p class="lead">Клиентские сценарии — на dev, партнёрские — на проде: там guard записи для консультанта уровня «просмотр» работает, на dev он не применяется.</p><div class="tablewrap"><table><tr><th>Проверка</th><th>Где</th><th>Итог</th></tr>')
@@ -260,9 +260,44 @@ for title, body in ROUND2:
     html.write(f"<div class='note'><h3>{title}</h3><p>{body}</p></div>")
 html.write("</div>")
 
-html.write('<h2>Двадцать предложений</h2><p class="legend">S — час-два, M — день, L — несколько дней или миграция.</p><ol class="improve">')
-for size, area, text in IMPROVEMENTS:
-    html.write(f"<li><span class='chip size'>{size}</span><span class='area'>{area}</span><span>{text}</span></li>")
+html.write('<h2>Двадцать предложений</h2><p class="legend">S — час-два, M — день, L — несколько дней или миграция. Отмеченные «сделано» закрыты во втором круге.</p><ol class="improve">')
+DONE_INDEXES = {1, 2, 4, 5, 6, 7, 8, 10, 14, 15, 17, 18, 19}
+for idx, (size, area, text) in enumerate(IMPROVEMENTS, start=1):
+    status = "<span class='chip ok'>сделано</span> " if idx in DONE_INDEXES else ""
+    html.write(f"<li><span class='chip size'>{size}</span><span class='area'>{area}</span><span>{status}{text}</span></li>")
+html.write("</ol>")
+
+ROUND2_SHOTS = [
+    ("r2-12-prod-mobile-pill", "Прод, телефон: точка в шапке (второй круг; финальная раскладка — отдельной строкой под шапкой)"),
+    ("r2-03-mobile-pill-menu", "Телефон: меню точек со ссылкой «Настроить точки»"),
+    ("r2-09-mobile-add-default-point", "Добавление сотрудника: активная точка выбрана по умолчанию, диалог 627 из 780 px"),
+    ("r2-11-mini-topbar", "Mini App: точка в верхней панели на всех экранах"),
+]
+ROUND2_DESKTOP = [
+    ("r2-05-rename-and-copy", "Точки: карандаш у названия и адреса, копирование помещений из другой точки"),
+    ("r2-07-toggle-off-confirm", "Выключение раздельных журналов спрашивает подтверждение"),
+    ("r2-08-staff-banner", "Сотрудники: баннер «N сотрудников без точки»"),
+    ("r2-10-auto-journals-note", "Автосоздание: заметка «Точек: N»"),
+]
+DONE2 = [
+    ("1, 18", "Точка на телефоне — отдельной строкой под шапкой; в меню точек ссылка «Настроить точки»; в шторке точки отделены заголовком «Разделы»."),
+    ("7", "Выбранная точка запоминается в аккаунте: cookie — кэш устройства, на новом телефоне открывается та же точка."),
+    ("4", "Консультант «просмотр» видит точки без карандаша, корзины и кнопки «Добавить точку»; тумблер неактивен."),
+    ("5", "Новый сотрудник по умолчанию привязан к активной точке; на странице сотрудников баннер «N сотрудников без точки»."),
+    ("6, 8", "Название и адрес точки правятся карандашом прямо в карточке (плюс подсказка про «Точка N»); помещения копируются из другой точки одной кнопкой."),
+    ("14, 15", "Заметка «Точек: N» на странице автосоздания; выключение режима — через подтверждение с последствиями."),
+    ("10, 2", "Поиск показывает точку документа; в меню документов крошек общие документы подписаны «Общий»."),
+    ("17, 19", "Чипы точек сворачиваются при пяти и более точках, подсказка ужата до строки — диалог сотрудника 627 px вместо 664; точка в верхней панели Mini App."),
+]
+html.write('<h2>Второй круг: что уже сделано</h2><p class="lead">Двенадцать пунктов из двадцати закрыты в тот же день, проверены на dev (16 сценариев) и на проде.</p><div class="gallery mobile">')
+for name, cap in ROUND2_SHOTS:
+    html.write(figure(name, cap, "mobile"))
+html.write('</div><div class="gallery desktop" style="margin-top:18px">')
+for name, cap in ROUND2_DESKTOP:
+    html.write(figure(name, cap, "desktop"))
+html.write('</div><ol class="improve" style="margin-top:18px">')
+for num, text in DONE2:
+    html.write(f"<li><span class='chip ok'>готово</span><span class='area'>№ {num}</span><span>{text}</span></li>")
 html.write("</ol>")
 
 html.write('''<h2>Уже исправлено по итогам дыма</h2><div class="notes">
