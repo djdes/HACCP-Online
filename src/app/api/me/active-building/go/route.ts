@@ -15,14 +15,20 @@ export const dynamic = "force-dynamic";
  * обязательство Mini App по точке, отличной от текущей. Ставим cookie и
  * редиректим на `next` (только внутри /mini). Недоступная точка cookie не
  * трогает — человек просто попадает по ссылке в своей текущей точке.
+ *
+ * Location — относительный: за nginx `request.url` приходит как
+ * `http://localhost:3002/…`, и абсолютный адрес увёл бы на localhost.
  */
+function relativeRedirect(next: string): NextResponse {
+  return new NextResponse(null, { status: 307, headers: { Location: next } });
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const next = sanitizeMiniAppRedirectPath(url.searchParams.get("next") ?? "") ?? "/mini";
-  const target = new URL(next, url.origin);
 
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.redirect(target);
+  if (!session) return relativeRedirect(next);
 
   const buildingId = url.searchParams.get("building") ?? "";
   if (buildingId) {
@@ -32,5 +38,5 @@ export async function GET(request: Request) {
       await setActiveBuildingCookie(getActiveOrgId(session), building.id);
     }
   }
-  return NextResponse.redirect(target);
+  return relativeRedirect(next);
 }
