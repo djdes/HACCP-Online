@@ -316,17 +316,6 @@ export function Header({
           )}
         </Link>
         {partnerHint ? <PartnerHint rates={partnerHint} className="-ml-1" /> : null}
-        {/* Точки на телефоне: пилюля сразу после логотипа — иначе точку
-            видно только внутри меню-шторки. */}
-        {buildings.length >= 2 ? (
-          <LocationSwitcherPill
-            buildings={buildings}
-            activeBuildingId={activeBuildingId}
-            compact
-            manageHref={fullAccess ? "/settings/buildings" : null}
-            className="md:hidden"
-          />
-        ) : null}
 
         {/*
           Desktop: only the home pill is visible. Secondary nav lives in a
@@ -853,6 +842,21 @@ export function Header({
           onClose={() => setCreateDialog(null)}
           organizationsCount={organizations.length}
         />
+      ) : null}
+      {/* Точки на телефоне: отдельная строка под шапкой. В верхней строке
+          места нет — логотип, меню, уведомления и аватар не оставляют
+          названию точки и 100px, а точка должна читаться целиком. */}
+      {buildings.length >= 2 ? (
+        <div className="border-t border-[#ececf4] md:hidden">
+          <div className="mx-auto flex h-10 w-full max-w-[1800px] items-center px-4">
+            <LocationSwitcherPill
+              buildings={buildings}
+              activeBuildingId={activeBuildingId}
+              compact
+              manageHref={fullAccess ? "/settings/buildings" : null}
+            />
+          </div>
+        </div>
       ) : null}
     </header>
   );

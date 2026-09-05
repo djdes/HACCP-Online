@@ -82,11 +82,10 @@ export function LocationSwitcherPill({
           data-tour="location-switcher"
           className={cn(
             "flex min-w-0 items-center rounded-lg bg-[#5566f6]/[0.04] font-semibold text-[#5566f6] transition-colors duration-200 hover:bg-[#5566f6]/[0.09] data-[state=open]:bg-[#5566f6]/[0.09]",
-            // В тесной мобильной строке пилюля стартует с ширины названия
-            // (basis auto) и ужимается не ниже 96px: распорка справа
-            // (flex-1 с basis 0) иначе забирала половину свободного места.
+            // Компактный вариант живёт в отдельной строке под мобильной
+            // шапкой: ниже, с полным названием точки.
             compact
-              ? "h-9 flex-auto min-w-[96px] max-w-[170px] gap-1.5 px-2 text-[13px]"
+              ? "h-8 max-w-full gap-1.5 px-2.5 text-[13px]"
               : "ml-1 h-10 max-w-[220px] gap-2 px-3 text-[14px]",
             className,
           )}
