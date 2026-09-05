@@ -1,0 +1,20 @@
+│ status            │ online                                                   │
+│ uptime            │ 50s                                                      │
+login=200
+--- migration dry-run
+    at async e.interpretNode (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:272:41)
+    at async e.run (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:94:23)
+    at async e.execute (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client/src/runtime/core/engines/client/LocalExecutor.ts:81:12)
+    at async jt.request (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:492:22) {
+  clientVersion: '7.4.2'
+}
+--- migration apply
+    at async e.interpretNode (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:272:41)
+    at async e.run (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:94:23)
+    at async e.execute (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client/src/runtime/core/engines/client/LocalExecutor.ts:81:12)
+    at async jt.request (/var/www/wesetupru/data/www/wesetup.ru/app/node_modules/@prisma/client/src/runtime/core/engines/client/ClientEngine.ts:492:22) {
+  clientVersion: '7.4.2'
+}
+--- cron dry-run
+{"ok":true,"dryRun":true,"organizationsScanned":92,"warned":0,"paused":0,"pauseAfterDays":100,"results":[]}
+reset-ai-quota=404
