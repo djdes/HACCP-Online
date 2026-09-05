@@ -40,3 +40,16 @@ throwaway-менеджер без телефона в org «Кафе Тесто�
 | «Показать демо» слева, «Готово» справа, подпись про демо под кнопкой демо | PASS | `demoLeftOfDone=true`, `captionUnderDemo=true`, `caption="Отдельная организация на 7 дней"` |
 | Иконка шапки — пользователь с ручкой вместо звёздочек | PASS | `headerIcon="lucide-user-round-pen"` |
 | Форма без прокрутки на 390×758 | PASS | `fits=true`, высота модалки 654px |
+
+## Итерация 4 (2026-09-05): «+7» в телефонах и автозаполнение по ИНН
+
+Скрипты `check-phone.ts` → `results-phone.json`, `check-inn.ts` → `results-inn.json`, скриншоты `shots/08-phone-typed.png`, `shots/09-inn-autofill.png`.
+
+| Пункт | Результат | Доказательство |
+| --- | --- | --- |
+| Телефон: «+7 » при фокусе, формат по мере ввода, лишние цифры, backspace через разделители, «8…», очистка, blur, вставка | PASS | `results-phone.json`: afterFocus `+7 `, afterTyping `+7 999 123-45-67`, extraDigitIgnored, afterBackspace3 `+7 999 123-4`, localFormatTyped `+7 985 123-45-67`, afterClearAll `""`, blurPrefixOnlyClears `""`, pasteFormatted `+7 912 000-11-22`; `phone-input.test.ts` 5 тестов |
+| Охват телефона | — | 17 полей в 15 файлах через `phoneInputProps` (анкета, привязка телефона, join, order, обратная связь, виджет поддержки, сотрудники ×3, массовое добавление, настройки организации, партнёрские формы ×2, Mini App staff) |
+| `/api/public/inn-lookup`: расширенный ответ + контрольная сумма | PASS | Сбербанк 7707083893 → name, address «г Москва, ул Вавилова, д 19», directorName, kpp, ogrn, ownershipKind `private`, sphere `null` (ОКВЭД 64.19); 1234567890 → 400 «Такого ИНН не бывает»; ИП 500100732259 → найден, type INDIVIDUAL |
+| Анкета: автозаполнение по ИНН | PASS | `afterLookup.name = "ПАО СБЕРБАНК"`, индикатор «Найдено в ЕГРЮЛ», тост «Из ЕГРЮЛ: ПАО СБЕРБАНК», selects сохранили значения (сфера не определена по ОКВЭД банка); `customNameKept = "Моё кафе"` — своё название не перетирается вторым ИНН |
+| Ключ DaData | — | добавлен в prod `.env` (и `.env.bak`), локально в `.env.local`; в репо только плейсхолдеры (`.env.example`, `.env.shared`, CLAUDE.md) |
+| typecheck / lint / tests | PASS | typecheck exit 0, eslint 0 ошибок, `inn.test.ts` + `org-lookup-map.test.ts` зелёные |

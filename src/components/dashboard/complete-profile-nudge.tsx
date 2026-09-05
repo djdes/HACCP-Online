@@ -1,10 +1,11 @@
 "use client";
 import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
+  Check,
   ChevronDown,
   Loader2,
   RefreshCw,
@@ -20,6 +21,7 @@ import {
   ORG_SPHERES,
   normalizeSphere,
 } from "@/lib/org-profile";
+import { innDigits, isValidInn } from "@/lib/inn";
 import { suggestPassword } from "@/lib/password-suggest";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import {
@@ -115,6 +117,15 @@ export function CompleteProfileNudge({ email }: { email: string }) {
   );
 }
 
+/** Ответ `/api/public/inn-lookup` в части, которую использует анкета. */
+type InnLookup = {
+  ok: boolean;
+  name: string;
+  address?: string;
+  sphere?: string | null;
+  ownershipKind?: string | null;
+};
+
 /** Телефон считаем годным, если в нём 11 цифр и он начинается с 7/8. */
 function phoneLooksValid(raw: string): boolean {
   const digits = raw.replace(/\D/g, "");
@@ -130,6 +141,11 @@ function phoneLooksValid(raw: string): boolean {
  * стоят парами по смыслу («Сфера · Тип», «Точек · ИНН», «Имя · Пароль»),
  * галочка сотрудника и должность — в одной строке, промо TasksFlow —
  * под телефоном, кнопки футера — в один ряд.
+ *
+ * ИНН — ключ к ЕГРЮЛ: как только введены 10/12 цифр с верной контрольной
+ * суммой, анкета сама подставляет название, сферу (по ОКВЭД), тип (по
+ * ОПФ) и юридический адрес через `/api/public/inn-lookup`. Своё название
+ * или выбранную сферу не перетираем.
  *
  * Пароль подставляется сам (6 знаков, см. `suggestPassword`) и виден
  * открытым текстом: человек либо запоминает его, либо перегенерирует
@@ -169,6 +185,51 @@ function CompleteProfileModal({
   useEffect(() => {
     setNewPassword((current) => current || suggestPassword());
   }, []);
+
+  // Автозаполнение по ИНН. Запрос уходит с задержкой после последней
+  // цифры и только для ИНН с верной контрольной суммой. Название
+  // подставляем, если поле пустое или в нём наша прошлая подстановка;
+  // сферу и тип — пока человек не выбирал их сам.
+  const [address, setAddress] = useState("");
+  const [innState, setInnState] = useState<"idle" | "loading" | "found" | "missing">("idle");
+  const autoNameRef = useRef("");
+  const sphereTouchedRef = useRef(false);
+  const ownershipTouchedRef = useRef(false);
+  useEffect(() => {
+    const digits = innDigits(inn);
+    if (!isValidInn(digits)) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setInnState("loading");
+      try {
+        const res = await fetch(`/api/public/inn-lookup?inn=${digits}`);
+        const data = (await res.json().catch(() => null)) as InnLookup | null;
+        if (cancelled) return;
+        if (!res.ok || !data?.ok || !data.name) {
+          setInnState("missing");
+          return;
+        }
+        const found = data;
+        setOrganizationName((current) =>
+          current.trim() === "" || current === autoNameRef.current ? found.name : current,
+        );
+        autoNameRef.current = found.name;
+        if (found.sphere && !sphereTouchedRef.current) setSphere(found.sphere);
+        if (found.ownershipKind && !ownershipTouchedRef.current) {
+          setOwnershipKind(found.ownershipKind);
+        }
+        setAddress(found.address ?? "");
+        setInnState("found");
+        toast.success(`Из ЕГРЮЛ: ${found.name}`);
+      } catch {
+        if (!cancelled) setInnState("missing");
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [inn]);
 
   // Подсказки идут за сферой: у производства и столовой свой «директор».
   const positionOptions = useMemo(
@@ -212,6 +273,7 @@ function CompleteProfileModal({
           ownershipKind,
           locationsCount,
           inn: inn.trim(),
+          address: address.trim(),
           name: name.trim(),
           newPassword: newPassword.trim(),
           asEmployee,
@@ -427,7 +489,10 @@ function CompleteProfileModal({
               <SelectShell>
                 <select
                   value={sphere}
-                  onChange={(e) => setSphere(e.target.value)}
+                  onChange={(e) => {
+                    sphereTouchedRef.current = true;
+                    setSphere(e.target.value);
+                  }}
                   className={SELECT_CLASS}
                 >
                   {ORG_SPHERES.map((s) => (
@@ -443,7 +508,10 @@ function CompleteProfileModal({
               <SelectShell>
                 <select
                   value={ownershipKind}
-                  onChange={(e) => setOwnershipKind(e.target.value)}
+                  onChange={(e) => {
+                    ownershipTouchedRef.current = true;
+                    setOwnershipKind(e.target.value);
+                  }}
                   className={SELECT_CLASS}
                 >
                   {ORG_OWNERSHIP.map((o) => (
@@ -473,14 +541,30 @@ function CompleteProfileModal({
             </Field>
 
             <Field label="ИНН">
-              <input
-                value={inn}
-                onChange={(e) => setInn(e.target.value.replace(/\D/g, ""))}
-                inputMode="numeric"
-                placeholder="7701234567"
-                maxLength={12}
-                className={CONTROL_CLASS}
-              />
+              <span className="flex items-center gap-1">
+                <input
+                  value={inn}
+                  onChange={(e) => {
+                    setInn(e.target.value.replace(/\D/g, ""));
+                    setInnState("idle");
+                  }}
+                  inputMode="numeric"
+                  placeholder="7701234567"
+                  maxLength={12}
+                  className={CONTROL_CLASS}
+                />
+                {innState === "loading" ? (
+                  <Loader2
+                    className="size-4 shrink-0 animate-spin text-[#5566f6]"
+                    aria-label="Ищем в ЕГРЮЛ"
+                  />
+                ) : innState === "found" ? (
+                  <Check
+                    className="size-4 shrink-0 text-[#116b2a]"
+                    aria-label="Найдено в ЕГРЮЛ"
+                  />
+                ) : null}
+              </span>
             </Field>
           </div>
 

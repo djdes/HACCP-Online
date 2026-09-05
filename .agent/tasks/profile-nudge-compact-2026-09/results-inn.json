@@ -1,0 +1,67 @@
+{
+  "apiSber": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "inn": "7707083893",
+      "name": "ПАО СБЕРБАНК",
+      "shortName": "ПАО СБЕРБАНК",
+      "fullName": "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО \"СБЕРБАНК РОССИИ\"",
+      "address": "г Москва, ул Вавилова, д 19",
+      "directorName": "Греф Герман Оскарович",
+      "directorPost": "ПРЕЗИДЕНТ, ПРЕДСЕДАТЕЛЬ ПРАВЛЕНИЯ",
+      "kpp": "773601001",
+      "ogrn": "1027700132195",
+      "type": "LEGAL",
+      "okvedCode": "64.19",
+      "sphere": null,
+      "ownershipKind": "private",
+      "phone": "",
+      "email": "",
+      "status": "ACTIVE",
+      "opfType": "2014"
+    }
+  },
+  "apiChecksum": {
+    "status": 400,
+    "body": {
+      "ok": false,
+      "error": "Такого ИНН не бывает — проверьте цифры"
+    }
+  },
+  "apiIp": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "inn": "500100732259",
+      "name": "ИП Мясина Елена Анатольевна",
+      "shortName": "ИП Мясина Елена Анатольевна",
+      "fullName": "Индивидуальный предприниматель Мясина Елена Анатольевна",
+      "address": "Московская обл, г Балашиха",
+      "directorName": "",
+      "directorPost": "",
+      "kpp": "",
+      "ogrn": "304500116000157",
+      "type": "INDIVIDUAL",
+      "okvedCode": "69.20.2",
+      "sphere": null,
+      "ownershipKind": "private",
+      "phone": "",
+      "email": "",
+      "status": "LIQUIDATED",
+      "opfType": "2014"
+    }
+  },
+  "afterLookup": {
+    "name": "ПАО СБЕРБАНК",
+    "selects": [
+      "restaurant",
+      "private"
+    ],
+    "found": true,
+    "toast": [
+      "Из ЕГРЮЛ: ПАО СБЕРБАНК"
+    ]
+  },
+  "customNameKept": "Моё кафе"
+}

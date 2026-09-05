@@ -114,6 +114,8 @@ export const completeProfileSchema = z.object({
   ownershipKind: z.enum(ORG_OWNERSHIP_VALUES).default("private"),
   locationsCount: z.coerce.number().int().min(1).max(MAX_LOCATIONS).default(1),
   inn: z.string().trim().max(20).optional().or(z.literal("")),
+  /** Юридический адрес из ЕГРЮЛ — подставляется анкетой по ИНН. */
+  address: z.string().trim().max(500).optional().or(z.literal("")),
   name: z.string().trim().max(100).optional().or(z.literal("")),
   newPassword: z.string().min(6, "Пароль — минимум 6 символов").max(200).optional().or(z.literal("")),
   // Оформить владельца сотрудником: должность из каталога организации,

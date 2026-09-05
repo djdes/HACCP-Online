@@ -738,6 +738,10 @@ PLATFORM_ADMIN_EMAIL="..."
 TASKSFLOW_API_URL="..."
 TASKSFLOW_API_KEY="..."
 
+# DaData — подсказки по ИНН (название, адрес, ОКВЭД → сфера, ОПФ → тип).
+# Без ключа /api/public/inn-lookup отвечает 503 и анкета заполняется вручную.
+DADATA_API_KEY="..."
+
 # Other
 TELEGRAM_LOG_RETENTION_DAYS="30"
 ```

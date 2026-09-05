@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { innLookupRateLimiter } from "@/lib/rate-limit";
+import { isValidInn } from "@/lib/inn";
+import { ownershipFromOpf, sphereFromOkved } from "@/lib/org-lookup-map";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +16,10 @@ export const dynamic = "force-dynamic";
  * DaData Standard tier: бесплатно до 10K запросов/день. Token в env
  * DADATA_API_KEY. Если не настроен — endpoint возвращает 503.
  *
- * Response: { ok, name, address, directorName, type, okvedCode? }
- *           или { ok: false, error: '...' }
+ * Response: { ok, inn, name, shortName, fullName, address, directorName,
+ *   directorPost, kpp, ogrn, type, okvedCode, sphere, ownershipKind, phone,
+ *   email, status } или { ok: false, error: '...' }. `sphere` и
+ *   `ownershipKind` — подсказки для анкеты (ОКВЭД → сфера, ОПФ → тип).
  *
  * Rate-limit на этот endpoint не делаем — DaData сами лимитируют по
  * нашему ключу. Если кто-то заспамит, наш лимит исчерпается и
@@ -43,6 +47,13 @@ export async function GET(request: Request) {
   if (!inn || (inn.length !== 10 && inn.length !== 12)) {
     return NextResponse.json(
       { ok: false, error: "ИНН должен содержать 10 или 12 цифр" },
+      { status: 400 }
+    );
+  }
+  // Контрольная сумма: опечатку ловим сами, не тратя квоту DaData.
+  if (!isValidInn(inn)) {
+    return NextResponse.json(
+      { ok: false, error: "Такого ИНН не бывает — проверьте цифры" },
       { status: 400 }
     );
   }
@@ -87,12 +98,23 @@ export async function GET(request: Request) {
       suggestions?: Array<{
         value?: string;
         data?: {
-          name?: { full_with_opf?: string; short_with_opf?: string };
-          address?: { value?: string };
-          management?: { name?: string };
+          type?: string;
+          inn?: string;
+          kpp?: string | null;
+          ogrn?: string;
+          name?: {
+            full_with_opf?: string;
+            short_with_opf?: string;
+            short?: string;
+            full?: string;
+          };
+          address?: { value?: string; unrestricted_value?: string };
+          management?: { name?: string; post?: string };
           okved?: string;
           state?: { status?: string };
-          opf?: { type?: string };
+          opf?: { type?: string; full?: string; short?: string };
+          phones?: Array<{ value?: string } | string> | null;
+          emails?: Array<{ value?: string } | string> | null;
         };
       }>;
     };
@@ -113,6 +135,15 @@ export async function GET(request: Request) {
     // обрезая ещё на этапе lookup.
     const trim = (s: string | undefined | null, max: number): string =>
       typeof s === "string" ? s.normalize("NFKC").trim().slice(0, max) : "";
+    // Телефон/почта приходят только на расширенных тарифах DaData —
+    // берём первое значение, если есть.
+    const firstContact = (
+      list: Array<{ value?: string } | string> | null | undefined,
+    ): string => {
+      const item = list?.[0];
+      if (!item) return "";
+      return typeof item === "string" ? item : (item.value ?? "");
+    };
     return NextResponse.json({
       ok: true,
       inn,
@@ -120,9 +151,19 @@ export async function GET(request: Request) {
         d.name?.short_with_opf ?? d.name?.full_with_opf ?? first.value,
         200
       ),
+      shortName: trim(d.name?.short_with_opf ?? d.name?.short, 200),
+      fullName: trim(d.name?.full_with_opf ?? d.name?.full, 300),
       address: trim(d.address?.value, 500),
       directorName: trim(d.management?.name, 200),
+      directorPost: trim(d.management?.post, 100),
+      kpp: trim(d.kpp, 20),
+      ogrn: trim(d.ogrn, 20),
+      type: trim(d.type, 20),
       okvedCode: trim(d.okved, 50),
+      sphere: sphereFromOkved(d.okved),
+      ownershipKind: ownershipFromOpf(d.opf?.full, d.type),
+      phone: trim(firstContact(d.phones), 40),
+      email: trim(firstContact(d.emails), 100),
       status: trim(d.state?.status, 50),
       opfType: trim(d.opf?.type, 50),
     });

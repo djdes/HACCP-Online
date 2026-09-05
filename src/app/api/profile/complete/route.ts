@@ -135,6 +135,9 @@ export async function POST(request: Request) {
         ownershipKind: data.ownershipKind,
         locationsCount: data.locationsCount,
         inn: data.inn?.trim() || null,
+        // Адрес приходит из ЕГРЮЛ вместе с ИНН; пустой не затирает то,
+        // что могло быть введено в настройках раньше.
+        ...(data.address?.trim() ? { address: data.address.trim() } : {}),
         ...(untouchedJournals
           ? { disabledJournalCodes: defaultDisabledCodesFor(normalizeSphere(data.sphere)) }
           : {}),
