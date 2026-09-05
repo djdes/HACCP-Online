@@ -129,7 +129,7 @@ export function PlanForm() {
         <Textarea id="notes" name="notes" />
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Создание..." : "Создать план"}
         </Button>

@@ -1172,7 +1172,7 @@ export function MetalImpurityDocumentClient({
     <>
       <div className="space-y-8 bg-white text-black">
         {selectedRowIds.length > 0 && status === "active" && (
-          <div className="flex items-center gap-4 rounded-[12px] bg-white px-2 py-2 print:hidden">
+          <div className="flex flex-wrap items-center gap-4 rounded-[12px] bg-white px-2 py-2 print:hidden">
             <div className="inline-flex h-14 items-center gap-3 rounded-[12px] bg-[#fafbff] px-6 text-[18px] text-[#5566f6]">
               <button
                 type="button"

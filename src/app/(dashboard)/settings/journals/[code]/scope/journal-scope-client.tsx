@@ -211,7 +211,7 @@ export function JournalScopeClient({ code, initial }: Props) {
       ) : null}
 
       {/* Save bar */}
-      <div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-3 border-t border-[#ececf4] bg-white/95 px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-2xl sm:border">
+      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-[#ececf4] bg-white/95 px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-2xl sm:border">
         {dirty ? (
           <span className="text-[12px] text-[#a13a32]">
             Есть несохранённые изменения

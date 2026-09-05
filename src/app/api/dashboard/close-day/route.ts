@@ -15,7 +15,6 @@ import { getJournalAutomation } from "@/lib/journal-automation";
 import { resolveAutomationStaff } from "@/lib/journal-automation-staff";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
 import { getUserPositionLabel } from "@/lib/user-roles";
-import { trialWriteGate } from "@/lib/trial-limits.server";
 import { CLEANING_DOCUMENT_TEMPLATE_CODE } from "@/lib/cleaning-document";
 
 export const runtime = "nodejs";
@@ -140,11 +139,6 @@ export async function POST(request: Request) {
     where: { code: { in: codes }, isActive: true },
     select: { id: true, code: true, name: true },
   });
-
-  // Один вызов = одно «закрытие дня» с точки зрения лимитов пробного
-  // тарифа: считаем по журналам, а не по каждой ячейке.
-  const limited = await trialWriteGate(organizationId, Math.max(1, templates.length));
-  if (limited) return limited;
 
   // Ростер: активные, не в архиве, не уволенные на дату.
   const employees = await db.user.findMany({

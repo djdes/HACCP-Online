@@ -40,6 +40,8 @@ async function handle(request: Request) {
   const cronAuth = checkCronSecret(request);
   if (cronAuth) return cronAuth;
   const orgs = await db.organization.findMany({
+    // Приостановленные за неактивность организации автоматика не ведёт.
+    where: { subscriptionPlan: { notIn: ["paused", "cancelled"] } },
     select: { id: true, autoJournalCodes: true, journalAutomationJson: true },
   });
 

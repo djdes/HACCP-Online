@@ -275,7 +275,7 @@ export function CapaForm({ users }: Props) {
         </div>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Создание..." : "Создать CAPA"}
         </Button>

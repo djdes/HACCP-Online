@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     data: {
       name: orgName,
       type: orgType,
-      subscriptionPlan: "trial",
+      subscriptionPlan: "free",
       disabledJournalCodes: computeDisabledJournalCodes(preset),
       autoJournalCodes: computeAutoJournalCodes(preset),
     },
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
   await attachAccountForNewOrganization(db, {
     ownerUserId: owner.id,
     organizationId: org.id,
-    subscriptionPlan: "trial",
+    subscriptionPlan: "free",
   });
 
   // 3. Должности, сотрудники, документы, записи — общий сидер.

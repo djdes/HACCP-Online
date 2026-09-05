@@ -31,8 +31,8 @@ type Props = {
   /** Текущее значение `Organization.subscriptionPlan`. */
   currentPlan: string;
   currentPlanLabel: string;
-  /** Строка о тестовом периоде и лимитах бесплатного тарифа; null на платном. */
-  trialNote?: string | null;
+  /** Условие бесплатного тарифа («до N сотрудников…»); null на платном. */
+  planNote?: string | null;
   activeUsers: number;
   freeUserLimit: number;
   /** Тестовый режим биллинга — оплата не списывается. */
@@ -53,7 +53,7 @@ type Props = {
 export function PlanUpgrade({
   currentPlan,
   currentPlanLabel,
-  trialNote,
+  planNote,
   activeUsers,
   freeUserLimit,
   billingTestMode,
@@ -85,8 +85,8 @@ export function PlanUpgrade({
               ? `${activeUsers}/${freeUserLimit} сотрудников · свободно мест: ${seatsLeft}`
               : paidSummary}
           </p>
-          {trialNote ? (
-            <p className="mt-1 text-[13px] text-[#6f7282]">{trialNote}</p>
+          {planNote ? (
+            <p className="mt-1 text-[13px] text-[#6f7282]">{planNote}</p>
           ) : null}
         </div>
         {billingTestMode ? (
@@ -133,7 +133,6 @@ export function PlanUpgrade({
                 plan.inheritsFrom ? `Всё из «${plan.inheritsFrom}», плюс:` : undefined
               }
               points={[...plan.features]}
-              note={plan.note}
               highlighted={isPaidPlan}
               badge={isPaidPlan && !isCurrent ? "Популярный" : undefined}
               ctaLabel={

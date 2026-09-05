@@ -641,18 +641,12 @@ html, body {
     font-size: 12px;
   }
 
-  /* ── Toolbars: всегда wrap ────────────────────────────────── */
-  /* `.no-mobile-wrap` — явный opt-out (по образцу .no-mobile-shrink
-     для grid'ов). Нужен там, где flex — это layout, а не панель
-     кнопок: например «иконка + заголовок» в шапке секции дашборда.
-     Без opt-out иконка отрывалась и вставала строкой ВЫШЕ заголовка —
-     именно это владелец и увидел на телефоне. */
-  .app-shell main .flex.gap-3:not(.no-mobile-wrap),
-  .app-shell main .flex.gap-4:not(.no-mobile-wrap),
-  .app-shell main .flex.gap-5:not(.no-mobile-wrap),
-  .app-shell main .flex.gap-6:not(.no-mobile-wrap) {
-    flex-wrap: wrap;
-  }
+  /* ── Toolbars: перенос объявляется на месте ──────────────────── */
+  /* Раньше здесь было глобальное `.app-shell main .flex.gap-3…gap-6
+     { flex-wrap: wrap }`. Его специфичность перебивала Tailwind, и
+     правило ломало ~390 строк «иконка + текст» и «чекбокс + подпись»
+     (opt-out `.no-mobile-wrap` использовался один раз). Теперь перенос
+     задаётся в самих компонентах: `flex-wrap` / `max-sm:flex-wrap`. */
 
   /* ── Inputs: 16px font-size чтобы iOS Safari не зумил ───────── */
   .app-shell input,

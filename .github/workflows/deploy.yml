@@ -502,8 +502,11 @@ jobs:
             # Дальше на нём падали сиды (клиент ждёт колонок, которых нет),
             # и до перезапуска PM2 деплой не доходил — без внятной причины
             # в логе.
+            # --accept-data-loss: удаление колонок (trialWrites*, aiMonthly* —
+            # снятые лимиты бесплатного тарифа) без флага заставляет prisma
+            # ждать интерактивного подтверждения, и деплой зависал бы.
             set -o pipefail
-            if ! npx prisma db push 2>&1 | tail -15; then
+            if ! npx prisma db push --accept-data-loss 2>&1 | tail -15; then
               echo "[FATAL] prisma db push не применился — деплой остановлен"
               exit 1
             fi

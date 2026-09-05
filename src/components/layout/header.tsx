@@ -119,7 +119,7 @@ type HeaderProps = {
   userRole: string;
   positionTitle: string;
   isRoot: boolean;
-  /** `Organization.subscriptionPlan`: trial | paid | paused | cancelled. */
+  /** `Organization.subscriptionPlan`: free | paid | paused | cancelled (`trial` — legacy alias free). */
   subscriptionPlan: string;
   /**
    * Баллы организации. `null` — у пользователя нет прав на деньги

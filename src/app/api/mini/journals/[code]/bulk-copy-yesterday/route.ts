@@ -6,7 +6,6 @@ import { aclActorFromSession, canWriteJournal } from "@/lib/journal-acl";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { isDocumentTemplate } from "@/lib/journal-document-helpers";
-import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const dynamic = "force-dynamic";
 
@@ -88,9 +87,6 @@ export async function POST(
   // count был отдельным query, и двойной тап мог пройти оба count==0
   // check'а параллельно перед первым create → 2× дубликаты строк.
   // Pass-3 HIGH #3.
-  const limited = await trialWriteGate(orgId);
-  if (limited) return limited;
-
   let yesterdayEntriesLen = 0;
   let created: { id: string }[];
   try {

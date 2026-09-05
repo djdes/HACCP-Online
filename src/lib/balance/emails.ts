@@ -1,4 +1,5 @@
 import { escapeHtml } from "@/lib/html-escape";
+import { FREE_MAX_USERS } from "@/lib/plan-limits";
 import { renderEmailLayout, sendRawEmail } from "@/lib/email";
 
 import { formatPoints, REFERRAL_REWARD_PERCENT } from "./constants";
@@ -47,7 +48,7 @@ export async function sendReferralInviteEmail(params: {
       params.fromOrganizationName,
     )}» рекомендует вам WeSetup — сервис электронных журналов СанПиН и ХАССП.</p>
     ${personal}
-    <p ${P}>По этой ссылке вы получите 14 дней тестового периода, а рекомендателю начислим бонус на баланс, когда вы оформите подписку.</p>
+    <p ${P}>По этой ссылке вы начнёте бесплатно — до ${FREE_MAX_USERS} сотрудников, без ограничений по записям, — а рекомендателю начислим бонус на баланс, когда вы оформите подписку.</p>
     ${button(link, "Попробовать WeSetup")}
     <p ${MUTED}>Ссылка: ${escapeHtml(link)}</p>
     <p ${MUTED}>Если письмо пришло по ошибке — просто не переходите по ссылке, больше мы не напишем.</p>`;

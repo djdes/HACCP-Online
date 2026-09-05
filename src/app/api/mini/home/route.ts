@@ -17,7 +17,6 @@ import { getUserPermissions } from "@/lib/permissions-server";
 import { getServerSession } from "@/lib/server-session";
 import { getManagerScope, getAssignableJournalCodes } from "@/lib/manager-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
-import { getOrgTrialStatus } from "@/lib/trial-limits.server";
 
 export const dynamic = "force-dynamic";
 
@@ -102,22 +101,12 @@ export async function GET() {
       getActiveOrgId(session),
       requestNow
     );
-    // Тестовый период — та же строка, что в карточке на дашборде (П-3).
-    const trialStatus = await getOrgTrialStatus(getActiveOrgId(session), requestNow);
 
     return NextResponse.json({
       user,
       mode: "manager",
       permissions: permissionList,
       summary,
-      trial:
-        trialStatus && trialStatus.limited
-          ? {
-              phase: trialStatus.phase,
-              daysLeft: trialStatus.daysLeft,
-              endsAt: trialStatus.endsAt?.toISOString() ?? null,
-            }
-          : null,
       areas,
       all: templates.map((template) => ({
         code: template.code,

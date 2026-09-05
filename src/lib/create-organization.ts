@@ -57,7 +57,7 @@ export async function createOrganization(
       name: input.name.trim(),
       type: sphere,
       accountId: input.accountId,
-      subscriptionPlan: "trial",
+      subscriptionPlan: "free",
       disabledJournalCodes: donor
         ? (donor.disabledJournalCodes as never)
         : (defaultDisabledCodesFor(sphere) as never),
@@ -180,7 +180,7 @@ export async function attachAccountForNewOrganization(
     where: { ownerUserId: input.ownerUserId },
     create: {
       ownerUserId: input.ownerUserId,
-      subscriptionPlan: input.subscriptionPlan ?? "trial",
+      subscriptionPlan: input.subscriptionPlan ?? "free",
       subscriptionEnd: input.subscriptionEnd ?? null,
     },
     update: {},

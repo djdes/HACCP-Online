@@ -75,7 +75,7 @@ export function ChangeForm() {
         <Textarea id="riskAssessment" name="riskAssessment" placeholder="Возможные последствия: влияние на вкус, срок годности, аллергены..." />
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Создание..." : "Создать заявку"}
         </Button>

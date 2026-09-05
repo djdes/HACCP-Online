@@ -515,7 +515,7 @@ export function ComplaintDocumentClient({
         <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/complaint_register" documentId={documentId} />
         {selectedRowIds.length > 0 && status === "active" && (
-          <div className="flex items-center gap-4 rounded-[12px] bg-white px-2 py-2">
+          <div className="flex flex-wrap items-center gap-4 rounded-[12px] bg-white px-2 py-2">
             <div className="inline-flex h-14 items-center gap-3 rounded-[12px] bg-[#fafbff] px-6 text-[18px] text-[#5566f6]">
               <button
                 type="button"

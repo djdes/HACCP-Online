@@ -397,7 +397,7 @@ function FinishDialog(props: {
           <p className="text-sm text-[#80849a]">
             После завершения журнал станет доступен только для чтения. Это действие нельзя отменить.
           </p>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex flex-wrap justify-end gap-3 pt-2">
             <Button
               type="button"
               variant="outline"

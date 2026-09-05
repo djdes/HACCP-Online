@@ -1,4 +1,5 @@
 import { escapeHtml } from "@/lib/html-escape";
+import { FREE_MAX_USERS } from "@/lib/plan-limits";
 import {
   emailBrandForPartnerSlug,
   renderEmailLayout,
@@ -109,7 +110,7 @@ export async function sendPartnerClientInviteEmail(params: {
     <p ${P}>Здравствуйте!</p>
     <p ${P}><strong>${escapeHtml(params.brandName)}</strong> предлагает вести электронные журналы СанПиН и ХАССП в WeSetup и сопровождать вас: помогать с настройкой, следить за просрочками и готовить документы к проверкам.</p>
     <div ${BOX}>
-      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Регистрация бесплатная — 14 дней полного доступа без карты.</p>
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Регистрация без карты: бесплатно до ${FREE_MAX_USERS} сотрудников, без ограничений по записям.</p>
       ${params.contactLine ? `<p style="margin:0;color:#3f3f46;font-size:14px">${escapeHtml(params.contactLine)}</p>` : ""}
     </div>
     ${button(inviteUrl, "Зарегистрироваться по ссылке партнёра")}

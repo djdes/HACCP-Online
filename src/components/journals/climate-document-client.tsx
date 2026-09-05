@@ -371,7 +371,7 @@ function RoomDialog({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
             <div>
               {initialRoom && canDelete && (
                 <>

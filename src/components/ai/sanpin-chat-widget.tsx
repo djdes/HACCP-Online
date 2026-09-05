@@ -159,10 +159,6 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
     return () => clearInterval(timer);
   }, [busy]);
 
-  // Quota state — обновляется после каждого ответа сервера.
-  // null = не знаем (ещё не было запроса), -1 = unlimited.
-  const [messagesLeft, setMessagesLeft] = useState<number | null>(null);
-
   function toApiMessages(list: Message[]) {
     return list.slice(-20).map((m) => ({ role: m.role, content: m.content }));
   }
@@ -186,16 +182,6 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
       });
       const data = await response.json();
       if (!response.ok) {
-        // Quota exceeded — отдельный UX, не просто toast.
-        if (data?.quotaExceeded) {
-          setMessages(messages);
-          setMessagesLeft(0);
-          toast.error(
-            `Месячный лимит ${data.quota ?? 20} сообщений исчерпан. Свяжитесь с поддержкой для апгрейда тарифа.`,
-            { duration: 8000 }
-          );
-          return;
-        }
         throw new Error(data?.error ?? "Ошибка AI");
       }
       setMessages((cur) => [
@@ -215,9 +201,6 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
           preview: previewOf(String(data.reply ?? ""), 0, 120),
           createdAt: new Date().toISOString(),
         });
-      }
-      if (typeof data.messagesLeft === "number") {
-        setMessagesLeft(data.messagesLeft);
       }
     } catch (err) {
       toast.error(
@@ -427,12 +410,12 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ваш вопрос…"
                   className="h-11 flex-1 rounded-xl border border-[#dcdfed] bg-[#fafbff] px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
-                  disabled={busy || messagesLeft === 0}
+                  disabled={busy}
                   maxLength={2000}
                 />
                 <button
                   type="submit"
-                  disabled={busy || !input.trim() || messagesLeft === 0}
+                  disabled={busy || !input.trim()}
                   className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#5566f6] text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-50"
                   aria-label="Отправить"
                 >
@@ -443,13 +426,6 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
                   )}
                 </button>
               </div>
-              {messagesLeft !== null && messagesLeft >= 0 ? (
-                <div className="mt-2 text-center text-[11px] text-[#9b9fb3]">
-                  {messagesLeft === 0
-                    ? "Месячный лимит исчерпан. Перейдите на Pro для безлимитного доступа."
-                    : `Осталось сообщений в этом месяце: ${messagesLeft}`}
-                </div>
-              ) : null}
             </form>
           </div>
         </div>

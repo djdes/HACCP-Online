@@ -86,7 +86,6 @@ export function CapaWorkflow({ ticketId, currentStatus }: Props) {
       const data = (await res.json()) as {
         suggestions?: Suggestion[];
         error?: string;
-        quotaExceeded?: boolean;
       };
       if (!res.ok) {
         throw new Error(data.error ?? "Ошибка");

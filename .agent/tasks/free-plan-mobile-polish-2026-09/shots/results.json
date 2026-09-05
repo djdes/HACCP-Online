@@ -1,0 +1,96 @@
+{
+  "dashboardTrialText": false,
+  "subscription": {
+    "hasTrialWord": false,
+    "hasFreeNote": true,
+    "paused": false
+  },
+  "cronDryRun": {
+    "status": 200,
+    "scanned": 92,
+    "warned": 0,
+    "paused": 0,
+    "sample": []
+  },
+  "mobileSweep": {
+    "/dashboard": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [
+        "div.absolute -right-24 -top-24 size-[320px] rounded-full bg-[#5566f6] opacity-[0.07] right=469"
+      ],
+      "badCount": 1
+    },
+    "/settings": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [
+        "div.absolute -bottom-40 -right-32 size-[460px] rounded-full bg-[#7a5cff] opacity-30  right=501",
+        "div.absolute -right-20 -top-20 size-[300px] rounded-full bg-white opacity-10 blur-[1 right=453"
+      ],
+      "badCount": 2
+    },
+    "/settings/partner": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [],
+      "badCount": 0
+    },
+    "/settings/subscription": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [
+        "div.absolute -right-16 -top-16 size-[260px] rounded-full bg-[#5566f6] opacity-40 blu right=413"
+      ],
+      "badCount": 1
+    },
+    "/settings/auto-journals": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [],
+      "badCount": 0
+    },
+    "/settings/journals": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [],
+      "badCount": 0
+    },
+    "/journals": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [],
+      "badCount": 0
+    },
+    "/journals/cleaning": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [],
+      "badCount": 0
+    },
+    "/verifications": {
+      "vw": 390,
+      "scrollW": 390,
+      "bad": [],
+      "badCount": 0
+    }
+  },
+  "partnerModalMobile": {
+    "top": 17.5,
+    "bottom": 832,
+    "h": 814.5,
+    "w": 366,
+    "vh": 844,
+    "vw": 390,
+    "fits": true,
+    "childrenOverflowing": 0
+  },
+  "partnerForm": {
+    "hasCheckbox": true,
+    "sameRow": true,
+    "requiredStars": 7,
+    "optionalMarks": 2,
+    "legend": true
+  },
+  "pageErrors": []
+}

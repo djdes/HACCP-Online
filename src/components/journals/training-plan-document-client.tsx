@@ -705,7 +705,7 @@ export function TrainingPlanDocumentClient({
       <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{title}</h1>
 
       {selectedRowIds.length > 0 && !readOnly && (
-        <div className="sticky top-0 z-30 -mx-4 flex items-center gap-4 rounded-2xl border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
+        <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-4 rounded-2xl border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
           <button
             type="button"
             className="flex items-center gap-1 text-[16px] text-[#5566f6]"

@@ -367,7 +367,7 @@ export function SanitaryDayChecklistDocumentsClient({
       </div>
 
       <div className="border-b border-[#d9dce8]">
-        <div className="flex gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
+        <div className="flex flex-wrap gap-6 text-[15px] sm:gap-12 sm:text-[16px]">
           <Link
             href={`/journals/${routeCode}`}
             className={`relative pb-6 ${
@@ -512,7 +512,7 @@ export function SanitaryDayChecklistDocumentsClient({
               <p className="text-[15px] text-[#3a3d52]">
                 Перенести в архив документ &quot;{archiveTarget.title || checklistTitle}&quot;?
               </p>
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-wrap justify-end gap-3">
                 <Button
                   variant="outline"
                   className="h-9 rounded-xl px-8 text-[13.5px]"

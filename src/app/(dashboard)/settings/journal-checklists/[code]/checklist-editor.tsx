@@ -486,7 +486,7 @@ export function ChecklistEditor({
 
       {/* Save bar */}
       {hasDirty ? (
-        <div className="sticky bottom-3 flex items-center justify-end gap-3 rounded-2xl border border-[#5566f6]/30 bg-[#eef1ff] p-4 shadow-[0_12px_32px_-12px_rgba(85,102,246,0.4)]">
+        <div className="sticky bottom-3 flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-[#5566f6]/30 bg-[#eef1ff] p-4 shadow-[0_12px_32px_-12px_rgba(85,102,246,0.4)]">
           <span className="text-[13px] text-[#3848c7]">
             Есть несохранённые изменения
           </span>

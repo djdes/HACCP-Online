@@ -12,7 +12,6 @@ import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 import { defaultJournalAutomationJson } from "@/lib/journal-automation";
 import { attachAccountForNewOrganization } from "@/lib/create-organization";
-import { TRIAL_DAYS } from "@/lib/trial";
 import {
   attachOrganizationByRef,
   readPartnerRefFromRequest,
@@ -23,7 +22,7 @@ import { attachReferral, resolveReferrerByCode } from "@/lib/balance/referral";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID_PLANS = new Set(["basic", "extended", "trial"]);
+const VALID_PLANS = new Set(["basic", "extended", "free"]);
 
 /**
  * POST /api/auth/register/confirm
@@ -83,7 +82,7 @@ export async function POST(request: Request) {
   const plan =
     typeof body.plan === "string" && VALID_PLANS.has(body.plan)
       ? body.plan
-      : "trial";
+      : "free";
 
   if (!email || !code || !password || !name || !organizationName) {
     return NextResponse.json(
@@ -156,7 +155,6 @@ export async function POST(request: Request) {
         type: organizationType,
         inn,
         subscriptionPlan: plan,
-        subscriptionEnd: new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
         // Автоматика гигиенического журнала — сразу после регистрации.
         journalAutomationJson: defaultJournalAutomationJson(),
       },

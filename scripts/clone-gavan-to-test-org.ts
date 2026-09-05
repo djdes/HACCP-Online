@@ -35,8 +35,6 @@ async function main() {
       brandColor: source.brandColor,
       subscriptionPlan: source.subscriptionPlan,
       subscriptionEnd: source.subscriptionEnd,
-      aiMonthlyMessagesLeft: source.aiMonthlyQuota,
-      aiMonthlyQuota: source.aiMonthlyQuota,
       webhookUrls: source.webhookUrls ?? [],
     },
   });

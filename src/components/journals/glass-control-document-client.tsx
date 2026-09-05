@@ -507,7 +507,7 @@ function RowDialog(props: {
             <Label className="text-[16px] font-semibold text-black">
               Состояние: повреждения обнаружены
             </Label>
-            <div className="flex gap-6 text-[18px]">
+            <div className="flex flex-wrap gap-6 text-[18px]">
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
@@ -863,7 +863,7 @@ export function GlassControlDocumentClient(props: Props) {
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/glass_control" documentId={props.documentId} />
       {selectedCount > 0 && !isClosed && (
-        <div className="sticky top-0 z-30 -mx-4 flex items-center gap-4 rounded-[20px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:-mx-8 md:px-8">
+        <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-4 rounded-[20px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:-mx-8 md:px-8">
           <button
             type="button"
             className="rounded-xl px-4 py-2 text-[18px] text-[#5566f6]"
@@ -885,7 +885,7 @@ export function GlassControlDocumentClient(props: Props) {
       )}
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
-        <div className="mb-8 flex items-center justify-end gap-4 print:hidden">
+        <div className="mb-8 flex flex-wrap items-center justify-end gap-4 print:hidden">
           <Button
             type="button"
             variant="outline"
@@ -966,7 +966,7 @@ export function GlassControlDocumentClient(props: Props) {
             {GLASS_CONTROL_PAGE_TITLE}
           </div>
 
-          <div className="flex items-center justify-between gap-4 print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
             {!isClosed && (
               <Button
                 type="button"

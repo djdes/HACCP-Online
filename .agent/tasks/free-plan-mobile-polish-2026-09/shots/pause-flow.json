@@ -1,0 +1,12 @@
+{
+  "before": "free",
+  "dashboardBanner": true,
+  "cardGoneAfterResume": true,
+  "after": {
+    "subscriptionPlan": "free",
+    "pausedFromPlan": null,
+    "inactivityWarnedStage": null,
+    "inactivityResumedAt": "2026-09-05T08:06:16.686Z"
+  },
+  "auditResumed": true
+}

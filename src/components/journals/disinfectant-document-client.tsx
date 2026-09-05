@@ -183,7 +183,7 @@ function AddSubdivisionDialog(props: {
           </div>
           <div className="space-y-2">
             <Label className="text-[16px] text-[#73738a]">Вид обработки</Label>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-6">
               <label className="flex items-center gap-2 text-[16px]">
                 <input
                   type="radio"
@@ -333,7 +333,7 @@ function EditSubdivisionDialog(props: {
               <Label className="text-[16px] text-[#73738a]">
                 Вид обработки
               </Label>
-              <div className="flex gap-6">
+              <div className="flex flex-wrap gap-6">
                 <label className="flex items-center gap-2 text-[16px]">
                   <input
                     type="radio"
@@ -1406,7 +1406,7 @@ export function DisinfectantDocumentClient({
 
       {/* Selection bar */}
       {anySelected && !readOnly && (
-        <div className="flex items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3">
           <button
             type="button"
             className="flex items-center gap-1 text-[16px] text-[#5566f6]"

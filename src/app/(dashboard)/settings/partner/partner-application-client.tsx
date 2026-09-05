@@ -7,6 +7,7 @@ import { ArrowRight, Check, CheckCircle2, Clock3, Copy, Loader2, PauseCircle, XC
 import { toast } from "sonner";
 
 import { PageGuide } from "@/components/ui/page-guide";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, Field, Pill, btnOutline, btnPrimary, formatDate, hintClass, inputClass, readError } from "@/components/partner/ui";
 import { PARTNER_AGREEMENT_URL, SLUG_MAX, SLUG_MIN, normalizeSlug, suggestSlug, validateSlug } from "@/lib/partners/validation";
 import { cn } from "@/lib/utils";
@@ -203,8 +204,11 @@ export function PartnerApplicationClient() {
 
           <form onSubmit={submit}>
             <Card eyebrow="Заявка" title="О вашей компании">
+              <p className="mb-4 text-[12px] text-[#6f7282]">
+                <span className="text-[#d2453d]">*</span> — обязательные поля. Остальные помогут быстрее рассмотреть заявку.
+              </p>
               <fieldset disabled={!data.canApply || submitting} className="grid gap-4 sm:grid-cols-2">
-                <Field label="Название компании" className="sm:col-span-2">
+                <Field label="Название компании" required className="sm:col-span-2">
                   <input
                     className={inputClass}
                     value={form.companyName}
@@ -214,7 +218,7 @@ export function PartnerApplicationClient() {
                     placeholder="ООО «СанПиН Консалт»"
                   />
                 </Field>
-                <Field label="ИНН">
+                <Field label="ИНН" required>
                   <input
                     className={inputClass}
                     value={form.inn}
@@ -224,7 +228,7 @@ export function PartnerApplicationClient() {
                     placeholder="10 или 12 цифр"
                   />
                 </Field>
-                <Field label="Тип партнёра">
+                <Field label="Тип партнёра" required>
                   <select className={inputClass} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
                     {Object.entries(data.types).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -233,10 +237,10 @@ export function PartnerApplicationClient() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Город">
+                <Field label="Город" required>
                   <input className={inputClass} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} maxLength={80} required />
                 </Field>
-                <Field label="Сколько заведений обслуживаете" hint="Примерно — помогает понять масштаб.">
+                <Field label="Сколько заведений обслуживаете" optional hint="Примерно — помогает понять масштаб.">
                   <input
                     className={inputClass}
                     value={form.venuesCount}
@@ -245,18 +249,21 @@ export function PartnerApplicationClient() {
                     placeholder="например, 25"
                   />
                 </Field>
-                <Field label="Телефон">
+                <Field label="Телефон" required>
                   <input className={inputClass} {...phoneInputProps(form.phone, (phone) => setForm({ ...form, phone }))} required placeholder={RU_PHONE_PLACEHOLDER} />
                 </Field>
-                <Field label="Telegram" hint="Не обязательно. Сюда придёт ответ по заявке и уведомления о клиентах.">
+                <Field label="Telegram" optional hint="Сюда придёт ответ по заявке и уведомления о клиентах.">
                   <input className={inputClass} value={form.telegram} onChange={(e) => setForm({ ...form, telegram: e.target.value })} maxLength={64} placeholder="@username" />
                 </Field>
-                <Field label="Почта для связи" className="sm:col-span-2">
+                <Field label="Почта для связи" required className="sm:col-span-2">
                   <input className={inputClass} type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} required />
                 </Field>
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="mb-1.5 block text-[13px] font-medium text-[#3c4053]">Адрес вашей страницы</span>
+                    <span className="mb-1.5 block text-[13px] font-medium text-[#3c4053]">
+                      Адрес вашей страницы
+                      <span className="ml-0.5 text-[#d2453d]" aria-hidden>*</span>
+                    </span>
                     <div className="flex items-center overflow-hidden rounded-2xl border border-[#dcdfed] bg-white focus-within:border-[#5566f6] focus-within:ring-4 focus-within:ring-[#5566f6]/15">
                       <span className="shrink-0 select-none border-r border-[#ececf4] bg-[#fafbff] px-3 text-[14px] text-[#6f7282]">wesetup.ru/p/</span>
                       <input
@@ -282,12 +289,12 @@ export function PartnerApplicationClient() {
                   </p>
                 </div>
                 <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4 text-[14px] leading-[1.5] text-[#3c4053] sm:col-span-2">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 size-4 shrink-0 accent-[#5566f6]"
+                  <Checkbox
+                    className="mt-0.5 shrink-0"
                     checked={form.termsAccepted}
-                    onChange={(e) => setForm({ ...form, termsAccepted: e.target.checked })}
-                    required
+                    onCheckedChange={(checked) => setForm({ ...form, termsAccepted: checked === true })}
+                    aria-required
+                    aria-label="Принимаю условия партнёрской программы"
                   />
                   <span>
                     Принимаю{" "}
@@ -313,6 +320,11 @@ export function PartnerApplicationClient() {
                   Условия программы
                 </Link>
               </div>
+              {data.canApply && !form.termsAccepted ? (
+                <p className="mt-2 text-[12px] text-[#a13a32]">
+                  Поставьте галочку согласия с условиями, чтобы отправить заявку.
+                </p>
+              ) : null}
             </Card>
           </form>
         </>

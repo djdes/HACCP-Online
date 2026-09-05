@@ -72,7 +72,9 @@ export async function PATCH(
     const plan = body.subscriptionPlan.trim();
     // Список закрыт намеренно: опечатка в тарифе тихо ломает и витрину,
     // и лимиты — значение сравнивается строкой в десятке мест.
-    if (!["trial", "free", "paid", "paused"].includes(plan)) {
+    // `trial` намеренно отсутствует: это legacy-значение бесплатного
+    // тарифа, читается как `free`, но новым его не назначаем.
+    if (!["free", "paid", "paused", "cancelled"].includes(plan)) {
       return NextResponse.json({ error: "Неизвестный тариф" }, { status: 400 });
     }
     data.subscriptionPlan = plan;

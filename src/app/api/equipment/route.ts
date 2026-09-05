@@ -6,7 +6,6 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { equipmentSchema } from "@/lib/validators";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
-import { trialSensorGate } from "@/lib/trial-limits.server";
 
 export async function GET() {
   try {
@@ -75,11 +74,6 @@ export async function POST(request: Request) {
         { error: "Цех не найден" },
         { status: 404 }
       );
-    }
-
-    if (validatedData.tuyaDeviceId) {
-      const limited = await trialSensorGate(getActiveOrgId(session));
-      if (limited) return limited;
     }
 
     const equipment = await db.equipment.create({

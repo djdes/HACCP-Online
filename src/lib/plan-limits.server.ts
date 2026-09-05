@@ -57,7 +57,7 @@ export async function ensurePlanForHeadcount(
   });
 
   if (!org) {
-    return { upgraded: false, plan: "trial", activeUsers: 0 };
+    return { upgraded: false, plan: "free", activeUsers: 0 };
   }
 
   // Организации аккаунта. Человек, работающий в двух точках, живёт в

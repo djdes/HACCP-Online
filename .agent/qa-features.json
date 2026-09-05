@@ -676,16 +676,6 @@
       "status": "pass"
     },
     {
-      "id": "F-067",
-      "sha": "any",
-      "name": "Reset-AI-quota cron (monthly)",
-      "type": "cron-secret",
-      "tests": [
-        { "kind": "cron-secret", "path": "/api/cron/reset-ai-quota", "expected": [401] }
-      ],
-      "status": "pass"
-    },
-    {
       "id": "F-068",
       "sha": "any",
       "name": "Tuya-pull cron",

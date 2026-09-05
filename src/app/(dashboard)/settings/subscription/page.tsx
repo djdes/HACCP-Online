@@ -5,9 +5,11 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { PlanUpgrade } from "@/components/settings/plan-upgrade";
+import { ResumePausedCard } from "@/components/settings/resume-paused-card";
 import { pricingScaleRows, quoteSubscription } from "@/lib/subscription-pricing";
 import {
   EXTRA_USER_PRICE_RUB,
+  FREE_PLAN_NOTE,
   SUBSCRIPTION_MAX_USERS,
 } from "@/lib/plan-catalog";
 import { HARDWARE_BUNDLES, bundleTotal } from "@/lib/hardware-pricing";
@@ -19,11 +21,10 @@ import {
 import {
   BILLING_TEST_MODE,
   FREE_MAX_USERS,
+  isFreePlan,
   planLabel,
 } from "@/lib/plan-limits";
 import { RecurringCard } from "@/components/settings/recurring-card";
-import { getTrialUsage } from "@/lib/trial-limits.server";
-import { formatDaysRu, formatTrialEndDate } from "@/lib/trial";
 
 export default async function SubscriptionPage() {
   // Раньше здесь стоял `requireRole(["owner"])`, и страница была
@@ -51,20 +52,10 @@ export default async function SubscriptionPage() {
   // калькулятор показал бы «15 человек» и цену, которой не будет.
   const isDemo = org?.isDemo === true;
   const employees = isDemo ? 1 : org?._count.users || 1;
-  const plan = org?.subscriptionPlan ?? "trial";
-  // Тестовый период и лимиты бесплатного тарифа — одной строкой под
-  // названием плана. null на платном.
-  const trialUsage = await getTrialUsage(getActiveOrgId(session));
-  const limitsLine = trialUsage
-    ? `Лимиты: ${trialUsage.entriesLimit} записей в день, ${trialUsage.sensorsLimit} датчика, ${trialUsage.aiQuota} AI-сообщений в месяц.`
-    : "";
-  const trialNote = !trialUsage
-    ? null
-    : trialUsage.status.phase === "trial"
-      ? `Тестовый период: ${trialUsage.status.daysLeft <= 1 ? "последний день" : `осталось ${formatDaysRu(trialUsage.status.daysLeft)}`} (до ${formatTrialEndDate(trialUsage.status.endsAt)}). ${limitsLine}`
-      : trialUsage.status.phase === "expired"
-        ? `Тестовый период закончился. ${limitsLine}`
-        : limitsLine;
+  const plan = org?.subscriptionPlan ?? "free";
+  // Условие бесплатного тарифа — одной строкой под названием плана.
+  // null на платном.
+  const planNote = isFreePlan(plan) ? FREE_PLAN_NOTE : null;
   // Та же цифра, что в карточке железа на лендинге — считаем из одного
   // источника, чтобы витрины не разъехались.
   const hardwareFromRub = Math.min(...HARDWARE_BUNDLES.map(bundleTotal));
@@ -138,10 +129,12 @@ export default async function SubscriptionPage() {
       {/* Витрина тарифов — главное на странице, поэтому первым блоком.
           Раньше здесь висел SubscriptionManager с мёртвыми
           starter/standard/pro, которые никогда не писались в БД. */}
+      {plan === "paused" ? <ResumePausedCard /> : null}
+
       <PlanUpgrade
         currentPlan={plan}
         currentPlanLabel={planLabel(plan)}
-        trialNote={trialNote}
+        planNote={planNote}
         activeUsers={employees}
         freeUserLimit={FREE_MAX_USERS}
         billingTestMode={BILLING_TEST_MODE}

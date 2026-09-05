@@ -607,7 +607,7 @@ function CellValueDialog(props: {
             placeholder="Например: 29-05-2023 или X"
             className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
           />
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
             <Button
               type="button"
               variant="outline"
@@ -854,7 +854,7 @@ export function AuditPlanDocumentClient({
       </h1>
 
       {selectedRowIds.length > 0 && !readOnly && (
-        <div className="flex items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3 print:hidden">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3 print:hidden">
           <button type="button" className="flex items-center gap-1 text-[16px] text-[#5566f6]" onClick={() => setSelectedRowIds([])}>
             <X className="size-4" /> Выбрано: {selectedRowIds.length}
           </button>
@@ -886,7 +886,7 @@ export function AuditPlanDocumentClient({
         </div>
 
         {!readOnly && (
-          <div className="flex gap-3 print:hidden">
+          <div className="flex flex-wrap gap-3 print:hidden">
             <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddRowOpen(true)}>
               <Plus className="size-5" /> Добавить
             </Button>

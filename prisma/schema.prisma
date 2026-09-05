@@ -20,7 +20,7 @@ model Account {
   /// Организации такого аккаунта просто теряют привязку (accountId
   /// становится null) — их всё равно удаляют вместе с ним.
   owner              User           @relation("AccountOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  subscriptionPlan   String         @default("trial")
+  subscriptionPlan   String         @default("free")
   subscriptionEnd    DateTime?
   planAutoUpgradedAt DateTime?
   createdAt          DateTime       @default(now())
@@ -105,19 +105,21 @@ model Organization {
   members                        OrganizationMember[]           @relation("OrganizationMembers")
   /// Legacy-зеркало тарифа. Правда живёт в Account; поля остаются на один
   /// релиз, чтобы не ломать читателей, которые ещё не переведены.
-  subscriptionPlan               String                         @default("trial")
+  subscriptionPlan               String                         @default("free")
   subscriptionEnd                DateTime?
   /// Когда организацию автоматически перевели с бесплатного тарифа на
   /// платный из-за превышения лимита в 5 сотрудников. Нужен, чтобы
   /// отличать авто-переход (оплата не требовалась — тестовый режим) от
   /// осознанной покупки и чтобы не переводить повторно.
   planAutoUpgradedAt             DateTime?
-  /// Дневной счётчик ручных записей для мягкого лимита бесплатного
-  /// тарифа (src/lib/trial-limits.server.ts). Ключ дня — по таймзоне
-  /// организации; при смене дня счётчик начинается заново. Считаем
-  /// счётчиком, а не строками: автозаполнение и IoT в лимит не входят.
-  trialWritesDayKey              String?
-  trialWritesCount               Int                            @default(0)
+  /// Пауза за неактивность (cron auto-pause-inactive, 100 дней без
+  /// записей). `pausedFromPlan` — куда вернуть при «Возобновить работу»;
+  /// стадия и дата активности — дедуп предупреждений за 30/14/7/3/2/1
+  /// день; `inactivityResumedAt` — точка отсчёта после возобновления.
+  pausedFromPlan                 String?
+  inactivityWarnedStage          Int?
+  inactivityWarnedForActivityAt  DateTime?
+  inactivityResumedAt            DateTime?
   /// Демо-организация: создана кнопкой «Посмотреть на демо-данных» после
   /// регистрации (одна на аккаунт). Живёт до demoExpiresAt, потом её
   /// удаляет cron purge-demo-orgs. Сотрудники демо не считаются в тарифе.
@@ -206,15 +208,6 @@ model Organization {
   /// эскалировать руководству. Считается от момента, когда
   /// ответственному ушло уведомление. 5…1440.
   deviationEscalationMinutes     Int                            @default(60)
-  /// Сколько сообщений к AI-чату осталось в этом месяце. Декремент
-  /// в /api/ai/sanpin-chat и /api/ai/period-report. Сброс — cron
-  /// /api/cron/reset-ai-quota 1-го числа. Default 20 — trial-tier.
-  /// Pro тарифы могут установить большое значение (10000) или −1
-  /// (трактуем как unlimited).
-  aiMonthlyMessagesLeft          Int                            @default(20)
-  /// Базовый месячный лимит — куда возвращаемся после reset cron'а.
-  /// Тариф Pro меняет это поле, не aiMonthlyMessagesLeft.
-  aiMonthlyQuota                 Int                            @default(20)
   /// OAuth-токен Yandex.Disk REST API (получается через /authorize). Если
   /// заполнен — еженедельный cron /api/cron/yandex-backup сохраняет туда
   /// JSON-дамп всех журналов за последние 7 дней. Хранится в открытом

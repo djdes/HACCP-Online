@@ -115,15 +115,33 @@ export function Field({
   hint,
   children,
   className,
+  required,
+  optional,
 }: {
   label: string;
   hint?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** Звёздочка у подписи — поле нужно заполнить. */
+  required?: boolean;
+  /** Тихая пометка «не обязательно» справа от подписи. */
+  optional?: boolean;
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className={labelClass}>{label}</span>
+      <span className={cn(labelClass, "flex items-baseline gap-1.5")}>
+        <span>
+          {label}
+          {required ? (
+            <span className="ml-0.5 text-[#d2453d]" aria-hidden>
+              *
+            </span>
+          ) : null}
+        </span>
+        {optional ? (
+          <span className="text-[11px] font-normal text-[#9b9fb3]">не обязательно</span>
+        ) : null}
+      </span>
       {children}
       {hint ? <span className={cn(hintClass, "block")}>{hint}</span> : null}
     </label>

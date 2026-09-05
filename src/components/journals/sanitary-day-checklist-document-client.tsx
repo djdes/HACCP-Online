@@ -496,7 +496,7 @@ function EditZonesDialog(props: {
 
           {/* Selection actions */}
           {selected.size > 0 && (
-            <div className="flex items-center gap-4 rounded-xl bg-[#f3f4fb] px-4 py-3">
+            <div className="flex flex-wrap items-center gap-4 rounded-xl bg-[#f3f4fb] px-4 py-3">
               <span className="text-[14px] text-[#6f7282]">
                 Выбрано: {selected.size}
               </span>

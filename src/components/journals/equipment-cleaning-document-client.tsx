@@ -359,7 +359,7 @@ export function EquipmentCleaningDocumentClient({
   return (
     <div className="space-y-6 text-black">
       {selectedIds.length > 0 && status === "active" ? (
-        <div className="flex items-center gap-3 rounded-[18px] bg-white px-5 py-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-[18px] bg-white px-5 py-4 shadow-sm">
           <button
             type="button"
             className="flex items-center gap-2 text-[18px] text-[#5566f6]"

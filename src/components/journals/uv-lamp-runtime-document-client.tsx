@@ -244,7 +244,7 @@ function UvSpecEditDialog(props: {
 
           <div>
             <div className="mb-3 text-[16px] font-medium text-black">Режим облучения</div>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-6">
               <label className="flex items-center gap-2 text-[15px]">
                 <input
                   type="radio"
@@ -270,7 +270,7 @@ function UvSpecEditDialog(props: {
 
           <div>
             <div className="mb-3 text-[16px] font-medium text-black">Условия обеззараживания</div>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-6">
               <label className="flex items-center gap-2 text-[15px]">
                 <input
                   type="radio"

@@ -369,7 +369,7 @@ export function EquipmentCalibrationDocumentClient({
 
       {/* Selection bar */}
       {selectedRows.length > 0 && !isClosed && (
-        <div className="flex items-center gap-3 print:hidden">
+        <div className="flex flex-wrap items-center gap-3 print:hidden">
           <button
             type="button"
             onClick={() => setSelectedRows([])}

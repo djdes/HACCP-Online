@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
-import { trialSensorGate } from "@/lib/trial-limits.server";
 
 export async function PUT(
   request: Request,
@@ -74,13 +73,6 @@ export async function PUT(
       typeof tuyaDeviceId === "string" && tuyaDeviceId.trim()
         ? tuyaDeviceId.trim().slice(0, 100)
         : null;
-    if (nextTuyaDeviceId && nextTuyaDeviceId !== equipment.tuyaDeviceId) {
-      const limited = await trialSensorGate(getActiveOrgId(session), {
-        excludeEquipmentId: id,
-      });
-      if (limited) return limited;
-    }
-
     const updated = await db.equipment.update({
       where: { id },
       data: {

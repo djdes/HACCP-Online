@@ -118,7 +118,7 @@ export function LossForm({ areas }: Props) {
         <Textarea id="cause" name="cause" placeholder="Опишите причину потери" />
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Сохранение..." : "Сохранить"}
         </Button>

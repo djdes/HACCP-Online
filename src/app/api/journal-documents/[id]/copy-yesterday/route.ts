@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
-import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -136,9 +135,6 @@ export async function POST(
   const todayFilledEmployeeIds = new Set(
     todayEntries.map((e) => e.employeeId)
   );
-
-  const limited = await trialWriteGate(organizationId, yesterdayEntries.length);
-  if (limited) return limited;
 
   let copied = 0;
   let kept = 0;

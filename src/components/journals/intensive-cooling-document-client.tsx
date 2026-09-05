@@ -705,7 +705,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
     <div className="bg-white text-black">
       {selectedRowIds.length > 0 ? (
         <div className="border-b border-[#eef1f7] bg-white">
-          <div className="mx-auto flex max-w-[1860px] items-center gap-4 px-6 py-5">
+          <div className="mx-auto flex max-w-[1860px] flex-wrap items-center gap-4 px-6 py-5">
             <button
               type="button"
               className="inline-flex items-center gap-2 rounded-2xl bg-[#fafbff] px-4 py-3 text-[15px] text-[#5563ff]"
@@ -809,7 +809,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
           {INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           {isActive ? (
             <Button
               type="button"

@@ -57,11 +57,9 @@ import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { cn } from "@/lib/utils";
 import { orgDisplayName } from "@/lib/org-display-name";
 import { ConsultantCard } from "@/components/dashboard/consultant-card";
+import { PausedBanner } from "@/components/dashboard/paused-banner";
 import { getVisibleOrgBranding } from "@/lib/partners/branding";
 import { toConsultantContact } from "@/lib/partners/consultant-contact";
-import { TrialStatusCard } from "@/components/dashboard/trial-status-card";
-import { TrialExpiredModal } from "@/components/dashboard/trial-expired-modal";
-import { getTrialUsage } from "@/lib/trial-limits.server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -179,6 +177,7 @@ export default async function DashboardPage() {
         disabledJournalCodes: true,
         disabledPaperJournalIds: true,
         type: true,
+        subscriptionPlan: true,
       },
     }),
   ]);
@@ -210,7 +209,7 @@ export default async function DashboardPage() {
   // dashboard. Dismissable per-session, появляется снова после
   // следующей перезагрузки.
   const staleCapaCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const [staleCapaCount, healthCheck, trialUsage] = await Promise.all([
+  const [staleCapaCount, healthCheck] = await Promise.all([
     db.capaTicket.count({
       where: {
         organizationId,
@@ -219,8 +218,6 @@ export default async function DashboardPage() {
       },
     }),
     runOrgHealthCheck(organizationId),
-    // Тестовый период / лимиты бесплатного тарифа: null на платном.
-    getTrialUsage(organizationId, now),
   ]);
 
   const [filledTodayIds, leaderboard, strugglers] =
@@ -268,15 +265,6 @@ export default async function DashboardPage() {
           Dismissable per-session, появляется снова после reload. */}
       <StaleCapaNag count={staleCapaCount} />
 
-      {/* 14 дней теста прошли — «продлить» (подписка) или «сократить
-          функционал» (бесплатный тариф). Ничего не блокирует. */}
-      {trialUsage?.status.phase === "expired" ? (
-        <TrialExpiredModal
-          endedAt={trialUsage.status.endsAt?.toISOString() ?? null}
-          billingTestMode={trialUsage.billingTestMode}
-        />
-      ) : null}
-
       {/* Super-user dev-tools (видны ТОЛЬКО специальному dev-аккаунту,
           см. src/lib/super-user.ts). Очистка журналов + force-bulk-assign
           в TF без time-фильтра — для итеративного тестирования. */}
@@ -289,9 +277,7 @@ export default async function DashboardPage() {
         <QuickStartCard organizationId={getActiveOrgId(session)} />
       ) : null}
 
-      {/* Тестовый период и лимиты бесплатного тарифа — с CTA на подписку. */}
-      {trialUsage ? <TrialStatusCard usage={trialUsage} /> : null}
-
+      {org?.subscriptionPlan === "paused" ? <PausedBanner /> : null}
       {consultant ? <ConsultantCard consultant={consultant} /> : null}
 
       {/* Action-first: what the user needs to do TODAY.

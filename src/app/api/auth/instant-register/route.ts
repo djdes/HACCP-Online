@@ -18,7 +18,6 @@ import {
 } from "@/lib/partners/referral";
 import { REFERRAL_COOKIE, readCookie } from "@/lib/balance/constants";
 import { attachReferral, resolveReferrerByCode } from "@/lib/balance/referral";
-import { TRIAL_DAYS } from "@/lib/trial";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,10 +125,7 @@ export async function POST(request: Request) {
           // Автоматика гигиенического журнала — сразу, см.
           // defaultJournalAutomationJson.
           journalAutomationJson: defaultJournalAutomationJson(),
-          subscriptionPlan: "trial",
-          subscriptionEnd: new Date(
-            Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000,
-          ),
+          subscriptionPlan: "free",
         },
       });
       const user = await tx.user.create({

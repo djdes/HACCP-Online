@@ -294,7 +294,7 @@ export function ProductWriteoffDocumentClient({
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/product_writeoff" documentId={documentId} />
       {selectedRows.length > 0 && !isClosed && (
-        <div className="flex items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
           <button type="button" className="rounded-xl px-4 py-2 text-[18px] text-[#5566f6]" onClick={() => setSelectedRows([])}>
             <X className="mr-2 inline size-5" />
             Выбрано: {selectedRows.length}
@@ -307,7 +307,7 @@ export function ProductWriteoffDocumentClient({
       )}
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
-        <div className="flex items-center justify-end gap-3 print:hidden">
+        <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
           <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]">
             <Printer className="size-4" />
             Печать
@@ -350,7 +350,7 @@ export function ProductWriteoffDocumentClient({
             <div className="text-[24px] font-semibold">№ {config.actNumber || "1"} от « {actDate.day} » {actDate.month} {actDate.year} г.</div>
           </div>
 
-          <div className="flex gap-4 print:hidden">
+          <div className="flex flex-wrap gap-4 print:hidden">
             {!isClosed && (
               <>
                 <Button type="button" className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4957fb]" onClick={() => { setRowDialog({ open: true, index: null, row: emptyRow(), newProductName: "" }); setRowDialogProductOptions(productOptions); }}>

@@ -155,7 +155,7 @@ export function GlassListDocumentClient({
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
         <DocumentBackLink href="/journals/glass_items_list" documentId={documentId} />
       {selectedRows.length > 0 && !isClosed && (
-        <div className="flex items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
           <button
             type="button"
             className="rounded-xl px-4 py-2 text-[18px] text-[#5566f6]"
@@ -177,7 +177,7 @@ export function GlassListDocumentClient({
       )}
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">
-        <div className="mb-6 flex items-center justify-end gap-3 text-[14px] text-[#73738a] print:hidden">
+        <div className="mb-6 flex flex-wrap items-center justify-end gap-3 text-[14px] text-[#73738a] print:hidden">
           <Button
             type="button"
             variant="outline"

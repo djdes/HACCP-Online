@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { escapeHtml } from "@/lib/html-escape";
+import { FREE_MAX_USERS } from "@/lib/plan-limits";
 
 /**
  * Локальный relay на той же машине. Прод отправляет через exim на
@@ -410,7 +411,7 @@ export async function sendWelcomeEmail(params: {
 
   const body = `
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте, <strong>${escapeHtml(name)}</strong>!</p>
-    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Организация <strong>${escapeHtml(organizationName)}</strong> успешно зарегистрирована. Ваш пробный период — <strong>14 дней</strong> с полным доступом ко всем функциям.</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Организация <strong>${escapeHtml(organizationName)}</strong> успешно зарегистрирована. Бесплатно до <strong>${FREE_MAX_USERS} сотрудников</strong>, без ограничений по записям — все функции доступны сразу.</p>
     <div style="background:#f4f4f5;border-radius:8px;padding:20px;margin:0 0 24px">
       <p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#18181b">С чего начать:</p>
       <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">1. Добавьте производственные зоны в <strong>Настройки → Зоны</strong></p>

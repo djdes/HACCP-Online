@@ -84,39 +84,10 @@ export async function POST(
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
-  // Quota — общая с sanpin-chat. -1 = unlimited.
-  // Атомарный conditional decrement: read-then-decrement допускал
-  // race-condition при котором два параллельных запроса с left=1
-  // оба декрементировали → итоговое значение -1 → org получала
-  // бесплатный безлимит (потому что -1 = unlimited).
   const org = await db.organization.findUnique({
     where: { id: orgId },
-    select: {
-      aiMonthlyMessagesLeft: true,
-      aiMonthlyQuota: true,
-      type: true,
-      name: true,
-    },
+    select: { type: true, name: true },
   });
-  const left = org?.aiMonthlyMessagesLeft ?? 0;
-  const isUnlimited = left < 0;
-  if (!isUnlimited) {
-    const updateResult = await db.organization.updateMany({
-      where: { id: orgId, aiMonthlyMessagesLeft: { gt: 0 } },
-      data: { aiMonthlyMessagesLeft: { decrement: 1 } },
-    });
-    if (updateResult.count === 0) {
-      return NextResponse.json(
-        {
-          error: `Месячный лимит AI-сообщений исчерпан (${
-            org?.aiMonthlyQuota ?? 20
-          }). Перейдите на тариф Pro.`,
-          quotaExceeded: true,
-        },
-        { status: 402 }
-      );
-    }
-  }
 
   const userPrompt = `Контекст организации:
 - Тип: ${org?.type ?? "не указан"}
@@ -139,18 +110,6 @@ ${
 Задача:
 ${stepInstruction}`;
 
-  async function refundQuota() {
-    if (isUnlimited) return;
-    await db.organization
-      .update({
-        where: { id: orgId },
-        data: { aiMonthlyMessagesLeft: { increment: 1 } },
-      })
-      .catch((refundErr) =>
-        console.warn("[capa-suggest] quota refund failed", refundErr)
-      );
-  }
-
   // AI-запрос уходит в очередь диспетчера ProjectsFlow — сайт к LLM не
   // ходит (см. src/lib/ai-assistant/pf-client.ts).
   const result = await enqueueAndWait(
@@ -159,8 +118,6 @@ ${stepInstruction}`;
     )
   );
   if (!result.ok) {
-    // Пользователь не должен терять сообщение из-за upstream-сбоя.
-    await refundQuota();
     return NextResponse.json(
       { error: result.error },
       { status: result.code === "not_configured" ? 503 : 502 }
@@ -178,8 +135,6 @@ ${stepInstruction}`;
       .trim();
     parsedReply = JSON.parse(cleaned);
   } catch {
-    // Refund квоты — AI вернул мусор, пользователь не должен платить.
-    await refundQuota();
     return NextResponse.json(
       { error: "AI вернул некорректный JSON", raw: raw.slice(0, 500) },
       { status: 502 }
@@ -190,8 +145,6 @@ ${stepInstruction}`;
     !Array.isArray(parsedReply.suggestions) ||
     parsedReply.suggestions.length === 0
   ) {
-    // Refund квоты — AI ответил, но контент бесполезный.
-    await refundQuota();
     return NextResponse.json(
       { error: "AI не вернул suggestions" },
       { status: 502 }

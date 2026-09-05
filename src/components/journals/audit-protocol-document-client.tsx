@@ -278,7 +278,7 @@ export function AuditProtocolDocumentClient({
     <>
       <div className="space-y-5">
         {selectedRowIds.length > 0 && status === "active" && (
-          <div className="flex items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3 print:hidden">
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3 print:hidden">
             <button type="button" className="flex items-center gap-1 text-[16px] text-[#5566f6]" onClick={() => setSelectedRowIds([])}>
               <X className="size-4" /> Выбрано: {selectedRowIds.length}
             </button>

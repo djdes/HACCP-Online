@@ -70,7 +70,7 @@ export function EntryApprovalActions({
         {error && (
           <p className="mb-3 text-sm text-destructive">{error}</p>
         )}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button
             onClick={() => handleAction("approved")}
             disabled={isApproving || isRejecting}

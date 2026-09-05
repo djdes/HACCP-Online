@@ -93,14 +93,10 @@ export function DashboardSection({
             сторону шире правой на свою ширину плюс отступ.
             flex-1 на мобиле: группа занимает всю строку заголовка и
             больше не сжимается в ноль под напором кнопок справа.
-            `no-mobile-wrap` — opt-out из глобального правила
-            «.app-shell main .flex.gap-3 { flex-wrap: wrap }»
-            (globals.css): из-за него иконка отрывалась от заголовка и
-            вставала строкой выше.
             На sm+ ширина 430px — ориентир, а не жёсткая рамка
             (shrink разрешён): на узком ноутбуке фиксированная ширина
             выдавливала стрелку за край карточки. */}
-        <div className="no-mobile-wrap flex min-w-0 flex-1 items-center gap-3 sm:w-[430px] sm:shrink sm:grow-0 sm:basis-auto">
+        <div className="flex min-w-0 flex-1 items-center gap-3 sm:w-[430px] sm:shrink sm:grow-0 sm:basis-auto">
           {Icon ? (
             // max-sm:self-start — на узком экране строка заголовка
             // переносится (бейджи, ссылка-настройка), и по центру иконка

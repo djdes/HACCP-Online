@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { aiChatRateLimiter } from "@/lib/rate-limit";
-import { db } from "@/lib/db";
 import { enqueueAndWait } from "@/lib/ai-assistant/pf-client";
 import {
   buildChatJobText,
@@ -101,46 +100,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ actionResult: result });
   }
 
-  // --- Обычный ход чата. ----------------------------------------------
-  // Free-tier quota: aiMonthlyMessagesLeft на org. -1 = unlimited.
-  // Декремент атомарный (updateMany с условием > 0), иначе два
-  // concurrent-запроса с left=1 загнали бы счётчик в -1 = «бесплатный
-  // безлимит».
-  const org = await db.organization.findUnique({
-    where: { id: orgId },
-    select: { aiMonthlyMessagesLeft: true, aiMonthlyQuota: true },
-  });
-  const left = org?.aiMonthlyMessagesLeft ?? 0;
-  const isUnlimited = left < 0;
-  let messagesLeft: number = isUnlimited ? -1 : 0;
-  if (!isUnlimited) {
-    const updateResult = await db.organization.updateMany({
-      where: { id: orgId, aiMonthlyMessagesLeft: { gt: 0 } },
-      data: { aiMonthlyMessagesLeft: { decrement: 1 } },
-    });
-    if (updateResult.count === 0) {
-      return NextResponse.json(
-        {
-          error: `Месячный лимит AI-сообщений исчерпан (${org?.aiMonthlyQuota ?? 20} в месяц). Перейдите на тариф Pro для безлимитного доступа.`,
-          quotaExceeded: true,
-          quota: org?.aiMonthlyQuota ?? 20,
-        },
-        { status: 402 }
-      );
-    }
-    messagesLeft = Math.max(0, left - 1);
-  }
-
-  async function refundQuota() {
-    if (isUnlimited) return;
-    await db.organization
-      .update({
-        where: { id: orgId },
-        data: { aiMonthlyMessagesLeft: { increment: 1 } },
-      })
-      .catch((err) => console.warn("[sanpin-chat] quota refund failed", err));
-  }
-
+  // --- Обычный ход чата. Месячной квоты нет: AI-помощник без лимитов
+  // на любом тарифе.
   const question = parsed.messages[parsed.messages.length - 1];
   const history = parsed.messages.slice(0, -1);
 
@@ -155,7 +116,6 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[sanpin-chat] job text build failed", err);
-    await refundQuota();
     return NextResponse.json(
       { error: "Ошибка AI. Подробности в логах сервера." },
       { status: 502 }
@@ -164,8 +124,6 @@ export async function POST(request: Request) {
 
   const result = await enqueueAndWait(jobText);
   if (!result.ok) {
-    // Пользователь не должен терять сообщение из-за нашего upstream'а.
-    await refundQuota();
     return NextResponse.json(
       { error: result.error },
       { status: result.code === "not_configured" ? 503 : 502 }
@@ -191,7 +149,5 @@ export async function POST(request: Request) {
   return NextResponse.json({
     reply: replyOut,
     pendingAction,
-    messagesLeft,
-    isUnlimited,
   });
 }

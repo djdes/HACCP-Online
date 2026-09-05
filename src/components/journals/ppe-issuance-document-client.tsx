@@ -714,7 +714,7 @@ export function PpeIssuanceDocumentClient(props: Props) {
     <div className="bg-white text-black">
       <div className="space-y-6 py-4 md:py-6">
         {selectedRowIds.length > 0 && !isClosed && (
-          <div className="sticky top-0 z-30 -mx-4 flex items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
+          <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
             <button
               type="button"
               onClick={() => setSelectedRowIds([])}

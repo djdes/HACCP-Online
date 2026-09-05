@@ -38,8 +38,7 @@ import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { FREE_MAX_USERS } from "@/lib/plan-limits";
 import {
   catalogPlanIdFor,
-  FREE_PLAN_TEST_NOTE,
-  PAID_PLAN_TEST_NOTE,
+  FREE_PLAN_NOTE,
   EXTRA_USER_PRICE_RUB,
   LARGE_TEAM_NOTE,
   SUBSCRIPTION_MAX_USERS,
@@ -873,7 +872,7 @@ export default async function LandingPage() {
             ctaLabel={viewerOnFreePlan ? "Текущий" : "Начать бесплатно"}
             ctaHref="#start"
             ctaDisabled={viewerOnFreePlan}
-            note={FREE_PLAN_TEST_NOTE}
+            note={FREE_PLAN_NOTE}
           />
 
           <PlanCard
@@ -891,7 +890,6 @@ export default async function LandingPage() {
             ctaHref="/order?plan=monthly"
             highlighted
             badge="Популярный"
-            note={PAID_PLAN_TEST_NOTE}
           />
         </EquipmentPricing>
         {/* Сверх лимита тарифа — фиксированная доплата за сотрудника;

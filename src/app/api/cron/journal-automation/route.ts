@@ -250,6 +250,9 @@ async function handle(request: Request) {
   // внутри прогона свой день (см. runForOrganization).
   const todayKey = toDateKey(now);
   const orgs = await db.organization.findMany({
+    // Пауза за неактивность обещает «автозаполнение остановится» —
+    // выполняем обещание: приостановленные и отменённые не трогаем.
+    where: { subscriptionPlan: { notIn: ["paused", "cancelled"] } },
     select: {
       id: true,
       name: true,

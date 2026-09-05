@@ -81,7 +81,6 @@ check 401 GET /api/cron/mini-digest
 check 401 GET /api/cron/tuya-pull
 check 401 GET /api/cron/weekly-digest
 check 401 GET /api/cron/auto-close-shifts
-check 401 GET /api/cron/reset-ai-quota
 check 401 GET /api/cron/auto-fill-journals
 check 401 GET /api/cron/journal-automation
 check 401 POST /api/external/sensors

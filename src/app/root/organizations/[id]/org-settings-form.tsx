@@ -13,10 +13,10 @@ import { toast } from "sonner";
  */
 
 const PLANS: Array<{ value: string; label: string }> = [
-  { value: "trial", label: "Бесплатный (trial)" },
-  { value: "free", label: "Бесплатный (free)" },
+  { value: "free", label: "Бесплатный" },
   { value: "paid", label: "Платный" },
   { value: "paused", label: "Приостановлен" },
+  { value: "cancelled", label: "Отменён" },
 ];
 
 /** `Date` → `YYYY-MM-DD` для `<input type="date">`. */

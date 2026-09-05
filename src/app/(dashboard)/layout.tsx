@@ -149,7 +149,7 @@ export default async function DashboardLayout({
   const accountPlan =
     brandedOrg?.account?.subscriptionPlan ??
     brandedOrg?.subscriptionPlan ??
-    "trial";
+    "free";
 
   // Баллы в шапке видит только тот, кто может ими распорядиться:
   // сумма — это деньги организации. Остальным пункт меню всё равно

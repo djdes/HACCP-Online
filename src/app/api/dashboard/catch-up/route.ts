@@ -8,7 +8,6 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { logAudit } from "@/lib/audit";
-import { trialWriteGate } from "@/lib/trial-limits.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -251,9 +250,6 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-
-  const limited = await trialWriteGate(organizationId, targets.length);
-  if (limited) return limited;
 
   // Group by documentId.
   const byDoc = new Map<string, Set<string>>();
