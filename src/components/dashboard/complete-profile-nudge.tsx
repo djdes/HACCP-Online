@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, ChevronDown, Loader2, Sparkles, X } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { TasksFlowPromoHint } from "@/components/tasksflow/tasksflow-promo-hint";
 import {
@@ -12,6 +19,7 @@ import {
   ORG_SPHERES,
   normalizeSphere,
 } from "@/lib/org-profile";
+import { suggestPassword } from "@/lib/password-suggest";
 import {
   DEFAULT_OWNER_POSITION,
   OWNER_POSITION_CATEGORY,
@@ -116,9 +124,15 @@ function phoneLooksValid(raw: string): boolean {
  * наверху, помечены красной точкой. Всё остальное человек дозаполнит в
  * настройках, и держать его на пути к первому журналу незачем.
  *
- * Подписи-разделители («Обязательно», «можно заполнить позже») и
- * пояснения к необязательным полям убраны: они ничего не добавляли к
- * подписям самих полей, но делали модалку на треть выше.
+ * Раскладка рассчитана на первый экран телефона без прокрутки: поля
+ * стоят парами по смыслу («Сфера · Тип», «Точек · ИНН», «Имя · Пароль»),
+ * галочка сотрудника и должность — в одной строке, промо TasksFlow —
+ * одной строкой под телефоном, кнопки футера — в один ряд.
+ *
+ * Пароль подставляется сам (6 знаков, см. `suggestPassword`) и виден
+ * открытым текстом: человек либо запоминает его, либо перегенерирует
+ * кнопкой, либо печатает свой. При сохранении он же уходит на почту —
+ * пароль из письма о регистрации после этого не подходит.
  *
  * Подтверждения почты здесь больше нет: оно блокировало «Готово» до
  * похода в почтовый ящик. Переехало в /settings.
@@ -145,6 +159,13 @@ function CompleteProfileModal({
   const [asEmployee, setAsEmployee] = useState(true);
   const [positionName, setPositionName] = useState(DEFAULT_OWNER_POSITION);
 
+  // Пароль генерируем после монтирования, а не в инициализаторе state:
+  // модалка рендерится и на сервере (`?welcome=1`), и случайное значение
+  // на сервере и клиенте разошлось бы при гидратации.
+  useEffect(() => {
+    setNewPassword((current) => current || suggestPassword());
+  }, []);
+
   // Подсказки идут за сферой: у производства и столовой свой «директор».
   const positionOptions = useMemo(
     () =>
@@ -162,8 +183,9 @@ function CompleteProfileModal({
 
   const nameOk = organizationName.trim().length >= 2;
   const phoneOk = phoneLooksValid(phone);
+  const passwordOk = newPassword.trim().length === 0 || newPassword.trim().length >= 6;
   const busy = saving || demoLoading;
-  const canSubmit = nameOk && phoneOk && !busy;
+  const canSubmit = nameOk && phoneOk && passwordOk && !busy;
 
   // Чего не хватает — говорим прямо под кнопкой. Нативные тултипы
   // браузера («Вы пропустили это поле») выключены: они появляются
@@ -171,6 +193,7 @@ function CompleteProfileModal({
   const missing = [
     !nameOk ? "название организации" : null,
     !phoneOk ? "телефон" : null,
+    !passwordOk ? "пароль от 6 знаков" : null,
   ].filter(Boolean) as string[];
 
   /**
@@ -207,13 +230,17 @@ function CompleteProfileModal({
     }
   }
 
+  const savedMessage = newPassword.trim()
+    ? "Готово. Данные сохранены, пароль для входа отправили на почту"
+    : "Готово. Данные организации сохранены";
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setSaving(true);
     try {
       if (!(await saveProfile())) return;
-      toast.success("Готово. Данные организации сохранены");
+      toast.success(savedMessage);
       onClose();
       router.refresh();
     } finally {
@@ -257,18 +284,21 @@ function CompleteProfileModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0b1024]/45 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-[520px] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_40px_100px_-40px_rgba(11,16,36,0.6)]">
-        <div className="flex shrink-0 items-start gap-3 border-b border-[#eef0f6] p-5">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-            <Sparkles className="size-5" />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0b1024]/45 p-3 backdrop-blur-sm sm:p-4">
+      {/* dvh, а не vh: на iPhone Safari vh считается без учёта панелей
+          браузера, и низ модалки уезжал под нижнюю панель. */}
+      <div className="flex max-h-[94dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_40px_100px_-40px_rgba(11,16,36,0.6)]">
+        <div className="flex shrink-0 items-start gap-3 border-b border-[#eef0f6] px-4 py-3.5 sm:p-5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+            <Sparkles className="size-[18px]" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+            <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-[#0b1024]">
               {welcome ? "Аккаунт создан!" : "Завершите регистрацию"}
             </h2>
-            <p className="mt-0.5 text-[13px] leading-snug text-[#6f7282]">
-              Пароль отправлен на {email}
+            <p className="mt-0.5 text-[12px] leading-snug text-[#6f7282]">
+              Логин: <span className="text-[#3c4053]">{email}</span>. Пароль —
+              внизу, продублируем его на почту.
             </p>
           </div>
           <button
@@ -285,7 +315,7 @@ function CompleteProfileModal({
           id="complete-profile-form"
           noValidate
           onSubmit={submit}
-          className="min-h-0 flex-1 space-y-3 overflow-y-auto p-5"
+          className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:space-y-3 sm:p-5"
         >
           <Field
             label="Название организации"
@@ -304,9 +334,9 @@ function CompleteProfileModal({
           </Field>
 
           {/* Телефон занимает ровно свою ширину — в российском номере
-              11 цифр, растягивать поле на всю строку незачем. Справа
-              от него встаёт узкое промо TasksFlow: место, где человек
-              вводит номер, — единственное, где реклама автосвязки
+              11 цифр, растягивать поле на всю строку незачем. Рядом (на
+              телефоне — строкой под ним) узкое промо TasksFlow: место, где
+              человек вводит номер, — единственное, где реклама автосвязки
               уместна, потому что связывает аккаунты именно номер.
 
               Промо вынесено из <Field>: внутри <label> ссылка и кнопка
@@ -334,60 +364,62 @@ function CompleteProfileModal({
 
             <TasksFlowPromoHint
               campaign="register_nudge"
-              compact
-              className="min-w-0 flex-1"
+              inline
+              className="min-w-0 flex-1 sm:self-stretch"
             />
           </div>
 
           {/* Тот, кто завёл организацию, — тоже сотрудник, и без должности
-              он висит в команде безымянной строкой. Спрашиваем здесь, пока
-              человек и так вводит свой телефон, а не отдельным шагом
-              потом. По умолчанию — да, «Директор»: это верно для
-              большинства, и снять галочку дешевле, чем искать экран. */}
-          <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-3">
-            <label className="flex cursor-pointer items-start gap-2.5">
+              он висит в команде безымянной строкой. Галочка и должность в
+              одной строке: по умолчанию «да», «Директор» — верно для
+              большинства, а снять галочку дешевле, чем искать экран. */}
+          <div className="flex items-stretch gap-2">
+            <label
+              title="Появитесь в списке команды с должностью и сможете подтверждать заполненные журналы"
+              className={`flex cursor-pointer items-center gap-2 rounded-2xl border px-3 transition-colors ${
+                asEmployee
+                  ? "shrink-0 border-[#5566f6]/40 bg-[#f5f6ff]"
+                  : "min-w-0 flex-1 border-[#dcdfed] bg-white py-3"
+              }`}
+            >
               <input
                 type="checkbox"
                 checked={asEmployee}
                 onChange={(e) => setAsEmployee(e.target.checked)}
-                className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[#5566f6]"
+                className="size-4 shrink-0 cursor-pointer accent-[#5566f6]"
               />
-              <span className="min-w-0">
-                <span className="block text-[14px] font-medium text-[#0b1024]">
-                  Оформить меня сотрудником
-                </span>
-                <span className="block text-[12.5px] leading-snug text-[#6f7282]">
-                  Появитесь в списке команды с должностью — сможете
-                  подтверждать заполненные журналы
-                </span>
+              <span className="whitespace-nowrap text-[14px] font-medium text-[#0b1024]">
+                Я сотрудник
               </span>
+              {!asEmployee ? (
+                <span className="truncate text-[12px] text-[#6f7282]">
+                  без должности в команде
+                </span>
+              ) : null}
             </label>
 
             {asEmployee ? (
-              <div className="mt-3 pl-[26px]">
-                <Field label="Должность">
-                  <input
-                    value={positionName}
-                    onChange={(e) => setPositionName(e.target.value)}
-                    list="owner-position-suggestions"
-                    maxLength={120}
-                    placeholder={DEFAULT_OWNER_POSITION}
-                    className={CONTROL_CLASS}
-                  />
-                  <datalist id="owner-position-suggestions">
-                    {positionOptions.map((option) => (
-                      <option key={option} value={option} />
-                    ))}
-                  </datalist>
-                </Field>
-              </div>
+              <Field label="Должность" className="min-w-0 flex-1">
+                <input
+                  value={positionName}
+                  onChange={(e) => setPositionName(e.target.value)}
+                  list="owner-position-suggestions"
+                  maxLength={120}
+                  placeholder={DEFAULT_OWNER_POSITION}
+                  className={CONTROL_CLASS}
+                />
+                <datalist id="owner-position-suggestions">
+                  {positionOptions.map((option) => (
+                    <option key={option} value={option} />
+                  ))}
+                </datalist>
+              </Field>
             ) : null}
           </div>
 
-          {/* Остальное необязательно и живёт одной сеткой: подписи в
-              полях уже говорят, что это, а отдельная шапка «можно
-              заполнить позже» только добавляла модалке высоты. */}
-          <div className="grid gap-3 sm:grid-cols-2">
+          {/* Остальное необязательно и стоит парами по смыслу, чтобы анкета
+              помещалась в первый экран телефона. */}
+          <div className="grid grid-cols-2 gap-2">
             <Field label="Сфера">
               <SelectShell>
                 <select
@@ -419,7 +451,9 @@ function CompleteProfileModal({
                 </select>
               </SelectShell>
             </Field>
+          </div>
 
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-2">
             <Field label="Точек" plain>
               <NumberStepper
                 value={locationsCount}
@@ -440,7 +474,9 @@ function CompleteProfileModal({
                 className={CONTROL_CLASS}
               />
             </Field>
+          </div>
 
+          <div className="grid grid-cols-2 gap-2">
             <Field label="Ваше имя">
               <input
                 value={name}
@@ -451,15 +487,38 @@ function CompleteProfileModal({
               />
             </Field>
 
-            <Field label="Новый пароль">
-              <input
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                type="password"
-                placeholder="••••••"
-                maxLength={200}
-                className={CONTROL_CLASS}
-              />
+            {/* Пароль виден открытым текстом: его нужно запомнить или
+                записать. Кнопка справа подбирает другой; можно и напечатать
+                свой — от 6 знаков. */}
+            <Field
+              label="Пароль для входа"
+              error={
+                touched.password && !passwordOk ? "Минимум 6 знаков" : null
+              }
+            >
+              <span className="flex items-center gap-1">
+                <input
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+                  type="text"
+                  autoComplete="new-password"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={200}
+                  className={`${CONTROL_CLASS} font-mono tracking-[0.08em]`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewPassword(suggestPassword())}
+                  aria-label="Подобрать другой пароль"
+                  title="Другой пароль"
+                  className="-mr-1.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-[#5566f6] transition-colors hover:bg-[#eef1ff] hover:text-[#3848c7]"
+                >
+                  <RefreshCw className="size-3.5" />
+                </button>
+              </span>
             </Field>
           </div>
 
@@ -472,46 +531,45 @@ function CompleteProfileModal({
           ) : null}
         </form>
 
-        <div className="shrink-0 border-t border-[#eef0f6] p-5">
-          <button
-            type="submit"
-            form="complete-profile-form"
-            disabled={!canSubmit}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-semibold text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c9cef7] disabled:shadow-none"
-          >
-            {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            Готово
-          </button>
-
-          {/* Второй выход из анкеты: та же «Готово», но дальше — в
+        <div className="shrink-0 border-t border-[#eef0f6] p-4 sm:p-5">
+          {/* Обе кнопки в один ряд: «Готово» и та же «Готово», но дальше — в
               отдельную демо-организацию с сотрудниками и заполненными
-              журналами. Активна по тем же условиям, что и «Готово»:
-              анкета сохраняется первой. */}
-          <button
-            type="button"
-            onClick={submitWithDemo}
-            disabled={!canSubmit}
-            data-testid="complete-profile-demo"
-            className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:border-[#eef0f6] disabled:text-[#9b9fb3] disabled:hover:bg-white"
-          >
-            {demoLoading ? (
-              <>
-                <Loader2 className="size-4 animate-spin text-[#5566f6]" />
-                Готовим демо…
-              </>
-            ) : (
-              <>
-                <Sparkles className="size-4 text-[#5566f6]" />
-                Готово и посмотреть на демо-данных
-              </>
-            )}
-          </button>
-          <p className="mt-1.5 text-center text-[12px] leading-snug text-[#6f7282]">
-            Демо — отдельная тестовая организация с сотрудниками и
-            заполненными журналами. Удалится через 7 дней или по кнопке.
+              журналами. Активны по одним условиям: анкета сохраняется первой. */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="submit"
+              form="complete-profile-form"
+              disabled={!canSubmit}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-semibold text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c9cef7] disabled:shadow-none"
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+              Готово
+            </button>
+            <button
+              type="button"
+              onClick={submitWithDemo}
+              disabled={!canSubmit}
+              data-testid="complete-profile-demo"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:border-[#eef0f6] disabled:text-[#9b9fb3] disabled:hover:bg-white"
+            >
+              {demoLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin text-[#5566f6]" />
+                  Готовим…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-4 text-[#5566f6]" />
+                  Показать демо
+                </>
+              )}
+            </button>
+          </div>
+          <p className="mt-1.5 text-center text-[11px] leading-snug text-[#6f7282]">
+            Демо — отдельная организация с примерами на 7 дней.
           </p>
 
-          <div className="mt-2 flex items-center justify-center gap-1.5 text-[12px]">
+          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[12px]">
             {missing.length === 0 ? (
               <>
                 <CheckCircle2 className="size-3.5 text-[#116b2a]" />
@@ -519,7 +577,7 @@ function CompleteProfileModal({
               </>
             ) : (
               <span className="text-[#9b9fb3]">
-                Осталось: {missing.join(" и ")}
+                Осталось: {missing.join(", ")}
               </span>
             )}
           </div>
@@ -538,7 +596,7 @@ function CompleteProfileModal({
 const CONTROL_CLASS =
   "h-6 w-full border-0 bg-transparent p-0 text-[16px] leading-6 text-[#0b1024] placeholder:text-[#c1c5d6] focus:outline-none focus:ring-0";
 
-const SELECT_CLASS = `${CONTROL_CLASS} appearance-none pr-6`;
+const SELECT_CLASS = `${CONTROL_CLASS} appearance-none truncate pr-6`;
 
 /** Обёртка нативного select со стрелкой — как в форме настроек. */
 function SelectShell({ children }: { children: React.ReactNode }) {
@@ -587,7 +645,7 @@ function Field({
   return (
     <Tag className={`block ${className}`}>
       <span
-        className={`flex flex-col gap-0.5 rounded-2xl border bg-white px-4 py-2 transition-[border-color,box-shadow] focus-within:ring-4 ${
+        className={`flex flex-col gap-0.5 rounded-2xl border bg-white px-3.5 py-2 transition-[border-color,box-shadow] focus-within:ring-4 ${
           error
             ? "border-[#ff8d7d] focus-within:border-[#d2453d] focus-within:ring-[#d2453d]/15"
             : "border-[#dcdfed] focus-within:border-[#5566f6] focus-within:ring-[#5566f6]/15"

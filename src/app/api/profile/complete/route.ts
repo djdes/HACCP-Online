@@ -4,6 +4,7 @@ import { defaultDisabledCodesFor } from "@/lib/sphere-journal-rules";
 import bcrypt from "bcryptjs";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { sendPasswordChangedEmail } from "@/lib/email";
 import { normalizePhone } from "@/lib/phone";
 import { registrationConfirmRateLimiter } from "@/lib/rate-limit";
 import {
@@ -152,6 +153,17 @@ export async function POST(request: Request) {
       },
     });
   });
+
+  // Анкета подставляет пароль сама, и пароль из письма о регистрации после
+  // сохранения не подходит. Новый дублируем на почту — не дожидаясь
+  // отправки, как и при регистрации.
+  if (data.newPassword) {
+    sendPasswordChangedEmail({
+      to: email,
+      password: data.newPassword,
+      organizationId,
+    }).catch((err) => console.error("sendPasswordChangedEmail failed", err));
+  }
 
   return NextResponse.json({ ok: true });
 }

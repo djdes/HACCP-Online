@@ -1,0 +1,86 @@
+{
+  "m758": {
+    "viewport": {
+      "w": 390,
+      "h": 758
+    },
+    "modal": {
+      "top": 36.6875,
+      "bottom": 721.3125,
+      "height": 684.625
+    },
+    "formScroll": {
+      "scrollHeight": 454,
+      "clientHeight": 454,
+      "fits": true
+    },
+    "password": "Xx#9w9",
+    "rows": [
+      55,
+      95,
+      55,
+      55,
+      63,
+      59
+    ]
+  },
+  "regenerate": {
+    "before": "Xx#9w9",
+    "after": "b6?gL2",
+    "changed": true,
+    "pattern": true
+  },
+  "positionHiddenWhenUnchecked": true,
+  "statusAllFilled": true,
+  "submitEnabled": true,
+  "m844": {
+    "viewport": {
+      "w": 390,
+      "h": 844
+    },
+    "modal": {
+      "top": 79.6875,
+      "bottom": 764.3125,
+      "height": 684.625
+    },
+    "formScroll": {
+      "scrollHeight": 454,
+      "clientHeight": 454,
+      "fits": true
+    },
+    "password": "b6?gL2",
+    "rows": [
+      55,
+      95,
+      55,
+      55,
+      63,
+      59
+    ]
+  },
+  "desktop": {
+    "viewport": {
+      "w": 1280,
+      "h": 900
+    },
+    "modal": {
+      "top": 111.9375,
+      "bottom": 788.0625,
+      "height": 676.125
+    },
+    "formScroll": {
+      "scrollHeight": 442,
+      "clientHeight": 442,
+      "fits": true
+    },
+    "password": "b6?gL2",
+    "rows": [
+      55,
+      55,
+      55,
+      55,
+      63,
+      59
+    ]
+  }
+}

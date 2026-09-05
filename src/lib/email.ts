@@ -351,6 +351,33 @@ export async function sendAccountPasswordEmail(params: {
 }
 
 /**
+ * Пароль, заданный в анкете после регистрации. Пароль из первого письма
+ * после этого не подходит — поэтому новый тоже уходит на почту: человек,
+ * не заметивший поле в анкете, не должен остаться без входа.
+ */
+export async function sendPasswordChangedEmail(params: {
+  to: string;
+  password: string;
+  organizationId?: string | null;
+}) {
+  const { to, password, organizationId } = params;
+  const brand = await emailBrandForOrganization(organizationId);
+  const subject = "Новый пароль для входа в WeSetup";
+
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">В анкете организации задан новый пароль. Пароль из первого письма больше не подходит — сохраните данные для входа:</p>
+    <div style="background:#f4f4f5;border-radius:8px;padding:20px;margin:0 0 24px">
+      <p style="margin:0 0 4px;color:#18181b"><strong>Логин:</strong> ${escapeHtml(to)}</p>
+      <p style="margin:0;color:#18181b"><strong>Пароль:</strong> <span style="font-family:monospace;font-size:16px;letter-spacing:1px">${escapeHtml(password)}</span></p>
+    </div>
+    <a href="${APP_URL}/dashboard" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть кабинет</a>
+    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Сменить пароль можно в любой момент в настройках профиля.</p>`;
+
+  return sendEmail(to, subject, layout("Новый пароль", body, brand));
+}
+
+/**
  * Письмо восстановления доступа. Ссылка ведёт на ту же страницу, что и
  * приглашение сотрудника, поэтому копия нейтральная — «задайте новый
  * пароль», без слова «приглашение».
