@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
-import { Plus, Printer, Trash2, X } from "lucide-react";
+import { Archive, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -29,20 +28,17 @@ import {
   PEST_CONTROL_DOCUMENT_TITLE,
   PEST_CONTROL_PAGE_TITLE,
   createEmptyPestControlEntry,
-  formatPestControlDate,
   formatPestControlDateTime,
   getPestControlRoleOptions,
   getPestControlUsersForRole,
   type PestControlEntryData,
 } from "@/lib/pest-control-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -78,45 +74,6 @@ type EditingEntry = {
   id: string;
   data: PestControlEntryData;
 };
-
-function HeaderTable(props: {
-  organizationName: string;
-  title: string;
-  dateFrom: string;
-  dateTo: string;
-}) {
-  return (
-    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 w-full max-w-[1040px]">
-      <table className="w-full border-collapse text-[13px] text-black">
-        <tbody>
-          <tr>
-            <td rowSpan={2} className="w-[200px] border border-black px-4 py-5 text-center font-semibold">
-              {props.organizationName}
-            </td>
-            <td className="border border-black px-4 py-5 text-center">СИСТЕМА ХАССП</td>
-            <td className="w-[180px] border border-black px-4 py-3 text-left">
-              <div className="space-y-2">
-                <div>Начат&nbsp;&nbsp;&nbsp;{formatPestControlDate(props.dateFrom)}</div>
-                <div>
-                  Окончен&nbsp;
-                  {props.dateTo && props.dateTo !== props.dateFrom
-                    ? formatPestControlDate(props.dateTo)
-                    : "__________"}
-                </div>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td className="border border-black px-4 py-5 text-center text-[13px] italic uppercase">
-              {props.title}
-            </td>
-            <td className="border border-black px-4 py-5 text-right">СТР. 1 ИЗ 1</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 function DocumentSettingsDialog(props: {
   open: boolean;
@@ -684,58 +641,6 @@ export function PestControlDocumentClient(props: Props) {
   return (
     <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={`/journals/${props.routeCode}`} documentId={props.documentId} />
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
-        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-          {props.title || PEST_CONTROL_DOCUMENT_TITLE}
-        </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
-              отмены ставим в его шапку слева от «Печати». */}
-          {!readOnly && (
-            <PublishUndoToHeader
-              undo={{
-                canUndo: undoStack.canUndo,
-                canRedo: undoStack.canRedo,
-                onUndo: () => void undoStack.undo(),
-                onRedo: () => void undoStack.redo(),
-                undoCount: undoStack.undoCount,
-              }}
-            />
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-            className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            <Printer className="size-4" />
-          </Button>
-          {!readOnly && (
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-lg border-0 bg-[#5566f6]/[0.04] px-5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-              onClick={() => setSettingsOpen(true)}
-            >
-              Настройки журнала
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <HeaderTable
-        organizationName={props.organizationName}
-        title={props.title || PEST_CONTROL_DOCUMENT_TITLE}
-        dateFrom={props.dateFrom}
-        dateTo={props.dateTo}
-      />
-
-      <div className="text-center text-[18px] font-semibold uppercase leading-tight tracking-[-0.02em] sm:text-[26px]">
-        {PEST_CONTROL_PAGE_TITLE}
-      </div>
 
       {!readOnly && selectedIds.length > 0 && (
         <div className="flex flex-wrap items-center gap-4 rounded-[16px] border border-[#eceef5] bg-white px-6 py-4">
@@ -758,44 +663,65 @@ export function PestControlDocumentClient(props: Props) {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {!readOnly ? (
-          <Button
-            type="button"
-            className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] text-white hover:bg-[#4b57f3]"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus className="size-5" />
-            Добавить
-          </Button>
-        ) : <div />}
-
-        {!readOnly && (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            onClick={() => setCloseOpen(true)}
-          >
-            Закончить журнал
-          </Button>
-        )}
-      </div>
-
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Мероприятий пока не проводилось." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView}>
-        <table className="min-w-full border-collapse border border-black bg-white text-[13px]">
+      <JournalDocumentShell
+        title={props.title || PEST_CONTROL_DOCUMENT_TITLE}
+        documentId={props.documentId}
+        backHref={`/journals/${props.routeCode}`}
+        onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
+        closed={readOnly}
+        closedHint="Откройте журнал заново, чтобы добавлять и редактировать мероприятия."
+        undo={
+          !readOnly
+            ? {
+                canUndo: undoStack.canUndo,
+                canRedo: undoStack.canRedo,
+                onUndo: () => void undoStack.undo(),
+                onRedo: () => void undoStack.redo(),
+                undoCount: undoStack.undoCount,
+              }
+            : undefined
+        }
+        menuItems={
+          !readOnly
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => setCloseOpen(true),
+                },
+              ]
+            : []
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={<RecordCardsView items={cardItems} emptyLabel="Мероприятий пока не проводилось." />}
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={props.organizationName}
+            title={props.title || PEST_CONTROL_DOCUMENT_TITLE}
+            startedAt={props.dateFrom}
+            finishedAt={props.dateTo && props.dateTo !== props.dateFrom ? props.dateTo : null}
+          />
+        }
+        sheetTitle={PEST_CONTROL_PAGE_TITLE}
+        toolbar={
+          !readOnly ? (
+            <Button
+              type="button"
+              className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] text-white hover:bg-[#4b57f3]"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="size-5" />
+              Добавить
+            </Button>
+          ) : null
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
           <thead>
-            <tr className="bg-[#fafafa]">
-              <th className="w-12 border border-black px-2 py-3 text-center">
+            <tr>
+              <th className={`w-12 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                 {!readOnly && (
                   <Checkbox
                     checked={allSelected}
@@ -805,13 +731,13 @@ export function PestControlDocumentClient(props: Props) {
                   />
                 )}
               </th>
-              <th className="min-w-[110px] border border-black px-3 py-3 text-center sm:min-w-[140px]">Дата и время проведения</th>
-              <th className="min-w-[170px] border border-black px-3 py-3 text-center sm:min-w-[220px]">Мероприятие (вид, место)</th>
-              <th className="min-w-[120px] border border-black px-3 py-3 text-center sm:min-w-[150px]">Площадь и (или) объем</th>
-              <th className="min-w-[150px] border border-black px-3 py-3 text-center sm:min-w-[190px]">Средство обработки</th>
-              <th className="min-w-[220px] border border-black px-3 py-3 text-center sm:min-w-[320px]">Примечание</th>
-              <th className="min-w-[120px] border border-black px-3 py-3 text-center sm:min-w-[150px]">Кем проведено</th>
-              <th className="min-w-[170px] border border-black px-3 py-3 text-center sm:min-w-[220px]">ФИО принявшего работы</th>
+              <th className={`min-w-[110px] sm:min-w-[140px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Дата и время проведения</th>
+              <th className={`min-w-[170px] sm:min-w-[220px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Мероприятие (вид, место)</th>
+              <th className={`min-w-[120px] sm:min-w-[150px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Площадь и (или) объем</th>
+              <th className={`min-w-[150px] sm:min-w-[190px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Средство обработки</th>
+              <th className={`min-w-[220px] sm:min-w-[320px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Примечание</th>
+              <th className={`min-w-[120px] sm:min-w-[150px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Кем проведено</th>
+              <th className={`min-w-[170px] sm:min-w-[220px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>ФИО принявшего работы</th>
             </tr>
           </thead>
           <tbody>
@@ -829,7 +755,7 @@ export function PestControlDocumentClient(props: Props) {
                     setEditing({ id: entry.id, data: entry.data });
                   }}
                 >
-                  <td className="border border-black px-2 py-3 text-center" onClick={(event) => event.stopPropagation()}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} onClick={(event) => event.stopPropagation()}>
                     {!readOnly && !isPlaceholder && (
                       <Checkbox
                         checked={selectedIds.includes(entry.id)}
@@ -843,7 +769,7 @@ export function PestControlDocumentClient(props: Props) {
                       />
                     )}
                   </td>
-                  <td className="border border-black px-3 py-3 text-center">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {isPlaceholder ? "" : (
                       <>
                         <div>{dateTime.dateLabel}</div>
@@ -851,12 +777,12 @@ export function PestControlDocumentClient(props: Props) {
                       </>
                     )}
                   </td>
-                  <td className="border border-black px-3 py-3 text-center">{isPlaceholder ? "" : entry.data.event}</td>
-                  <td className="border border-black px-3 py-3 text-center">{isPlaceholder ? "" : entry.data.areaOrVolume}</td>
-                  <td className="border border-black px-3 py-3 text-center">{isPlaceholder ? "" : entry.data.treatmentProduct}</td>
-                  <td className="border border-black px-3 py-3 text-center">{isPlaceholder ? "" : entry.data.note}</td>
-                  <td className="border border-black px-3 py-3 text-center">{isPlaceholder ? "" : entry.data.performedBy}</td>
-                  <td className="border border-black px-3 py-3 text-center">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{isPlaceholder ? "" : entry.data.event}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{isPlaceholder ? "" : entry.data.areaOrVolume}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{isPlaceholder ? "" : entry.data.treatmentProduct}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{isPlaceholder ? "" : entry.data.note}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{isPlaceholder ? "" : entry.data.performedBy}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {isPlaceholder
                       ? ""
                       : [entry.data.acceptedRole, acceptedUser?.name].filter(Boolean).join(", ")}
@@ -866,8 +792,7 @@ export function PestControlDocumentClient(props: Props) {
             })}
           </tbody>
         </table>
-        </MobileViewTableWrapper>
-      </div>
+      </JournalDocumentShell>
 
       <DocumentSettingsDialog
         open={settingsOpen}

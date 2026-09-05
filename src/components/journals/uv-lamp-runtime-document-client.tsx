@@ -1458,6 +1458,10 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           браузер ставит сам. */}
 
       {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
       <div className={DOC_PAPER_CANVAS_CLASS}>
       {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки.
           По эталону (uv_lamp_runtime-grid.png) он стоит НАД справочными
@@ -1504,9 +1508,6 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         <MonthlySummaryTable monthlyData={monthlyData} />
       </div>
 
-      <div className="sm:hidden print:hidden">
-        <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-      </div>
 
       {mobileView === "cards" ? (
         <RecordCardsView

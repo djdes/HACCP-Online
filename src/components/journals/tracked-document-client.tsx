@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Printer, Settings2, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import {
   JournalDocumentHeader,
-  JournalDocumentTitle,
 } from "@/components/journals/journal-document-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,17 +29,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { RecordCardsView, type RecordCardItem } from "@/components/journals/record-cards-view";
+import { useMobileView } from "@/lib/use-mobile-view";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
+  DOC_PRIMARY_BUTTON_CLASS,
   JOURNAL_DIALOG_BODY_CLASS,
   JOURNAL_DIALOG_GRID_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
-  JOURNAL_DOCUMENT_ACTIONS_CLASS,
-  JOURNAL_DOCUMENT_HEADER_CLASS,
-  JOURNAL_DOCUMENT_SHELL_CLASS,
-  JOURNAL_TABLE_VIEWPORT_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { PestControlDocumentClient } from "@/components/journals/pest-control-document-client";
@@ -50,7 +48,6 @@ import {
 } from "@/lib/pest-control-document";
 
 import { toast } from "sonner";
-import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { localDayKey } from "@/lib/entry-defaults";
@@ -170,10 +167,28 @@ function TrackedDocumentClientImpl({
     setNewDate(localDayKey());
   }, [addRowOpen, employees]);
 
+  const { mobileView, switchMobileView } = useMobileView(templateCode);
+
   const employeeMap = useMemo(
     () => Object.fromEntries(employees.map((item) => [item.id, item])),
     [employees]
   );
+
+  /** Карточный вид телефона — те же строки, что в таблице. */
+  const cardItems: RecordCardItem[] = entries.map((entry) => ({
+    id: entry.id,
+    title: formatDateLabel(entry.date),
+    subtitle: employeeMap[entry.employeeId]?.name || "",
+    fields: fields.map((field) => {
+      const value = entry.data[field.key];
+      return {
+        label: field.label,
+        value:
+          typeof value === "boolean" ? (value ? "Да" : "Нет") : String(value ?? ""),
+        hideIfEmpty: true,
+      };
+    }),
+  }));
   const allSelected = entries.length > 0 && selectedRowIds.length === entries.length;
   // История отмены: только правки этого человека в этой вкладке.
   const undoStack = useJournalUndo({ enabled: status === "active" });
@@ -357,37 +372,48 @@ function TrackedDocumentClientImpl({
       ) : null}
 
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
-      <div className={JOURNAL_DOCUMENT_SHELL_CLASS}>
-        <div className={JOURNAL_DOCUMENT_HEADER_CLASS}>
-          <div>
-            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] font-bold leading-tight tracking-[-0.02em] text-[#0b1024]">
-              {title}
-            </h1>
-            <div className="mt-2 text-[14px] text-[#84849a] sm:text-[16px]">
-              Период: {formatDateLabel(dateFrom)} - {formatDateLabel(dateTo)}
-            </div>
-          </div>
-
-          <div className={JOURNAL_DOCUMENT_ACTIONS_CLASS}>
-            {status === "active" && (
-              <PublishUndoToHeader
-                undo={{
-                  canUndo: undoStack.canUndo,
-                  canRedo: undoStack.canRedo,
-                  onUndo: () => void undoStack.undo(),
-                  onRedo: () => void undoStack.redo(),
-                  undoCount: undoStack.undoCount,
-                }}
-              />
-            )}
-            {status === "active" && (
+      <JournalDocumentShell
+        title={title}
+        subtitle={`Период: ${formatDateLabel(dateFrom)} - ${formatDateLabel(dateTo)}`}
+        documentId={documentId}
+        backHref={`/journals/${templateCode}`}
+        onSettings={() => setSettingsOpen(true)}
+        settingsLabel="Настройки"
+        closed={status !== "active"}
+        closedHint="Откройте журнал заново, чтобы добавлять и править строки."
+        undo={
+          status === "active"
+            ? {
+                canUndo: undoStack.canUndo,
+                canRedo: undoStack.canRedo,
+                onUndo: () => void undoStack.undo(),
+                onRedo: () => void undoStack.redo(),
+                undoCount: undoStack.undoCount,
+              }
+            : undefined
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={<RecordCardsView items={cardItems} emptyLabel="Записей пока нет." />}
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title={title}
+            startedAt={dateFrom}
+            finishedAt={status === "closed" ? dateTo : null}
+          />
+        }
+        sheetTitle={title}
+        sheetMinWidth={1200}
+        toolbar={
+          status === "active" ? (
+            <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
                     disabled={isCreating || employees.length === 0}
-                    className="h-10 w-full rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4d58f5] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
+                    className={DOC_PRIMARY_BUTTON_CLASS}
                   >
                     <Plus className="size-5" />
                     Добавить
@@ -418,64 +444,26 @@ function TrackedDocumentClientImpl({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
-
-            {status === "active" && selectedRowIds.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  removeSelectedEntries().catch((error) =>
-                    toast.error(error instanceof Error ? error.message : "Ошибка удаления строк")
-                  )
-                }
-                className="h-9 w-full rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2] sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
-              >
-                <Trash2 className="size-5" />
-                Удалить ({selectedRowIds.length})
-              </Button>
-            )}
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSettingsOpen(true)}
-              className="h-9 w-full rounded-xl border-[#e6e9f5] px-3.5 text-[13.5px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
-            >
-              <Settings2 className="size-5" />
-              Настройки
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                window.open(`/api/journal-documents/${documentId}/pdf`, "_blank")
-              }
-              className="h-9 w-full rounded-xl border-[#e6e9f5] px-3.5 text-[13.5px] text-black shadow-none sm:h-12 sm:w-auto sm:px-5 sm:text-[16px]"
-            >
-              <Printer className="size-5" />
-              Печать
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки. */}
-      <div className="mb-4 print:mb-2">
-        <JournalDocumentHeader
-          orgName={organizationName}
-          title={title}
-          startedAt={dateFrom}
-          finishedAt={status === "closed" ? dateTo : null}
-        />
-        <div className="mt-3">
-          <JournalDocumentTitle>{title}</JournalDocumentTitle>
-        </div>
-      </div>
-
-      <div className={JOURNAL_TABLE_VIEWPORT_CLASS}>
-        <table className="min-w-[1200px] w-full border-collapse text-[13px]">
+              {selectedRowIds.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    removeSelectedEntries().catch((error) =>
+                      toast.error(error instanceof Error ? error.message : "Ошибка удаления строк")
+                    )
+                  }
+                  className="h-9 rounded-xl border-[#ffd7d3] px-3.5 text-[13.5px] text-[#ff3b30] hover:bg-[#fff3f2]"
+                >
+                  <Trash2 className="size-5" />
+                  Удалить ({selectedRowIds.length})
+                </Button>
+              ) : null}
+            </>
+          ) : null
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr className="bg-[#f7f8fd]">
               {status === "active" && (
@@ -490,7 +478,7 @@ function TrackedDocumentClientImpl({
                 </th>
               )}
               <th className="border border-[#eceef5] px-4 py-3 text-left font-medium text-[#5b6075]">
-                Р”Р°С‚Р°
+                Дата
               </th>
               <th className="border border-[#eceef5] px-4 py-3 text-left font-medium text-[#5b6075]">
                 Сотрудник
@@ -701,7 +689,7 @@ function TrackedDocumentClientImpl({
             )}
           </tbody>
         </table>
-      </div>
+      </JournalDocumentShell>
 
       <Dialog open={addRowOpen} onOpenChange={setAddRowOpen}>
         <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[32px] border-0 p-0 sm:max-w-[760px]">
@@ -713,7 +701,7 @@ function TrackedDocumentClientImpl({
 
           <div className={JOURNAL_DIALOG_BODY_CLASS}>
             <div className="space-y-3">
-              <Label className="text-[14px] text-[#73738a]">Р”Р°С‚Р°</Label>
+              <Label className="text-[14px] text-[#73738a]">Дата</Label>
               <Input
                 type="date"
                 value={newDate}

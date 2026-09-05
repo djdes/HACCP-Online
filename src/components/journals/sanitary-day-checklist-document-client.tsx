@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -31,17 +31,18 @@ import {
   type SdcZone,
   type SdcItem,
 } from "@/lib/sanitary-day-checklist-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+} from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 
 import { toast } from "sonner";
-import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 /* ─── Types ─── */
 
@@ -639,42 +640,6 @@ function TimeCell({
 
 /* ─── Print Header ─── */
 
-function PrintHeader({
-  organizationLabel,
-  pageLabel,
-}: {
-  organizationLabel: string;
-  pageLabel: string;
-}) {
-  return (
-    <table className="sdc-header w-full border-collapse text-[13px]">
-      <tbody>
-        <tr>
-          <td
-            rowSpan={2}
-            className="w-[270px] border border-black px-8 py-8 text-center text-[22px] font-semibold"
-          >
-            {organizationLabel}
-          </td>
-          <td className="border border-black px-8 py-4 text-center text-[18px] uppercase">
-            СИСТЕМА ХАССП
-          </td>
-          <td
-            rowSpan={2}
-            className="w-[170px] border border-black px-8 py-8 text-center text-[18px] uppercase"
-          >
-            {pageLabel}
-          </td>
-        </tr>
-        <tr>
-          <td className="border border-black px-8 py-4 text-center text-[17px] italic uppercase">
-            ЧЕК-ЛИСТ (ПАМЯТКА) ПРОВЕДЕНИЯ САНИТАРНОГО ДНЯ
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  );
-}
 
 /* ─── Main Component ─── */
 
@@ -860,7 +825,6 @@ export function SanitaryDayChecklistDocumentClient({
   return (
     <div className="bg-white text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={`/journals/${routeCode}`} documentId={documentId} />
       {/* A1: чек-лист санитарного дня — единственный ВЕРТИКАЛЬНЫЙ бланк
           среди журналов. Маркер переопределяет альбомный @page страницы
           документа на именованный @page journal-portrait. */}
@@ -890,12 +854,6 @@ export function SanitaryDayChecklistDocumentClient({
             margin: 0 !important;
           }
 
-          .sdc-header td {
-            font-size: 11px !important;
-            line-height: 1.15 !important;
-            padding: 8px 10px !important;
-          }
-
           .sdc-table th,
           .sdc-table td {
             font-size: 10px !important;
@@ -906,222 +864,190 @@ export function SanitaryDayChecklistDocumentClient({
       `}</style>
 
       <div className="sdc-sheet max-w-[960px] py-4 sm:py-6">
-        {/* ─── Toolbar (screen only) ─── */}
-        <div className="screen-only mb-6 space-y-4 sm:mb-10 sm:space-y-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-            <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-              {title || getSanitaryDayChecklistTitle(routeCode)}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-              {/* У этого журнала нет общей `DocumentActionsBar` — кнопки
-                  отмены ставим в его собственную шапку, слева от
-                  «Печати», чтобы порядок совпадал с остальными журналами. */}
-              {isActive && (
-                <PublishUndoToHeader
-                  undo={{
-                    canUndo: undoStack.canUndo,
-                    canRedo: undoStack.canRedo,
-                    onUndo: () => void undoStack.undo(),
-                    onRedo: () => void undoStack.redo(),
-                    undoCount: undoStack.undoCount,
-                  }}
-                />
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => window.print()}
-                title="Печать страницы" aria-label="Печать страницы"
-                className="h-9 shrink-0 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-              >
-                <Printer className="size-4" />
-              </Button>
-              {isActive && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setSettingsOpen(true)}
-                  className="h-9 shrink-0 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-                >
-                  Настройки журнала
-                </Button>
-              )}
+        <JournalDocumentShell
+          title={title || getSanitaryDayChecklistTitle(routeCode)}
+          documentId={documentId}
+          backHref={`/journals/${routeCode}`}
+          onSettings={isActive ? () => setSettingsOpen(true) : undefined}
+          menuItems={
+            isActive
+              ? [
+                  {
+                    key: "edit-zones",
+                    label: "Редактировать списки",
+                    icon: <Pencil className="size-4" />,
+                    onSelect: () => setEditZonesOpen(true),
+                  },
+                ]
+              : []
+          }
+          undo={
+            isActive
+              ? {
+                  canUndo: undoStack.canUndo,
+                  canRedo: undoStack.canRedo,
+                  onUndo: () => void undoStack.undo(),
+                  onRedo: () => void undoStack.redo(),
+                  undoCount: undoStack.undoCount,
+                }
+              : undefined
+          }
+          beforeToggle={
+            <div className="mb-6 flex items-center gap-3 text-[18px]">
+              <span className="font-semibold uppercase">Дата проведения</span>
+              <span>{formatRuDate(entryDate)}</span>
             </div>
-          </div>
-
-          {isActive && (
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          }
+          mobileView={mobileView}
+          onMobileView={switchMobileView}
+          cards={
+            <div className="space-y-4">
+              {zoneGroups.map(({ zone, items }, zoneIndex) => (
+                <div
+                  key={zone.id}
+                  className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white"
+                >
+                  <div className="flex items-center justify-between gap-3 border-b border-[#ececf4] bg-[#fafbff] px-4 py-3">
+                    <span className="text-[14px] font-semibold uppercase tracking-[0.08em] text-[#0b1024]">
+                      {zoneIndex + 1}. {zone.name}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#6f7282]">
+                      {items.filter((it) => checked.has(it.id)).length}/{items.length}
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-[#ececf4]">
+                    {items.map((item) => {
+                      const isChecked = checked.has(item.id);
+                      const time = marks[item.id];
+                      return (
+                        <li key={item.id} className="flex items-start gap-3 px-4 py-3">
+                          <button
+                            type="button"
+                            disabled={!isActive}
+                            onClick={() => handleToggleCheck(item.id)}
+                            className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-60 ${
+                              isChecked
+                                ? "border-[#5566f6] bg-[#5566f6] text-white"
+                                : "border-[#dcdfed] bg-white"
+                            }`}
+                            aria-label={isChecked ? "Снять отметку" : "Отметить выполненным"}
+                          >
+                            {isChecked ? "✓" : ""}
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <button
+                              type="button"
+                              disabled={!isActive}
+                              onClick={() => openEditItem(item)}
+                              className="text-left text-[14px] text-[#0b1024] hover:text-[#5566f6] disabled:cursor-default disabled:text-[#0b1024]"
+                            >
+                              {item.text}
+                            </button>
+                            {time ? (
+                              <div className="mt-1 text-[12px] text-[#6f7282]">
+                                Отмечено: {time}
+                              </div>
+                            ) : null}
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {items.length === 0 ? (
+                      <li className="px-4 py-4 text-center text-[13px] text-[#9b9fb3]">
+                        В зоне пока нет пунктов.
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          }
+          paperHeader={
+            <JournalDocumentHeader
+              orgName={organizationLabel}
+              title="ЧЕК-ЛИСТ (ПАМЯТКА) ПРОВЕДЕНИЯ САНИТАРНОГО ДНЯ"
+              startedAt={dateFrom}
+              finishedAt={null}
+            />
+          }
+          sheetMinWidth={1100}
+          toolbar={
+            isActive ? (
               <Button
                 type="button"
                 onClick={() => setAddItemOpen(true)}
-                className="h-[58px] rounded-2xl bg-[#5566f6] px-6 text-[16px] text-white hover:bg-[#4b57ff] sm:px-8 sm:text-[18px]"
+                className={DOC_PRIMARY_BUTTON_CLASS}
               >
                 <Plus className="mr-2 size-5" />
                 Добавить
               </Button>
-              <button
-                type="button"
-                className="text-[16px] font-medium text-[#3848c7] hover:underline sm:text-[18px]"
-                onClick={() => setEditZonesOpen(true)}
-              >
-                Редактировать списки
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Тумблер вида — ВНЕ широкого листа (min-w-[1100px]): внутри он растягивался на весь лист, и «Таблица» уезжала за экран. */}
-        <div className="sm:hidden print:hidden mb-6">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="min-w-[1100px] sm:min-w-0">
-
-        {/* ─── Print Header ─── */}
-        <div className="mb-8">
-          <PrintHeader
-            organizationLabel={organizationLabel}
-            pageLabel="СТР. 1 ИЗ 1"
-          />
-        </div>
-
-        {/* ─── Date Row ─── */}
-        <div className="mb-6 flex items-center gap-3 text-[18px]">
-          <span className="font-semibold uppercase">Дата проведения</span>
-          <span>{formatRuDate(entryDate)}</span>
-        </div>
-
-        {mobileView === "cards" ? (
-          <div className="space-y-4 sm:hidden print:hidden">
-            {zoneGroups.map(({ zone, items }, zoneIndex) => (
-              <div
-                key={zone.id}
-                className="overflow-hidden rounded-2xl border border-[#ececf4] bg-white"
-              >
-                <div className="flex items-center justify-between gap-3 border-b border-[#ececf4] bg-[#fafbff] px-4 py-3">
-                  <span className="text-[14px] font-semibold uppercase tracking-[0.08em] text-[#0b1024]">
-                    {zoneIndex + 1}. {zone.name}
-                  </span>
-                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#6f7282]">
-                    {items.filter((it) => checked.has(it.id)).length}/{items.length}
-                  </span>
-                </div>
-                <ul className="divide-y divide-[#ececf4]">
-                  {items.map((item) => {
-                    const isChecked = checked.has(item.id);
-                    const time = marks[item.id];
-                    return (
-                      <li key={item.id} className="flex items-start gap-3 px-4 py-3">
-                        <button
-                          type="button"
-                          disabled={!isActive}
-                          onClick={() => handleToggleCheck(item.id)}
-                          className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border transition-colors disabled:opacity-60 ${
-                            isChecked
-                              ? "border-[#5566f6] bg-[#5566f6] text-white"
-                              : "border-[#dcdfed] bg-white"
-                          }`}
-                          aria-label={isChecked ? "Снять отметку" : "Отметить выполненным"}
-                        >
-                          {isChecked ? "✓" : ""}
-                        </button>
-                        <div className="min-w-0 flex-1">
-                          <button
-                            type="button"
-                            disabled={!isActive}
-                            onClick={() => openEditItem(item)}
-                            className="text-left text-[14px] text-[#0b1024] hover:text-[#5566f6] disabled:cursor-default disabled:text-[#0b1024]"
-                          >
-                            {item.text}
-                          </button>
-                          {time ? (
-                            <div className="mt-1 text-[12px] text-[#6f7282]">
-                              Отмечено: {time}
-                            </div>
-                          ) : null}
-                        </div>
-                      </li>
-                    );
-                  })}
-                  {items.length === 0 ? (
-                    <li className="px-4 py-4 text-center text-[13px] text-[#9b9fb3]">
-                      В зоне пока нет пунктов.
-                    </li>
-                  ) : null}
-                </ul>
+            ) : undefined
+          }
+          extra={
+            <div className="mt-10 space-y-6 text-[16px]">
+              <div className="flex items-end justify-between">
+                <span className="font-semibold uppercase">Выполнил:</span>
+                <span className="min-w-[200px] border-b border-black text-right">
+                  {config.responsibleName}
+                </span>
               </div>
-            ))}
-          </div>
-        ) : null}
+              <div className="flex items-end justify-between">
+                <span className="font-semibold uppercase">Проверил:</span>
+                <span className="min-w-[200px] border-b border-black text-right">
+                  {config.checkerName}
+                </span>
+              </div>
+            </div>
+          }
+        >
+          {/* ─── Checklist Table ─── */}
+          <table className="sdc-table w-full border-collapse text-[13px]">
+            <thead>
+              <tr>
+                <th className={`w-[48px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                  <span className="screen-only">✓</span>
+                </th>
+                <th className={`w-[72px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                  № п/п
+                </th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                  Действия
+                </th>
+                <th className={`w-[130px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                  Отметка времени
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {zoneGroups.map(({ zone, zoneIndex, items }) => (
+                <ZoneBlock
+                  key={zone.id}
+                  zone={zone}
+                  zoneIndex={zoneIndex}
+                  items={items}
+                  config={config}
+                  marks={marks}
+                  checked={checked}
+                  showPrinciples={zoneIndex === 0}
+                  generalPrinciples={config.generalPrinciples}
+                  isActive={isActive}
+                  onToggleCheck={handleToggleCheck}
+                  onTimeChange={handleTimeChange}
+                  onEditItem={openEditItem}
+                  onDeleteItem={handleDeleteItem}
+                />
+              ))}
 
-        <MobileViewTableWrapper mobileView={mobileView}>
-        {/* ─── Checklist Table ─── */}
-        <table className="sdc-table w-full border-collapse text-[13px]">
-          <thead>
-            <tr className="bg-[#f2f2f2]">
-              <th className="w-[48px] border border-black p-2 text-center font-semibold">
-                <span className="screen-only">✓</span>
-              </th>
-              <th className="w-[72px] border border-black p-2 text-center font-semibold">
-                № п/п
-              </th>
-              <th className="border border-black p-2 text-center font-semibold">
-                Действия
-              </th>
-              <th className="w-[130px] border border-black p-2 text-center font-semibold">
-                Отметка времени
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {zoneGroups.map(({ zone, zoneIndex, items }) => (
-              <ZoneBlock
-                key={zone.id}
-                zone={zone}
-                zoneIndex={zoneIndex}
-                items={items}
-                config={config}
-                marks={marks}
-                checked={checked}
-                showPrinciples={zoneIndex === 0}
-                generalPrinciples={config.generalPrinciples}
-                isActive={isActive}
-                onToggleCheck={handleToggleCheck}
-                onTimeChange={handleTimeChange}
-                onEditItem={openEditItem}
-                onDeleteItem={handleDeleteItem}
-              />
-            ))}
-
-            {/* Empty row for visual spacing */}
-            <tr>
-              <td className="border border-black p-2" />
-              <td className="border border-black p-2" />
-              <td className="border border-black p-2" />
-              <td className="border border-black p-2" />
-            </tr>
-          </tbody>
-        </table>
-        </MobileViewTableWrapper>
-
-        {/* ─── Signatures ─── */}
-        <div className="mt-10 space-y-6 text-[16px]">
-          <div className="flex items-end justify-between">
-            <span className="font-semibold uppercase">Выполнил:</span>
-            <span className="min-w-[200px] border-b border-black text-right">
-              {config.responsibleName}
-            </span>
-          </div>
-          <div className="flex items-end justify-between">
-            <span className="font-semibold uppercase">Проверил:</span>
-            <span className="min-w-[200px] border-b border-black text-right">
-              {config.checkerName}
-            </span>
-          </div>
-        </div>
-
-        </div>
-        </div>
+              {/* Empty row for visual spacing */}
+              <tr>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+              </tr>
+            </tbody>
+          </table>
+        </JournalDocumentShell>
       </div>
 
       {/* ─── Dialogs ─── */}
@@ -1201,7 +1127,7 @@ function ZoneBlock({
     <>
       {/* Zone header */}
       <tr className="bg-[#e8e8e8]">
-        <td colSpan={4} className="border border-black p-3 text-center">
+        <td colSpan={4} className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
           <span className="text-[16px] font-bold uppercase">
             {zoneIndex + 1} {zone.name.toUpperCase()}
           </span>
@@ -1211,7 +1137,7 @@ function ZoneBlock({
       {/* General principles (only after first zone header) */}
       {showPrinciples && generalPrinciples.length > 0 && (
         <tr>
-          <td colSpan={4} className="border border-black px-4 py-3">
+          <td colSpan={4} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
             <div className="text-[14px] font-semibold uppercase">
               Общие принципы
             </div>
@@ -1236,7 +1162,7 @@ function ZoneBlock({
             className={isChecked ? "bg-[#f0fff0]" : "hover:bg-[#fafbff]"}
           >
             {/* Checkbox */}
-            <td className="border border-black p-2 text-center">
+            <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
               {isActive && (
                 <Checkbox
                   checked={isChecked}
@@ -1247,13 +1173,13 @@ function ZoneBlock({
             </td>
 
             {/* Number */}
-            <td className="border border-black p-2 text-center text-[14px]">
+            <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[14px] leading-tight`}>
               {itemNumber}
             </td>
 
             {/* Description */}
             <td
-              className={`border border-black px-3 py-2 ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`}
+              className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight ${isActive ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}`}
               onClick={() => isActive && onEditItem(item)}
             >
               <div className="group flex items-start gap-2">
@@ -1285,7 +1211,7 @@ function ZoneBlock({
             </td>
 
             {/* Time */}
-            <td className="border border-black p-2 text-center">
+            <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
               <TimeCell
                 value={timeValue}
                 onChange={(v) => onTimeChange(item.id, v)}

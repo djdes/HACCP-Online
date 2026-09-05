@@ -64,6 +64,8 @@ type UserItem = {
 type Props = {
   documentId: string;
   heading: string;
+  /** Подзаголовок под H1 — период документа, как в уборке и климате. */
+  subtitle?: React.ReactNode;
   title: string;
   status: string;
   autoFill: boolean;
@@ -645,6 +647,7 @@ export function StaffJournalToolbar({
   controlPeriodicity = "",
   showHeaderActions = false,
   hideHeading = false,
+  subtitle,
   hidePrint = false,
   hideAutoFill = false,
   onSettingsClick,
@@ -692,7 +695,12 @@ export function StaffJournalToolbar({
   }
 
   const headingNode = !hideHeading ? (
-    <h1 className={DOC_HEADING_CLASS}>{heading}</h1>
+    <div>
+      <h1 className={DOC_HEADING_CLASS}>{heading}</h1>
+      {subtitle ? (
+        <p className="mt-2 text-[15px] text-[#6f7282]">{subtitle}</p>
+      ) : null}
+    </div>
   ) : null;
 
   return (

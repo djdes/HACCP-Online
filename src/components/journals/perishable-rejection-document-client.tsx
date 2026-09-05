@@ -693,6 +693,10 @@ export function PerishableRejectionDocumentClient({
           таблицу по правому краю: горизонтальный скролл живёт ВНУТРИ
           GRID_VIEWPORT_CLASS, а внешний клип его перекрывал. */}
       {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
       <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
         {/* HACCP header table */}
         <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
@@ -797,9 +801,6 @@ export function PerishableRejectionDocumentClient({
         ) : null}
 
         {/* View toggle */}
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
 
         {/* Карточки — только на телефоне. Раньше обёртки `sm:hidden` не
             было, и на десктопе «Записей пока нет.» висело над таблицей. */}

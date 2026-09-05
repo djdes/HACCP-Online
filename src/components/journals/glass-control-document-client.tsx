@@ -3,20 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
+import { Archive, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DOC_AUTOFILL_LABEL_CLASS,
-  DOC_AUTOFILL_STRIP_CLASS,
-} from "@/components/journals/journal-responsive";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -25,7 +19,6 @@ import { usePositionEmployeeCascade } from "@/components/shared/position-select"
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -699,6 +692,45 @@ export function GlassControlDocumentClient(props: Props) {
     [props.itemSuggestions]
   );
 
+  const documentTitle = config.documentName || props.title || GLASS_CONTROL_DOCUMENT_TITLE;
+
+  const cardItems: RecordCardItem[] = rows.map((row, index) => {
+    const userName = props.users.find((user) => user.id === row.employeeId)?.name || "";
+    return {
+      id: row.id,
+      title: `№${index + 1} · ${formatRuDateDash(row.date)}`,
+      subtitle: userName || undefined,
+      badge: row.data.damagesDetected ? (
+        <span className="rounded-full bg-[#fff2f1] px-2 py-0.5 text-[11px] font-semibold text-[#d2453d]">
+          Повреждения
+        </span>
+      ) : (
+        <span className="rounded-full bg-[#e6f8ec] px-2 py-0.5 text-[11px] font-semibold text-[#1f7a3c]">
+          Без повреждений
+        </span>
+      ),
+      leading: !isClosed ? (
+        <Checkbox
+          checked={selectedRowIds.includes(row.id)}
+          onCheckedChange={(checked) =>
+            setSelectedRowIds((current) =>
+              checked === true
+                ? [...new Set([...current, row.id])]
+                : current.filter((id) => id !== row.id)
+            )
+          }
+          className="size-5"
+        />
+      ) : null,
+      fields: [
+        { label: "Наименование предмета", value: row.data.itemName, hideIfEmpty: true },
+        { label: "Количество", value: row.data.quantity, hideIfEmpty: true },
+        { label: "Информация о повреждениях", value: row.data.damageInfo, hideIfEmpty: true },
+      ],
+      onClick: !isClosed ? () => setRowDialog({ open: true, row, originalRow: row }) : undefined,
+    };
+  });
+
   async function upsertRow(nextRow: RowItem, originalRow: RowItem | null) {
     const response = await fetch(`/api/journal-documents/${props.documentId}/entries`, {
       method: "PUT",
@@ -861,7 +893,6 @@ export function GlassControlDocumentClient(props: Props) {
   return (
     <div className="space-y-6 text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/glass_control" documentId={props.documentId} />
       {selectedCount > 0 && !isClosed && (
         <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-4 rounded-[20px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 shadow-sm backdrop-blur md:-mx-8 md:px-8">
           <button
@@ -884,257 +915,159 @@ export function GlassControlDocumentClient(props: Props) {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
-        <div className="mb-8 flex flex-wrap items-center justify-end gap-4 print:hidden">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            <Printer className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            onClick={() => setSettingsOpen(true)}
-            disabled={isClosed}
-          >
-            <Settings2 className="size-4" />
-            Настройки журнала
-          </Button>
-        </div>
-
-        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-          {config.documentName || props.title || GLASS_CONTROL_DOCUMENT_TITLE}
-        </h1>
-
-        {/* Q3: та же лента, что и в 13 обязательных журналах — свой
-            r18 + фон #f6f7ff + gap-4 сняты. Нижний зазор (40px) даёт
-            сам токен, поэтому у бумажного полотна ниже `mt-10` больше нет. */}
-        <label className={`${DOC_AUTOFILL_STRIP_CLASS} mt-5 cursor-pointer`}>
-          <Switch
-            checked={autoFill}
-            onCheckedChange={(checked) => {
-              void syncAutoFill(Boolean(checked));
-            }}
-            disabled={isClosed}
+      <JournalDocumentShell
+        title={documentTitle}
+        subtitle={`Начат ${formatRuDateDash(props.dateFrom)}`}
+        documentId={props.documentId}
+        backHref="/journals/glass_control"
+        onSettings={isClosed ? undefined : () => setSettingsOpen(true)}
+        closed={isClosed}
+        closedHint="Откройте журнал заново, чтобы добавлять и править записи контроля."
+        menuItems={
+          !isClosed
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => setCloseOpen(true),
+                },
+              ]
+            : []
+        }
+        autoFill={{
+          checked: autoFill,
+          onChange: (next) => {
+            void syncAutoFill(next);
+          },
+          disabled: isClosed,
+          label: "Автоматически заполнять журнал",
+        }}
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
+          <RecordCardsView items={cardItems} emptyLabel="Контролей пока не проведено." />
+        }
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={props.organizationName}
+            title={GLASS_CONTROL_PAGE_TITLE.toUpperCase()}
+            startedAt={props.dateFrom}
+            finishedAt={isClosed ? props.dateTo : null}
+            controlPeriodicity={config.controlFrequency}
           />
-          <span className={DOC_AUTOFILL_LABEL_CLASS}>
-            Автоматически заполнять журнал
-          </span>
-        </label>
-
-        {/* Тумблер вида — ВНЕ широкого листа: внутри min-w-[1100px] он растягивался на весь лист, и «Таблица» уезжала за экран. */}
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="mx-auto min-w-[1100px] max-w-[1160px] space-y-8 sm:min-w-0">
-          <table className="w-full border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td rowSpan={2} className="w-[18%] border border-black p-4 text-center font-semibold">
-                  {props.organizationName}
-                </td>
-                <td className="border border-black p-3 text-center font-medium">
-                  СИСТЕМА ХАССП
-                </td>
-                <td rowSpan={2} className="w-[16%] border border-black p-3 text-left font-semibold">
-                  <div>Начат</div>
-                  <div>{formatRuDateDash(props.dateFrom)}</div>
-                  <div className="mt-3">Окончен</div>
-                  <div>{isClosed && props.dateTo ? formatRuDateDash(props.dateTo) : "__________"}</div>
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black p-3 text-center italic">
-                  {GLASS_CONTROL_PAGE_TITLE.toUpperCase()}
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black bg-[#efefef] p-3 font-semibold">
-                  Частота контроля
-                </td>
-                <td className="border border-black p-3 text-center font-semibold" colSpan={2}>
-                  {config.controlFrequency}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="text-center text-[20px] font-semibold uppercase">
-            {GLASS_CONTROL_PAGE_TITLE}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
-            {!isClosed && (
-              <Button
-                type="button"
-                className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4957fb]"
-                onClick={() =>
-                  setRowDialog({
-                    open: true,
-                    row: createVirtualRow(toIsoDate(new Date()), fallbackEmployeeId),
-                    originalRow: null,
-                  })
-                }
-              >
-                <Plus className="size-5" />
-                Добавить
-              </Button>
-            )}
-
-            {!isClosed && (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-                onClick={() => setCloseOpen(true)}
-              >
-                Закончить журнал
-              </Button>
-            )}
-          </div>
-
-          {mobileView === "cards" ? (
-            <RecordCardsView
-              items={rows.map((row, index) => {
-                const userName = props.users.find((user) => user.id === row.employeeId)?.name || "";
-                return {
-                  id: row.id,
-                  title: `№${index + 1} · ${formatRuDateDash(row.date)}`,
-                  subtitle: userName || undefined,
-                  badge: row.data.damagesDetected ? (
-                    <span className="rounded-full bg-[#fff2f1] px-2 py-0.5 text-[11px] font-semibold text-[#d2453d]">
-                      Повреждения
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-[#e6f8ec] px-2 py-0.5 text-[11px] font-semibold text-[#1f7a3c]">
-                      Без повреждений
-                    </span>
-                  ),
-                  leading: !isClosed ? (
-                    <Checkbox
-                      checked={selectedRowIds.includes(row.id)}
-                      onCheckedChange={(checked) =>
-                        setSelectedRowIds((current) =>
-                          checked === true
-                            ? [...new Set([...current, row.id])]
-                            : current.filter((id) => id !== row.id)
-                        )
-                      }
-                      className="size-5"
-                    />
-                  ) : null,
-                  fields: [
-                    { label: "Наименование предмета", value: row.data.itemName, hideIfEmpty: true },
-                    { label: "Количество", value: row.data.quantity, hideIfEmpty: true },
-                    { label: "Информация о повреждениях", value: row.data.damageInfo, hideIfEmpty: true },
-                  ],
-                  onClick: !isClosed ? () => setRowDialog({ open: true, row, originalRow: row }) : undefined,
-                };
-              })}
-              emptyLabel="Контролей пока не проведено."
-            />
-          ) : null}
-
-          <MobileViewTableWrapper mobileView={mobileView}>
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr>
-                {!isClosed && (
-                  <th rowSpan={2} className="w-[34px] border border-black p-2 text-center">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={(checked) =>
-                        setSelectedRowIds(checked === true ? rows.map((row) => row.id) : [])
-                      }
-                    />
-                  </th>
-                )}
-                <th rowSpan={2} className="w-[130px] border border-black p-2 text-center">Дата</th>
-                <th colSpan={2} className="border border-black p-2 text-center">
-                  Состояние: повреждения обнаружены
+        }
+        sheetTitle={GLASS_CONTROL_PAGE_TITLE}
+        sheetMinWidth={1100}
+        toolbar={
+          !isClosed ? (
+            <Button
+              type="button"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4957fb]"
+              onClick={() =>
+                setRowDialog({
+                  open: true,
+                  row: createVirtualRow(toIsoDate(new Date()), fallbackEmployeeId),
+                  originalRow: null,
+                })
+              }
+            >
+              <Plus className="size-5" />
+              Добавить
+            </Button>
+          ) : undefined
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              {!isClosed && (
+                <th rowSpan={2} className={`w-[34px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center leading-tight`}>
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) =>
+                      setSelectedRowIds(checked === true ? rows.map((row) => row.id) : [])
+                    }
+                  />
                 </th>
-                <th colSpan={3} className="border border-black p-2 text-center">
-                  Предмет, на котором обнаружены повреждения
-                </th>
-                <th rowSpan={2} className="w-[170px] border border-black p-2 text-center">
-                  Фамилия ответственного лица
-                </th>
-              </tr>
-              <tr>
-                <th className="w-[70px] border border-black p-2 text-center">Да</th>
-                <th className="w-[70px] border border-black p-2 text-center">Нет</th>
-                <th className="border border-black p-2 text-center">Наименование</th>
-                <th className="w-[100px] border border-black p-2 text-center">Кол-во</th>
-                <th className="border border-black p-2 text-center">Информация о повреждениях / замены</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const userName = props.users.find((user) => user.id === row.employeeId)?.name || "";
-                return (
-                  <tr
-                    key={row.id}
-                    className={!isClosed ? "cursor-pointer hover:bg-[#fbfbff]" : undefined}
-                    onClick={(event) => {
-                      if (isClosed) return;
-                      if ((event.target as HTMLElement).closest("button")) return;
-                      if ((event.target as HTMLElement).closest("[role='checkbox']")) return;
-                      setRowDialog({ open: true, row, originalRow: row });
-                    }}
-                  >
-                    {!isClosed && (
-                      <td className="border border-black p-2 text-center">
-                        <Checkbox
-                          checked={selectedRowIds.includes(row.id)}
-                          onCheckedChange={(checked) =>
-                            setSelectedRowIds((current) =>
-                              checked === true
-                                ? [...new Set([...current, row.id])]
-                                : current.filter((id) => id !== row.id)
-                            )
-                          }
-                        />
-                      </td>
-                    )}
-                    <td className="border border-black p-2 text-center">{formatRuDateDash(row.date)}</td>
-                    <td className="border border-black p-2 text-center">{row.data.damagesDetected ? "V" : ""}</td>
-                    <td className="border border-black p-2 text-center">{row.data.damagesDetected ? "" : "V"}</td>
-                    <td className="border border-black p-2">{row.data.itemName}</td>
-                    <td className="border border-black p-2 text-center">{row.data.quantity}</td>
-                    <td className="border border-black p-2">{row.data.damageInfo}</td>
-                    <td className="border border-black p-2 text-center">{userName}</td>
-                  </tr>
-                );
-              })}
-              <tr>
-                {!isClosed && <td className="border border-black p-4 print:hidden" />}
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-              </tr>
-            </tbody>
-          </table>
-          </MobileViewTableWrapper>
-        </div>
-        </div>
-      </div>
+              )}
+              <th rowSpan={2} className={`w-[130px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Дата</th>
+              <th colSpan={2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                Состояние: повреждения обнаружены
+              </th>
+              <th colSpan={3} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                Предмет, на котором обнаружены повреждения
+              </th>
+              <th rowSpan={2} className={`w-[170px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                Фамилия ответственного лица
+              </th>
+            </tr>
+            <tr>
+              <th className={`w-[70px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Да</th>
+              <th className={`w-[70px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Нет</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Наименование</th>
+              <th className={`w-[100px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Кол-во</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Информация о повреждениях / замены</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const userName = props.users.find((user) => user.id === row.employeeId)?.name || "";
+              return (
+                <tr
+                  key={row.id}
+                  className={!isClosed ? "cursor-pointer hover:bg-[#fbfbff]" : undefined}
+                  onClick={(event) => {
+                    if (isClosed) return;
+                    if ((event.target as HTMLElement).closest("button")) return;
+                    if ((event.target as HTMLElement).closest("[role='checkbox']")) return;
+                    setRowDialog({ open: true, row, originalRow: row });
+                  }}
+                >
+                  {!isClosed && (
+                    <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                      <Checkbox
+                        checked={selectedRowIds.includes(row.id)}
+                        onCheckedChange={(checked) =>
+                          setSelectedRowIds((current) =>
+                            checked === true
+                              ? [...new Set([...current, row.id])]
+                              : current.filter((id) => id !== row.id)
+                          )
+                        }
+                      />
+                    </td>
+                  )}
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatRuDateDash(row.date)}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.damagesDetected ? "V" : ""}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.damagesDetected ? "" : "V"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{row.data.itemName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.quantity}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{row.data.damageInfo}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{userName}</td>
+                </tr>
+              );
+            })}
+            <tr>
+              {!isClosed && <td className={`${GRID_CELL_CLASS} px-2 py-4 print:hidden`} />}
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+            </tr>
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       <GlassControlSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         users={props.users}
         initialState={{
-          title: config.documentName || props.title || GLASS_CONTROL_DOCUMENT_TITLE,
+          title: documentTitle,
           dateFrom: props.dateFrom,
           controlFrequency: config.controlFrequency || GLASS_CONTROL_DEFAULT_FREQUENCY,
           responsibleTitle: props.responsibleTitle || responsibleOptions.titles[0] || "Управляющий",
@@ -1159,7 +1092,7 @@ export function GlassControlDocumentClient(props: Props) {
         <DialogContent showCloseButton={false} className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
           <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
             <DialogTitle className="text-[24px] font-semibold tracking-[-0.03em] text-black">
-              Закончить журнал &quot;{config.documentName || props.title}&quot;
+              Закончить журнал &quot;{documentTitle}&quot;
             </DialogTitle>
             <button
               type="button"

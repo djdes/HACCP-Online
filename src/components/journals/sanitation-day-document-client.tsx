@@ -932,6 +932,10 @@ export function SanitationDayDocumentClient({
           съедал 2×32px паддинга и клипал содержимое: полотно сжималось
           до ~1083px вместо 1150, и правая рамка служебной строки уходила
           под клип. Бланк лежит прямо на фоне страницы. */}
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
       <section className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
         <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
         <table className="w-full min-w-[560px] border-collapse text-[13px] sm:min-w-0">
@@ -1017,9 +1021,6 @@ export function SanitationDayDocumentClient({
         ) : null}
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <div className="sm:hidden print:hidden">
-            <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-          </div>
 
           {mobileView === "cards" ? (
             <RecordCardsView

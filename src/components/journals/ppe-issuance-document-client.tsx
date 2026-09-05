@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { ChevronDown, Plus, Printer, Trash2, X } from "lucide-react";
+import { Archive, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
-import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
@@ -43,10 +46,6 @@ import {
 } from "@/lib/ppe-issuance-document";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -711,143 +710,55 @@ export function PpeIssuanceDocumentClient(props: Props) {
   }
 
   return (
-    <div className="bg-white text-black">
-      <div className="space-y-6 py-4 md:py-6">
-        {selectedRowIds.length > 0 && !isClosed && (
-          <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-3 border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
-            <button
-              type="button"
-              onClick={() => setSelectedRowIds([])}
-              className="rounded-md p-1 text-[#6f7282] hover:text-black"
-            >
-              <X className="size-4" />
-            </button>
-            <span className="text-[14px]">Выбрано: {selectedRowIds.length}</span>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() =>
-                handleDeleteSelected().catch((error) =>
-                  toast.error(error instanceof Error ? error.message : "Ошибка")
-                )
-              }
-              className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]"
-            >
-              <Trash2 className="mr-1 size-4" /> Удалить
-            </Button>
-          </div>
-        )}
-
-        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentPageHeader
-          backHref="/journals/ppe_issuance"
-          documentId={props.documentId}
-          rightActions={
-            <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.print()}
-              title="Печать страницы" aria-label="Печать страницы"
-              className="size-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-0 text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] print:hidden"
-            >
-              <Printer className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSettingsOpen(true)}
-              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            >
-              Настройки журнала
-            </Button>
-            </>
-          }
-        />
-
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {title}
-          </h1>
+    <div className="space-y-6 text-black">
+      {selectedRowIds.length > 0 && !isClosed && (
+        <div className="flex flex-wrap items-center gap-3 rounded-[18px] bg-white px-5 py-4 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setSelectedRowIds([])}
+            className="rounded-md p-1 text-[#6f7282] hover:text-black"
+          >
+            <X className="size-4" />
+          </button>
+          <span className="text-[14px]">Выбрано: {selectedRowIds.length}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() =>
+              handleDeleteSelected().catch((error) =>
+                toast.error(error instanceof Error ? error.message : "Ошибка")
+              )
+            }
+            className="h-9 px-3 text-[13px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]"
+          >
+            <Trash2 className="mr-1 size-4" /> Удалить
+          </Button>
         </div>
+      )}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
-        <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
-          <tbody>
-            <tr>
-              <td
-                rowSpan={2}
-                className="w-[220px] border border-black px-4 py-3 text-center font-semibold"
-              >
-                {props.organizationName || 'ООО "Тест"'}
-              </td>
-              <td className="border border-black px-4 py-2 text-center">СИСТЕМА ХАССП</td>
-              <td rowSpan={2} className="w-[200px] border border-black px-3 py-2">
-                <div className="text-sm font-semibold">
-                  Начат {formatPpeIssuanceDate(dateFrom)}
-                </div>
-                <div className="mt-1 text-sm">Окончен __________</div>
-              </td>
-            </tr>
-            <tr>
-              <td className="border border-black px-4 py-2 text-center italic">
-                ЖУРНАЛ УЧЕТА ВЫДАЧИ СИЗ
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        </div>
-
-        <div className="text-center text-[16px] font-semibold leading-tight sm:text-[20px]">
-          ЖУРНАЛ УЧЕТА ВЫДАЧИ СИЗ
-        </div>
-
-        {!isClosed && (
-          <div className="flex flex-wrap items-center gap-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  className="h-10 rounded-xl bg-[#5566f6] px-6 text-[16px] text-white hover:bg-[#4b57ff]"
-                >
-                  <Plus className="mr-2 size-5" />
-                  Добавить
-                  <ChevronDown className="ml-2 size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-[220px] rounded-2xl border-0 p-2 shadow-xl"
-              >
-                <DropdownMenuItem
-                  className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]"
-                  onSelect={() => {
-                    setEditingRow(null);
-                    setRowDialogOpen(true);
-                  }}
-                >
-                  <Plus className="mr-2 size-4" /> Добавить
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className="flex-1" />
-
-            <button
-              type="button"
-              onClick={() => setCloseDialogOpen(true)}
-              className="rounded-[20px] bg-[#f5f6ff] px-8 py-5 text-[14px] text-[#5566f6]"
-            >
-              Закончить журнал
-            </button>
-          </div>
-        )}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+      <JournalDocumentShell
+        title={title}
+        documentId={props.documentId}
+        backHref="/journals/ppe_issuance"
+        onSettings={!isClosed ? () => setSettingsOpen(true) : undefined}
+        closed={isClosed}
+        closedHint="Откройте журнал заново, чтобы регистрировать выдачу СИЗ."
+        menuItems={
+          !isClosed
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => setCloseDialogOpen(true),
+                },
+              ]
+            : []
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
           <RecordCardsView
             items={rows.map((row, index) => ({
               id: row.id,
@@ -901,102 +812,140 @@ export function PpeIssuanceDocumentClient(props: Props) {
             }))}
             emptyLabel="Выдач СИЗ пока не зарегистрировано."
           />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1450px] w-full border-collapse text-[13px]">
-            <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-[44px] border border-black p-2 text-center">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={(value) =>
-                      setSelectedRowIds(value === true ? rows.map((row) => row.id) : [])
-                    }
-                    disabled={rows.length === 0 || isClosed}
-                  />
-                </th>
-                <th className="border border-black p-2 text-center">Дата выдачи СИЗ</th>
-                {columns.map((column) => (
-                  <th key={column.key} className="border border-black p-2 text-center">
-                    {column.label}
-                  </th>
-                ))}
-                <th className="border border-black p-2 text-center">
-                  Должность и ФИО лица, получившего СИЗ
-                </th>
-                <th className="border border-black p-2 text-center">
-                  ФИО лица, выдавшего СИЗ
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={!isClosed ? "cursor-pointer hover:bg-[#f5f6ff]" : undefined}
-                  onClick={() => {
-                    if (isClosed) return;
-                    setEditingRow(row);
+        }
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={props.organizationName || 'ООО "Тест"'}
+            title="ЖУРНАЛ УЧЕТА ВЫДАЧИ СИЗ"
+            startedAt={dateFrom}
+            finishedAt={null}
+          />
+        }
+        sheetTitle="ЖУРНАЛ УЧЕТА ВЫДАЧИ СИЗ"
+        sheetMinWidth={1450}
+        toolbar={
+          !isClosed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  className={DOC_PRIMARY_BUTTON_CLASS}
+                >
+                  <Plus className="mr-2 size-5" />
+                  Добавить
+                  <ChevronDown className="ml-2 size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-[220px] rounded-2xl border-0 p-2 shadow-xl"
+              >
+                <DropdownMenuItem
+                  className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]"
+                  onSelect={() => {
+                    setEditingRow(null);
                     setRowDialogOpen(true);
                   }}
                 >
-                  <td
-                    className="border border-black p-2 text-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={selectedRowIds.includes(row.id)}
-                      onCheckedChange={(value) =>
-                        setSelectedRowIds((current) =>
-                          value === true
-                            ? [...new Set([...current, row.id])]
-                            : current.filter((item) => item !== row.id)
-                        )
-                      }
-                      disabled={isClosed}
-                    />
-                  </td>
-                  <td className="border border-black p-2 text-center">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isClosed) return;
-                        setEditingRow(row);
-                        setRowDialogOpen(true);
-                      }}
-                      className="w-full text-center hover:text-[#3848c7]"
-                    >
-                      {formatPpeIssuanceDate(row.issueDate)}
-                    </button>
-                  </td>
-                  {columns.map((column) => (
-                    <td
-                      key={`${row.id}:${column.key}`}
-                      className="border border-black p-2 text-center"
-                    >
-                      {String(row[column.key as keyof PpeIssuanceRow] || "")}
-                    </td>
-                  ))}
-                  <td className="border border-black p-2 text-center">
-                    {getPpeIssuanceRecipientLabel(row, props.users)}
-                  </td>
-                  <td className="border border-black p-2 text-center">
-                    {getPpeIssuanceIssuerLabel(row, props.users)}
-                  </td>
-                </tr>
+                  <Plus className="mr-2 size-4" /> Добавить
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={(value) =>
+                    setSelectedRowIds(value === true ? rows.map((row) => row.id) : [])
+                  }
+                  disabled={rows.length === 0 || isClosed}
+                />
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Дата выдачи СИЗ</th>
+              {columns.map((column) => (
+                <th key={column.key} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                  {column.label}
+                </th>
               ))}
-              <tr>
-                <td className="border border-black p-2 text-center">
-                  <Checkbox disabled />
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Должность и ФИО лица, получившего СИЗ
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                ФИО лица, выдавшего СИЗ
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.id}
+                className={!isClosed ? "cursor-pointer hover:bg-[#f5f6ff]" : undefined}
+                onClick={() => {
+                  if (isClosed) return;
+                  setEditingRow(row);
+                  setRowDialogOpen(true);
+                }}
+              >
+                <td
+                  className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Checkbox
+                    checked={selectedRowIds.includes(row.id)}
+                    onCheckedChange={(value) =>
+                      setSelectedRowIds((current) =>
+                        value === true
+                          ? [...new Set([...current, row.id])]
+                          : current.filter((item) => item !== row.id)
+                      )
+                    }
+                    disabled={isClosed}
+                  />
                 </td>
-                <td colSpan={columns.length + 2} className="border border-black p-2" />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isClosed) return;
+                      setEditingRow(row);
+                      setRowDialogOpen(true);
+                    }}
+                    className="w-full text-center hover:text-[#3848c7]"
+                  >
+                    {formatPpeIssuanceDate(row.issueDate)}
+                  </button>
+                </td>
+                {columns.map((column) => (
+                  <td
+                    key={`${row.id}:${column.key}`}
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
+                  >
+                    {String(row[column.key as keyof PpeIssuanceRow] || "")}
+                  </td>
+                ))}
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  {getPpeIssuanceRecipientLabel(row, props.users)}
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  {getPpeIssuanceIssuerLabel(row, props.users)}
+                </td>
               </tr>
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-      </div>
+            ))}
+            <tr>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                <Checkbox disabled />
+              </td>
+              <td colSpan={columns.length + 2} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+            </tr>
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       <SettingsDialog
         open={settingsOpen}

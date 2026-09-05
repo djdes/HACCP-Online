@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Trash2, X } from "lucide-react";
+import { Archive, Plus, Printer, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -24,7 +24,10 @@ import {
   type EquipmentCleaningFieldVariant,
   type EquipmentCleaningRowData,
 } from "@/lib/equipment-cleaning-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -384,114 +387,72 @@ export function EquipmentCleaningDocumentClient({
       ) : null}
 
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={`/journals/${journalRouteCode}`} documentId={documentId} />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
-        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-          {title}
-        </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
-              отмены ставим в его шапку слева от «Печати», чтобы порядок
-              совпадал с остальными журналами. */}
-          {status === "active" ? (
-            <PublishUndoToHeader
-              undo={{
+      <JournalDocumentShell
+        title={title}
+        subtitle={`Начат ${formatEquipmentCleaningDate(settingsDateFrom)}${isSaving ? " · Сохранение…" : ""}`}
+        documentId={documentId}
+        backHref={`/journals/${journalRouteCode}`}
+        onSettings={() => setSettingsOpen(true)}
+        closed={status !== "active"}
+        closedHint="Откройте журнал заново, чтобы добавлять и править строки мойки."
+        undo={
+          status === "active"
+            ? {
                 canUndo: undoStack.canUndo,
                 canRedo: undoStack.canRedo,
                 onUndo: () => void undoStack.undo(),
                 onRedo: () => void undoStack.redo(),
                 undoCount: undoStack.undoCount,
-              }}
-            />
-          ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            <Printer className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setSettingsOpen(true)}
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            Настройки журнала
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-6 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
-        <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
-          <tbody>
-            <tr>
-              <td rowSpan={2} className="w-[18%] border border-black p-3 text-center text-[18px] font-semibold sm:text-[26px]">
-                {organizationName}
-              </td>
-              <td className="border border-black p-2 text-center text-[15px]">
-                СИСТЕМА ХАССП
-              </td>
-              <td className="w-[22%] border border-black p-2 text-[14px] font-semibold sm:text-[20px]">
-                Начат&nbsp;&nbsp;{formatEquipmentCleaningDate(settingsDateFrom)}
-                <div className="mt-2 font-normal">
-                  Окончен&nbsp;__________
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td className="border border-black p-2 text-center text-[14px] uppercase italic sm:text-[18px]">
-                Журнал мойки и дезинфекции оборудования
-              </td>
-              <td className="border border-black p-2 text-center text-[14px] sm:text-[18px]">
-                СТР. 1 ИЗ 1
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        </div>
-
-        <h2 className="text-center text-[18px] font-semibold uppercase leading-tight sm:text-[28px]">
-          Журнал мойки и дезинфекции оборудования
-        </h2>
-
-        <div className="flex flex-wrap items-center justify-between gap-4">
+              }
+            : undefined
+        }
+        menuItems={
+          status === "active"
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => setCloseOpen(true),
+                },
+              ]
+            : []
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
+          <RecordCardsView
+            items={cardItems}
+            emptyLabel="Записей по мойке оборудования нет."
+          />
+        }
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="Журнал мойки и дезинфекции оборудования"
+            startedAt={settingsDateFrom}
+            finishedAt={status === "closed" ? new Date() : null}
+          />
+        }
+        sheetTitle="Журнал мойки и дезинфекции оборудования"
+        sheetMinWidth={1380}
+        toolbar={
           <Button
             type="button"
             onClick={openCreateRow}
             disabled={status !== "active"}
-            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4d58f5]"
+            className={DOC_PRIMARY_BUTTON_CLASS}
           >
             <Plus className="size-5" />
             Добавить
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setCloseOpen(true)}
-            disabled={status !== "active"}
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            Закончить журнал
-          </Button>
-        </div>
+        }
+      >
 
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Записей по мойке оборудования нет." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[1380px] border-collapse text-[13px]">
+          <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="bg-[#f7f7fb]">
-                <th className="w-[48px] border border-black p-2 text-center">
+              <tr>
+                <th className={`w-[48px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center print:hidden`}>
                   {status === "active" ? (
                     <Checkbox
                       checked={allSelected}
@@ -501,19 +462,19 @@ export function EquipmentCleaningDocumentClient({
                     />
                   ) : null}
                 </th>
-                <th className="border border-black p-3 text-center font-semibold">Дата и время мойки</th>
-                <th className="border border-black p-3 text-center font-semibold">Наименование оборудования</th>
-                <th className="border border-black p-3 text-center font-semibold">Наименование моющего раствора</th>
-                <th className="border border-black p-3 text-center font-semibold">Концентрация моющего раствора, %</th>
-                <th className="border border-black p-3 text-center font-semibold">Наименование дезинфицирующего раствора</th>
-                <th className="border border-black p-3 text-center font-semibold">Концентрация дезинфицирующего раствора, %</th>
-                <th className="border border-black p-3 text-center font-semibold">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Дата и время мойки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Наименование оборудования</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Наименование моющего раствора</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Концентрация моющего раствора, %</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Наименование дезинфицирующего раствора</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Концентрация дезинфицирующего раствора, %</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   {fieldVariant === "rinse_temperature"
                     ? "Ополаскивание, °C"
                     : "Полнота смываемости дез. ср-ва с оборудования и инвентаря (тест на pH нейтральность)"}
                 </th>
-                <th className="border border-black p-3 text-center font-semibold">Мойщик (ФИО)</th>
-                <th className="border border-black p-3 text-center font-semibold">Контролирующее лицо (должность, ФИО)</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Мойщик (ФИО)</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Контролирующее лицо (должность, ФИО)</th>
               </tr>
             </thead>
             <tbody>
@@ -523,7 +484,7 @@ export function EquipmentCleaningDocumentClient({
                   className={status === "active" ? "cursor-pointer hover:bg-[#fafbff]" : ""}
                   onClick={() => status === "active" && openEditRow(row)}
                 >
-                  <td className="border border-black p-2 text-center" onClick={(event) => event.stopPropagation()}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} onClick={(event) => event.stopPropagation()}>
                     {status === "active" ? (
                       <Checkbox
                         checked={selectedIds.includes(row.id)}
@@ -537,38 +498,38 @@ export function EquipmentCleaningDocumentClient({
                       />
                     ) : null}
                   </td>
-                  <td className="border border-black p-3 text-center">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {formatEquipmentCleaningDate(row.data.washDate)}
                     <br />
                     {row.data.washTime}
                   </td>
-                  <td className="border border-black p-3 text-center">{row.data.equipmentName}</td>
-                  <td className="border border-black p-3 text-center">{row.data.detergentName}</td>
-                  <td className="border border-black p-3 text-center">{row.data.detergentConcentration}</td>
-                  <td className="border border-black p-3 text-center">{row.data.disinfectantName}</td>
-                  <td className="border border-black p-3 text-center">{row.data.disinfectantConcentration}</td>
-                  <td className="border border-black p-3 text-center">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.equipmentName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.detergentName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.detergentConcentration}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.disinfectantName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.disinfectantConcentration}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {fieldVariant === "rinse_temperature"
                       ? row.data.rinseTemperature || "—"
                       : getEquipmentCleaningResultLabel(row.data.rinseResult)}
                   </td>
-                  <td className="border border-black p-3 text-center">{row.data.washerName}</td>
-                  <td className="border border-black p-3 text-center">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.washerName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {`${row.data.controllerPosition}, ${row.data.controllerName}`}
                   </td>
                 </tr>
               ))}
               {sortedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="border border-black p-6 text-center text-[#6d7287]">
+                  <td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-6 text-center text-[#6d7287]`}>
                     Записей пока нет
                   </td>
                 </tr>
               ) : null}
             </tbody>
           </table>
-        </MobileViewTableWrapper>
-      </div>
+      </JournalDocumentShell>
+
 
       <Dialog open={rowModalOpen} onOpenChange={setRowModalOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">

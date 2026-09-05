@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Archive,
   CalendarDays,
   Paperclip,
   Pencil,
   Plus,
-  Printer,
   Trash2,
   X,
 } from "lucide-react";
@@ -40,14 +40,13 @@ import {
   type MetalImpurityUser,
 } from "@/lib/metal-impurity-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -105,13 +104,6 @@ function formatRuDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("ru-RU");
-}
-
-function formatHeaderDate(value: string) {
-  if (!value) return "__________";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("ru-RU").replace(/\./g, "-");
 }
 
 function AddableSelectField(props: {
@@ -1201,119 +1193,65 @@ export function MetalImpurityDocumentClient({
         )}
 
         <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={`/journals/${METAL_IMPURITY_TEMPLATE_CODE}`} documentId={documentId} />
-        <div className="flex flex-col gap-4 print:hidden sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <div>
-            <h1 className="mt-4 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-              {documentTitle}
-            </h1>
-          </div>
-          <div className="flex flex-wrap gap-2 self-start sm:self-auto print:hidden">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.print()}
-              title="Печать страницы" aria-label="Печать страницы"
-              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-6 text-[16px] text-[#5566f6] shadow-none"
-            >
-              <Printer className="size-4" />
-            </Button>
-            {status === "active" && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSettingsOpen(true)}
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-6 text-[16px] text-[#5566f6] shadow-none"
-              >
-                Настройки журнала
-              </Button>
-            )}
-          </div>
-        </div>
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mx-auto min-w-[1040px] max-w-[1250px] border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td
-                  rowSpan={2}
-                  className="w-[180px] border border-black px-6 py-10 text-center text-[18px] font-medium"
-                >
-                  {organizationName}
-                </td>
-                <td className="border border-black px-6 py-4 text-center text-[18px]">
-                  СИСТЕМА ХАССП
-                </td>
-                <td className="w-[180px] border border-black px-4 py-2 align-top text-[16px]">
-                  <div className="font-semibold">Начат {formatHeaderDate(config.startDate)}</div>
-                  <div className="font-semibold">
-                    Окончен {config.endDate ? formatHeaderDate(config.endDate) : "__________"}
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-6 py-3 text-center text-[16px] italic">
-                  ЖУРНАЛ УЧЕТА МЕТАЛЛОПРИМЕСЕЙ В СЫРЬЕ
-                </td>
-                <td className="border border-black px-4 py-3 text-right text-[16px]">
-                  СТР. 1 ИЗ 1
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="text-center text-[16px] font-semibold uppercase tracking-[0.02em]">
-          Журнал учета металлопримесей в сырье
-        </div>
-
-        {status === "active" && (
-          <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-            <div className="flex flex-wrap items-center gap-3">
+        <JournalDocumentShell
+          title={documentTitle}
+          documentId={documentId}
+          backHref={`/journals/${METAL_IMPURITY_TEMPLATE_CODE}`}
+          onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
+          closed={status !== "active"}
+          closedHint="Откройте журнал заново, чтобы добавлять и редактировать строки."
+          menuItems={
+            status === "active"
+              ? [
+                  {
+                    key: "edit-lists",
+                    label: "Редактировать списки",
+                    icon: <Pencil className="size-4" />,
+                    onSelect: () => setListsOpen(true),
+                  },
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => setFinishOpen(true),
+                  },
+                ]
+              : []
+          }
+          mobileView={mobileView}
+          onMobileView={switchMobileView}
+          cards={<RecordCardsView items={cardItems} emptyLabel="Записей пока нет." />}
+          paperHeader={
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="ЖУРНАЛ УЧЕТА МЕТАЛЛОПРИМЕСЕЙ В СЫРЬЕ"
+              startedAt={config.startDate}
+              finishedAt={config.endDate || null}
+            />
+          }
+          sheetTitle="Журнал учета металлопримесей в сырье"
+          sheetMinWidth={1540}
+          toolbar={
+            status === "active" ? (
               <Button
                 type="button"
                 onClick={() => {
                   setEditingRow(null);
                   setRowDialogOpen(true);
                 }}
-                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
+                className={DOC_PRIMARY_BUTTON_CLASS}
               >
                 <Plus className="size-5" />
                 Добавить
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setListsOpen(true)}
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-              >
-                Редактировать списки
-              </Button>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setFinishOpen(true)}
-              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            >
-              Закончить журнал
-            </Button>
-          </div>
-        )}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Записей пока нет." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1540px] w-full border-collapse text-[13px]">
+            ) : null
+          }
+        >
+          <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-[42px] border border-black p-2 text-center print:hidden">
+              <tr>
+                <th className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight print:hidden`}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1322,28 +1260,28 @@ export function MetalImpurityDocumentClient({
                     disabled={status !== "active" || config.rows.length === 0}
                   />
                 </th>
-                <th className="w-[130px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[130px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Дата
                 </th>
-                <th className="w-[220px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[220px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Поставщик
                 </th>
-                <th className="w-[220px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[220px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Наименование сырья
                 </th>
-                <th className="w-[180px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[180px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Количество израсходованного сырья, кг
                 </th>
-                <th className="w-[180px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[180px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Количество металломагнитной примеси, г
                 </th>
-                <th className="w-[260px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[260px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Характеристика металломагнитной примеси
                 </th>
-                <th className="w-[170px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[170px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Количество в мг на 1 кг муки (N - не более 3 мг)
                 </th>
-                <th className="w-[220px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[220px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   ФИО ответственного
                 </th>
               </tr>
@@ -1360,7 +1298,7 @@ export function MetalImpurityDocumentClient({
                   }}
                 >
                   <td
-                    className="border border-black p-2 text-center align-top print:hidden"
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight print:hidden`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Checkbox
@@ -1375,7 +1313,7 @@ export function MetalImpurityDocumentClient({
                       disabled={status !== "active"}
                     />
                   </td>
-                  <td className="border border-black p-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     <button
                       type="button"
                       disabled={status !== "active"}
@@ -1390,19 +1328,19 @@ export function MetalImpurityDocumentClient({
                       {formatRuDate(row.date)}
                     </button>
                   </td>
-                  <td className="border border-black p-3 align-top">{row.supplierName}</td>
-                  <td className="border border-black p-3 align-top">{row.materialName}</td>
-                  <td className="border border-black p-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.supplierName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.materialName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     {row.consumedQuantityKg || "—"}
                   </td>
-                  <td className="border border-black p-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     {row.impurityQuantityG || "—"}
                   </td>
-                  <td className="border border-black p-3 align-top whitespace-pre-wrap">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight whitespace-pre-wrap`}>
                     {row.impurityCharacteristic || "—"}
                   </td>
-                  <td className="border border-black p-3 align-top">{row.valuePerKg || "—"}</td>
-                  <td className="border border-black p-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.valuePerKg || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     {row.responsibleName || "—"}
                   </td>
                 </tr>
@@ -1411,7 +1349,7 @@ export function MetalImpurityDocumentClient({
                 <tr>
                   <td
                     colSpan={9}
-                    className="border border-black px-4 py-10 text-center text-[18px] text-[#666a80]"
+                    className={`${GRID_CELL_CLASS} px-2 py-6 text-center text-[#6d7287]`}
                   >
                     Записей пока нет
                   </td>
@@ -1419,7 +1357,7 @@ export function MetalImpurityDocumentClient({
               )}
             </tbody>
           </table>
-        </MobileViewTableWrapper>
+        </JournalDocumentShell>
       </div>
 
       <RowDialog

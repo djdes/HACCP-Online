@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Settings2 } from "lucide-react";
+import { Archive, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,9 +23,11 @@ import {
   type AuditReportConfig,
   type AuditReportFinding,
 } from "@/lib/audit-report-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 
 import { toast } from "sonner";
@@ -98,6 +100,7 @@ export function AuditReportDocumentClient({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [findingOpen, setFindingOpen] = useState(false);
   const [editingFinding, setEditingFinding] = useState<AuditReportFinding | null>(null);
+  const closeAction = useDocumentCloseAction({ documentId, title: documentTitle });
 
   useEffect(() => {
     setConfig(normalizeAuditReportConfig(initialConfig));
@@ -147,43 +150,36 @@ export function AuditReportDocumentClient({
 
   return (
     <>
-      <div className="space-y-5">
-        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/audit_report" documentId={documentId} />
-        <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
-          <Button variant="outline" onClick={() => window.print()} title="Печать страницы" aria-label="Печать страницы" className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]">
-            <Printer className="size-4" />
-          </Button>
-          {status === "active" && (
-            <>
-            <Button variant="outline" className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]" onClick={() => setSettingsOpen(true)}>
-              <Settings2 className="size-4" />
-              Настройки журнала
-            </Button>
-            <DocumentCloseButton
-              documentId={documentId}
-              title={documentTitle}
-              variant="outline"
-              className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]"
-            >
-              Закончить журнал
-            </DocumentCloseButton>
-            </>
-          )}
-        </div>
-
-        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024] print:hidden">{documentTitle}</h1>
-
-        <section className="space-y-6 rounded-[18px] border border-[#dadde9] bg-white p-4 print:border-0 sm:p-8 print:p-0">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_120px] border border-black/70">
-            <div className="flex items-center justify-center border-r border-black/70 py-10 text-[16px] font-semibold">{organizationName}</div>
-            <div className="grid grid-rows-2">
-              <div className="flex items-center justify-center border-b border-black/70 py-4 text-[14px]">СИСТЕМА ХАССП</div>
-              <div className="flex items-center justify-center py-4 text-[14px] italic">ОТЧЕТ О ВНУТРЕННЕМ АУДИТЕ</div>
-            </div>
-            <div className="flex items-center justify-center border-l border-black/70 text-[14px]">СТР. 1 ИЗ 1</div>
-          </div>
-
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+      <JournalDocumentShell
+        title={documentTitle}
+        documentId={documentId}
+        backHref="/journals/audit_report"
+        onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
+        closed={status !== "active"}
+        closedHint="Откройте журнал заново, чтобы редактировать отчёт."
+        menuItems={
+          status === "active"
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => void closeAction.closeDocument(),
+                },
+              ]
+            : []
+        }
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="ОТЧЕТ О ВНУТРЕННЕМ АУДИТЕ"
+            startedAt={config.documentDate}
+            finishedAt={null}
+          />
+        }
+      >
+        <section className="space-y-6 print:p-0">
           <div className="grid gap-3 text-[18px]">
             <div><span className="font-semibold">Дата аудита:</span> {config.documentDate}</div>
             <div><span className="font-semibold">Основание:</span> {config.basisTitle}</div>
@@ -203,7 +199,7 @@ export function AuditReportDocumentClient({
 
           {status === "active" && (
             <div className="print:hidden">
-              <Button type="button" onClick={() => { setEditingFinding(null); setFindingOpen(true); }} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]">
+              <Button type="button" onClick={() => { setEditingFinding(null); setFindingOpen(true); }} className={DOC_PRIMARY_BUTTON_CLASS}>
                 <Plus className="size-5" />
                 Добавить несоответствие
               </Button>
@@ -287,7 +283,7 @@ export function AuditReportDocumentClient({
             )}
           </div>
         </section>
-      </div>
+      </JournalDocumentShell>
 
       {useV2 ? (
         <JournalSettingsModal

@@ -2,9 +2,12 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, X } from "lucide-react";
+import { Archive, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,10 +37,6 @@ import {
   type RegisterDocumentRow,
 } from "@/lib/register-document";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -511,9 +510,8 @@ export function ComplaintDocumentClient({
 
   return (
     <>
-      <div className="space-y-8 bg-white text-black">
+      <div className="space-y-6 text-black">
         <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/complaint_register" documentId={documentId} />
         {selectedRowIds.length > 0 && status === "active" && (
           <div className="flex flex-wrap items-center gap-4 rounded-[12px] bg-white px-2 py-2">
             <div className="inline-flex h-14 items-center gap-3 rounded-[12px] bg-[#fafbff] px-6 text-[18px] text-[#5566f6]">
@@ -542,104 +540,61 @@ export function ComplaintDocumentClient({
           </div>
         )}
 
-        <div>
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {documentTitle}
-          </h1>
-        </div>
-
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mx-auto min-w-[1200px] max-w-[1520px] border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td rowSpan={2} className="w-[240px] border border-black px-6 py-10 text-center text-[22px] font-medium">
-                  {organizationName}
-                </td>
-                <td className="w-[980px] border border-black px-6 py-5 text-center text-[15px]">
-                  СИСТЕМА ХАССП
-                </td>
-                <td rowSpan={2} className="w-[240px] border border-black px-6 py-4 align-top text-[18px] leading-[1.6]">
-                  <div className="font-semibold">Начат&nbsp;&nbsp;&nbsp;{formatComplaintDate(dateFrom)}</div>
-                  <div className="font-semibold">
-                    Окончен&nbsp;{config.finishedAt ? formatComplaintDate(config.finishedAt) : "__________"}
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-6 py-4 text-center text-[18px] italic">
-                  ЖУРНАЛ РЕГИСТРАЦИИ ЖАЛОБ
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={3} className="border border-black px-6 py-5 text-right text-[18px]">
-                  СТР. 1 ИЗ 1
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="pt-2 text-center text-[18px] font-semibold uppercase leading-tight sm:text-[28px]">
-          Журнал регистрации жалоб
-        </div>
-
-        {status === "active" && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button
-              type="button"
-              onClick={() => {
-                setEditingRow(null);
-                setRowDialogOpen(true);
-              }}
-              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
-            >
-              <Plus className="size-5" />
-              Добавить
-            </Button>
-
-            <div className="flex flex-wrap items-center gap-3">
+        <JournalDocumentShell
+          title={documentTitle}
+          subtitle={`Начат ${formatComplaintDate(dateFrom)}`}
+          documentId={documentId}
+          backHref={`/journals/${COMPLAINT_REGISTER_TEMPLATE_CODE}`}
+          onSettings={() => setSettingsOpen(true)}
+          closed={status !== "active"}
+          closedHint="Откройте журнал заново, чтобы добавлять и редактировать жалобы."
+          menuItems={
+            status === "active"
+              ? [
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => setFinishOpen(true),
+                  },
+                ]
+              : []
+          }
+          mobileView={mobileView}
+          onMobileView={switchMobileView}
+          cards={
+            <RecordCardsView items={cardItems} emptyLabel="Жалоб пока не зарегистрировано." />
+          }
+          paperHeader={
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="Журнал регистрации жалоб"
+              startedAt={dateFrom}
+              finishedAt={status === "closed" ? config.finishedAt : null}
+            />
+          }
+          sheetTitle="Журнал регистрации жалоб"
+          sheetMinWidth={1520}
+          toolbar={
+            status === "active" ? (
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => window.print()}
-                title="Печать страницы" aria-label="Печать страницы"
-                className="size-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-0 text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] print:hidden"
+                onClick={() => {
+                  setEditingRow(null);
+                  setRowDialogOpen(true);
+                }}
+                className={DOC_PRIMARY_BUTTON_CLASS}
               >
-                <Printer className="size-4" />
+                <Plus className="size-5" />
+                Добавить
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSettingsOpen(true)}
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-              >
-                Настройки журнала
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setFinishOpen(true)}
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-              >
-                Закончить журнал
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Жалоб пока не зарегистрировано." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1520px] w-full border-collapse text-[13px]">
+            ) : undefined
+          }
+        >
+          <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-[42px] border border-black p-2 text-center">
+              <tr>
+                <th className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -648,17 +603,17 @@ export function ComplaintDocumentClient({
                     disabled={status !== "active" || config.rows.length === 0}
                   />
                 </th>
-                <th className="w-[90px] border border-black p-3 text-center font-semibold">Рег. № п/п</th>
-                <th className="w-[150px] border border-black p-3 text-center font-semibold">Дата поступления</th>
-                <th className="w-[190px] border border-black p-3 text-center font-semibold">ФИО заявителя</th>
-                <th className="w-[260px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[90px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Рег. № п/п</th>
+                <th className={`w-[150px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Дата поступления</th>
+                <th className={`w-[190px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>ФИО заявителя</th>
+                <th className={`w-[260px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Форма поступления жалобы (по почте, по телефону, по факсу, по электронной почте, в книге отзывов и предложений)
                 </th>
-                <th className="w-[290px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[290px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Реквизиты заявителя, указанные в жалобе заявителя для отправки ответа
                 </th>
-                <th className="w-[360px] border border-black p-3 text-center font-semibold">Содержание жалобы</th>
-                <th className="w-[260px] border border-black p-3 text-center font-semibold">
+                <th className={`w-[360px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>Содержание жалобы</th>
+                <th className={`w-[260px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
                   Решение, дата, краткое содержание
                 </th>
               </tr>
@@ -675,7 +630,7 @@ export function ComplaintDocumentClient({
                   }}
                 >
                   <td
-                    className="border border-black p-2 text-center align-top"
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Checkbox
@@ -690,8 +645,8 @@ export function ComplaintDocumentClient({
                       disabled={status !== "active"}
                     />
                   </td>
-                  <td className="border border-black p-3 text-center align-top">{index + 1}</td>
-                  <td className="border border-black p-3 align-top">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>{index + 1}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     <button
                       type="button"
                       disabled={status !== "active"}
@@ -706,25 +661,25 @@ export function ComplaintDocumentClient({
                       {formatComplaintDate(row.values.receiptDate || "") || "—"}
                     </button>
                   </td>
-                  <td className="border border-black p-3 align-top">{row.values.applicantName || "—"}</td>
-                  <td className="border border-black p-3 align-top">{row.values.complaintReceiptForm || "—"}</td>
-                  <td className="border border-black p-3 align-top whitespace-pre-wrap">{row.values.applicantDetails || "—"}</td>
-                  <td className="border border-black p-3 align-top whitespace-pre-wrap">{row.values.complaintContent || "—"}</td>
-                  <td className="border border-black p-3 align-top whitespace-pre-wrap">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.values.applicantName || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.values.complaintReceiptForm || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight whitespace-pre-wrap`}>{row.values.applicantDetails || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight whitespace-pre-wrap`}>{row.values.complaintContent || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight whitespace-pre-wrap`}>
                     {getComplaintDecisionCell(row) || "—"}
                   </td>
                 </tr>
               ))}
               {config.rows.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="border border-black px-4 py-10 text-center text-[18px] text-[#666a80]">
+                  <td colSpan={8} className={`${GRID_CELL_CLASS} px-4 py-10 text-center text-[18px] text-[#666a80]`}>
                     Записей пока нет
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-        </MobileViewTableWrapper>
+        </JournalDocumentShell>
       </div>
 
       <ComplaintRowDialog

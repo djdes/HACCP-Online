@@ -1093,6 +1093,10 @@ export function CleaningVentilationChecklistDocumentClient({
         {/* R1: бумажное полотно — во всю ширину контентной колонки:
             шапка ХАССП, блоки «Процедура/Периодичность/Ответственные»,
             «Добавить» и сама сетка чек-листа. */}
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
         <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* Рамку контейнера убрали: границы теперь несут сами ячейки
             бумажной шапки, иначе линия дублировалась. */}
@@ -1275,9 +1279,6 @@ export function CleaningVentilationChecklistDocumentClient({
           </table>
         </div>
 
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
 
         {mobileView === "cards" ? (
           <RecordCardsView

@@ -2,9 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Printer, Settings, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+} from "@/components/journals/journal-grid";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,16 +48,11 @@ import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
-import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
-import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
   PositionSelectItems,
@@ -378,275 +378,214 @@ export function StaffTrainingDocumentClient({
   return (
     <div className="space-y-6 text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/staff_training" documentId={documentId} />
-      {/* header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {title}
-          </h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 print:hidden">
-          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
-              отмены ставим в его шапку слева от «Печати». */}
-          {!isClosed && (
-            <PublishUndoToHeader
-              undo={{
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/staff_training"
+        onSettings={() => setSettingsOpen(true)}
+        menuItems={
+          !isClosed
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: handleCloseJournal,
+                },
+              ]
+            : []
+        }
+        undo={
+          !isClosed
+            ? {
                 canUndo: undoStack.canUndo,
                 canRedo: undoStack.canRedo,
                 onUndo: () => void undoStack.undo(),
                 onRedo: () => void undoStack.redo(),
                 undoCount: undoStack.undoCount,
-              }}
-            />
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-          >
-            <Printer className="size-4" />
-          </Button>
-          {!isClosed && (
-            <Button
-              type="button"
-              variant="outline"
-              className="text-red-600 border-red-200 hover:bg-red-50"
-              onClick={handleCloseJournal}
-            >
-              Закончить журнал
-            </Button>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings className="size-4" />
-            Настройки журнала
-          </Button>
-        </div>
-      </div>
+              }
+            : undefined
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={<RecordCardsView items={cardItems} emptyLabel="Нет записей обучения." />}
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="ЖУРНАЛ РЕГИСТРАЦИИ ИНСТРУКТАЖЕЙ (ОБУЧЕНИЯ) СОТРУДНИКОВ"
+            pageInfo={`СТР. 1 ИЗ ${pageCount}`}
+            startedAt={dateFrom}
+            finishedAt={null}
+          />
+        }
+        sheetTitle="ЖУРНАЛ регистрации инструктажей (обучения) сотрудников"
+        sheetMinWidth={1600}
+        toolbar={
+          !isClosed ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    className="bg-[#5566f6] hover:bg-[#4d58f5]"
+                  >
+                    <Plus className="size-4" />
+                    Добавить
+                    <ChevronDown className="ml-1 size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[280px] rounded-2xl border-0 p-2">
+                  <DropdownMenuItem onSelect={() => setAddModalOpen(true)}>
+                    Добавить сотрудника
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setPlanModalOpen(true)}>
+                    Заполнить из плана обучения
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-      {/* HACCP block */}
-      <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
+              {selectedRows.length > 0 && (
+                <>
+                  <span className="text-sm text-[#7a7f93]">
+                    Выбрано: {selectedRows.length}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={removeSelectedRows}
+                  >
+                    <Trash2 className="size-4" />
+                    Удалить
+                  </Button>
+                </>
+              )}
+            </>
+          ) : undefined
+        }
+      >
         <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`} />
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Дата</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Ф.И.О. инструктируемого
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Профессия / должность инструктируемого
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Тема инструктажа (обучения)
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Вид инструктажа (первичный / повторный / внеплановый)
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Причина проведения внепланового инструктажа
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Ф.И.О. / должность инструктирующего
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Результат аттестации после обучения (удовл. / не удовл.)
+              </th>
+            </tr>
+          </thead>
           <tbody>
-            <tr>
-              <td
-                rowSpan={2}
-                className="w-[18%] border border-black p-3 text-center font-semibold"
-              >
-                {organizationName}
-              </td>
-              <td className="border border-black p-2 text-center">
-                СИСТЕМА ХАССП
-              </td>
-              <td className="w-[20%] border border-black p-2">
-                Начат &nbsp;{" "}
-                {new Date(dateFrom).toLocaleDateString("ru-RU")}
-              </td>
-            </tr>
-            <tr>
-              <td className="border border-black p-2 text-center text-sm uppercase">
-                ЖУРНАЛ РЕГИСТРАЦИИ ИНСТРУКТАЖЕЙ (ОБУЧЕНИЯ) СОТРУДНИКОВ
-              </td>
-              <td className="border border-black p-2">
-                Окончен &nbsp;{" "}
-                {isClosed ? "________" : "________"}
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={3} className="border border-black p-2 text-right text-sm">
-                Страниц: {pageCount}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            {config.rows.map((row) => {
+              const trainingLabel =
+                TRAINING_TYPES.find((t) => t.value === row.trainingType)
+                  ?.label || row.trainingType;
+              const attestLabel =
+                ATTESTATION_RESULTS.find(
+                  (a) => a.value === row.attestationResult
+                )?.label || row.attestationResult;
 
-        <h2 className="text-center text-[28px] font-semibold leading-tight">
-          ЖУРНАЛ
-          <br />
-          регистрации инструктажей (обучения) сотрудников
-        </h2>
-
-        {/* toolbar */}
-        {!isClosed && (
-          <div className="flex flex-wrap items-center gap-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  className="bg-[#5566f6] hover:bg-[#4d58f5]"
-                >
-                  <Plus className="size-4" />
-                  Добавить
-                  <ChevronDown className="ml-1 size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[280px] rounded-2xl border-0 p-2">
-                <DropdownMenuItem onSelect={() => setAddModalOpen(true)}>
-                  Добавить сотрудника
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setPlanModalOpen(true)}>
-                  Заполнить из плана обучения
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {selectedRows.length > 0 && (
-              <>
-                <span className="text-sm text-[#7a7f93]">
-                  Выбрано: {selectedRows.length}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={removeSelectedRows}
-                >
-                  <Trash2 className="size-4" />
-                  Удалить
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Нет записей обучения." />
-        ) : null}
-
-        {/* main table */}
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-[1600px] w-full border-collapse text-[13px]">
-            <thead>
-              <tr>
-                <th className="w-10 border p-2" />
-                <th className="border p-2">Дата</th>
-                <th className="border p-2">
-                  Ф.И.О. инструктируемого
-                </th>
-                <th className="border p-2">
-                  Профессия / должность инструктируемого
-                </th>
-                <th className="border p-2">
-                  Тема инструктажа (обучения)
-                </th>
-                <th className="border p-2">
-                  Вид инструктажа (первичный / повторный / внеплановый)
-                </th>
-                <th className="border p-2">
-                  Причина проведения внепланового инструктажа
-                </th>
-                <th className="border p-2">
-                  Ф.И.О. / должность инструктирующего
-                </th>
-                <th className="border p-2">
-                  Результат аттестации после обучения (удовл. / не удовл.)
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {config.rows.map((row) => {
-                const trainingLabel =
-                  TRAINING_TYPES.find((t) => t.value === row.trainingType)
-                    ?.label || row.trainingType;
-                const attestLabel =
-                  ATTESTATION_RESULTS.find(
-                    (a) => a.value === row.attestationResult
-                  )?.label || row.attestationResult;
-
-                return (
-                  <tr key={row.id}>
-                    <td className="border p-2 align-top">
-                      {!isClosed && (
-                        <Checkbox
-                          checked={selectedRows.includes(row.id)}
-                          onCheckedChange={(checked) =>
-                            toggleRow(row.id, checked === true)
-                          }
-                        />
-                      )}
-                    </td>
-                    <td
-                      className={`border p-1 align-top whitespace-nowrap ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
-                      onClick={() => !isClosed && openCellEdit(row.id, "date")}
-                    >
-                      {row.date || <span className="text-gray-300">---</span>}
-                    </td>
-                    <td
-                      className={`border p-1 align-top ${emptyCellClass(row.employeeName)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
-                      onClick={() => !isClosed && openCellEdit(row.id, "employeeName")}
-                    >
-                      {row.employeeName || <span className="text-gray-300">---</span>}
-                    </td>
-                    <td
-                      className={`border p-1 align-top ${emptyCellClass(row.employeePosition)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
-                      onClick={() => !isClosed && openCellEdit(row.id, "employeePosition")}
-                    >
-                      {row.employeePosition || <span className="text-gray-300">---</span>}
-                    </td>
-                    <td
-                      className={`border p-1 align-top ${emptyCellClass(row.topic)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
-                      onClick={() => !isClosed && openCellEdit(row.id, "topic")}
-                    >
-                      {row.topic || <span className="text-gray-300">---</span>}
-                    </td>
-                    <td
-                      className={`border p-1 align-top cursor-pointer ${emptyCellClass(row.trainingType)}`}
-                      onClick={() => openCellEdit(row.id, "trainingType")}
-                    >
-                      {trainingLabel || <span className="text-gray-300">---</span>}
-                    </td>
-                    <td
-                      className={`border p-1 align-top cursor-pointer ${emptyCellClass(row.unscheduledReason)}`}
-                      onClick={() =>
-                        openCellEdit(row.id, "unscheduledReason")
-                      }
-                    >
-                      {row.unscheduledReason || (
-                        <span className="text-gray-300">---</span>
-                      )}
-                    </td>
-                    <td
-                      className={`border p-1 align-top cursor-pointer ${emptyCellClass(row.instructorName)}`}
-                      onClick={() =>
-                        openCellEdit(row.id, "instructorName")
-                      }
-                    >
-                      {row.instructorName || (
-                        <span className="text-gray-300">---</span>
-                      )}
-                    </td>
-                    <td
-                      className={`border p-1 align-top cursor-pointer ${emptyCellClass(row.attestationResult)}`}
-                      onClick={() =>
-                        openCellEdit(row.id, "attestationResult")
-                      }
-                    >
-                      {attestLabel || (
-                        <span className="text-gray-300">---</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {config.rows.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="border p-4 text-center text-gray-400">
-                    Нет записей. Нажмите &laquo;Добавить&raquo; чтобы добавить сотрудника.
+              return (
+                <tr key={row.id}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
+                    {!isClosed && (
+                      <Checkbox
+                        checked={selectedRows.includes(row.id)}
+                        onCheckedChange={(checked) =>
+                          toggleRow(row.id, checked === true)
+                        }
+                      />
+                    )}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight whitespace-nowrap ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                    onClick={() => !isClosed && openCellEdit(row.id, "date")}
+                  >
+                    {row.date || <span className="text-gray-300">---</span>}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight ${emptyCellClass(row.employeeName)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                    onClick={() => !isClosed && openCellEdit(row.id, "employeeName")}
+                  >
+                    {row.employeeName || <span className="text-gray-300">---</span>}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight ${emptyCellClass(row.employeePosition)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                    onClick={() => !isClosed && openCellEdit(row.id, "employeePosition")}
+                  >
+                    {row.employeePosition || <span className="text-gray-300">---</span>}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight ${emptyCellClass(row.topic)} ${isClosed ? "" : "cursor-pointer hover:bg-[#f5f6ff]"}`}
+                    onClick={() => !isClosed && openCellEdit(row.id, "topic")}
+                  >
+                    {row.topic || <span className="text-gray-300">---</span>}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight cursor-pointer ${emptyCellClass(row.trainingType)}`}
+                    onClick={() => openCellEdit(row.id, "trainingType")}
+                  >
+                    {trainingLabel || <span className="text-gray-300">---</span>}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight cursor-pointer ${emptyCellClass(row.unscheduledReason)}`}
+                    onClick={() =>
+                      openCellEdit(row.id, "unscheduledReason")
+                    }
+                  >
+                    {row.unscheduledReason || (
+                      <span className="text-gray-300">---</span>
+                    )}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight cursor-pointer ${emptyCellClass(row.instructorName)}`}
+                    onClick={() =>
+                      openCellEdit(row.id, "instructorName")
+                    }
+                  >
+                    {row.instructorName || (
+                      <span className="text-gray-300">---</span>
+                    )}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight cursor-pointer ${emptyCellClass(row.attestationResult)}`}
+                    onClick={() =>
+                      openCellEdit(row.id, "attestationResult")
+                    }
+                  >
+                    {attestLabel || (
+                      <span className="text-gray-300">---</span>
+                    )}
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-      </div>
+              );
+            })}
+            {config.rows.length === 0 && (
+              <tr>
+                <td colSpan={9} className={`${GRID_CELL_CLASS} px-2 py-4 text-center leading-tight text-gray-400`}>
+                  Нет записей. Нажмите &laquo;Добавить&raquo; чтобы добавить сотрудника.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       {/* ---------- Add Row Dialog ---------- */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>

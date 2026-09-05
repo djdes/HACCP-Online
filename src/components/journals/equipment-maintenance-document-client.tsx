@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Settings, Trash2 } from "lucide-react";
+import { Archive, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,15 +35,13 @@ import {
   formatMaintenanceDate,
 } from "@/lib/equipment-maintenance-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -152,6 +150,7 @@ export function EquipmentMaintenanceDocumentClient({
   const isClosed = status === "closed";
   const organizationLabel = organizationName || 'ООО "Тест"';
   const { mobileView, switchMobileView } = useMobileView("equipment_maintenance");
+  const { closeDocument, isClosing } = useDocumentCloseAction({ documentId, title });
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
     const planSummary = MONTH_KEYS.map((k) => `${MONTH_LABELS[k]}:${row.plan[k] || "—"}`)
@@ -300,6 +299,19 @@ export function EquipmentMaintenanceDocumentClient({
 
   /* ---------- settings save ---------- */
 
+  function openSettings() {
+    setSettingsTitle(title);
+    setSettingsDate(config.documentDate);
+    setSettingsYear(config.year);
+    setSettingsApproveRole(config.approveRole);
+    setSettingsApproveEmployeeId(config.approveEmployeeId || "");
+    setSettingsApproveEmployee(config.approveEmployee);
+    setSettingsResponsibleRole(config.responsibleRole);
+    setSettingsResponsibleEmployeeId(config.responsibleEmployeeId || "");
+    setSettingsResponsibleEmployee(config.responsibleEmployee);
+    setSettingsOpen(true);
+  }
+
   async function handleSaveSettings() {
     const nextConfig: EquipmentMaintenanceConfig = {
       ...config,
@@ -338,326 +350,271 @@ export function EquipmentMaintenanceDocumentClient({
   return (
     <div className="space-y-6 text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/equipment_maintenance" documentId={documentId} />
-      {/* screen header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {title}
-          </h1>
-        </div>
-        <div className="flex flex-wrap gap-2 print:hidden">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-          >
-            <Printer className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setSettingsTitle(title);
-              setSettingsDate(config.documentDate);
-              setSettingsYear(config.year);
-              setSettingsApproveRole(config.approveRole);
-              setSettingsApproveEmployeeId(config.approveEmployeeId || "");
-              setSettingsApproveEmployee(config.approveEmployee);
-              setSettingsResponsibleRole(config.responsibleRole);
-              setSettingsResponsibleEmployeeId(config.responsibleEmployeeId || "");
-              setSettingsResponsibleEmployee(config.responsibleEmployee);
-              setSettingsOpen(true);
-            }}
-          >
-            <Settings className="size-4" />
-            Настройки журнала
-          </Button>
-          {!isClosed ? (
-            <DocumentCloseButton
-              documentId={documentId}
-              title={title}
-              variant="outline"
-            >
-              Закончить журнал
-            </DocumentCloseButton>
-          ) : null}
-        </div>
-      </div>
 
-      {/* HACCP block */}
-      <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
-        {/* HACCP header table */}
-        <table className="w-full border-collapse text-[13px]">
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/equipment_maintenance"
+        onSettings={openSettings}
+        closed={isClosed}
+        closedHint="Откройте журнал заново, чтобы редактировать график обслуживания."
+        menuItems={
+          !isClosed
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => void closeDocument(),
+                  disabled: isClosing,
+                },
+              ]
+            : []
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
+          <RecordCardsView items={cardItems} emptyLabel="Оборудование не внесено." />
+        }
+        paperHeader={
+          <>
+            <JournalDocumentHeader
+              orgName={organizationLabel}
+              title="ГРАФИК ПРОФИЛАКТИЧЕСКОГО ОБСЛУЖИВАНИЯ ОБОРУДОВАНИЯ"
+              startedAt={dateFrom}
+              finishedAt={isClosed ? config.documentDate : null}
+            />
+
+            {/* "УТВЕРЖДАЮ" block */}
+            <div className="mt-4 flex justify-end">
+              <div className="w-[400px] text-right text-sm leading-relaxed">
+                <div className="font-semibold uppercase">УТВЕРЖДАЮ</div>
+                <div>{config.approveRole}</div>
+                <div className="mt-1 flex items-center justify-end gap-2">
+                  <span className="inline-block w-[180px] border-b border-black" />
+                  <span>{config.approveEmployee}</span>
+                </div>
+                <div className="mt-1">
+                  {config.documentDate
+                    ? formatMaintenanceDate(config.documentDate)
+                    : ""}
+                </div>
+              </div>
+            </div>
+          </>
+        }
+        sheetTitle={`График профилактического обслуживания оборудования на ${config.year} г.`}
+        sheetMinWidth={1200}
+        toolbar={
+          !isClosed ? (
+            <>
+              <Button
+                type="button"
+                className="bg-[#5566f6] hover:bg-[#4d58f5]"
+                onClick={() => {
+                  resetDraft();
+                  setAddModalOpen(true);
+                }}
+              >
+                <Plus className="size-4" />
+                Добавить
+              </Button>
+
+              {selectedRows.length > 0 && (
+                <>
+                  <span className="text-sm text-[#7a7f93]">
+                    Выбрано: {selectedRows.length}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={removeSelectedRows}
+                  >
+                    <Trash2 className="size-4" />
+                    Удалить
+                  </Button>
+                </>
+              )}
+            </>
+          ) : undefined
+        }
+      >
+        <table className="mb-2 w-full border-collapse text-[13px]">
           <tbody>
             <tr>
-              <td
-                rowSpan={2}
-                className="w-[18%] border border-black p-3 text-center text-[22px] font-semibold"
-              >
-                {organizationLabel}
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Тип профилактического обслуживания
               </td>
-              <td className="border border-black p-2 text-center text-[18px] uppercase">
-                СИСТЕМА ХАССП
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <span className="font-bold">A</span> = Ежемесячно
               </td>
-              <td
-                rowSpan={2}
-                className="w-[15%] border border-black p-2 text-center text-[18px] uppercase"
-              >
-                СТР.1 ИЗ 1
-              </td>
-            </tr>
-            <tr>
-              <td className="border border-black p-2 text-center text-[17px] italic uppercase">
-                ГРАФИК ПРОФИЛАКТИЧЕСКОГО ОБСЛУЖИВАНИЯ ОБОРУДОВАНИЯ
+              <td className={`${GRID_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                <span className="font-bold">B</span> = Ежегодно
               </td>
             </tr>
           </tbody>
         </table>
 
-        {/* "УТВЕРЖДАЮ" block */}
-        <div className="mt-4 flex justify-end">
-          <div className="w-[400px] text-right text-sm leading-relaxed">
-            <div className="font-semibold uppercase">УТВЕРЖДАЮ</div>
-            <div>{config.approveRole}</div>
-            <div className="mt-1 flex items-center justify-end gap-2">
-              <span className="inline-block w-[180px] border-b border-black" />
-              <span>{config.approveEmployee}</span>
-            </div>
-            <div className="mt-1">
-              {config.documentDate
-                ? formatMaintenanceDate(config.documentDate)
-                : ""}
-            </div>
-          </div>
-        </div>
-
-        {/* Title */}
-        <h2 className="mt-4 text-center text-[24px] font-semibold leading-tight">
-          График профилактического обслуживания оборудования на {config.year} г.
-        </h2>
-
-        {/* Toolbar */}
-        {!isClosed && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              className="bg-[#5566f6] hover:bg-[#4d58f5]"
-              onClick={() => {
-                resetDraft();
-                setAddModalOpen(true);
-              }}
-            >
-              <Plus className="size-4" />
-              Добавить
-            </Button>
-
-            {selectedRows.length > 0 && (
-              <>
-                <span className="text-sm text-[#7a7f93]">
-                  Выбрано: {selectedRows.length}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={removeSelectedRows}
-                >
-                  <Trash2 className="size-4" />
-                  Удалить
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Оборудование не внесено." />
-        ) : null}
-
-        {/* Legend row */}
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mb-2 w-full border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td className="border border-black p-2 font-semibold">
-                  Тип профилактического обслуживания
-                </td>
-                <td className="border border-black p-2">
-                  <span className="font-bold">A</span> = Ежемесячно
-                </td>
-                <td className="border border-black p-2">
-                  <span className="font-bold">B</span> = Ежегодно
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Main table */}
-          <table className="w-full min-w-[1200px] border-collapse text-[13px]">
-            <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-10 border border-black p-1" />
-                <th className="w-12 border border-black p-1">
-                  № п/п
+        {/* Main table */}
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`} />
+              <th className={`w-12 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                № п/п
+              </th>
+              <th className={`w-[220px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`}>
+                Название оборудования / Вид работ
+              </th>
+              <th className={`w-16 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 leading-tight`} />
+              {MONTH_KEYS.map((key) => (
+                <th key={key} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                  {MONTH_LABELS[key]}
                 </th>
-                <th className="w-[220px] border border-black p-1">
-                  Название оборудования / Вид работ
-                </th>
-                <th className="w-16 border border-black p-1" />
-                {MONTH_KEYS.map((key) => (
-                  <th key={key} className="border border-black p-1 text-center">
-                    {MONTH_LABELS[key]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {config.rows.map((row, index) => {
-                const rowClickHandler = () => {
-                  if (isClosed) return;
-                  openEditRow(row.id);
-                };
-                const rowClassName = !isClosed ? "cursor-pointer hover:bg-gray-50" : undefined;
-                return (
-                <Fragment key={row.id}>
-                  {/* Sub-row 1: Тип */}
-                  <tr className={rowClassName} onClick={rowClickHandler}>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {config.rows.map((row, index) => {
+              const rowClickHandler = () => {
+                if (isClosed) return;
+                openEditRow(row.id);
+              };
+              const rowClassName = !isClosed ? "cursor-pointer hover:bg-gray-50" : undefined;
+              return (
+              <Fragment key={row.id}>
+                {/* Sub-row 1: Тип */}
+                <tr className={rowClassName} onClick={rowClickHandler}>
+                  <td
+                    rowSpan={3}
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {!isClosed && (
+                      <Checkbox
+                        checked={selectedRows.includes(row.id)}
+                        onCheckedChange={(checked) =>
+                          toggleRow(row.id, checked === true)
+                        }
+                      />
+                    )}
+                  </td>
+                  <td
+                    rowSpan={3}
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight`}
+                  >
+                    {index + 1}
+                  </td>
+                  <td
+                    rowSpan={3}
+                    className={`${GRID_CELL_CLASS} px-2 py-2 align-top leading-tight`}
+                  >
+                    <div className="font-medium">{row.equipmentName}</div>
+                    {row.workType && (
+                      <div className="mt-1 text-[13px] text-gray-500">
+                        {row.workType}
+                      </div>
+                    )}
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-medium leading-tight`}>
+                    Тип
+                  </td>
+                  {MONTH_KEYS.map((key) => (
                     <td
-                      rowSpan={3}
-                      className="border border-black p-1 text-center align-middle"
+                      key={`type-${key}`}
+                      className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
+                    >
+                      <span className="font-bold">{row.maintenanceType}</span>
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Sub-row 2: План */}
+                <tr className={rowClassName} onClick={rowClickHandler}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-medium leading-tight`}>
+                    План
+                  </td>
+                  {MONTH_KEYS.map((key) => (
+                    <td
+                      key={`plan-${key}`}
+                      className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
+                    >
+                      {row.plan[key] || "-"}
+                    </td>
+                  ))}
+                </tr>
+
+                {/* Sub-row 3: Факт */}
+                <tr className={rowClassName} onClick={rowClickHandler}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-medium leading-tight`}>
+                    Факт
+                  </td>
+                  {MONTH_KEYS.map((key) => (
+                    <td
+                      key={`fact-${key}`}
+                      className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {!isClosed && (
-                        <Checkbox
-                          checked={selectedRows.includes(row.id)}
-                          onCheckedChange={(checked) =>
-                            toggleRow(row.id, checked === true)
+                      {isClosed ? (
+                        row.fact[key] || ""
+                      ) : (
+                        <select
+                          className="w-full border-0 bg-transparent text-center text-sm outline-none cursor-pointer"
+                          value={row.fact[key] || ""}
+                          onChange={(e) =>
+                            handleFactChange(row.id, key, e.target.value)
                           }
-                        />
+                        >
+                          <option value="">--</option>
+                          {DAY_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </td>
-                    <td
-                      rowSpan={3}
-                      className="border border-black p-1 text-center align-middle"
-                    >
-                      {index + 1}
-                    </td>
-                    <td
-                      rowSpan={3}
-                      className="border border-black p-2 align-top"
-                    >
-                      <div className="font-medium">{row.equipmentName}</div>
-                      {row.workType && (
-                        <div className="mt-1 text-[13px] text-gray-500">
-                          {row.workType}
-                        </div>
-                      )}
-                    </td>
-                    <td className="border border-black p-1 text-center text-[13px] font-medium">
-                      Тип
-                    </td>
-                    {MONTH_KEYS.map((key) => (
-                      <td
-                        key={`type-${key}`}
-                        className="border border-black p-1 text-center"
-                      >
-                        <span className="font-bold">{row.maintenanceType}</span>
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Sub-row 2: План */}
-                  <tr className={rowClassName} onClick={rowClickHandler}>
-                    <td className="border border-black p-1 text-center text-[13px] font-medium">
-                      План
-                    </td>
-                    {MONTH_KEYS.map((key) => (
-                      <td
-                        key={`plan-${key}`}
-                        className="border border-black p-1 text-center"
-                      >
-                        {row.plan[key] || "-"}
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Sub-row 3: Факт */}
-                  <tr className={rowClassName} onClick={rowClickHandler}>
-                    <td className="border border-black p-1 text-center text-[13px] font-medium">
-                      Факт
-                    </td>
-                    {MONTH_KEYS.map((key) => (
-                      <td
-                        key={`fact-${key}`}
-                        className="border border-black p-1 text-center"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {isClosed ? (
-                          row.fact[key] || ""
-                        ) : (
-                          <select
-                            className="w-full border-0 bg-transparent text-center text-sm outline-none cursor-pointer"
-                            value={row.fact[key] || ""}
-                            onChange={(e) =>
-                              handleFactChange(row.id, key, e.target.value)
-                            }
-                          >
-                            <option value="">--</option>
-                            {DAY_OPTIONS.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                </Fragment>
-                );
-              })}
-
-              {config.rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={4 + MONTH_KEYS.length}
-                    className="border border-black p-4 text-center text-gray-400"
-                  >
-                    Нет записей. Нажмите &laquo;Добавить&raquo; чтобы добавить оборудование.
-                  </td>
+                  ))}
                 </tr>
-              )}
+              </Fragment>
+              );
+            })}
 
-              {/* Responsible row */}
+            {config.rows.length === 0 && (
               <tr>
                 <td
                   colSpan={4 + MONTH_KEYS.length}
-                  className="border border-black p-2 text-sm"
+                  className={`${GRID_CELL_CLASS} px-2 py-4 text-center text-gray-400 leading-tight`}
                 >
-                  Ответственный: {config.responsibleRole},{" "}
-                  {config.responsibleEmployee}
+                  Нет записей. Нажмите &laquo;Добавить&raquo; чтобы добавить оборудование.
                 </td>
               </tr>
+            )}
 
-              {/* Extra blank row */}
-              <tr>
-                <td className="border border-black p-1 text-center">
-                  <Checkbox disabled />
-                </td>
-                <td
-                  colSpan={3 + MONTH_KEYS.length}
-                  className="border border-black p-1"
-                />
-              </tr>
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-      </div>
+            {/* Responsible row */}
+            <tr>
+              <td
+                colSpan={4 + MONTH_KEYS.length}
+                className={`${GRID_CELL_CLASS} px-2 py-2 text-[13px] leading-tight`}
+              >
+                Ответственный: {config.responsibleRole},{" "}
+                {config.responsibleEmployee}
+              </td>
+            </tr>
+
+            {/* Extra blank row */}
+            <tr>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                <Checkbox disabled />
+              </td>
+              <td
+                colSpan={3 + MONTH_KEYS.length}
+                className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}
+              />
+            </tr>
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       {/* ---------- Add Row Dialog ---------- */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>

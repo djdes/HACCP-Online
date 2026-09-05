@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
+  Archive,
   CalendarDays,
   History,
   Plus,
-  Printer,
-  Settings2,
   Trash2,
   X,
 } from "lucide-react";
@@ -54,10 +55,6 @@ import {
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -730,117 +727,29 @@ export function IntensiveCoolingDocumentClient(props: Props) {
         </div>
       ) : null}
 
-      <div className="space-y-8 py-4 sm:py-6">
-        <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentPageHeader
-          backHref={`/journals/${props.routeCode}`}
-          documentId={props.documentId}
-          rightActions={
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => window.print()}
-                title="Печать страницы" aria-label="Печать страницы"
-                className="size-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-0 text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] print:hidden"
-              >
-                <Printer className="size-4" />
-              </Button>
-              {isActive ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <Settings2 className="size-4" />
-                  Настройки журнала
-                </Button>
-              ) : null}
-            </>
-          }
-        />
-
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
-            {title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
-          </h1>
-        </div>
-
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="mx-auto min-w-[1180px] border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td
-                  rowSpan={2}
-                  className="min-w-[190px] border border-black px-6 py-6 text-center text-[20px] font-semibold"
-                >
-                  {props.organizationName || 'ООО "Тест"'}
-                </td>
-                <td className="min-w-[760px] border border-black px-6 py-5 text-center">
-                  СИСТЕМА ХАССП
-                </td>
-                <td
-                  rowSpan={2}
-                  className="min-w-[250px] border border-black px-4 py-3 align-top text-[18px]"
-                >
-                  <div className="flex justify-between gap-3 font-semibold">
-                    <span>Начат</span>
-                    <span>{formatIntensiveCoolingDate(dateFrom)}</span>
-                  </div>
-                  <div className="mt-3 flex justify-between gap-3 font-semibold">
-                    <span>Окончен</span>
-                    <span>{props.status === "closed" ? "__________" : "__________"}</span>
-                  </div>
-                  <div className="mt-6 text-right">СТР. 1 ИЗ 1</div>
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-6 py-5 text-center italic">
-                  {INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="text-center text-[26px] font-semibold">
-          {INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {isActive ? (
-            <Button
-              type="button"
-              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4452ee]"
-              onClick={() => {
-                setEditingRow(null);
-                setRowDialogOpen(true);
-              }}
-            >
-              <Plus className="size-5" />
-              Добавить
-            </Button>
-          ) : (
-            <div />
-          )}
-          {isActive ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 rounded-xl border-[#edf0fb] bg-[#fafbff] px-3.5 text-[13.5px] text-[#5566f6]"
-              onClick={() => setFinishOpen(true)}
-            >
-              Закончить журнал
-            </Button>
-          ) : null}
-        </div>
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+      <JournalDocumentShell
+        title={title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
+        documentId={props.documentId}
+        backHref={`/journals/${props.routeCode}`}
+        onSettings={isActive ? () => setSettingsOpen(true) : undefined}
+        closed={!isActive}
+        closedHint="Откройте журнал заново, чтобы добавлять и править строки."
+        menuItems={
+          isActive
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => setFinishOpen(true),
+                },
+              ]
+            : []
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
           <RecordCardsView
             items={rows.map((row, index) => ({
               id: row.id,
@@ -887,117 +796,140 @@ export function IntensiveCoolingDocumentClient(props: Props) {
             }))}
             emptyLabel="Записей по интенсивному охлаждению нет."
           />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[1650px] border-collapse text-[13px]">
-            <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-[44px] border border-black p-2">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={(checked) =>
-                      setSelectedRowIds(checked === true ? rows.map((row) => row.id) : [])
-                    }
-                    disabled={!isActive || rows.length === 0}
-                  />
-                </th>
-                <th className="w-[170px] border border-black p-2 text-center">
-                  Дата и время изготовления блюда
-                </th>
-                <th className="w-[180px] border border-black p-2 text-center">
-                  Наименование блюда
-                </th>
-                <th className="w-[170px] border border-black p-2 text-center">
-                  Температура в начале процесса охлаждения
-                </th>
-                <th className="w-[150px] border border-black p-2 text-center">
-                  Температура через 1 час
-                </th>
-                <th className="w-[410px] border border-black p-2 text-center">
-                  Корректирующие действия
-                </th>
-                <th className="w-[170px] border border-black p-2 text-center">
-                  Комментарий
-                </th>
-                <th className="w-[260px] border border-black p-2 text-center">
-                  Лицо, проводившее контроль интенсивного охлаждения
-                  <br />
-                  (должность, ФИО)
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={isActive ? "cursor-pointer hover:bg-[#fafbff]" : ""}
-                  onClick={() => {
-                    if (!isActive) return;
-                    setEditingRow(row);
-                    setRowDialogOpen(true);
-                  }}
+        }
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={props.organizationName || 'ООО "Тест"'}
+            title={INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
+            startedAt={dateFrom}
+            finishedAt={null}
+          />
+        }
+        sheetTitle={INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
+        sheetMinWidth={1650}
+        toolbar={
+          isActive ? (
+            <Button
+              type="button"
+              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4452ee]"
+              onClick={() => {
+                setEditingRow(null);
+                setRowDialogOpen(true);
+              }}
+            >
+              <Plus className="size-5" />
+              Добавить
+            </Button>
+          ) : null
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={(checked) =>
+                    setSelectedRowIds(checked === true ? rows.map((row) => row.id) : [])
+                  }
+                  disabled={!isActive || rows.length === 0}
+                />
+              </th>
+              <th className={`w-[170px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Дата и время изготовления блюда
+              </th>
+              <th className={`w-[180px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Наименование блюда
+              </th>
+              <th className={`w-[170px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Температура в начале процесса охлаждения
+              </th>
+              <th className={`w-[150px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Температура через 1 час
+              </th>
+              <th className={`w-[410px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Корректирующие действия
+              </th>
+              <th className={`w-[170px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Комментарий
+              </th>
+              <th className={`w-[260px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Лицо, проводившее контроль интенсивного охлаждения
+                <br />
+                (должность, ФИО)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.id}
+                className={isActive ? "cursor-pointer hover:bg-[#fafbff]" : ""}
+                onClick={() => {
+                  if (!isActive) return;
+                  setEditingRow(row);
+                  setRowDialogOpen(true);
+                }}
+              >
+                <td
+                  className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  <td
-                    className="border border-black p-2 text-center"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <Checkbox
-                      checked={selectedRowIds.includes(row.id)}
-                      onCheckedChange={(checked) =>
-                        setSelectedRowIds((current) =>
-                          checked === true
-                            ? [...current, row.id]
-                            : current.filter((item) => item !== row.id)
-                        )
-                      }
-                      disabled={!isActive}
-                    />
-                  </td>
-                  <td className="border border-black p-3 text-center whitespace-pre-line">
-                    {formatIntensiveCoolingDateTime(row)}
-                    {row.history && row.history.length > 0 ? (
-                      <span
-                        title={`Запись редактировалась ${row.history.length} раз`}
-                        className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[10px] font-medium text-[#3848c7]"
-                      >
-                        <History className="size-3" />
-                        {row.history.length}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="border border-black p-3 text-center">
-                    {row.dishName || "—"}
-                  </td>
-                  <td className="border border-black p-3 text-center">
-                    {formatTemperatureLabel(row.startTemperature)}
-                  </td>
-                  <td className="border border-black p-3 text-center">
-                    {formatTemperatureLabel(row.endTemperature)}
-                  </td>
-                  <td className="border border-black p-3 text-center">
-                    {row.correctiveAction || "—"}
-                  </td>
-                  <td className="border border-black p-3 text-center">
-                    {row.comment || "—"}
-                  </td>
-                  <td className="border border-black p-3 text-center whitespace-pre-line">
-                    {getResponsibleLabel(row, props.users)}
-                  </td>
-                </tr>
-              ))}
-              {rows.length === 0 ? (
-                <tr>
-                  <td className="border border-black p-2 text-center" />
-                  <td className="border border-black p-5 text-center text-[#8a8ea4]" colSpan={7}>
-                    Строк пока нет
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-      </div>
+                  <Checkbox
+                    checked={selectedRowIds.includes(row.id)}
+                    onCheckedChange={(checked) =>
+                      setSelectedRowIds((current) =>
+                        checked === true
+                          ? [...current, row.id]
+                          : current.filter((item) => item !== row.id)
+                      )
+                    }
+                    disabled={!isActive}
+                  />
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight whitespace-pre-line`}>
+                  {formatIntensiveCoolingDateTime(row)}
+                  {row.history && row.history.length > 0 ? (
+                    <span
+                      title={`Запись редактировалась ${row.history.length} раз`}
+                      className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-0.5 text-[10px] font-medium text-[#3848c7]"
+                    >
+                      <History className="size-3" />
+                      {row.history.length}
+                    </span>
+                  ) : null}
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  {row.dishName || "—"}
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  {formatTemperatureLabel(row.startTemperature)}
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  {formatTemperatureLabel(row.endTemperature)}
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  {row.correctiveAction || "—"}
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                  {row.comment || "—"}
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight whitespace-pre-line`}>
+                  {getResponsibleLabel(row, props.users)}
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 ? (
+              <tr>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-6 text-center text-[#8a8ea4]`} colSpan={7}>
+                  Строк пока нет
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       <SettingsDialog
         open={settingsOpen}

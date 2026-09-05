@@ -1,5 +1,6 @@
 "use client";
 
+import { getJournalDocumentPeriodLabel } from "@/lib/journal-document-helpers";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
@@ -52,7 +53,6 @@ import {
   toDateKey,
   type HealthEntryData,
 } from "@/lib/hygiene-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 
 import {
@@ -376,6 +376,7 @@ export function HealthDocumentClient(props: Props) {
             шапки) — свой mb здесь удваивал бы канон. */}
         <div className="screen-only space-y-4">
           <StaffJournalToolbar
+            subtitle={getJournalDocumentPeriodLabel("health_check", dateFrom, dateTo)}
             documentId={documentId}
             heading="Журнал здоровья"
             title={documentTitle}

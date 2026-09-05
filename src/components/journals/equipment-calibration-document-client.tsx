@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Plus, Printer, Settings, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,14 +33,12 @@ import {
   isCalibrationOverdue,
 } from "@/lib/equipment-calibration-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -298,6 +295,16 @@ export function EquipmentCalibrationDocumentClient({
 
   /* ---------- settings save ---------- */
 
+  function openSettings() {
+    setSettingsTitle(title);
+    setSettingsDate(config.documentDate);
+    setSettingsYear(config.year);
+    setSettingsApproveRole(config.approveRole);
+    setSettingsApproveEmployeeId(config.approveEmployeeId || "");
+    setSettingsApproveEmployee(config.approveEmployee);
+    setSettingsOpen(true);
+  }
+
   async function handleSaveSettings() {
     const nextConfig: EquipmentCalibrationConfig = {
       ...config,
@@ -330,41 +337,7 @@ export function EquipmentCalibrationDocumentClient({
 
   return (
     <div className="space-y-6 text-black">
-      {/* Breadcrumb */}
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/equipment_calibration" documentId={documentId} />
-
-      {/* screen header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between print:hidden">
-        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">{title}</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-            className="h-9 shrink-0 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            <Printer className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setSettingsTitle(title);
-              setSettingsDate(config.documentDate);
-              setSettingsYear(config.year);
-              setSettingsApproveRole(config.approveRole);
-              setSettingsApproveEmployeeId(config.approveEmployeeId || "");
-              setSettingsApproveEmployee(config.approveEmployee);
-              setSettingsOpen(true);
-            }}
-            className="h-9 shrink-0 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            Настройки журнала
-          </Button>
-        </div>
-      </div>
 
       {/* Selection bar */}
       {selectedRows.length > 0 && !isClosed && (
@@ -389,59 +362,47 @@ export function EquipmentCalibrationDocumentClient({
         </div>
       )}
 
-      {/* HACCP block */}
-      <div className="space-y-4 overflow-hidden rounded-[20px] border bg-white p-4 sm:p-6">
-        {/* HACCP header table */}
-        <table className="w-full border-collapse text-[13px]">
-          <tbody>
-            <tr>
-              <td
-                rowSpan={2}
-                className="w-[18%] border border-black p-3 text-center text-[22px] font-semibold"
-              >
-                {organizationLabel}
-              </td>
-              <td className="border border-black p-2 text-center text-[18px] uppercase">
-                СИСТЕМА ХАССП
-              </td>
-              <td
-                rowSpan={2}
-                className="w-[15%] border border-black p-2 text-center text-[18px] uppercase"
-              >
-                СТР. 1 ИЗ 1
-              </td>
-            </tr>
-            <tr>
-              <td className="border border-black p-2 text-center text-[17px] italic uppercase">
-                ГРАФИК ПОВЕРКИ СРЕДСТВ ИЗМЕРЕНИЙ
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/equipment_calibration"
+        onSettings={openSettings}
+        closed={isClosed}
+        closedHint="Откройте журнал заново, чтобы добавлять и править средства измерений."
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
+          <RecordCardsView items={cardItems} emptyLabel="Средств измерений пока не внесено." />
+        }
+        paperHeader={
+          <>
+            <JournalDocumentHeader
+              orgName={organizationLabel}
+              title="ГРАФИК ПОВЕРКИ СРЕДСТВ ИЗМЕРЕНИЙ"
+              startedAt={dateFrom}
+              finishedAt={isClosed ? config.documentDate : null}
+            />
 
-        {/* УТВЕРЖДАЮ block */}
-        <div className="mt-4 flex justify-end">
-          <div className="w-[400px] text-right text-sm leading-relaxed">
-            <div className="font-semibold uppercase">УТВЕРЖДАЮ</div>
-            <div>{config.approveRole}</div>
-            <div className="mt-1 flex items-center justify-end gap-2">
-              <span className="inline-block w-[180px] border-b border-black" />
-              <span>{config.approveEmployee}</span>
+            {/* УТВЕРЖДАЮ block */}
+            <div className="mt-4 flex justify-end">
+              <div className="w-[400px] text-right text-sm leading-relaxed">
+                <div className="font-semibold uppercase">УТВЕРЖДАЮ</div>
+                <div>{config.approveRole}</div>
+                <div className="mt-1 flex items-center justify-end gap-2">
+                  <span className="inline-block w-[180px] border-b border-black" />
+                  <span>{config.approveEmployee}</span>
+                </div>
+                <div className="mt-1">
+                  {config.documentDate ? formatCalibrationDateLong(config.documentDate) : ""}
+                </div>
+              </div>
             </div>
-            <div className="mt-1">
-              {config.documentDate ? formatCalibrationDateLong(config.documentDate) : ""}
-            </div>
-          </div>
-        </div>
-
-        {/* Title */}
-        <h2 className="mt-4 text-center text-[24px] font-semibold leading-tight">
-          График поверки средств измерений на {config.year} г.
-        </h2>
-
-        {/* Toolbar */}
-        {!isClosed && (
-          <div className="flex flex-wrap items-center gap-3 print:hidden">
+          </>
+        }
+        sheetTitle={`График поверки средств измерений на ${config.year} г.`}
+        sheetMinWidth={1100}
+        toolbar={
+          !isClosed ? (
             <Button
               type="button"
               className="bg-[#5566f6] hover:bg-[#4d58f5]"
@@ -453,140 +414,129 @@ export function EquipmentCalibrationDocumentClient({
               <Plus className="size-4" />
               Добавить
             </Button>
-          </div>
-        )}
+          ) : undefined
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className={`w-10 ${GRID_HEAD_CELL_CLASS} p-1`} rowSpan={2} />
+              <th className={`w-12 ${GRID_HEAD_CELL_CLASS} p-1`} rowSpan={2}>
+                № п/п
+              </th>
+              <th className={`w-[280px] ${GRID_HEAD_CELL_CLASS} p-1`} rowSpan={2}>
+                Идентификаторы СИ (наименование, тип, заводское обозначение, номер, место расположения)
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} p-1`} colSpan={2}>
+                Метрологические характеристики
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} p-1`} rowSpan={2}>
+                Межповерочный интервал
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} p-1`} rowSpan={2}>
+                Дата последней поверки
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} p-1`} rowSpan={2}>
+                Сроки проведения очередной поверки
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} p-1`} rowSpan={2}>
+                Примечание
+              </th>
+            </tr>
+            <tr>
+              <th className={`${GRID_HEAD_CELL_CLASS} p-1`}>
+                Назначение (измеряемые параметры)
+              </th>
+              <th className={`${GRID_HEAD_CELL_CLASS} p-1`}>
+                Предел (диапазон) измерений
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {config.rows.map((row, index) => {
+              const nextDate = calculateNextCalibrationDate(row.lastCalibrationDate, row.calibrationInterval);
+              const overdue = isCalibrationOverdue(row.lastCalibrationDate, row.calibrationInterval);
 
-        {/* Main table */}
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Средств измерений пока не внесено." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[1100px] border-collapse text-[13px]">
-            <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-10 border border-black p-1" rowSpan={2} />
-                <th className="w-12 border border-black p-1" rowSpan={2}>
-                  № п/п
-                </th>
-                <th className="w-[280px] border border-black p-1" rowSpan={2}>
-                  Идентификаторы СИ (наименование, тип, заводское обозначение, номер, место расположения)
-                </th>
-                <th className="border border-black p-1" colSpan={2}>
-                  Метрологические характеристики
-                </th>
-                <th className="border border-black p-1" rowSpan={2}>
-                  Межповерочный интервал
-                </th>
-                <th className="border border-black p-1" rowSpan={2}>
-                  Дата последней поверки
-                </th>
-                <th className="border border-black p-1" rowSpan={2}>
-                  Сроки проведения очередной поверки
-                </th>
-                <th className="border border-black p-1" rowSpan={2}>
-                  Примечание
-                </th>
-              </tr>
-              <tr className="bg-[#f2f2f2]">
-                <th className="border border-black p-1">
-                  Назначение (измеряемые параметры)
-                </th>
-                <th className="border border-black p-1">
-                  Предел (диапазон) измерений
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {config.rows.map((row, index) => {
-                const nextDate = calculateNextCalibrationDate(row.lastCalibrationDate, row.calibrationInterval);
-                const overdue = isCalibrationOverdue(row.lastCalibrationDate, row.calibrationInterval);
-
-                return (
-                  <tr
-                    key={row.id}
-                    className={`hover:bg-gray-50 ${!isClosed ? "cursor-pointer" : ""}`}
-                    onClick={() => {
-                      if (isClosed) return;
-                      openEditRow(row.id);
-                    }}
-                  >
-                    <td
-                      className="border border-black p-1 text-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {!isClosed && (
-                        <Checkbox
-                          checked={selectedRows.includes(row.id)}
-                          onCheckedChange={(checked) =>
-                            toggleRow(row.id, checked === true)
-                          }
-                        />
-                      )}
-                    </td>
-                    <td className="border border-black p-1 text-center">
-                      {index + 1}
-                    </td>
-                    <td className="border border-black p-2">
-                      <div>
-                        {row.equipmentName}
-                        {row.equipmentNumber ? `, ${row.equipmentNumber}` : ""}
-                        {row.location ? `, ${row.location}` : ""}
-                      </div>
-                    </td>
-                    <td className="border border-black p-1 text-center">
-                      {row.purpose}
-                    </td>
-                    <td className="border border-black p-1 text-center">
-                      {row.measurementRange}
-                    </td>
-                    <td className="border border-black p-1 text-center">
-                      {row.calibrationInterval} мес.
-                    </td>
-                    <td className="border border-black p-1 text-center">
-                      {formatCalibrationDate(row.lastCalibrationDate)}
-                    </td>
-                    <td
-                      className={`border border-black p-1 text-center ${overdue ? "font-semibold text-[#ff3b30]" : ""}`}
-                    >
-                      {formatCalibrationDate(nextDate)}
-                    </td>
-                    <td className="border border-black p-1 text-center">
-                      {row.note}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {config.rows.length === 0 && (
-                <tr>
+              return (
+                <tr
+                  key={row.id}
+                  className={`hover:bg-gray-50 ${!isClosed ? "cursor-pointer" : ""}`}
+                  onClick={() => {
+                    if (isClosed) return;
+                    openEditRow(row.id);
+                  }}
+                >
                   <td
-                    colSpan={9}
-                    className="border border-black p-4 text-center text-gray-400"
+                    className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    Нет записей. Нажмите &laquo;Добавить&raquo; чтобы добавить СИ.
+                    {!isClosed && (
+                      <Checkbox
+                        checked={selectedRows.includes(row.id)}
+                        onCheckedChange={(checked) =>
+                          toggleRow(row.id, checked === true)
+                        }
+                      />
+                    )}
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}>
+                    {index + 1}
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} p-2 leading-tight`}>
+                    <div>
+                      {row.equipmentName}
+                      {row.equipmentNumber ? `, ${row.equipmentNumber}` : ""}
+                      {row.location ? `, ${row.location}` : ""}
+                    </div>
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}>
+                    {row.purpose}
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}>
+                    {row.measurementRange}
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}>
+                    {row.calibrationInterval} мес.
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}>
+                    {formatCalibrationDate(row.lastCalibrationDate)}
+                  </td>
+                  <td
+                    className={`${GRID_CELL_CLASS} p-1 text-center leading-tight ${overdue ? "font-semibold text-[#ff3b30]" : ""}`}
+                  >
+                    {formatCalibrationDate(nextDate)}
+                  </td>
+                  <td className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}>
+                    {row.note}
                   </td>
                 </tr>
-              )}
+              );
+            })}
 
-              {/* Extra blank row */}
+            {config.rows.length === 0 && (
               <tr>
-                <td className="border border-black p-1 text-center">
-                  <Checkbox disabled />
-                </td>
                 <td
-                  colSpan={8}
-                  className="border border-black p-1"
-                />
+                  colSpan={9}
+                  className={`${GRID_CELL_CLASS} p-4 text-center text-gray-400`}
+                >
+                  Нет записей. Нажмите &laquo;Добавить&raquo; чтобы добавить СИ.
+                </td>
               </tr>
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-      </div>
+            )}
+
+            {/* Extra blank row */}
+            <tr>
+              <td className={`${GRID_CELL_CLASS} p-1 text-center`}>
+                <Checkbox disabled />
+              </td>
+              <td
+                colSpan={8}
+                className={`${GRID_CELL_CLASS} p-1`}
+              />
+            </tr>
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       {/* ---------- Add Row Dialog ---------- */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>

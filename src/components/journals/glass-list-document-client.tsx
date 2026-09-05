@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Trash2, X } from "lucide-react";
+import { Archive, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,12 +23,8 @@ import {
   type GlassListConfig,
   type GlassListRow,
 } from "@/lib/glass-list-document";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -88,6 +87,7 @@ export function GlassListDocumentClient({
     () => users.find((user) => user.id === config.responsibleUserId) || null,
     [config.responsibleUserId, users]
   );
+  const { closeDocument } = useDocumentCloseAction({ documentId, title });
 
   async function persist(nextConfig: GlassListConfig) {
     setSaving(true);
@@ -153,7 +153,6 @@ export function GlassListDocumentClient({
   return (
     <div className="space-y-6 text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/glass_items_list" documentId={documentId} />
       {selectedRows.length > 0 && !isClosed && (
         <div className="flex flex-wrap items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
           <button
@@ -176,109 +175,120 @@ export function GlassListDocumentClient({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm sm:p-8">
-        <div className="mb-6 flex flex-wrap items-center justify-end gap-3 text-[14px] text-[#73738a] print:hidden">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-          >
-            <Printer className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            onClick={() => setSettingsOpen(true)}
-            disabled={isClosed}
-          >
-            Настройки журнала
-          </Button>
-        </div>
-
-        {!isClosed ? (
-          <div className="mb-6 flex justify-end">
-            <DocumentCloseButton
-              documentId={documentId}
-              title={title}
-              variant="outline"
-              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            >
-              Закончить журнал
-            </DocumentCloseButton>
-          </div>
-        ) : null}
-
-        <h1 className="mb-10 text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{title}</h1>
-
-        {/* Тумблер вида — ВНЕ широкого листа (min-w-[1100px]): внутри он растягивался на весь лист, и «Таблица» уезжала за экран. */}
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="mx-auto min-w-[1100px] max-w-[1300px] space-y-8 sm:min-w-0">
-          <table className="w-full border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td rowSpan={2} className="w-[18%] border border-black p-4 text-center font-semibold">
-                  {organizationName}
-                </td>
-                <td className="border border-black p-3 text-center font-medium">СИСТЕМА ХАССП</td>
-                <td rowSpan={2} className="w-[11%] border border-black p-3 text-center">
-                  СТР. 1 ИЗ 1
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black p-3 text-center italic">
-                  ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="flex justify-end">
-            <div className="min-w-[360px] space-y-2 text-right text-[18px]">
-              <div className="font-semibold uppercase">УТВЕРЖДАЮ</div>
-              <div>{config.responsibleTitle || "Управляющий"}</div>
-              <div>
-                ____________________ {responsibleUser?.name || "Иванов И.И."}
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/glass_items_list"
+        onSettings={isClosed ? undefined : () => setSettingsOpen(true)}
+        closed={isClosed}
+        closedHint="Откройте журнал заново, чтобы добавлять и редактировать позиции."
+        menuItems={
+          isClosed
+            ? []
+            : [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => void closeDocument(),
+                },
+              ]
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
+          <RecordCardsView
+            items={config.rows.map((row, index) => ({
+              id: row.id,
+              title: `№${index + 1} · ${row.itemName || "—"}`,
+              subtitle: row.location || undefined,
+              leading: !isClosed ? (
+                <Checkbox
+                  checked={selectedRows.includes(row.id)}
+                  onCheckedChange={(checked) =>
+                    setSelectedRows((prev) =>
+                      checked === true
+                        ? [...new Set([...prev, row.id])]
+                        : prev.filter((id) => id !== row.id)
+                    )
+                  }
+                  className="size-5"
+                />
+              ) : null,
+              fields: [
+                { label: "Участок", value: row.location, hideIfEmpty: true },
+                { label: "Кол-во", value: row.quantity, hideIfEmpty: true },
+              ],
+              onClick: !isClosed
+                ? () => setRowDialog({ open: true, rowIndex: index, row })
+                : undefined,
+            }))}
+            emptyLabel="Предметов из стекла ещё не внесено."
+          />
+        }
+        paperHeader={
+          <>
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА"
+              startedAt={config.documentDate}
+              finishedAt={null}
+            />
+            <div className="flex justify-end pt-4">
+              <div className="min-w-[360px] space-y-2 text-right text-[18px]">
+                <div className="font-semibold uppercase">УТВЕРЖДАЮ</div>
+                <div>{config.responsibleTitle || "Управляющий"}</div>
+                <div>
+                  ____________________ {responsibleUser?.name || "Иванов И.И."}
+                </div>
+                <div>« {formatGlassListDateLong(config.documentDate)} г.</div>
               </div>
-              <div>« {formatGlassListDateLong(config.documentDate)} г.</div>
             </div>
-          </div>
-
-          <h2 className="text-center text-[28px] font-semibold uppercase">
-            ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА
-          </h2>
-
-          {!isClosed && (
-            <div className="flex items-center gap-4">
-              <Button
-                type="button"
-                className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4b57ff]"
-                onClick={() =>
-                  setRowDialog({
-                    open: true,
-                    rowIndex: null,
-                    row: emptyRow(config.location),
-                  })
-                }
+          </>
+        }
+        sheetTitle={GLASS_LIST_PAGE_TITLE}
+        sheetMinWidth={1100}
+        toolbar={
+          !isClosed ? (
+            <Button
+              type="button"
+              className={DOC_PRIMARY_BUTTON_CLASS}
+              onClick={() =>
+                setRowDialog({
+                  open: true,
+                  rowIndex: null,
+                  row: emptyRow(config.location),
+                })
+              }
+            >
+              <Plus className="size-5" />
+              Добавить
+            </Button>
+          ) : null
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th className={`w-[42px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`} />
+              <th className={`w-[260px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Место расположения (участок)</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Наименование объекта контроля (предмета)</th>
+              <th className={`w-[120px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Кол-во</th>
+            </tr>
+          </thead>
+          <tbody>
+            {config.rows.map((row, index) => (
+              <tr
+                key={row.id}
+                className={!isClosed ? "cursor-pointer hover:bg-[#fbfbff]" : undefined}
+                onClick={(event) => {
+                  if (isClosed) return;
+                  if ((event.target as HTMLElement).closest("button")) return;
+                  if ((event.target as HTMLElement).closest("[role='checkbox']")) return;
+                  setRowDialog({ open: true, rowIndex: index, row });
+                }}
               >
-                <Plus className="size-5" />
-                Добавить
-              </Button>
-            </div>
-          )}
-
-          {mobileView === "cards" ? (
-            <RecordCardsView
-              items={config.rows.map((row, index) => ({
-                id: row.id,
-                title: `№${index + 1} · ${row.itemName || "—"}`,
-                subtitle: row.location || undefined,
-                leading: !isClosed ? (
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>
                   <Checkbox
                     checked={selectedRows.includes(row.id)}
                     onCheckedChange={(checked) =>
@@ -288,72 +298,22 @@ export function GlassListDocumentClient({
                           : prev.filter((id) => id !== row.id)
                       )
                     }
-                    className="size-5"
                   />
-                ) : null,
-                fields: [
-                  { label: "Участок", value: row.location, hideIfEmpty: true },
-                  { label: "Кол-во", value: row.quantity, hideIfEmpty: true },
-                ],
-                onClick: !isClosed
-                  ? () => setRowDialog({ open: true, rowIndex: index, row })
-                  : undefined,
-              }))}
-              emptyLabel="Предметов из стекла ещё не внесено."
-            />
-          ) : null}
-
-          <MobileViewTableWrapper mobileView={mobileView}>
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr className="bg-[#efefef]">
-                <th className="w-[42px] border border-black p-2" />
-                <th className="w-[260px] border border-black p-2">Место расположения (участок)</th>
-                <th className="border border-black p-2">Наименование объекта контроля (предмета)</th>
-                <th className="w-[120px] border border-black p-2">Кол-во</th>
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.location}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.itemName}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>{row.quantity}</td>
               </tr>
-            </thead>
-            <tbody>
-              {config.rows.map((row, index) => (
-                <tr
-                  key={row.id}
-                  className={!isClosed ? "cursor-pointer hover:bg-[#fbfbff]" : undefined}
-                  onClick={(event) => {
-                    if (isClosed) return;
-                    if ((event.target as HTMLElement).closest("button")) return;
-                    if ((event.target as HTMLElement).closest("[role='checkbox']")) return;
-                    setRowDialog({ open: true, rowIndex: index, row });
-                  }}
-                >
-                  <td className="border border-black p-2 text-center align-top">
-                    <Checkbox
-                      checked={selectedRows.includes(row.id)}
-                      onCheckedChange={(checked) =>
-                        setSelectedRows((prev) =>
-                          checked === true
-                            ? [...new Set([...prev, row.id])]
-                            : prev.filter((id) => id !== row.id)
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="border border-black p-2 align-top">{row.location}</td>
-                  <td className="border border-black p-2 align-top">{row.itemName}</td>
-                  <td className="border border-black p-2 text-center align-top">{row.quantity}</td>
-                </tr>
-              ))}
-              <tr>
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-              </tr>
-            </tbody>
-          </table>
-          </MobileViewTableWrapper>
-        </div>
-        </div>
-      </div>
+            ))}
+            <tr>
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+            </tr>
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       {useV2 ? (
         <JournalSettingsModal

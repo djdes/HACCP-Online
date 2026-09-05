@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Printer, Settings2, X } from "lucide-react";
+import { Archive, CalendarDays, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -28,13 +28,14 @@ import {
   normalizeTrainingPlanConfig,
   type TrainingPlanConfig,
 } from "@/lib/training-plan-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import {
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
+} from "@/components/journals/journal-grid";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -663,45 +664,6 @@ export function TrainingPlanDocumentClient({
   return (
     <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/training_plan" documentId={documentId} />
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div />
-        <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto print:hidden">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-            className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6] hover:bg-[#f6f7ff]"
-          >
-            <Printer className="size-4" />
-          </Button>
-          {!readOnly && (
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6] hover:bg-[#f6f7ff]"
-              onClick={() => {
-                closeDocument().catch(() => toast.error("Не удалось закрыть журнал"));
-              }}
-            >
-              Закончить журнал
-            </Button>
-          )}
-          {!readOnly && (
-            <Button
-              variant="outline"
-              className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings2 className="size-4" />
-              Настройки журнала
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{title}</h1>
 
       {selectedRowIds.length > 0 && !readOnly && (
         <div className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center gap-4 rounded-2xl border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
@@ -718,167 +680,171 @@ export function TrainingPlanDocumentClient({
         </div>
       )}
 
-      <section className="space-y-4 overflow-hidden rounded-[18px] border border-[#dadde9] bg-white p-4 sm:p-8">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_220px] border border-black/70">
-          <div className="flex items-center justify-center border-r border-black/70 py-10 text-[16px] font-semibold">
-            {organizationName}
-          </div>
-          <div className="grid grid-rows-2">
-            <div className="flex items-center justify-center border-b border-black/70 py-4 text-[14px]">
-              СИСТЕМА ХАССП
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/training_plan"
+        onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
+        menuItems={
+          !readOnly
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => {
+                    closeDocument().catch(() => toast.error("Не удалось закрыть журнал"));
+                  },
+                },
+              ]
+            : []
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={<RecordCardsView items={cardItems} emptyLabel="Должностей не добавлено." />}
+        paperHeader={
+          <>
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="ПЛАН ОБУЧЕНИЯ ПЕРСОНАЛА"
+              startedAt={normalized.documentDate}
+              finishedAt={null}
+            />
+            <div className="ml-auto flex w-full max-w-[420px] flex-col items-end gap-1 text-right text-[14px] leading-tight">
+              <div className="font-semibold">УТВЕРЖДАЮ</div>
+              <div>{normalized.approveRole}</div>
+              <div>{normalized.approveEmployee}</div>
+              <div className="mt-1 h-px w-[230px] bg-black" />
+              <div>{toViewDateLabel(normalized.documentDate)}</div>
             </div>
-            <div className="flex items-center justify-center py-4 text-[14px] italic">
-              ПЛАН ОБУЧЕНИЯ ПЕРСОНАЛА
+          </>
+        }
+        sheetTitle={`ПЛАН ОБУЧЕНИЯ ПЕРСОНАЛА НА ${normalized.year} Г.`}
+        toolbar={
+          !readOnly ? (
+            <div className="grid w-full gap-4 md:grid-cols-2">
+              <Button
+                className="h-9 w-full rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
+                onClick={() => setAddPositionOpen(true)}
+              >
+                <Plus className="size-5" /> Добавить должность
+              </Button>
+              <Button
+                className="h-9 w-full rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
+                onClick={() => setAddTopicOpen(true)}
+              >
+                <Plus className="size-5" /> Добавить тему обучения
+              </Button>
             </div>
-          </div>
-          <div className="flex items-center justify-center border-l border-black/70 text-[14px]">СТР. 1 ИЗ 1</div>
-        </div>
-
-        <div className="ml-auto flex w-full max-w-[420px] flex-col items-end gap-1 text-right text-[14px] leading-tight">
-          <div className="font-semibold">УТВЕРЖДАЮ</div>
-          <div>{normalized.approveRole}</div>
-          <div>{normalized.approveEmployee}</div>
-          <div className="mt-1 h-px w-[230px] bg-black" />
-          <div>{toViewDateLabel(normalized.documentDate)}</div>
-        </div>
-
-        <div className="py-4 text-center text-[18px] font-semibold leading-tight sm:text-[24px]">
-          ПЛАН ОБУЧЕНИЯ ПЕРСОНАЛА НА {normalized.year} Г.
-        </div>
-
-        {!readOnly && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Button
-              className="h-9 w-full rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
-              onClick={() => setAddPositionOpen(true)}
-            >
-              <Plus className="size-5" /> Добавить должность
-            </Button>
-            <Button
-              className="h-9 w-full rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]"
-              onClick={() => setAddTopicOpen(true)}
-            >
-              <Plus className="size-5" /> Добавить тему обучения
-            </Button>
-          </div>
-        )}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Должностей не добавлено." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
-            <thead>
-              <tr>
-                <th rowSpan={2} className="w-14 border border-black/70 px-2 py-2">
+          ) : undefined
+        }
+      >
+        <table className="min-w-full border-collapse bg-white text-[13px]">
+          <thead>
+            <tr>
+              <th rowSpan={2} className={`w-14 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                {!readOnly && (
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) =>
+                      setSelectedRowIds(checked === true ? normalized.rows.map((row) => row.id) : [])
+                    }
+                  />
+                )}
+              </th>
+              <th rowSpan={2} className={`w-[60px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                № п/п
+              </th>
+              <th rowSpan={2} className={`w-[200px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Должностная единица, подлежащая обучению
+              </th>
+              <th colSpan={normalized.topics.length} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                Требуется обучение по теме:
+              </th>
+            </tr>
+            <tr>
+              {normalized.topics.map((topic) => (
+                <th key={topic.id} className={`min-w-[140px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                  {topic.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {normalized.rows.map((row, index) => (
+              <tr key={row.id}>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                   {!readOnly && (
                     <Checkbox
-                      checked={allSelected}
+                      checked={selectedRowIds.includes(row.id)}
                       onCheckedChange={(checked) =>
-                        setSelectedRowIds(checked === true ? normalized.rows.map((row) => row.id) : [])
+                        setSelectedRowIds((current) =>
+                          checked === true
+                            ? [...new Set([...current, row.id])]
+                            : current.filter((id) => id !== row.id)
+                        )
                       }
                     />
                   )}
-                </th>
-                <th rowSpan={2} className="w-[60px] border border-black/70 px-2 py-2">
-                  № п/п
-                </th>
-                <th rowSpan={2} className="w-[200px] border border-black/70 px-3 py-2">
-                  Должностная единица, подлежащая обучению
-                </th>
-                <th colSpan={normalized.topics.length} className="border border-black/70 px-3 py-2">
-                  Требуется обучение по теме:
-                </th>
-              </tr>
-              <tr>
-                {normalized.topics.map((topic) => (
-                  <th key={topic.id} className="min-w-[140px] border border-black/70 px-2 py-2 text-center">
-                    {topic.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {normalized.rows.map((row, index) => (
-                <tr key={row.id}>
-                  <td className="border border-black/70 px-2 py-2 text-center">
-                    {!readOnly && (
-                      <Checkbox
-                        checked={selectedRowIds.includes(row.id)}
-                        onCheckedChange={(checked) =>
-                          setSelectedRowIds((current) =>
-                            checked === true
-                              ? [...new Set([...current, row.id])]
-                              : current.filter((id) => id !== row.id)
-                          )
-                        }
-                      />
-                    )}
-                  </td>
-                  <td className="border border-black/70 px-2 py-2 text-center">{index + 1}</td>
-                  <td className="border border-black/70 px-3 py-2 text-center">{row.positionName}</td>
-                  {normalized.topics.map((topic) => {
-                    const cell = row.cells[topic.id] || { required: false, date: "" };
-                    return (
-                      <td key={topic.id} className="border border-black/70 px-2 py-2 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          {readOnly ? (
-                            cell.required ? (
-                              <>
-                                <Checkbox checked disabled />
-                                {cell.date && <span className="text-[13px] text-[#5566f6]">{cell.date}</span>}
-                              </>
-                            ) : (
-                              <Checkbox checked={false} disabled />
-                            )
-                          ) : (
+                </td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{index + 1}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.positionName}</td>
+                {normalized.topics.map((topic) => {
+                  const cell = row.cells[topic.id] || { required: false, date: "" };
+                  return (
+                    <td key={topic.id} className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                      <div className="flex flex-col items-center gap-1">
+                        {readOnly ? (
+                          cell.required ? (
                             <>
-                              <Checkbox
-                                checked={cell.required}
-                                onCheckedChange={(checked) => void toggleCell(row.id, topic.id, checked === true)}
-                              />
-                              {cell.required && (
-                                <select
-                                  className="w-[128px] border-b border-dashed border-[#5566f6] bg-transparent text-center text-[13px] text-[#5566f6] outline-none"
-                                  value={cell.date ? cell.date.split(".")[0] : ""}
-                                  onChange={(event) => {
-                                    const month = event.target.value;
-                                    const yy = String(normalized.year).slice(2);
-                                    void setCellDate(row.id, topic.id, month ? `${month}.${yy}` : "");
-                                  }}
-                                >
-                                  <option value=""></option>
-                                  {MONTH_OPTIONS.map((label, monthIndex) => {
-                                    const month = String(monthIndex + 1).padStart(2, "0");
-                                    return (
-                                      <option key={month} value={month}>
-                                        {label}
-                                      </option>
-                                    );
-                                  })}
-                                </select>
-                              )}
+                              <Checkbox checked disabled />
+                              {cell.date && <span className="text-[13px] text-[#5566f6]">{cell.date}</span>}
                             </>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-              <tr>
-                <td className="border border-black/70 px-2 py-2">{!readOnly && <Checkbox disabled />}</td>
-                <td colSpan={2 + normalized.topics.length} className="border border-black/70 px-3 py-2" />
+                          ) : (
+                            <Checkbox checked={false} disabled />
+                          )
+                        ) : (
+                          <>
+                            <Checkbox
+                              checked={cell.required}
+                              onCheckedChange={(checked) => void toggleCell(row.id, topic.id, checked === true)}
+                            />
+                            {cell.required && (
+                              <select
+                                className="w-[128px] border-b border-dashed border-[#5566f6] bg-transparent text-center text-[13px] text-[#5566f6] outline-none"
+                                value={cell.date ? cell.date.split(".")[0] : ""}
+                                onChange={(event) => {
+                                  const month = event.target.value;
+                                  const yy = String(normalized.year).slice(2);
+                                  void setCellDate(row.id, topic.id, month ? `${month}.${yy}` : "");
+                                }}
+                              >
+                                <option value=""></option>
+                                {MONTH_OPTIONS.map((label, monthIndex) => {
+                                  const month = String(monthIndex + 1).padStart(2, "0");
+                                  return (
+                                    <option key={month} value={month}>
+                                      {label}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  );
+                })}
               </tr>
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-      </section>
+            ))}
+            <tr>
+              <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{!readOnly && <Checkbox disabled />}</td>
+              <td colSpan={2 + normalized.topics.length} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
+            </tr>
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       <AddPositionDialog
         open={addPositionOpen}

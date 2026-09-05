@@ -1,0 +1,1046 @@
+{
+  "disinfectant_usage": {
+    "name": "Журнал учета дезинфицирующих средств",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 156,
+      "bottom": 624,
+      "height": 468,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1069,
+          "clientWidth": 390,
+          "tables": 4,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 4,
+      "paperHeaderFound": true,
+      "headerWidth": 425,
+      "gridWidth": 1069
+    },
+    "cardsPageOverflow": false
+  },
+  "metal_impurity": {
+    "name": "Журнал учета металлопримесей в сырье",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 126,
+      "bottom": 655,
+      "height": 529,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1540,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 1540,
+      "gridWidth": 1540
+    },
+    "cardsPageOverflow": false
+  },
+  "traceability_test": {
+    "name": "Журнал прослеживаемости продукции",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": "Начат 01-09-2026",
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1480,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 1480,
+      "gridWidth": 1480
+    },
+    "cardsPageOverflow": false
+  },
+  "product_writeoff": {
+    "name": "Акт забраковки",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 67,
+      "bottom": 713,
+      "height": 646,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1100,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 1100,
+      "gridWidth": 1100
+    },
+    "cardsPageOverflow": false
+  },
+  "incoming_raw_materials_control": {
+    "name": "Журнал входного контроля сырья, ингредиентов, упаковочных материалов",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": true
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1254,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 640,
+      "gridWidth": 1254
+    },
+    "cardsPageOverflow": false
+  },
+  "fryer_oil": {
+    "name": "Журнал учета использования фритюрных жиров",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 105,
+      "bottom": 675,
+      "height": 570,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 87,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1159,
+          "clientWidth": 390,
+          "tables": 4,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 4,
+      "paperHeaderFound": true,
+      "headerWidth": 521,
+      "gridWidth": 1159
+    },
+    "cardsPageOverflow": false
+  },
+  "incoming_control": {
+    "name": "Журнал приемки и входного контроля продукции",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": true
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1120,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 640,
+      "gridWidth": 1120
+    },
+    "cardsPageOverflow": false
+  },
+  "perishable_rejection": {
+    "name": "Журнал бракеража скоропортящейся пищевой продукции",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 26,
+      "bottom": 754,
+      "height": 727,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1047,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 452,
+      "gridWidth": 1040
+    },
+    "cardsPageOverflow": false
+  },
+  "finished_product": {
+    "name": "Журнал бракеража готовой пищевой продукции",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": true
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1350,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 640,
+      "gridWidth": 1350
+    },
+    "cardsPageOverflow": false
+  },
+  "uv_lamp_runtime": {
+    "name": "Журнал учета работы УФ бактерицидной установки",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 67,
+      "bottom": 713,
+      "height": 646,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1292,
+          "clientWidth": 390,
+          "tables": 4,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 4,
+      "paperHeaderFound": true,
+      "headerWidth": 455,
+      "gridWidth": 720
+    },
+    "cardsPageOverflow": false
+  },
+  "cleaning": {
+    "name": "Журнал уборки",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 105,
+      "bottom": 675,
+      "height": 570,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": "Сентябрь с 1 по 15",
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 988,
+          "clientWidth": 390,
+          "tables": 3,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 3,
+      "paperHeaderFound": true,
+      "headerWidth": 988,
+      "gridWidth": 988
+    },
+    "cardsPageOverflow": false
+  },
+  "cleaning_ventilation_checklist": {
+    "name": "Чек-лист уборки и проветривания помещений",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 98,
+      "bottom": 682,
+      "height": 585,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1157,
+          "clientWidth": 390,
+          "tables": 3,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": false,
+      "tablesTotal": 3,
+      "paperHeaderFound": true,
+      "headerWidth": 1140,
+      "gridWidth": 1140
+    },
+    "cardsPageOverflow": false
+  },
+  "cold_equipment_control": {
+    "name": "Журнал контроля температурного режима холодильного и морозильного оборудования",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 143,
+      "bottom": 637,
+      "height": 495,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1129,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 1060,
+      "gridWidth": 1129
+    },
+    "cardsPageOverflow": false
+  },
+  "climate_control": {
+    "name": "Бланк контроля температуры и влажности на складах",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 105,
+      "bottom": 675,
+      "height": 570,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1280,
+          "clientWidth": 390,
+          "tables": 3,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 3,
+      "paperHeaderFound": true,
+      "headerWidth": 1280,
+      "gridWidth": 1280
+    },
+    "cardsPageOverflow": false
+  },
+  "health_check": {
+    "name": "Журнал здоровья",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 133,
+      "bottom": 647,
+      "height": 514,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": "Сентябрь с 1 по 15",
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1100,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 1100,
+      "gridWidth": 1100
+    },
+    "cardsPageOverflow": false
+  },
+  "hygiene": {
+    "name": "Гигиенический журнал",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 111,
+      "bottom": 669,
+      "height": 557,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": "Сентябрь с 1 по 15",
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1100,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 1100,
+      "gridWidth": 1100
+    },
+    "cardsPageOverflow": false
+  },
+  "general_cleaning": {
+    "name": "График и учет генеральных уборок",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": true
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 0,
+        "width": 390,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 95,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 573,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 560,
+      "gridWidth": 589
+    },
+    "cardsPageOverflow": false
+  },
+  "sanitary_day_control": {
+    "name": "Чек-лист (памятка) проведения санитарного дня",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 199,
+      "bottom": 581,
+      "height": 382,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "header": {
+        "h1Size": 28,
+        "h1Weight": "700",
+        "subtitle": null,
+        "print": 1,
+        "settings": 1,
+        "more": 1,
+        "backLink": 0
+      },
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1100,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true,
+      "headerWidth": 1100,
+      "gridWidth": 1100
+    },
+    "cardsPageOverflow": false
+  }
+}

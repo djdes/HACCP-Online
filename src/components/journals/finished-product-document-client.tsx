@@ -538,7 +538,12 @@ export function FinishedProductDocumentClient({
       {/* Q3: `py-4 sm:py-6` снят — зазор «H1 → бумажная шапка» держит
           DOC_TITLE_ROW_NO_STRIP_CLASS (28px), один для всех журналов
           без полосы автозаполнения. */}
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
       <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
+
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
@@ -586,9 +591,6 @@ export function FinishedProductDocumentClient({
           hint="Строки журнала будут удалены без возможности отмены"
         />
 
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
 
         {mobileView === "cards" ? (
           <RecordCardsView items={cardItems} emptyLabel="Бракеража пока не зарегистрировано." />

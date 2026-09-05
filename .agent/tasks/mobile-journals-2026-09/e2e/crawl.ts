@@ -21,6 +21,15 @@ const only = process.argv.slice(2);
 const NAV = { waitUntil: "domcontentloaded" as const, timeout: 180_000 };
 
 type Geometry = {
+  header: {
+    h1Size: number | null;
+    h1Weight: string | null;
+    subtitle: string | null;
+    print: number;
+    settings: number;
+    more: number;
+    backLink: number;
+  };
   toggle: { left: number; width: number; widerThanScreen: boolean } | null;
   panScrollLeft: number | null;
   h1: { width: number; widerThanScreen: boolean } | null;
@@ -76,6 +85,21 @@ async function measure(page: Page): Promise<Geometry> {
       }));
     const hc = paperHeader ? nearestScroller(paperHeader) : null;
     const gc = grid ? nearestScroller(grid) : null;
+    // Единообразие шапки: H1, подзаголовок, ряд действий.
+    const h1el = document.querySelector("main h1");
+    const h1cs = h1el ? getComputedStyle(h1el) : null;
+    const buttons = Array.from(document.querySelectorAll("button")).filter((b) => b.getClientRects().length > 0);
+    const label = (b: Element) => `${b.textContent ?? ""} ${b.getAttribute("aria-label") ?? ""}`;
+    const subtitle = h1el?.parentElement?.querySelector("p");
+    const header = {
+      h1Size: h1cs ? Math.round(parseFloat(h1cs.fontSize)) : null,
+      h1Weight: h1cs ? h1cs.fontWeight : null,
+      subtitle: subtitle ? (subtitle.textContent ?? "").trim().slice(0, 40) : null,
+      print: buttons.filter((b) => /Распечатать|Печать/.test(label(b))).length,
+      settings: buttons.filter((b) => /Настройки/.test(label(b))).length,
+      more: buttons.filter((b) => /Ещё действия/.test(label(b))).length,
+      backLink: document.querySelectorAll('main a[href*="/journals/"]').length,
+    };
     const tablist = Array.from(document.querySelectorAll('[role="tablist"]')).find((t) => /Таблица/.test(t.textContent ?? "") && t.getClientRects().length > 0) ?? null;
     const tr = tablist?.getBoundingClientRect();
     const pan = document.querySelector("[data-journal-doc-pan]");
@@ -84,6 +108,7 @@ async function measure(page: Page): Promise<Geometry> {
     const h1 = document.querySelector("main h1, [data-journal-doc-pan] h1");
     const h1r = h1?.getBoundingClientRect();
     return {
+      header,
       toggle: tr ? { left: Math.round(tr.left + (panScrollLeft ?? 0)), width: Math.round(tr.width), widerThanScreen: tr.width > window.innerWidth + 2 } : null,
       panScrollLeft,
       h1: h1r ? { width: Math.round(h1r.width), widerThanScreen: h1r.width > window.innerWidth + 2 } : null,

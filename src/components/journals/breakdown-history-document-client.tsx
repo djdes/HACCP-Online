@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { CalendarDays, Plus, Printer, Settings2, X } from "lucide-react";
+import { Archive, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
@@ -26,13 +25,12 @@ import {
 } from "@/lib/breakdown-history-document";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
-import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -561,140 +559,87 @@ export function BreakdownHistoryDocumentClient(props: Props) {
           emptyTitle="Поломок ещё нет"
           emptyBody="Если случилась поломка — добавьте новую запись через кнопку «Добавить» в таблице ниже."
         />
-        <DocumentBackLink href="/journals/breakdown_history" documentId={props.documentId} />
-        {/* Page heading */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
-            {title || BREAKDOWN_HISTORY_HEADING}
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 print:hidden">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.print()}
-              title="Печать страницы" aria-label="Печать страницы"
-              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            >
-              <Printer className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSettingsOpen(true)}
-              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            >
-              <Settings2 className="size-4" />
-              Настройки журнала
-            </Button>
-            {isActive && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setFinishOpen(true)}
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-              >
-                Закончить журнал
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* HACCP Header table */}
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#dadde9]">
-          <table className="w-full border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td
-                  rowSpan={2}
-                  className="w-[220px] border border-black px-4 py-3 text-center font-semibold"
-                >
-                  {props.organizationName || 'ООО "Организация"'}
-                </td>
-                <td className="border border-black px-4 py-2 text-center">
-                  СИСТЕМА ХАССП
-                </td>
-                <td
-                  rowSpan={2}
-                  className="w-[200px] border border-black px-3 py-2"
-                >
-                  <div className="flex items-center gap-1 text-sm font-semibold">
-                    <CalendarDays className="size-4" />
-                    Начат {formatDateLabel(dateFrom)}
-                  </div>
-                  <div className="mt-1 text-sm">Окончен ___</div>
-                  <div className="mt-2 text-right text-sm">СТР. 1 ИЗ 1</div>
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-black px-4 py-2 text-center italic">
-                  {BREAKDOWN_HISTORY_DOCUMENT_TITLE.toUpperCase()}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Title */}
-        <div className="text-center text-[20px] font-semibold leading-tight sm:text-[34px]">
-          КАРТОЧКА ИСТОРИИ ПОЛОМОК
-        </div>
-
-        {/* Action bar */}
-        {isActive && (
-          <StickyActionBar>
-            <Button
-              type="button"
-              className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] hover:bg-[#4452ee]"
-              onClick={() => {
-                setEditingRow(null);
-                setRowDialogOpen(true);
-              }}
-            >
-              <Plus className="size-5" />
-              Добавить
-            </Button>
-
-            {selectedRowIds.length > 0 && (
-              <div className="flex items-center gap-3 rounded-2xl border border-[#dadde9] bg-white px-4 py-2">
-                <span className="text-sm">
-                  Выбранно: {selectedRowIds.length}
-                </span>
+        <JournalDocumentShell
+          title={title || BREAKDOWN_HISTORY_HEADING}
+          subtitle={`Начат ${formatDateLabel(dateFrom)}`}
+          documentId={props.documentId}
+          backHref="/journals/breakdown_history"
+          onSettings={() => setSettingsOpen(true)}
+          closed={!isActive}
+          closedHint="Откройте журнал заново, чтобы добавлять и править записи о поломках."
+          menuItems={
+            isActive
+              ? [
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => setFinishOpen(true),
+                  },
+                ]
+              : []
+          }
+          mobileView={mobileView}
+          onMobileView={switchMobileView}
+          cards={
+            <RecordCardsView items={cardItems} emptyLabel="Карточки поломок пока не добавлены." />
+          }
+          paperHeader={
+            <JournalDocumentHeader
+              orgName={props.organizationName || 'ООО "Организация"'}
+              title={BREAKDOWN_HISTORY_DOCUMENT_TITLE}
+              startedAt={dateFrom}
+              finishedAt={isActive ? null : new Date()}
+            />
+          }
+          sheetTitle="Карточка истории поломок"
+          sheetMinWidth={1600}
+          toolbar={
+            isActive ? (
+              <StickyActionBar>
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-[#ffd7d3] text-[#ff3b30] hover:bg-[#fff0ef]"
+                  className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] hover:bg-[#4452ee]"
                   onClick={() => {
-                    handleDeleteSelected().catch((error) =>
-                      toast.error(
-                        error instanceof Error ? error.message : "Ошибка удаления"
-                      )
-                    );
+                    setEditingRow(null);
+                    setRowDialogOpen(true);
                   }}
                 >
-                  <X className="mr-1 size-4" />
-                  Удалить
+                  <Plus className="size-5" />
+                  Добавить
                 </Button>
-              </div>
-            )}
-          </StickyActionBar>
-        )}
 
-        {/* View toggle + cards/table */}
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
-          <RecordCardsView items={cardItems} emptyLabel="Карточки поломок пока не добавлены." />
-        ) : null}
-
-        {/* Data table */}
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#dadde9]">
-          <table className="min-w-[1600px] w-full border-collapse text-[13px]">
+                {selectedRowIds.length > 0 && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-[#dadde9] bg-white px-4 py-2">
+                    <span className="text-sm">
+                      Выбранно: {selectedRowIds.length}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-[#ffd7d3] text-[#ff3b30] hover:bg-[#fff0ef]"
+                      onClick={() => {
+                        handleDeleteSelected().catch((error) =>
+                          toast.error(
+                            error instanceof Error ? error.message : "Ошибка удаления"
+                          )
+                        );
+                      }}
+                    >
+                      <X className="mr-1 size-4" />
+                      Удалить
+                    </Button>
+                  </div>
+                )}
+              </StickyActionBar>
+            ) : undefined
+          }
+        >
+          <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="bg-[#f2f2f2]">
-                <th className="w-[44px] border border-black p-2">
+              <tr>
+                <th className={`w-[44px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -705,16 +650,16 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                     disabled={rows.length === 0 || !isActive}
                   />
                 </th>
-                <th className="border border-black p-2">Дата и время начала работ</th>
-                <th className="border border-black p-2">Наименование оборудования</th>
-                <th className="border border-black p-2">Описание поломки</th>
-                <th className="border border-black p-2">Выполненный ремонт</th>
-                <th className="border border-black p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Дата и время начала работ</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Наименование оборудования</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Описание поломки</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Выполненный ремонт</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
                   Замена частей (если произведена)
                 </th>
-                <th className="border border-black p-2">Дата и время окончания работ</th>
-                <th className="border border-black p-2">Часы простоя</th>
-                <th className="border border-black p-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Дата и время окончания работ</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Часы простоя</th>
+                <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
                   ФИО лица ответственного за ремонт
                 </th>
               </tr>
@@ -735,7 +680,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                   }}
                 >
                   <td
-                    className="border border-black p-2 text-center"
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Checkbox
@@ -750,7 +695,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                       disabled={!isActive}
                     />
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     <button
                       type="button"
                       className="text-left hover:text-[#5563ff]"
@@ -765,26 +710,26 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                       {formatTime(row.startHour, row.startMinute)}
                     </button>
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.equipmentName || "—"}
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.breakdownDescription || "—"}
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.repairPerformed || "—"}
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.partsReplaced || "—"}
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {formatDateLabel(row.endDate)}{" "}
                     {formatTime(row.endHour, row.endMinute)}
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.downtimeHours || "—"}
                   </td>
-                  <td className="border border-black p-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.responsiblePerson || "—"}
                   </td>
                 </tr>
@@ -793,7 +738,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                 <tr>
                   <td
                     colSpan={9}
-                    className="border border-black p-8 text-center text-[#80849a]"
+                    className={`${GRID_CELL_CLASS} px-2 py-6 text-center text-[#80849a]`}
                   >
                     Строк пока нет
                   </td>
@@ -801,7 +746,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
               )}
             </tbody>
           </table>
-        </MobileViewTableWrapper>
+        </JournalDocumentShell>
       </div>
 
       {/* Dialogs */}

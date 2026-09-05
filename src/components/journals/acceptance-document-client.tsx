@@ -2354,8 +2354,13 @@ export function AcceptanceDocumentClient(props: Props) {
         {/* R1: бумажное полотно — во всю ширину контентной колонки.
             11 колонок приёмки шире полотна и продолжают скроллиться
             внутри своего GRID_VIEWPORT_CLASS. */}
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
         <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* HACCP header */}
+
         <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
         <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
@@ -2426,9 +2431,6 @@ export function AcceptanceDocumentClient(props: Props) {
           </div>
         )}
 
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
 
         {mobileView === "cards" ? (
           <RecordCardsView items={cardItems} emptyLabel="Поставок пока не зарегистрировано." />

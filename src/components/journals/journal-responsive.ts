@@ -536,6 +536,17 @@ export const DOC_CAPS_TITLE_CLASS = "my-2";
  * и два радиуса. Ряд «Добавить» держит ОДНУ высоту 44px, поэтому
  * вторичная кнопка — тот же `h-11`, что и первичная, только светлая.
  */
+/**
+ * Первичная кнопка «Добавить» над таблицей — эталон уборки и гигиены
+ * (`StaffJournalAddButton`): 44px, скругление lg, индиго-заливка.
+ *
+ * До единой раскладки каждый журнал держал свою: h-10 rounded-xl 13.5px,
+ * h-12 rounded-2xl 16px, h-[58px] rounded-2xl 18px. В одном и том же
+ * месте экрана кнопка меняла размер от журнала к журналу.
+ */
+export const DOC_PRIMARY_BUTTON_CLASS =
+  "h-11 w-fit gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]";
+
 export const DOC_SECONDARY_BUTTON_CLASS =
   "inline-flex h-11 items-center gap-2 rounded-lg border-0 bg-[#f5f6ff] px-5 text-[15px] font-semibold text-[#5566f6] shadow-none transition-colors duration-150 hover:bg-[#eef0ff]";
 

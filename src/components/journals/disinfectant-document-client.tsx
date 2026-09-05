@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Plus, Printer, Settings2, Trash2, X } from "lucide-react";
-import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { CalendarDays, Plus, Trash2, X } from "lucide-react";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
@@ -48,19 +50,15 @@ import {
 } from "@/lib/disinfectant-document";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
-import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import {
-  GRID_VIEWPORT_CLASS,
+  GRID_CELL_CLASS,
+  GRID_HEAD_CELL_CLASS,
 } from "@/components/journals/journal-grid";
 import { localDayKey } from "@/lib/entry-defaults";
 
@@ -1370,39 +1368,6 @@ export function DisinfectantDocumentClient({
   return (
     <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentPageHeader
-        backHref="/journals/disinfectant_usage"
-        documentId={documentId}
-        rightActions={
-          !readOnly ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => window.print()}
-                title="Печать страницы" aria-label="Печать страницы"
-                className="size-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-0 text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] print:hidden"
-              >
-                <Printer className="size-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-                onClick={() => setSettingsOpen(true)}
-              >
-                <Settings2 className="size-4" /> Настройки журнала
-              </Button>
-            </>
-          ) : null
-        }
-      />
-
-      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-        {title}
-      </h1>
-
-      {readOnly ? (
-        <JournalClosedBanner hint="Откройте журнал заново, чтобы добавлять получение, расход и подразделения." />
-      ) : null}
 
       {/* Selection bar */}
       {anySelected && !readOnly && (
@@ -1435,30 +1400,117 @@ export function DisinfectantDocumentClient({
         </div>
       )}
 
-      {/* Document Header */}
-      <section className="space-y-4 rounded-[18px] border border-[#dadde9] bg-white p-8">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_220px] border border-[#ececf4] print:border-black">
-          <div className="flex items-center justify-center border-r border-[#ececf4] print:border-black py-10 text-[16px] font-semibold">
-            {organizationName}
-          </div>
-          <div className="grid grid-rows-2">
-            <div className="flex items-center justify-center border-b border-[#ececf4] print:border-black py-4 text-[14px]">
-              СИСТЕМА ХАССП
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/disinfectant_usage"
+        onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
+        closed={readOnly}
+        closedHint="Откройте журнал заново, чтобы добавлять получение, расход и подразделения."
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
+          <div className="space-y-6">
+            {!readOnly && (
+              <Button
+                className={DOC_PRIMARY_BUTTON_CLASS}
+                onClick={() => setAddSubOpen(true)}
+              >
+                <Plus className="size-5" /> Добавить подразделение
+              </Button>
+            )}
+            <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-6 text-center text-[13px] text-[#6f7282]">
+              Таблица расчёта потребности слишком широкая для карточного вида. Переключитесь на «Таблица» для просмотра и редактирования.
             </div>
-            <div className="flex items-center justify-center px-4 py-4 text-center text-[14px] font-semibold uppercase">
-              ЖУРНАЛ УЧЕТА ПОЛУЧЕНИЯ, РАСХОДА ДЕЗИНФИЦИРУЮЩИХ СРЕДСТВ И
-              ПРОВЕДЕНИЯ ДЕЗИНФЕКЦИОННЫХ РАБОТ НА ОБЪЕКТЕ
-            </div>
-          </div>
-          <div className="flex items-center justify-center border-l border-[#ececf4] print:border-black text-[14px]">
-            СТР. 1 ИЗ 1
-          </div>
-        </div>
 
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
+            {!readOnly && (
+              <Button
+                className={DOC_PRIMARY_BUTTON_CLASS}
+                onClick={() => setAddRecOpen(true)}
+              >
+                <Plus className="size-5" /> Добавить поступление
+              </Button>
+            )}
+            <RecordCardsView
+              emptyLabel="Нет записей о поступлении"
+              items={normalized.receipts.map<RecordCardItem>((rec) => ({
+                id: rec.id,
+                title: formatDateRu(rec.date) || "Без даты",
+                subtitle: rec.disinfectantName || undefined,
+                onClick: readOnly ? undefined : () => setEditRecTarget(rec),
+                fields: [
+                  {
+                    label: "Количество",
+                    value: formatQuantityWithUnit(rec.quantity, rec.unit) || "—",
+                  },
+                  {
+                    label: "Срок годности",
+                    value: formatDateRu(rec.expiryDate) || "—",
+                  },
+                  {
+                    label: "Ответственный",
+                    value: rec.responsibleEmployee || "—",
+                  },
+                ],
+              }))}
+            />
 
+            {!readOnly && (
+              <Button
+                className={DOC_PRIMARY_BUTTON_CLASS}
+                onClick={() => setAddConOpen(true)}
+              >
+                <Plus className="size-5" /> Добавить расход
+              </Button>
+            )}
+            <RecordCardsView
+              emptyLabel="Нет записей о расходовании"
+              items={normalized.consumptions.map<RecordCardItem>((con) => ({
+                id: con.id,
+                title: `${formatDateRu(con.periodFrom) || "—"} — ${formatDateRu(con.periodTo) || "—"}`,
+                subtitle: con.disinfectantName || undefined,
+                onClick: readOnly ? undefined : () => setEditConTarget(con),
+                fields: [
+                  {
+                    label: "Получено",
+                    value:
+                      formatQuantityWithUnit(
+                        con.totalReceived,
+                        con.totalReceivedUnit
+                      ) || "—",
+                  },
+                  {
+                    label: "Израсходовано",
+                    value:
+                      formatQuantityWithUnit(
+                        con.totalConsumed,
+                        con.totalConsumedUnit
+                      ) || "—",
+                  },
+                  {
+                    label: "Остаток",
+                    value:
+                      formatQuantityWithUnit(con.remainder, con.remainderUnit) ||
+                      "—",
+                  },
+                  {
+                    label: "Ответственный",
+                    value: con.responsibleEmployee || "—",
+                  },
+                ],
+              }))}
+            />
+          </div>
+        }
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="ЖУРНАЛ УЧЕТА ПОЛУЧЕНИЯ, РАСХОДА ДЕЗИНФИЦИРУЮЩИХ СРЕДСТВ И ПРОВЕДЕНИЯ ДЕЗИНФЕКЦИОННЫХ РАБОТ НА ОБЪЕКТЕ"
+            startedAt={null}
+            finishedAt={null}
+          />
+        }
+      >
         {/* === Section 1: Needs Calculation === */}
         <h2 className="pt-4 text-center text-[18px] font-semibold uppercase leading-tight sm:text-[20px]">
           РАСЧЕТ ПОТРЕБНОСТИ В ДЕЗИНФИЦИРУЮЩИХ СРЕДСТВАХ
@@ -1466,23 +1518,19 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
+            className={DOC_PRIMARY_BUTTON_CLASS}
             onClick={() => setAddSubOpen(true)}
           >
             <Plus className="size-5" /> Добавить подразделение
           </Button>
         )}
 
-        <MobileViewTableWrapper
-          mobileView={mobileView}
-          className={GRID_VIEWPORT_CLASS}
-        >
-          <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
-            <thead className="bg-[#f8f9fc] print:bg-white">
+        <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
+            <thead>
               <tr>
                 <th
                   rowSpan={2}
-                  className="w-12 border border-[#ececf4] print:border-black px-1 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-12 px-2 py-1.5 font-semibold leading-tight`}
                 >
                   {!readOnly && (
                     <Checkbox
@@ -1499,68 +1547,68 @@ export function DisinfectantDocumentClient({
                 </th>
                 <th
                   rowSpan={2}
-                  className="min-w-[200px] border border-[#ececf4] print:border-black px-2 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} min-w-[200px] px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Наименование подразделения / объекта подлежащего дезинфекции
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Площадь объекта (кв.м)
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[60px] border border-[#ececf4] print:border-black px-1 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[60px] px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Вид обработки (Т, Г)
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Кратность обработок в месяц
                 </th>
                 <th
                   colSpan={2}
-                  className="border border-[#ececf4] print:border-black px-2 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Дезинфицирующее средство
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Расход рабочего раствора на один кв. м. (л)
                 </th>
                 <th
                   rowSpan={2}
-                  className="w-[100px] border border-[#ececf4] print:border-black px-1 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} w-[100px] px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Количество рабочего раствора для однократной обработки объекта
                   (л)
                 </th>
                 <th
                   colSpan={3}
-                  className="border border-[#ececf4] print:border-black px-2 py-2"
+                  className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}
                 >
                   Потребность в дезинфицирующем средстве
                 </th>
               </tr>
               <tr>
-                <th className="w-[120px] border border-[#ececf4] print:border-black px-1 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[120px] px-2 py-1.5 font-semibold leading-tight`}>
                   Наименование
                 </th>
-                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold leading-tight`}>
                   Концентрация (%)
                 </th>
-                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold leading-tight`}>
                   На одну обработку (кг, л)
                 </th>
-                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold leading-tight`}>
                   На один месяц (кг, л)
                 </th>
-                <th className="w-[80px] border border-[#ececf4] print:border-black px-1 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[80px] px-2 py-1.5 font-semibold leading-tight`}>
                   На один год (кг, л)
                 </th>
               </tr>
@@ -1575,7 +1623,7 @@ export function DisinfectantDocumentClient({
                   onClick={() => !readOnly && setEditSubTarget(sub)}
                 >
                   <td
-                    className="border border-[#ececf4] print:border-black px-1 py-2 text-center"
+                    className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!readOnly && (
@@ -1591,37 +1639,37 @@ export function DisinfectantDocumentClient({
                       />
                     )}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {sub.name}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {sub.byCapacity ? "На ёмк." : sub.area}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {sub.treatmentType === "current" ? "Т" : "Г"}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {sub.frequencyPerMonth}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {sub.disinfectantName}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {sub.concentration || ""}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {sub.solutionConsumptionPerSqm || ""}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {sub.solutionPerTreatment || ""}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatNumber(computeNeedPerTreatment(sub))}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatNumber(computeNeedPerMonth(sub))}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatNumber(computeNeedPerYear(sub))}
                   </td>
                 </tr>
@@ -1629,29 +1677,22 @@ export function DisinfectantDocumentClient({
               <tr className="font-semibold">
                 <td
                   colSpan={9}
-                  className="border border-[#ececf4] print:border-black px-2 py-2 text-right"
+                  className={`${GRID_CELL_CLASS} text-right px-2 py-1 leading-tight`}
                 >
                   Общая потребность дез. средства
                 </td>
-                <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                   {formatNumber(totalNeedPerTreatment)}
                 </td>
-                <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                   {formatNumber(totalNeedPerMonth)}
                 </td>
-                <td className="border border-[#ececf4] print:border-black px-1 py-2 text-center">
+                <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                   {formatNumber(totalNeedPerYear)}
                 </td>
               </tr>
             </tbody>
           </table>
-        </MobileViewTableWrapper>
-
-        {mobileView === "cards" && (
-          <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-6 text-center text-[13px] text-[#6f7282] sm:hidden print:hidden">
-            Таблица расчёта потребности слишком широкая для карточного вида. Переключитесь на «Таблица» для просмотра и редактирования.
-          </div>
-        )}
 
         {/* === Section 2: Receipts === */}
         <h2 className="pt-8 text-center text-[20px] font-semibold uppercase">
@@ -1660,49 +1701,17 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
+            className={DOC_PRIMARY_BUTTON_CLASS}
             onClick={() => setAddRecOpen(true)}
           >
             <Plus className="size-5" /> Добавить поступление
           </Button>
         )}
 
-        {mobileView === "cards" && (
-          <div className="sm:hidden print:hidden">
-          <RecordCardsView
-            emptyLabel="Нет записей о поступлении"
-            items={normalized.receipts.map<RecordCardItem>((rec) => ({
-              id: rec.id,
-              title: formatDateRu(rec.date) || "Без даты",
-              subtitle: rec.disinfectantName || undefined,
-              onClick: readOnly ? undefined : () => setEditRecTarget(rec),
-              fields: [
-                {
-                  label: "Количество",
-                  value: formatQuantityWithUnit(rec.quantity, rec.unit) || "—",
-                },
-                {
-                  label: "Срок годности",
-                  value: formatDateRu(rec.expiryDate) || "—",
-                },
-                {
-                  label: "Ответственный",
-                  value: rec.responsibleEmployee || "—",
-                },
-              ],
-            }))}
-          />
-          </div>
-        )}
-
-        <MobileViewTableWrapper
-          mobileView={mobileView}
-          className={GRID_VIEWPORT_CLASS}
-        >
-          <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
-            <thead className="bg-[#f8f9fc] print:bg-white">
+        <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
+            <thead>
               <tr>
-                <th className="w-12 border border-[#ececf4] print:border-black px-1 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-12 px-2 py-1.5 font-semibold leading-tight`}>
                   {!readOnly && (
                     <Checkbox
                       checked={allRecsSelected}
@@ -1716,19 +1725,19 @@ export function DisinfectantDocumentClient({
                     />
                   )}
                 </th>
-                <th className="w-[120px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[120px] px-2 py-1.5 font-semibold leading-tight`}>
                   Дата получения
                 </th>
-                <th className="min-w-[200px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} min-w-[200px] px-2 py-1.5 font-semibold leading-tight`}>
                   Наименование дез. средства
                 </th>
-                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-2 py-1.5 font-semibold leading-tight`}>
                   Количество полученного дез. средства (кг, литр, флакон)
                 </th>
-                <th className="w-[120px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[120px] px-2 py-1.5 font-semibold leading-tight`}>
                   Срок годности до
                 </th>
-                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-2 py-1.5 font-semibold leading-tight`}>
                   Ответственный за получение
                 </th>
               </tr>
@@ -1743,7 +1752,7 @@ export function DisinfectantDocumentClient({
                   onClick={() => !readOnly && setEditRecTarget(rec)}
                 >
                   <td
-                    className="border border-[#ececf4] print:border-black px-1 py-2 text-center"
+                    className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!readOnly && (
@@ -1759,19 +1768,19 @@ export function DisinfectantDocumentClient({
                       />
                     )}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatDateRu(rec.date)}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {rec.disinfectantName}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatQuantityWithUnit(rec.quantity, rec.unit)}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatDateRu(rec.expiryDate)}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {rec.responsibleEmployee}
                   </td>
                 </tr>
@@ -1779,21 +1788,20 @@ export function DisinfectantDocumentClient({
               <tr className="font-semibold">
                 <td
                   colSpan={3}
-                  className="border border-[#ececf4] print:border-black px-2 py-2 text-right"
+                  className={`${GRID_CELL_CLASS} text-right px-2 py-1 leading-tight`}
                 >
                   Итого:
                 </td>
-                <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                   {totalReceiptQuantity}
                 </td>
                 <td
                   colSpan={2}
-                  className="border border-[#ececf4] print:border-black px-2 py-2"
+                  className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}
                 />
               </tr>
             </tbody>
           </table>
-        </MobileViewTableWrapper>
 
         {/* === Section 3: Consumption === */}
         <h2 className="pt-8 text-center text-[20px] font-semibold uppercase">
@@ -1802,63 +1810,17 @@ export function DisinfectantDocumentClient({
 
         {!readOnly && (
           <Button
-            className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
+            className={DOC_PRIMARY_BUTTON_CLASS}
             onClick={() => setAddConOpen(true)}
           >
             <Plus className="size-5" /> Добавить расход
           </Button>
         )}
 
-        {mobileView === "cards" && (
-          <div className="sm:hidden print:hidden">
-          <RecordCardsView
-            emptyLabel="Нет записей о расходовании"
-            items={normalized.consumptions.map<RecordCardItem>((con) => ({
-              id: con.id,
-              title: `${formatDateRu(con.periodFrom) || "—"} — ${formatDateRu(con.periodTo) || "—"}`,
-              subtitle: con.disinfectantName || undefined,
-              onClick: readOnly ? undefined : () => setEditConTarget(con),
-              fields: [
-                {
-                  label: "Получено",
-                  value:
-                    formatQuantityWithUnit(
-                      con.totalReceived,
-                      con.totalReceivedUnit
-                    ) || "—",
-                },
-                {
-                  label: "Израсходовано",
-                  value:
-                    formatQuantityWithUnit(
-                      con.totalConsumed,
-                      con.totalConsumedUnit
-                    ) || "—",
-                },
-                {
-                  label: "Остаток",
-                  value:
-                    formatQuantityWithUnit(con.remainder, con.remainderUnit) ||
-                    "—",
-                },
-                {
-                  label: "Ответственный",
-                  value: con.responsibleEmployee || "—",
-                },
-              ],
-            }))}
-          />
-          </div>
-        )}
-
-        <MobileViewTableWrapper
-          mobileView={mobileView}
-          className={GRID_VIEWPORT_CLASS}
-        >
-          <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
-            <thead className="bg-[#f8f9fc] print:bg-white">
+        <table className="min-w-full border-collapse border border-[#ececf4] bg-white text-[13px] print:border-black">
+            <thead>
               <tr>
-                <th className="w-12 border border-[#ececf4] print:border-black px-1 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-12 px-2 py-1.5 font-semibold leading-tight`}>
                   {!readOnly && (
                     <Checkbox
                       checked={allConsSelected}
@@ -1872,24 +1834,24 @@ export function DisinfectantDocumentClient({
                     />
                   )}
                 </th>
-                <th className="w-[130px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[130px] px-2 py-1.5 font-semibold leading-tight`}>
                   За период с_____ по_____
                 </th>
-                <th className="min-w-[180px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} min-w-[180px] px-2 py-1.5 font-semibold leading-tight`}>
                   Наименование дез. средства
                 </th>
-                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-2 py-1.5 font-semibold leading-tight`}>
                   Общее количество полученного дез. средства (кг, литр, флакон),
                   в том числе остаток с прошлого периода
                 </th>
-                <th className="w-[160px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[160px] px-2 py-1.5 font-semibold leading-tight`}>
                   Общее количество израсходованного за период дез. средства (кг,
                   литр, флакон)
                 </th>
-                <th className="w-[140px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[140px] px-2 py-1.5 font-semibold leading-tight`}>
                   Остаток на конец периода дез. средства (кг, литр, флакон)
                 </th>
-                <th className="w-[140px] border border-[#ececf4] print:border-black px-2 py-2">
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[140px] px-2 py-1.5 font-semibold leading-tight`}>
                   Ответственный за получение
                 </th>
               </tr>
@@ -1904,7 +1866,7 @@ export function DisinfectantDocumentClient({
                   onClick={() => !readOnly && setEditConTarget(con)}
                 >
                   <td
-                    className="border border-[#ececf4] print:border-black px-1 py-2 text-center"
+                    className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!readOnly && (
@@ -1920,38 +1882,37 @@ export function DisinfectantDocumentClient({
                       />
                     )}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     <div>{formatDateRu(con.periodFrom)}</div>
                     <div className="my-1 text-[13px] text-[#999]">—</div>
                     <div>{formatDateRu(con.periodTo)}</div>
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {con.disinfectantName}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatQuantityWithUnit(
                       con.totalReceived,
                       con.totalReceivedUnit
                     )}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatQuantityWithUnit(
                       con.totalConsumed,
                       con.totalConsumedUnit
                     )}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2 text-center">
+                  <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatQuantityWithUnit(con.remainder, con.remainderUnit)}
                   </td>
-                  <td className="border border-[#ececf4] print:border-black px-2 py-2">
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {con.responsibleEmployee}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </MobileViewTableWrapper>
-      </section>
+      </JournalDocumentShell>
 
       {/* Dialogs */}
       <AddSubdivisionDialog

@@ -1252,6 +1252,11 @@ export function FryerOilDocumentClient(props: Props) {
         ) : null}
 
         {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
+
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
+
         <div className={DOC_PAPER_CANVAS_CLASS}>
           <div>
             {/* Бумажная шапка — общие строки в той же сетке, что и таблица
@@ -1280,7 +1285,6 @@ export function FryerOilDocumentClient(props: Props) {
                 hint="Записи о фритюрном жире будут удалены без возможности отмены"
               />
             ) : null}
-            <div className="mb-4 sm:hidden print:hidden"><MobileViewToggle mobileView={mobileView} onChange={switchMobileView} /></div>
             {mobileView === "cards" ? <RecordCardsView items={cardItems} emptyLabel="Записей нет. Нажмите «Добавить»." /> : null}
             {/* Горизонтальный скролл — ТОЛЬКО у журнальной таблицы.
                 Раньше в 1400-px контейнер были завёрнуты и шапка, и

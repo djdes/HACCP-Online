@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -32,18 +32,16 @@ import {
   type AuditPlanConfig,
   type AuditPlanSection,
 } from "@/lib/audit-plan-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
-import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 
 import { toast } from "sonner";
 import {
@@ -822,36 +820,6 @@ export function AuditPlanDocumentClient({
 
   return (
     <div className="space-y-5">
-      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/audit_plan" documentId={documentId} />
-      <div className="flex items-center justify-between print:hidden">
-        <div />
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => window.print()}
-            title="Печать страницы" aria-label="Печать страницы"
-            className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]"
-          >
-            <Printer className="size-4" />
-          </Button>
-          {!readOnly && (
-            <Button
-              variant="outline"
-              className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings2 className="size-4" />
-              Настройки журнала
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024] print:hidden">
-        {title}
-      </h1>
-
       {selectedRowIds.length > 0 && !readOnly && (
         <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-[#f3f4fe] px-6 py-3 print:hidden">
           <button type="button" className="flex items-center gap-1 text-[16px] text-[#5566f6]" onClick={() => setSelectedRowIds([])}>
@@ -863,121 +831,123 @@ export function AuditPlanDocumentClient({
         </div>
       )}
 
-      <section className="space-y-4 overflow-hidden rounded-[18px] border border-[#dadde9] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_120px] border border-black/70">
-          <div className="flex items-center justify-center border-r border-black/70 py-10 text-[16px] font-semibold">{organizationName}</div>
-          <div className="grid grid-rows-2">
-            <div className="flex items-center justify-center border-b border-black/70 py-4 text-[14px]">СИСТЕМА ХАССП</div>
-            <div className="flex items-center justify-center py-4 text-[14px] italic">ПЛАН-ПРОГРАММА ВНУТРЕННИХ АУДИТОВ</div>
-          </div>
-          <div className="flex items-center justify-center border-l border-black/70 text-[14px]">СТР. 1 ИЗ 1</div>
-        </div>
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
 
-        <div className="ml-auto w-full max-w-[420px] text-right text-[14px] leading-tight">
-          <div className="font-semibold">УТВЕРЖДАЮ</div>
-          <div>{normalized.approveRole}</div>
-          <div>{normalized.approveEmployee}</div>
-          <div>{getAuditPlanPrintDateLabel(normalized.documentDate)}</div>
-        </div>
-
-        <div className="py-4 text-center text-[24px] font-semibold">
-          План-программа внутренних аудитов на {normalized.year} г.
-        </div>
-
-        {!readOnly && (
-          <div className="flex flex-wrap gap-3 print:hidden">
-            <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddRowOpen(true)}>
-              <Plus className="size-5" /> Добавить
-            </Button>
-            <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddColumnOpen(true)}>
-              <Plus className="size-5" /> Добавить подразделение
-            </Button>
-          </div>
-        )}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/audit_plan"
+        onSettings={!readOnly ? () => setSettingsOpen(true) : undefined}
+        closed={readOnly}
+        closedHint="Откройте журнал заново, чтобы менять план-программу аудитов."
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
           <RecordCardsView items={cardItems} emptyLabel="Требований пока не добавлено." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
-            <thead>
-              <tr>
-                <th rowSpan={3} className="w-14 border border-black/70 px-2 py-2">
-                  {!readOnly && <Checkbox checked={allSelected} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? normalized.rows.map((row) => row.id) : [])} />}
+        }
+        paperHeader={
+          <>
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="ПЛАН-ПРОГРАММА ВНУТРЕННИХ АУДИТОВ"
+              startedAt={normalized.documentDate}
+              finishedAt={null}
+            />
+            <div className="ml-auto w-full max-w-[420px] text-right text-[14px] leading-tight">
+              <div className="font-semibold">УТВЕРЖДАЮ</div>
+              <div>{normalized.approveRole}</div>
+              <div>{normalized.approveEmployee}</div>
+              <div>{getAuditPlanPrintDateLabel(normalized.documentDate)}</div>
+            </div>
+          </>
+        }
+        sheetTitle={`План-программа внутренних аудитов на ${normalized.year} г.`}
+        toolbar={
+          !readOnly ? (
+            <>
+              <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddRowOpen(true)}>
+                <Plus className="size-5" /> Добавить
+              </Button>
+              <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddColumnOpen(true)}>
+                <Plus className="size-5" /> Добавить подразделение
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              <th rowSpan={3} className={`w-14 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>
+                {!readOnly && <Checkbox checked={allSelected} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? normalized.rows.map((row) => row.id) : [])} />}
+              </th>
+              <th rowSpan={3} className={`w-[60px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>№ п/п</th>
+              <th rowSpan={3} className={`min-w-[620px] ${GRID_HEAD_CELL_CLASS} px-3 py-1.5 font-semibold leading-tight`}>Требования</th>
+              <th colSpan={normalized.columns.length} className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-semibold leading-tight`}>Дата аудита в подразделениях / назначенный(е) аудитор(ы):</th>
+            </tr>
+            <tr>
+              {normalized.columns.map((column) => (
+                <th key={column.id} className={`min-w-[150px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center italic font-semibold leading-tight`}>{column.title}</th>
+              ))}
+            </tr>
+            <tr>
+              {normalized.columns.map((column) => (
+                <th key={column.id} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>
+                  {readOnly ? (
+                    column.auditorName || "—"
+                  ) : (
+                    <select className="w-full bg-transparent text-center text-[16px] outline-none" value={users.find((user) => user.name === column.auditorName)?.id || ""} onChange={(e) => void updateColumnAuditor(column.id, users.find((user) => user.id === e.target.value)?.name || "")}>
+                      <option value="">Добавить ФИО</option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>{user.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </th>
-                <th rowSpan={3} className="w-[60px] border border-black/70 px-2 py-2">№ п/п</th>
-                <th rowSpan={3} className="min-w-[620px] border border-black/70 px-3 py-2">Требования</th>
-                <th colSpan={normalized.columns.length} className="border border-black/70 px-3 py-2 text-center">Дата аудита в подразделениях / назначенный(е) аудитор(ы):</th>
-              </tr>
-              <tr>
-                {normalized.columns.map((column) => (
-                  <th key={column.id} className="min-w-[150px] border border-black/70 px-2 py-2 text-center italic">{column.title}</th>
-                ))}
-              </tr>
-              <tr>
-                {normalized.columns.map((column) => (
-                  <th key={column.id} className="border border-black/70 px-2 py-2 text-center">
-                    {readOnly ? (
-                      column.auditorName || "—"
-                    ) : (
-                      <select className="w-full bg-transparent text-center text-[16px] outline-none" value={users.find((user) => user.name === column.auditorName)?.id || ""} onChange={(e) => void updateColumnAuditor(column.id, users.find((user) => user.id === e.target.value)?.name || "")}>
-                        <option value="">Добавить ФИО</option>
-                        {users.map((user) => (
-                          <option key={user.id} value={user.id}>{user.name}</option>
-                        ))}
-                      </select>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rowsBySection.map(({ section, rows }) => (
-                <Fragment key={section.id}>
-                  <tr key={`${section.id}-title`}>
-                    <td colSpan={3 + normalized.columns.length} className="border border-black/70 px-3 py-2 text-center font-semibold">{section.title}</td>
-                  </tr>
-                  {rows.map((row) => {
-                    const rowNumber = normalized.rows.findIndex((item) => item.id === row.id) + 1;
-                    return (
-                      <tr key={row.id}>
-                        <td className="border border-black/70 px-2 py-2 text-center">
-                          {!readOnly && (
-                            <Checkbox checked={selectedRowIds.includes(row.id)} onCheckedChange={(checked) => setSelectedRowIds((current) => checked === true ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id))} />
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rowsBySection.map(({ section, rows }) => (
+              <Fragment key={section.id}>
+                <tr key={`${section.id}-title`}>
+                  <td colSpan={3 + normalized.columns.length} className={`${GRID_CELL_CLASS} px-3 py-1 text-center font-semibold leading-tight`}>{section.title}</td>
+                </tr>
+                {rows.map((row) => {
+                  const rowNumber = normalized.rows.findIndex((item) => item.id === row.id) + 1;
+                  return (
+                    <tr key={row.id}>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                        {!readOnly && (
+                          <Checkbox checked={selectedRowIds.includes(row.id)} onCheckedChange={(checked) => setSelectedRowIds((current) => checked === true ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id))} />
+                        )}
+                      </td>
+                      <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{rowNumber}</td>
+                      <td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>
+                        <div className="flex items-start gap-3">
+                          {!readOnly && <Checkbox checked={row.checked} onCheckedChange={(checked) => void updateRowChecked(row.id, checked === true)} />}
+                          <span>{row.text}</span>
+                        </div>
+                      </td>
+                      {normalized.columns.map((column) => (
+                        <td key={column.id} className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                          {readOnly ? (
+                            row.values[column.id] || ""
+                          ) : (
+                            <button type="button" className="min-h-[28px] w-full rounded px-1 text-center hover:bg-[#f5f6ff]" onClick={() => setCellEditor({ rowId: row.id, columnId: column.id, title: `${row.text} / ${column.title}`, value: row.values[column.id] || "" })}>
+                              {row.values[column.id] || ""}
+                            </button>
                           )}
                         </td>
-                        <td className="border border-black/70 px-2 py-2 text-center">{rowNumber}</td>
-                        <td className="border border-black/70 px-3 py-2">
-                          <div className="flex items-start gap-3">
-                            {!readOnly && <Checkbox checked={row.checked} onCheckedChange={(checked) => void updateRowChecked(row.id, checked === true)} />}
-                            <span>{row.text}</span>
-                          </div>
-                        </td>
-                        {normalized.columns.map((column) => (
-                          <td key={column.id} className="border border-black/70 px-2 py-2 text-center">
-                            {readOnly ? (
-                              row.values[column.id] || ""
-                            ) : (
-                              <button type="button" className="min-h-[28px] w-full rounded px-1 text-center hover:bg-[#f5f6ff]" onClick={() => setCellEditor({ rowId: row.id, columnId: column.id, title: `${row.text} / ${column.title}`, value: row.values[column.id] || "" })}>
-                                {row.values[column.id] || ""}
-                              </button>
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-      </section>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       <DocumentSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} users={users} initial={settingsState} useV2={useV2} onSubmit={async (value) => {
         const nextConfig = normalizeAuditPlanConfig({ ...normalized, year: Number(value.year), documentDate: value.documentDate, approveRole: value.approveRole, approveEmployeeId: value.approveEmployeeId || null, approveEmployee: value.approveEmployee });

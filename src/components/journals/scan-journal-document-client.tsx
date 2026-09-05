@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 
 type Props = {
   templateCode: string;
@@ -29,39 +29,20 @@ export function ScanJournalDocumentClient({
   return (
     <div className="space-y-5">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href={`/journals/${templateCode}`} documentId={documentId} />
-      <div className="flex flex-wrap items-center justify-between gap-4 print:hidden">
-        <div>
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
-            {templateName}
-          </h1>
-          <div className="mt-2 text-sm text-[#7a7d8e]">
-            Страница {currentPage} из {totalPages}
-          </div>
+      <JournalDocumentShell
+        title={templateName}
+        subtitle={`Страница ${currentPage} из ${totalPages}`}
+        documentId={documentId}
+        backHref={`/journals/${templateCode}`}
+      >
+        <div className="overflow-hidden rounded-[16px] border border-[#dbe0f1] bg-white p-2">
+          <img
+            src={imageUrl}
+            alt={`${templateCode} page ${currentPage}`}
+            className="h-auto w-full rounded-[12px] bg-white"
+          />
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => window.print()}
-          title="Распечатать страницу"
-          className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-        >
-          <Printer className="size-4" />
-          Печать
-        </Button>
-      </div>
-
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="min-w-[1100px] sm:min-w-0">
-          <div className="overflow-hidden rounded-[16px] border border-[#dbe0f1] bg-white p-2">
-            <img
-              src={imageUrl}
-              alt={`${templateCode} page ${currentPage}`}
-              className="h-auto w-full rounded-[12px] bg-white"
-            />
-          </div>
-        </div>
-      </div>
+      </JournalDocumentShell>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         {canPrev ? (

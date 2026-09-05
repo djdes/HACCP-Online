@@ -1,5 +1,6 @@
 "use client";
 
+import { getJournalDocumentPeriodLabel } from "@/lib/journal-document-helpers";
 import { TOUR } from "@/lib/tour-anchors";
 
 import { useCallback, useEffect, useState } from "react";
@@ -982,6 +983,7 @@ export function HygieneDocumentClient({
             шапки) — свой mb здесь удваивал бы канон. */}
         <div className="screen-only space-y-4">
         <StaffJournalToolbar
+          subtitle={getJournalDocumentPeriodLabel("hygiene", dateFrom, dateTo)}
           documentId={documentId}
           heading="Гигиенический журнал"
           title={documentTitle}

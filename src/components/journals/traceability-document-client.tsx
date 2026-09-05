@@ -1,15 +1,18 @@
 ﻿"use client";
 
-import { DocumentPageHeader } from "@/components/journals/document-page-header";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
+import { DOC_SECONDARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Archive,
   CalendarDays,
   ChevronDown,
   Plus,
-  Printer,
   Trash2,
   Upload,
   X,
@@ -38,15 +41,10 @@ import {
 } from "@/lib/traceability-document";
 
 import { toast } from "sonner";
-import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionSelectItems } from "@/components/shared/position-select";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -741,107 +739,144 @@ export function TraceabilityDocumentClient(props: Props) {
   }
 
   return (
-    <div className="space-y-8 pb-8 text-black">
-      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-      {props.routeCode ? (
-        <DocumentPageHeader
-          backHref={`/journals/${props.routeCode}`}
-          documentId={props.documentId}
-        />
+    <div className="space-y-6 text-black">
+      {selectedRowIds.length > 0 && !isClosed ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-[18px] bg-white px-5 py-4 shadow-sm">
+          <button type="button" className="flex items-center gap-2 text-[15px] text-[#5563ff]" onClick={() => setSelectedRowIds([])}>
+            <X className="size-5" />
+            Выбрано: {selectedRowIds.length}
+          </button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]"
+            onClick={() => {
+              deleteSelected().catch((error) => toast.error(error instanceof Error ? error.message : "Не удалось удалить строки"));
+            }}
+          >
+            <Trash2 className="size-4" />
+            Удалить
+          </Button>
+        </div>
       ) : null}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">{title || DEFAULT_TITLE}</h1>
-          <div className="mt-3 flex items-center gap-3"><span className={cn("inline-flex rounded-full px-3 py-1 text-[13px] font-medium", isClosed ? "bg-[#fff2f1] text-[#d2453d]" : "bg-[#eef1ff] text-[#5563ff]")}>{isClosed ? "Закрыт" : "Активен"}</span><span className="text-[15px] text-[#6f7282]">Начат {formatDashDate(dateFrom)}</span></div>
-        </div>
-      </div>
-
-      {/* В табличном виде на телефоне шапка той же ширины, что сетка (980px):
-          иначе при панорамировании шапка (во весь экран) уезжала, а сетка
-          оставалась шире — лист «расходился». */}
-      <div className={`overflow-hidden rounded-[18px] border border-black bg-white ${mobileView === "table" ? "max-sm:w-fit max-sm:min-w-full" : ""}`}>
-        <table className={`w-full border-collapse text-[13px] ${mobileView === "table" ? "max-sm:min-w-[980px]" : ""}`}><tbody><tr><td rowSpan={2} className="w-[220px] border border-black px-4 py-4 text-center font-semibold">{organizationName}</td><td className="border border-black px-4 py-4 text-center text-[18px]">СИСТЕМА ХАССП</td><td rowSpan={2} className="w-[220px] border border-black px-4 py-3 align-top"><div className="space-y-2 text-[17px] font-semibold"><div>Начат {formatDashDate(dateFrom)}</div><div>Окончен ________</div></div><div className="mt-4 text-center text-[16px]">СТР. 1 ИЗ 1</div></td></tr><tr><td className="border border-black px-4 py-4 text-center italic">ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ</td></tr></tbody></table>
-      </div>
-
-      <div className="space-y-4">
-        <div className="text-center text-[22px] font-semibold tracking-[-0.03em]">ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ</div>
-        <div className="flex flex-wrap items-center gap-3 print:hidden">
-          {!isClosed && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" disabled={saving || isPending} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]"><Plus className="size-6" />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start" className="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl"><DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setEditingRow(null); setRowOpen(true); }}><Plus className="mr-2 size-4" />Добавить</DropdownMenuItem><DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setImportOpen(true); }}><Upload className="mr-2 size-4" />Добавить из файла</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
-          {!isClosed && <button type="button" onClick={() => setListsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Редактировать списки</button>}
-          <div className="flex-1" />
-          {/* Общей `DocumentActionsBar` у этого журнала нет — кнопки
-              отмены ставим в его панель действий слева от «Печати». */}
-          {!isClosed && (
-            <PublishUndoToHeader
-              undo={{
+      <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
+      <JournalDocumentShell
+        title={title || DEFAULT_TITLE}
+        subtitle={`Начат ${formatDashDate(dateFrom)}`}
+        documentId={props.documentId}
+        backHref={props.routeCode ? `/journals/${props.routeCode}` : undefined}
+        onSettings={!isClosed ? () => setSettingsOpen(true) : undefined}
+        settingsLabel="Настройки документа"
+        closed={isClosed}
+        closedHint="Журнал закрыт и доступен только для чтения."
+        menuItems={
+          !isClosed
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => setFinishOpen(true),
+                },
+              ]
+            : []
+        }
+        undo={
+          !isClosed
+            ? {
                 canUndo: undoStack.canUndo,
                 canRedo: undoStack.canRedo,
                 onUndo: () => void undoStack.undo(),
                 onRedo: () => void undoStack.redo(),
                 undoCount: undoStack.undoCount,
-              }}
-            />
-          )}
-          <button type="button" onClick={() => window.print()} title="Печать страницы" aria-label="Печать страницы" className="inline-flex items-center gap-2 rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]"><Printer className="size-5" /></button>
-          {!isClosed && <button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Настройки документа</button>}
-          {!isClosed && <button type="button" onClick={() => setFinishOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Закончить журнал</button>}
-        </div>
-
-        {selectedRowIds.length > 0 && !isClosed && <div className="sticky top-0 z-30 -mx-4 flex items-center gap-3 rounded-[18px] border-b border-[#dcdfed] bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8 print:hidden"><button type="button" className="text-[#6f7282] hover:text-black" onClick={() => setSelectedRowIds([])}><X className="size-5" /></button><span className="text-[15px]">Выбрано: {selectedRowIds.length}</span><Button type="button" variant="outline" className="h-10 rounded-2xl border-[#ffd7d3] px-4 text-[15px] text-[#ff3b30] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => { deleteSelected().catch((error) => toast.error(error instanceof Error ? error.message : "Не удалось удалить строки")); }}><Trash2 className="size-4" />Удалить</Button></div>}
-
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-
-        {mobileView === "cards" ? (
+              }
+            : undefined
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={
           <RecordCardsView items={cardItems} emptyLabel="Записей по прослеживаемости нет." />
-        ) : null}
-
-        <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 rounded-[18px] border border-[#1f1f1f] bg-white">
-          <table className="min-w-[980px] w-full border-collapse text-[13px] sm:min-w-[1480px]">
-            <thead>
-              <tr className="bg-[#efefef]">
-                {!isClosed && <th rowSpan={2} className="w-[44px] border border-black px-2 py-3 text-center"><Checkbox checked={allSelected} disabled={config.rows.length === 0} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? config.rows.map((row) => row.id) : [])} /></th>}
-                <th rowSpan={2} className="w-[140px] border border-black px-3 py-3 text-center font-semibold">Дата</th>
-                <th colSpan={3} className="border border-black px-3 py-3 text-center font-semibold">Поступило в цех сырья</th>
-                <th colSpan={config.showShockTempField ? 3 : 2} className="border border-black px-3 py-3 text-center font-semibold">Выпущено цехом</th>
-                <th rowSpan={2} className="w-[210px] border border-black px-3 py-3 text-center font-semibold">ФИО ответственного</th>
-              </tr>
-              <tr className="bg-[#efefef]">
-                <th className="border border-black px-3 py-3 text-center font-medium">Наименование сырья</th>
-                <th className="border border-black px-3 py-3 text-center font-medium">Номер партии ПФ<br />Дата фасовки</th>
-                <th className="w-[120px] border border-black px-3 py-3 text-center font-medium">Кол-во<br />шт./кг.</th>
-                <th className="border border-black px-3 py-3 text-center font-medium">Наименование ПФ</th>
-                <th className="w-[120px] border border-black px-3 py-3 text-center font-medium">Кол-во фасовок<br />шт./кг.</th>
-                {config.showShockTempField && <th className="w-[140px] border border-black px-3 py-3 text-center font-medium">T °C<br />продукта после<br />шоковой<br />заморозки</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {config.rows.length > 0 ? config.rows.map((row) => {
-                const incomingQty = row.incoming.quantityKg ?? row.incoming.quantityPieces;
-                const outgoingQty = row.outgoing.quantityPacksKg ?? row.outgoing.quantityPacksPieces;
-                const selected = selectedRowIds.includes(row.id);
-                return (
-                  <tr key={row.id} className={cn("transition-colors", !isClosed && "cursor-pointer hover:bg-[#fafbff]", selected && "bg-[#eef1ff]")} onClick={() => { if (!isClosed) setEditingRow(row); if (!isClosed) setRowOpen(true); }}>
-                    {!isClosed && <td className="border border-black px-2 py-3 text-center" onClick={(event) => event.stopPropagation()}><Checkbox checked={selected} onCheckedChange={(checked) => setSelectedRowIds((current) => checked === true ? uniqueStrings([...current, row.id]) : current.filter((id) => id !== row.id))} /></td>}
-                    <td className="border border-black px-3 py-3 text-center">{formatDashDate(row.date)}</td>
-                    <td className="border border-black px-3 py-3 text-center">{row.incoming.rawMaterialName || "—"}</td>
-                    <td className="border border-black px-3 py-3 text-center whitespace-pre-line">{[row.incoming.batchNumber, formatDashDate(row.incoming.packagingDate)].filter(Boolean).join("\n") || "—"}</td>
-                    <td className="border border-black px-3 py-3 text-center">{incomingQty != null ? formatTraceabilityQuantity(incomingQty) : "—"}</td>
-                    <td className="border border-black px-3 py-3 text-center">{row.outgoing.productName || "—"}</td>
-                    <td className="border border-black px-3 py-3 text-center">{outgoingQty != null ? formatTraceabilityQuantity(outgoingQty) : "—"}</td>
-                    {config.showShockTempField && <td className="border border-black px-3 py-3 text-center">{row.outgoing.shockTemp != null ? formatTraceabilityQuantity(row.outgoing.shockTemp) : "—"}</td>}
-                    <td className="border border-black px-3 py-3 text-center">{row.responsibleEmployee || "—"}</td>
-                  </tr>
-                );
-              }) : <tr><td colSpan={isClosed ? 8 : config.showShockTempField ? 9 : 8} className="border border-black px-4 py-10 text-center text-[15px] text-[#6f7282]">Строк пока нет</td></tr>}
-            </tbody>
-          </table>
-        </MobileViewTableWrapper>
-
-        {isClosed && <div className="rounded-[18px] border border-[#e6e9f5] bg-[#fbfbff] px-4 py-3 text-[15px] text-[#6f7282] print:hidden">Журнал закрыт и доступен только для чтения.</div>}
-      </div>
+        }
+        paperHeader={
+          <JournalDocumentHeader
+            orgName={organizationName}
+            title="ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ"
+            startedAt={dateFrom}
+            finishedAt={null}
+          />
+        }
+        sheetTitle="ЖУРНАЛ ПРОСЛЕЖИВАЕМОСТИ ПРОДУКЦИИ"
+        sheetMinWidth={1480}
+        toolbar={
+          !isClosed ? (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" disabled={saving || isPending} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]">
+                    <Plus className="size-6" />
+                    Добавить
+                    <ChevronDown className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl">
+                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setEditingRow(null); setRowOpen(true); }}>
+                    <Plus className="mr-2 size-4" />
+                    Добавить
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setImportOpen(true); }}>
+                    <Upload className="mr-2 size-4" />
+                    Добавить из файла
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <button type="button" onClick={() => setListsOpen(true)} className={DOC_SECONDARY_BUTTON_CLASS}>
+                Редактировать списки
+              </button>
+            </>
+          ) : null
+        }
+      >
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              {!isClosed && <th rowSpan={2} className={`w-[44px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}><Checkbox checked={allSelected} disabled={config.rows.length === 0} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? config.rows.map((row) => row.id) : [])} /></th>}
+              <th rowSpan={2} className={`w-[140px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Дата</th>
+              <th colSpan={3} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Поступило в цех сырья</th>
+              <th colSpan={config.showShockTempField ? 3 : 2} className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Выпущено цехом</th>
+              <th rowSpan={2} className={`w-[210px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>ФИО ответственного</th>
+            </tr>
+            <tr>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Наименование сырья</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Номер партии ПФ<br />Дата фасовки</th>
+              <th className={`w-[120px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Кол-во<br />шт./кг.</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Наименование ПФ</th>
+              <th className={`w-[120px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Кол-во фасовок<br />шт./кг.</th>
+              {config.showShockTempField && <th className={`w-[140px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>T °C<br />продукта после<br />шоковой<br />заморозки</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {config.rows.length > 0 ? config.rows.map((row) => {
+              const incomingQty = row.incoming.quantityKg ?? row.incoming.quantityPieces;
+              const outgoingQty = row.outgoing.quantityPacksKg ?? row.outgoing.quantityPacksPieces;
+              const selected = selectedRowIds.includes(row.id);
+              return (
+                <tr key={row.id} className={cn("transition-colors", !isClosed && "cursor-pointer hover:bg-[#fafbff]", selected && "bg-[#eef1ff]")} onClick={() => { if (!isClosed) setEditingRow(row); if (!isClosed) setRowOpen(true); }}>
+                  {!isClosed && <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`} onClick={(event) => event.stopPropagation()}><Checkbox checked={selected} onCheckedChange={(checked) => setSelectedRowIds((current) => checked === true ? uniqueStrings([...current, row.id]) : current.filter((id) => id !== row.id))} /></td>}
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatDashDate(row.date)}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.incoming.rawMaterialName || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight whitespace-pre-line`}>{[row.incoming.batchNumber, formatDashDate(row.incoming.packagingDate)].filter(Boolean).join("\n") || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{incomingQty != null ? formatTraceabilityQuantity(incomingQty) : "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.outgoing.productName || "—"}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{outgoingQty != null ? formatTraceabilityQuantity(outgoingQty) : "—"}</td>
+                  {config.showShockTempField && <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.outgoing.shockTemp != null ? formatTraceabilityQuantity(row.outgoing.shockTemp) : "—"}</td>}
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.responsibleEmployee || "—"}</td>
+                </tr>
+              );
+            }) : <tr><td colSpan={isClosed ? 8 : config.showShockTempField ? 9 : 8} className={`${GRID_CELL_CLASS} px-2 py-6 text-center text-[#6f7282]`}>Строк пока нет</td></tr>}
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       <SettingsDialog open={settingsOpen} title="Настройки документа" initial={headerSettings} onOpenChange={setSettingsOpen} onSave={saveSettings} useV2={props.useV2} />
       <ListsDialog open={listsOpen} onOpenChange={setListsOpen} config={config} onSave={saveLists} />

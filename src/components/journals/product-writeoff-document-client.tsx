@@ -2,9 +2,12 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pencil, Plus, Printer, Trash2, X } from "lucide-react";
+import { Archive, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
+import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import * as XLSX from "xlsx";
@@ -24,13 +27,9 @@ import {
   type ProductWriteoffConfig,
   type ProductWriteoffRow,
 } from "@/lib/product-writeoff-document";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { PositionNativeOptions } from "@/components/shared/position-select";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
@@ -125,6 +124,7 @@ export function ProductWriteoffDocumentClient({
     () => Array.from(new Set(config.productLists.flatMap((list) => list.items).filter(Boolean))),
     [config.productLists]
   );
+  const { closeDocument } = useDocumentCloseAction({ documentId, title });
 
   const actDate = actDateParts(config.documentDate || dateFrom);
 
@@ -292,7 +292,6 @@ export function ProductWriteoffDocumentClient({
   return (
     <div className="space-y-6 text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/product_writeoff" documentId={documentId} />
       {selectedRows.length > 0 && !isClosed && (
         <div className="flex flex-wrap items-center gap-4 rounded-[20px] bg-white px-6 py-4 shadow-sm">
           <button type="button" className="rounded-xl px-4 py-2 text-[18px] text-[#5566f6]" onClick={() => setSelectedRows([])}>
@@ -306,141 +305,51 @@ export function ProductWriteoffDocumentClient({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
-        <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
-          <Button type="button" variant="outline" onClick={() => window.print()} title="Печать страницы" aria-label="Печать страницы" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]">
-            <Printer className="size-4" />
-          </Button>
-          <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setSettingsOpen(true)} disabled={isClosed}>
-            Настройки журнала
-          </Button>
-        </div>
-
-        {!isClosed ? (
-          <div className="mb-6 flex justify-end print:hidden">
-            <DocumentCloseButton
-              documentId={documentId}
-              title={title}
-              variant="outline"
-              className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
-            >
-              Закончить журнал
-            </DocumentCloseButton>
-          </div>
-        ) : null}
-
-        {/* Тумблер вида — ВНЕ широкого листа (min-w-[1100px]): внутри он растягивался на весь лист, и «Таблица» уезжала за экран. */}
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-        </div>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
-        <div className="mx-auto mt-8 min-w-[1100px] max-w-[1120px] space-y-8 print:mt-0 sm:min-w-0">
-          <table className="w-full border-collapse text-[13px]">
-            <tbody>
-              <tr>
-                <td rowSpan={2} className="w-[18%] border border-black p-4 text-center font-semibold">{organizationName}</td>
-                <td className="border border-black p-3 text-center font-medium">СИСТЕМА ХАССП</td>
-                <td rowSpan={2} className="w-[10%] border border-black p-3 text-center">СТР. 1 ИЗ 1</td>
-              </tr>
-              <tr>
-                <td className="border border-black p-3 text-center italic">{config.documentName}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="space-y-4 text-center">
-            <div className="text-[30px] font-semibold">АКТ</div>
-            <div className="text-[24px] font-semibold">№ {config.actNumber || "1"} от « {actDate.day} » {actDate.month} {actDate.year} г.</div>
-          </div>
-
-          <div className="flex flex-wrap gap-4 print:hidden">
-            {!isClosed && (
-              <>
-                <Button type="button" className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4957fb]" onClick={() => { setRowDialog({ open: true, index: null, row: emptyRow(), newProductName: "" }); setRowDialogProductOptions(productOptions); }}>
-                  <Plus className="size-5" />
-                  Добавить
-                </Button>
-                <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setListsOpen(true)}>
-                  Редактировать списки
-                </Button>
-              </>
-            )}
-          </div>
-
-          <div className="space-y-5 text-[18px] leading-8">
-            <div>
-              Комиссия в составе:
-              <div className="ml-5 mt-1 space-y-1">
-                {config.commissionMembers.map((member, index) => (
-                  <div key={member.id} className="flex items-center gap-3">
-                    <button type="button" className="underline" disabled={isClosed} onClick={() => !isClosed && setCommissionDialog({ open: true, index, member })}>
-                      {member.role} {member.employeeName}
-                    </button>
-                    {!isClosed && <button type="button" className="rounded-full p-1 text-[#5566f6]" onClick={() => setCommissionDialog({ open: true, index, member })}><Pencil className="size-4" /></button>}
-                  </div>
-                ))}
-                {!isClosed && <button type="button" className="text-left underline" onClick={() => setCommissionDialog({ open: true, index: null, member: emptyCommissionMember() })}>Добавить</button>}
-              </div>
+      <JournalDocumentShell
+        title={title}
+        documentId={documentId}
+        backHref="/journals/product_writeoff"
+        onSettings={isClosed ? undefined : () => setSettingsOpen(true)}
+        closed={isClosed}
+        closedHint="Откройте журнал заново, чтобы добавлять и редактировать акт."
+        menuItems={
+          isClosed
+            ? []
+            : [
+                {
+                  key: "edit-lists",
+                  label: "Редактировать списки",
+                  icon: <Pencil className="size-4" />,
+                  onSelect: () => setListsOpen(true),
+                },
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => void closeDocument(),
+                },
+              ]
+        }
+        mobileView={mobileView}
+        onMobileView={switchMobileView}
+        cards={<RecordCardsView items={cardItems} emptyLabel="Списаний пока не зарегистрировано." />}
+        paperHeader={
+          <>
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title={config.documentName}
+              startedAt={config.documentDate || dateFrom}
+              finishedAt={null}
+            />
+            <div className="space-y-4 pt-4 text-center">
+              <div className="text-[30px] font-semibold">АКТ</div>
+              <div className="text-[24px] font-semibold">№ {config.actNumber || "1"} от « {actDate.day} » {actDate.month} {actDate.year} г.</div>
             </div>
-
-            <p>составила настоящий АКТ о том, что « {actDate.day} » {actDate.month} {actDate.year} г. на предприятии выявлены ТМЦ с несоответствиями по качеству и (или) безопасности согласно списку ниже.</p>
-            <p className="flex flex-wrap items-center gap-2">
-              Указанные ТМЦ были выработаны
-              <input value={config.supplierName} disabled={isClosed} onChange={(event) => updateConfig({ supplierName: event.target.value })} onBlur={() => persistConfig(config).catch(() => undefined)} className="min-w-[280px] flex-1 border-b border-black bg-transparent px-1 outline-none" />
-              и поставлены...
-            </p>
-            <p>Комиссия постановила выполнить в отношении выявленных ТМЦ следующие действия:</p>
-          </div>
-
-          {mobileView === "cards" ? (
-            <RecordCardsView items={cardItems} emptyLabel="Списаний пока не зарегистрировано." />
-          ) : null}
-
-          <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
-            <thead>
-              <tr>
-                {!isClosed && <th className="w-[34px] border border-black p-2 print:hidden" />}
-                <th className="w-[70px] border border-black p-2">№ п/п</th>
-                <th className="border border-black p-2">Наименование ТМЦ</th>
-                <th className="border border-black p-2">№ партии, дата выработки</th>
-                <th className="border border-black p-2">Количество (кг, шт)</th>
-                <th className="border border-black p-2">Описание несоответствия</th>
-                <th className="border border-black p-2">Действия с ТМЦ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {config.rows.map((row, index) => (
-                <tr key={row.id} className={!isClosed ? "cursor-pointer hover:bg-[#fbfbff]" : undefined} onClick={(event) => {
-                  if (isClosed) return;
-                  if ((event.target as HTMLElement).closest("button")) return;
-                  if ((event.target as HTMLElement).closest("[role='checkbox']")) return;
-                  setRowDialog({ open: true, index, row, newProductName: "" });
-                  setRowDialogProductOptions(productOptions);
-                }}>
-                  {!isClosed && <td className="border border-black p-2 text-center align-top print:hidden"><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(checked) => setSelectedRows((prev) => checked === true ? [...new Set([...prev, row.id])] : prev.filter((id) => id !== row.id))} /></td>}
-                  <td className="border border-black p-2 text-center align-top">{index + 1}</td>
-                  <td className="border border-black p-2 align-top">{row.productName}</td>
-                  <td className="border border-black p-2 align-top"><div>{row.batchNumber}</div><div>{row.productionDate}</div></td>
-                  <td className="border border-black p-2 align-top text-center">{row.quantity}</td>
-                  <td className="border border-black p-2 align-top text-center">{row.discrepancyDescription}</td>
-                  <td className="border border-black p-2 align-top text-center">{row.action}</td>
-                </tr>
-              ))}
-              <tr>
-                {!isClosed && <td className="border border-black p-2 print:hidden" />}
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-                <td className="border border-black p-4" />
-              </tr>
-            </tbody>
-          </table>
-          </MobileViewTableWrapper>
-
-          <div className="space-y-2 pt-8 text-[18px]">
+          </>
+        }
+        sheetMinWidth={1100}
+        extra={
+          <div className="mt-6 space-y-2 text-[18px]">
             <div>Подписи членов комиссии:</div>
             {config.commissionMembers.length === 0 && <div>________________</div>}
             {config.commissionMembers.map((member) => (
@@ -450,9 +359,83 @@ export function ProductWriteoffDocumentClient({
               </div>
             ))}
           </div>
+        }
+        toolbar={
+          !isClosed ? (
+            <Button type="button" className={DOC_PRIMARY_BUTTON_CLASS} onClick={() => { setRowDialog({ open: true, index: null, row: emptyRow(), newProductName: "" }); setRowDialogProductOptions(productOptions); }}>
+              <Plus className="size-5" />
+              Добавить
+            </Button>
+          ) : null
+        }
+      >
+        <div className="space-y-5 py-4 text-[18px] leading-8">
+          <div>
+            Комиссия в составе:
+            <div className="ml-5 mt-1 space-y-1">
+              {config.commissionMembers.map((member, index) => (
+                <div key={member.id} className="flex items-center gap-3">
+                  <button type="button" className="underline" disabled={isClosed} onClick={() => !isClosed && setCommissionDialog({ open: true, index, member })}>
+                    {member.role} {member.employeeName}
+                  </button>
+                  {!isClosed && <button type="button" className="rounded-full p-1 text-[#5566f6]" onClick={() => setCommissionDialog({ open: true, index, member })}><Pencil className="size-4" /></button>}
+                </div>
+              ))}
+              {!isClosed && <button type="button" className="text-left underline" onClick={() => setCommissionDialog({ open: true, index: null, member: emptyCommissionMember() })}>Добавить</button>}
+            </div>
+          </div>
+
+          <p>составила настоящий АКТ о том, что « {actDate.day} » {actDate.month} {actDate.year} г. на предприятии выявлены ТМЦ с несоответствиями по качеству и (или) безопасности согласно списку ниже.</p>
+          <p className="flex flex-wrap items-center gap-2">
+            Указанные ТМЦ были выработаны
+            <input value={config.supplierName} disabled={isClosed} onChange={(event) => updateConfig({ supplierName: event.target.value })} onBlur={() => persistConfig(config).catch(() => undefined)} className="min-w-[280px] flex-1 border-b border-black bg-transparent px-1 outline-none" />
+            и поставлены...
+          </p>
+          <p>Комиссия постановила выполнить в отношении выявленных ТМЦ следующие действия:</p>
         </div>
-        </div>
-      </div>
+
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              {!isClosed && <th className={`w-[34px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 print:hidden`} />}
+              <th className={`w-[70px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>№ п/п</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Наименование ТМЦ</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>№ партии, дата выработки</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Количество (кг, шт)</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Описание несоответствия</th>
+              <th className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight`}>Действия с ТМЦ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {config.rows.map((row, index) => (
+              <tr key={row.id} className={!isClosed ? "cursor-pointer hover:bg-[#fbfbff]" : undefined} onClick={(event) => {
+                if (isClosed) return;
+                if ((event.target as HTMLElement).closest("button")) return;
+                if ((event.target as HTMLElement).closest("[role='checkbox']")) return;
+                setRowDialog({ open: true, index, row, newProductName: "" });
+                setRowDialogProductOptions(productOptions);
+              }}>
+                {!isClosed && <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight print:hidden`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(checked) => setSelectedRows((prev) => checked === true ? [...new Set([...prev, row.id])] : prev.filter((id) => id !== row.id))} /></td>}
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>{index + 1}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.productName}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}><div>{row.batchNumber}</div><div>{row.productionDate}</div></td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>{row.quantity}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>{row.discrepancyDescription}</td>
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>{row.action}</td>
+              </tr>
+            ))}
+            <tr>
+              {!isClosed && <td className={`${GRID_CELL_CLASS} px-2 py-4 print:hidden`} />}
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+              <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
+            </tr>
+          </tbody>
+        </table>
+      </JournalDocumentShell>
 
       {useV2 ? (
         <JournalSettingsModal

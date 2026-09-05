@@ -1767,6 +1767,15 @@ export function ClimateDocumentClient({
         {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Широкая сетка климата (min-w 1280) скроллится внутри своего
             GRID_VIEWPORT_CLASS, который лежит ВНУТРИ полотна. */}
+
+        <div className="mb-4 sm:hidden print:hidden">
+          <MobileViewToggle
+            mobileView={mobileView}
+            onChange={switchMobileView}
+            dataTour={TOUR.viewToggle}
+          />
+        </div>
+
         <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* Бумажная ХАССП-шапка — САМОСТОЯТЕЛЬНЫЙ блок под полосой
             тумблера. Раньше она жила ВНУТРИ раскрывающейся панели
@@ -1956,13 +1965,6 @@ export function ClimateDocumentClient({
           />
         ) : null}
 
-        <div className="sm:hidden print:hidden">
-          <MobileViewToggle
-            mobileView={mobileView}
-            onChange={switchMobileView}
-            dataTour={TOUR.viewToggle}
-          />
-        </div>
 
         {mobileView === "cards" ? (
           <RecordCardsView

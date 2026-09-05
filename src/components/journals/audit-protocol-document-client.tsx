@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Printer, Settings2, Trash2, X } from "lucide-react";
+import { Archive, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,19 +27,18 @@ import {
   type AuditProtocolSection,
   type AuditProtocolSignature,
 } from "@/lib/audit-protocol-document";
-import { DocumentBackLink } from "@/components/journals/document-back-link";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
-import { DocumentCloseButton } from "@/components/journals/document-close-button";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
-import {
-  MobileViewToggle,
-  MobileViewTableWrapper,
-} from "@/components/journals/mobile-view-toggle";
 import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
+import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
+import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
+import { DOC_EXTRA_BLOCK_CLASS } from "@/components/journals/journal-responsive";
 
 import { toast } from "sonner";
 type Props = {
@@ -228,6 +227,7 @@ export function AuditProtocolDocumentClient({
 
   const allSelected = config.rows.length > 0 && selectedRowIds.length === config.rows.length;
   const { mobileView, switchMobileView } = useMobileView("audit_protocol");
+  const { closeDocument } = useDocumentCloseAction({ documentId, title: documentTitle });
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
     const section = config.sections.find((s) => s.id === row.sectionId);
@@ -289,147 +289,139 @@ export function AuditProtocolDocumentClient({
         )}
 
         <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
-        <DocumentBackLink href="/journals/audit_protocol" documentId={documentId} />
-        <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
-          <Button variant="outline" onClick={() => window.print()} title="Печать страницы" aria-label="Печать страницы" className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]">
-            <Printer className="size-4" />
-          </Button>
-          {status === "active" && (
-            <>
-            <Button variant="outline" className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]" onClick={() => setSettingsOpen(true)}>
-              <Settings2 className="size-4" />
-              Настройки журнала
-            </Button>
-            <DocumentCloseButton
-              documentId={documentId}
-              title={documentTitle}
-              variant="outline"
-              className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6]"
-            >
-              Закончить журнал
-            </DocumentCloseButton>
-            </>
-          )}
-        </div>
 
-        <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024] print:hidden">{documentTitle}</h1>
-
-        <section className="space-y-4 overflow-hidden rounded-[18px] border border-[#dadde9] bg-white p-4 print:overflow-visible print:border-0 sm:p-8 print:p-0">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[220px_1fr_120px] border border-black/70">
-            <div className="flex items-center justify-center border-r border-black/70 py-10 text-[16px] font-semibold">{organizationName}</div>
-            <div className="grid grid-rows-2">
-              <div className="flex items-center justify-center border-b border-black/70 py-4 text-[14px]">СИСТЕМА ХАССП</div>
-              <div className="flex items-center justify-center py-4 text-[14px] italic">ПРОТОКОЛ ВНУТРЕННЕГО АУДИТА</div>
-            </div>
-            <div className="flex items-center justify-center border-l border-black/70 text-[14px]">СТР. 1 ИЗ 1</div>
-          </div>
-
-          <div className="grid gap-2 text-[18px]">
-            <div><span className="font-semibold">Дата:</span> {config.documentDate}</div>
-            <div><span className="font-semibold">Основание проверки:</span> {config.basisTitle}</div>
-            <div><span className="font-semibold">Проверяемый объект:</span> {config.auditedObject}</div>
-          </div>
-
-          {status === "active" && (
-            <div className="flex flex-wrap gap-3 print:hidden">
-              <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => { setEditingRow(null); setRowOpen(true); }}>
-                <Plus className="size-5" /> Добавить строку
-              </Button>
-              <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setSectionOpen(true)}>
-                <Plus className="size-5" /> Добавить новый раздел
-              </Button>
-            </div>
-          )}
-
-          <div className="sm:hidden print:hidden">
-            <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-          </div>
-
-          {mobileView === "cards" ? (
+        <JournalDocumentShell
+          title={documentTitle}
+          documentId={documentId}
+          backHref="/journals/audit_protocol"
+          onSettings={status === "active" ? () => setSettingsOpen(true) : undefined}
+          closed={status !== "active"}
+          closedHint="Откройте журнал заново, чтобы добавлять и править пункты протокола."
+          menuItems={
+            status === "active"
+              ? [
+                  {
+                    key: "close-journal",
+                    label: "Закончить журнал",
+                    icon: <Archive className="size-4" />,
+                    onSelect: () => void closeDocument(),
+                  },
+                ]
+              : []
+          }
+          mobileView={mobileView}
+          onMobileView={switchMobileView}
+          cards={
             <RecordCardsView items={cardItems} emptyLabel="Пунктов протокола пока нет." />
-          ) : null}
-
-          <MobileViewTableWrapper mobileView={mobileView} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <table className="min-w-full border-collapse border border-black/70 bg-white text-[13px]">
-              <thead>
-                <tr>
-                  <th className="w-14 border border-black/70 px-2 py-2 print:hidden">
-                    <Checkbox checked={allSelected} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? config.rows.map((row) => row.id) : [])} disabled={status !== "active"} />
-                  </th>
-                  <th className="w-[60px] border border-black/70 px-2 py-2">№ п/п</th>
-                  <th className="min-w-[520px] border border-black/70 px-3 py-2">Требования</th>
-                  <th className="w-[110px] border border-black/70 px-3 py-2">Да (+)</th>
-                  <th className="w-[110px] border border-black/70 px-3 py-2">Нет (-)</th>
-                  <th className="min-w-[260px] border border-black/70 px-3 py-2">Примечания</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rowsBySection.map(({ section, rows }) => (
-                  <Fragment key={section.id}>
-                    <tr>
-                      <td colSpan={6} className="border border-black/70 px-3 py-2 text-center font-semibold">{section.title}</td>
-                    </tr>
-                    {rows.map((row) => {
-                      const rowNumber = config.rows.findIndex((item) => item.id === row.id) + 1;
-                      return (
-                        <tr key={row.id}>
-                          <td className="border border-black/70 px-2 py-2 text-center print:hidden">
-                            <Checkbox
-                              checked={selectedRowIds.includes(row.id)}
-                              onCheckedChange={(checked) =>
-                                setSelectedRowIds((current) =>
-                                  checked === true
-                                    ? [...new Set([...current, row.id])]
-                                    : current.filter((id) => id !== row.id)
-                                )
-                              }
-                              disabled={status !== "active"}
-                            />
-                          </td>
-                          <td className="border border-black/70 px-2 py-2 text-center">{rowNumber}</td>
-                          <td className="border border-black/70 px-3 py-2">
-                            <button type="button" disabled={status !== "active"} className="w-full text-left disabled:cursor-default" onClick={() => { if (status !== "active") return; setEditingRow(row); setRowOpen(true); }}>
-                              {row.text}
-                            </button>
-                          </td>
-                          <td className="border border-black/70 px-2 py-2 text-center">
-                            <Checkbox checked={row.result === "yes"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "yes" ? "" : "yes" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
-                          </td>
-                          <td className="border border-black/70 px-2 py-2 text-center">
-                            <Checkbox checked={row.result === "no"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "no" ? "" : "no" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
-                          </td>
-                          <td className="border border-black/70 px-2 py-2">
-                            {status === "active" ? (
-                              <Textarea value={row.note} onChange={(event) => setConfig((current) => ({ ...current, rows: current.rows.map((item) => item.id === row.id ? { ...item, note: event.target.value } : item) }))} onBlur={() => persist(documentTitle, config).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="min-h-[70px] border-0 px-0 py-0 text-[14px] shadow-none focus-visible:ring-0" />
-                            ) : (
-                              row.note
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </MobileViewTableWrapper>
-
-          <div className="space-y-3 pt-6">
-            <div className="text-[20px] font-semibold">Подписи</div>
-            {config.signatures.map((signature, index) => (
-              <div key={signature.id} className="grid grid-cols-1 gap-3 sm:grid-cols-[220px_1fr_240px]">
-                <Input value={signature.role} disabled={status !== "active"} onChange={(e) => setConfig((current) => ({ ...current, signatures: current.signatures.map((item, idx) => idx === index ? { ...item, role: e.target.value } : item) }))} onBlur={() => saveSignature(index, config.signatures[index]).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="h-12 rounded-xl border-[#d8dae6] px-4 text-[16px]" />
-                <Input value={signature.name} disabled={status !== "active"} onChange={(e) => setConfig((current) => ({ ...current, signatures: current.signatures.map((item, idx) => idx === index ? { ...item, name: e.target.value } : item) }))} onBlur={() => saveSignature(index, config.signatures[index]).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="h-12 rounded-xl border-[#d8dae6] px-4 text-[16px]" />
-                <Input type="date" value={signature.signedAt} disabled={status !== "active"} onChange={(e) => setConfig((current) => ({ ...current, signatures: current.signatures.map((item, idx) => idx === index ? { ...item, signedAt: e.target.value } : item) }))} onBlur={() => saveSignature(index, config.signatures[index]).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="h-12 rounded-xl border-[#d8dae6] px-4 text-[16px]" />
+          }
+          paperHeader={
+          <>
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="ПРОТОКОЛ ВНУТРЕННЕГО АУДИТА"
+              startedAt={config.documentDate}
+              finishedAt={null}
+            />
+            <div className="grid gap-2 text-[18px]">
+                <div><span className="font-semibold">Дата:</span> {config.documentDate}</div>
+                <div><span className="font-semibold">Основание проверки:</span> {config.basisTitle}</div>
+                <div><span className="font-semibold">Проверяемый объект:</span> {config.auditedObject}</div>
               </div>
-            ))}
-            {status === "active" && (
-              <Button type="button" variant="outline" onClick={() => persist(documentTitle, { ...config, signatures: [...config.signatures, createAuditProtocolSignature()] }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))}>
-                Добавить подпись
-              </Button>
-            )}
-          </div>
-        </section>
+            </>
+          }
+          toolbar={
+            status === "active" ? (
+              <>
+                <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => { setEditingRow(null); setRowOpen(true); }}>
+                  <Plus className="size-5" /> Добавить строку
+                </Button>
+                <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setSectionOpen(true)}>
+                  <Plus className="size-5" /> Добавить новый раздел
+                </Button>
+              </>
+            ) : undefined
+          }
+          extra={
+            <div className={`${DOC_EXTRA_BLOCK_CLASS} space-y-3`}>
+              <div className="text-[20px] font-semibold">Подписи</div>
+              {config.signatures.map((signature, index) => (
+                <div key={signature.id} className="grid grid-cols-1 gap-3 sm:grid-cols-[220px_1fr_240px]">
+                  <Input value={signature.role} disabled={status !== "active"} onChange={(e) => setConfig((current) => ({ ...current, signatures: current.signatures.map((item, idx) => idx === index ? { ...item, role: e.target.value } : item) }))} onBlur={() => saveSignature(index, config.signatures[index]).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="h-12 rounded-xl border-[#d8dae6] px-4 text-[16px]" />
+                  <Input value={signature.name} disabled={status !== "active"} onChange={(e) => setConfig((current) => ({ ...current, signatures: current.signatures.map((item, idx) => idx === index ? { ...item, name: e.target.value } : item) }))} onBlur={() => saveSignature(index, config.signatures[index]).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="h-12 rounded-xl border-[#d8dae6] px-4 text-[16px]" />
+                  <Input type="date" value={signature.signedAt} disabled={status !== "active"} onChange={(e) => setConfig((current) => ({ ...current, signatures: current.signatures.map((item, idx) => idx === index ? { ...item, signedAt: e.target.value } : item) }))} onBlur={() => saveSignature(index, config.signatures[index]).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="h-12 rounded-xl border-[#d8dae6] px-4 text-[16px]" />
+                </div>
+              ))}
+              {status === "active" && (
+                <Button type="button" variant="outline" onClick={() => persist(documentTitle, { ...config, signatures: [...config.signatures, createAuditProtocolSignature()] }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))}>
+                  Добавить подпись
+                </Button>
+              )}
+            </div>
+          }
+        >
+          <table className="w-full border-collapse text-[13px]">
+            <thead>
+              <tr>
+                <th className={`w-14 ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 font-semibold leading-tight print:hidden`}>
+                  <Checkbox checked={allSelected} onCheckedChange={(checked) => setSelectedRowIds(checked === true ? config.rows.map((row) => row.id) : [])} disabled={status !== "active"} />
+                </th>
+                <th className={`w-[60px] ${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}>№ п/п</th>
+                <th className={`min-w-[520px] ${GRID_HEAD_CELL_CLASS} px-3 py-1.5 font-semibold leading-tight`}>Требования</th>
+                <th className={`w-[110px] ${GRID_HEAD_CELL_CLASS} px-3 py-1.5 font-semibold leading-tight`}>Да (+)</th>
+                <th className={`w-[110px] ${GRID_HEAD_CELL_CLASS} px-3 py-1.5 font-semibold leading-tight`}>Нет (-)</th>
+                <th className={`min-w-[260px] ${GRID_HEAD_CELL_CLASS} px-3 py-1.5 font-semibold leading-tight`}>Примечания</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rowsBySection.map(({ section, rows }) => (
+                <Fragment key={section.id}>
+                  <tr>
+                    <td colSpan={6} className={`${GRID_CELL_CLASS} px-3 py-1 text-center font-semibold leading-tight`}>{section.title}</td>
+                  </tr>
+                  {rows.map((row) => {
+                    const rowNumber = config.rows.findIndex((item) => item.id === row.id) + 1;
+                    return (
+                      <tr key={row.id}>
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
+                          <Checkbox
+                            checked={selectedRowIds.includes(row.id)}
+                            onCheckedChange={(checked) =>
+                              setSelectedRowIds((current) =>
+                                checked === true
+                                  ? [...new Set([...current, row.id])]
+                                  : current.filter((id) => id !== row.id)
+                              )
+                            }
+                            disabled={status !== "active"}
+                          />
+                        </td>
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{rowNumber}</td>
+                        <td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>
+                          <button type="button" disabled={status !== "active"} className="w-full text-left disabled:cursor-default" onClick={() => { if (status !== "active") return; setEditingRow(row); setRowOpen(true); }}>
+                            {row.text}
+                          </button>
+                        </td>
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                          <Checkbox checked={row.result === "yes"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "yes" ? "" : "yes" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
+                        </td>
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
+                          <Checkbox checked={row.result === "no"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "no" ? "" : "no" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
+                        </td>
+                        <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
+                          {status === "active" ? (
+                            <Textarea value={row.note} onChange={(event) => setConfig((current) => ({ ...current, rows: current.rows.map((item) => item.id === row.id ? { ...item, note: event.target.value } : item) }))} onBlur={() => persist(documentTitle, config).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} className="min-h-[70px] border-0 px-0 py-0 text-[14px] shadow-none focus-visible:ring-0" />
+                          ) : (
+                            row.note
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </JournalDocumentShell>
       </div>
 
       {useV2 ? (
