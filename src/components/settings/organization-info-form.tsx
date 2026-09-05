@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -332,10 +333,9 @@ export function OrganizationInfoForm({
         >
           <input
             type="tel"
-            value={form.phone ?? ""}
-            onChange={(e) => set("phone", e.target.value || null)}
+            {...phoneInputProps(form.phone ?? "", (value) => set("phone", value || null))}
             className="form-input"
-            placeholder="+7 (495) 123-45-67"
+            placeholder={RU_PHONE_PLACEHOLDER}
           />
         </FormRow>
       </FormSection>

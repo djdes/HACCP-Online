@@ -1,4 +1,5 @@
 "use client";
+import { phoneInputProps } from "@/lib/phone-input";
 import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useMemo, useRef, useState } from "react";
@@ -322,12 +323,8 @@ export function StaffBulkAddDialog({
                   </td>
                   <td className="pr-2">
                     <input
-                      value={row.phone}
-                      onChange={(event) =>
-                        patch(row.id, { phone: event.target.value })
-                      }
+                      {...phoneInputProps(row.phone, (value) => patch(row.id, { phone: value }))}
                       placeholder="можно не указывать"
-                      inputMode="tel"
                       className={field}
                     />
                   </td>

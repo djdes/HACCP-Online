@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -560,8 +561,7 @@ export function StaffAddFlowDialog(props: {
               />
               <Input
                 type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                {...phoneInputProps(phone, setPhone)}
                 placeholder="Телефон · необязательно"
                 autoComplete="tel"
                 className="h-12 rounded-xl border-[#dcdfed] bg-white text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
@@ -683,9 +683,8 @@ export function StaffEditEmployeeDialog(props: {
             <div>
               <Input
                 type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Телефон · +7 985 123-45-67"
+                {...phoneInputProps(phone, setPhone)}
+                placeholder={`Телефон · ${RU_PHONE_PLACEHOLDER}`}
                 autoComplete="tel"
                 className="h-12 rounded-xl border-[#dcdfed] bg-white text-[14px] text-[#0b1024] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />

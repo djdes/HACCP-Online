@@ -1,4 +1,5 @@
 "use client";
+import { phoneInputProps } from "@/lib/phone-input";
 
 import {
   useCallback,
@@ -600,11 +601,10 @@ function SupportWidgetBody() {
             <input
               ref={phoneRef}
               type="tel"
-              value={phone}
-              onChange={(event) => {
-                setPhone(event.target.value);
+              {...phoneInputProps(phone, (value) => {
+                setPhone(value);
                 setContactError(null);
-              }}
+              })}
               placeholder="Телефон"
               aria-label="Телефон"
               aria-invalid={phoneInvalid || undefined}

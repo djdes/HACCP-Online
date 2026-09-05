@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, Check, Save } from "lucide-react";
@@ -101,9 +102,8 @@ export function BrandingForm({ initial, compact = false, onSaved }: Props) {
         <Field label="Телефон консультанта" hint="Показывается в блоке «Ваш консультант»">
           <input
             className={inputClass}
-            value={form.supportPhone}
-            onChange={(e) => set("supportPhone", e.target.value)}
-            placeholder="+7 900 000-00-00"
+            {...phoneInputProps(form.supportPhone, (value) => set("supportPhone", value))}
+            placeholder={RU_PHONE_PLACEHOLDER}
             inputMode="tel"
           />
         </Field>

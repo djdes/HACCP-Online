@@ -1,0 +1,13 @@
+{
+  "afterFocus": "+7 ",
+  "afterTyping": "+7 999 123-45-67",
+  "extraDigitIgnored": "+7 999 123-45-67",
+  "afterBackspace3": "+7 999 123-4",
+  "localFormatTyped": "+7 985 123-45-67",
+  "afterClearAll": "",
+  "afterBlurEmpty": "",
+  "refocusSeeds": "+7 ",
+  "blurPrefixOnlyClears": "",
+  "pasteFormatted": "+7 912 000-11-22",
+  "settingsUsersTelVisible": false
+}

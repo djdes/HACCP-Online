@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
@@ -102,9 +103,8 @@ export function JoinForm({ token, positions, suggestedJobPositionId }: Props) {
         <input
           type="tel"
           required
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="+7 900 000-00-00"
+          {...phoneInputProps(phone, setPhone)}
+          placeholder={RU_PHONE_PLACEHOLDER}
           className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
         />
         <p className="mt-1.5 text-[12px] text-[#6f7282]">

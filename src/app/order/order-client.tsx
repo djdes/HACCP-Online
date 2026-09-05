@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -839,11 +840,12 @@ function CompleteForm({
           label="Телефон"
           value={phone}
           onChange={setPhone}
-          placeholder="+7 999 123-45-67"
+          placeholder={RU_PHONE_PLACEHOLDER}
           hint="Нужен, чтобы связать аккаунт с задачами в TasksFlow."
           required
           type="tel"
           autoComplete="tel"
+          phone
         />
         <Field
           id="password"
@@ -931,6 +933,7 @@ function Field({
   required,
   type = "text",
   autoComplete,
+  phone = false,
 }: {
   id: string;
   label: string;
@@ -941,6 +944,8 @@ function Field({
   required?: boolean;
   type?: string;
   autoComplete?: string;
+  /** Телефон: «+7 » при фокусе и формат «+7 999 123-45-67» по мере ввода. */
+  phone?: boolean;
 }) {
   return (
     <div>
@@ -952,10 +957,14 @@ function Field({
         id={id}
         type={type}
         required={required}
-        autoComplete={autoComplete}
-        value={value}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
+        {...(phone
+          ? phoneInputProps(value, onChange)
+          : {
+              value,
+              autoComplete,
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+            })}
         className="mt-2 h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
       />
     </div>

@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -190,11 +191,8 @@ export function PhoneBindingClient(props: Props) {
               <Input
                 id="phone-input"
                 type="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+7 985 123-45-67"
-                autoComplete="tel"
+                {...phoneInputProps(phone, setPhone)}
+                placeholder={RU_PHONE_PLACEHOLDER}
                 className="mt-1.5 h-12 rounded-2xl border-[#dcdfed] text-[15px]"
               />
               <p className="mt-1.5 text-[12px] text-[#6f7282]">

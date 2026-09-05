@@ -1,4 +1,5 @@
 "use client";
+import { phoneInputProps } from "@/lib/phone-input";
 
 import { useState } from "react";
 import { MessageCircleMore } from "lucide-react";
@@ -175,8 +176,7 @@ export function FeedbackDialog({
           />
 
           <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            {...phoneInputProps(phone, setPhone)}
             placeholder="Введите номер телефона для ответа"
             type="tel"
             inputMode="tel"

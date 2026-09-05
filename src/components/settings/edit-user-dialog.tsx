@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -168,9 +169,8 @@ export function EditUserDialog({ user, isSelf }: EditUserDialogProps) {
             <Input
               id="edit-user-phone"
               type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+7 (999) 123-45-67"
+              {...phoneInputProps(phone, setPhone)}
+              placeholder={RU_PHONE_PLACEHOLDER}
             />
           </div>
           {!isSelf && (

@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -245,7 +246,7 @@ export function PartnerApplicationClient() {
                   />
                 </Field>
                 <Field label="Телефон">
-                  <input className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} inputMode="tel" required placeholder="+7 900 000-00-00" />
+                  <input className={inputClass} {...phoneInputProps(form.phone, (phone) => setForm({ ...form, phone }))} required placeholder={RU_PHONE_PLACEHOLDER} />
                 </Field>
                 <Field label="Telegram" hint="Не обязательно. Сюда придёт ответ по заявке и уведомления о клиентах.">
                   <input className={inputClass} value={form.telegram} onChange={(e) => setForm({ ...form, telegram: e.target.value })} maxLength={64} placeholder="@username" />

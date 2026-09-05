@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -36,6 +37,7 @@ export default function MiniStaffPage() {
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [phone, setPhone] = useState("");
   const [notifyStatus, setNotifyStatus] = useState<Record<string, string>>({});
   // Per-employee timer-id'ы для clearTimeout. Раньше setTimeout не очищался
   // при unmount → setState на dead component + утечка. Pass-3 review #8.
@@ -124,6 +126,7 @@ export default function MiniStaffPage() {
         throw new Error(data.error || `HTTP ${resp.status}`);
       }
       setShowForm(false);
+      setPhone("");
       await loadData();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Ошибка");
@@ -271,7 +274,8 @@ export default function MiniStaffPage() {
             <input
               name="phone"
               required
-              placeholder="+7 985 123-45-67"
+              {...phoneInputProps(phone, setPhone)}
+              placeholder={RU_PHONE_PLACEHOLDER}
               className="mt-1 w-full rounded-xl px-3 py-2 text-[14px] focus:outline-none"
               style={{
                 background: "var(--mini-surface-2)",

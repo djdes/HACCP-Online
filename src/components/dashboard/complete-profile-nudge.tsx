@@ -1,4 +1,5 @@
 "use client";
+import { RU_PHONE_PLACEHOLDER, phoneInputProps } from "@/lib/phone-input";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -354,12 +355,11 @@ function CompleteProfileModal({
               invalid={touched.phone && !phoneOk}
             >
               <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                {...phoneInputProps(phone, setPhone, {
+                  onBlur: () => setTouched((t) => ({ ...t, phone: true })),
+                })}
                 aria-required
-                inputMode="tel"
-                placeholder="+7 999 123-45-67"
+                placeholder={RU_PHONE_PLACEHOLDER}
                 maxLength={40}
                 className={CONTROL_CLASS}
               />
