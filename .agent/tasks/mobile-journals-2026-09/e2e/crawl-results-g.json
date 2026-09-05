@@ -1,0 +1,334 @@
+{
+  "product_writeoff": {
+    "name": "Акт забраковки",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 67,
+      "bottom": 713,
+      "height": 646,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 32,
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": null,
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden print:overflow-visible]",
+      "gridContainer": "div[overflow-hidden print:overflow-visible]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "sanitary_day_control": {
+    "name": "Чек-лист (памятка) проведения санитарного дня",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 199,
+      "bottom": 581,
+      "height": 382,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1100,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "pest_control": {
+    "name": "Журнал учета дезинфекции, дезинсекции и дератизации",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 241,
+      "bottom": 539,
+      "height": 298,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 0,
+        "width": 390,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1094,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "glass_items_list": {
+    "name": "Перечень изделий из стекла и хрупкого пластика",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 32,
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[overflow-hidden]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "audit_report": {
+    "name": "Отчет о внутреннем аудите",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 71,
+      "bottom": 709,
+      "height": 638,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": false,
+    "table": {
+      "toggle": null,
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": null,
+      "sameContainer": null,
+      "tablesTotal": 0,
+      "paperHeaderFound": false
+    }
+  },
+  "accident_journal": {
+    "name": "Журнал учета аварий",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 169,
+      "bottom": 611,
+      "height": 442,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1650,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "ppe_issuance": {
+    "name": "Журнал учета выдачи СИЗ",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": false,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1450,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "equipment_calibration": {
+    "name": "График поверки средств измерений",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 105,
+      "bottom": 675,
+      "height": 570,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 33,
+        "width": 324,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[overflow-hidden]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  }
+}

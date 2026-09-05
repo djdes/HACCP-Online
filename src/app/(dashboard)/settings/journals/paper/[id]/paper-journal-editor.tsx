@@ -203,8 +203,21 @@ export function PaperJournalEditor({
       {/* Шапка бланка — так же, как в электронных журналах: человек видит,
           что именно уйдёт в печать. Разметка повторяет верх PDF:
           организация слева, система по центру, даты справа. */}
-      <section className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-[13px]">
+      {/* Шапка и таблица строк — ОДИН горизонтальный скроллер: на телефоне
+          они едут вместе, как единый лист (раньше у каждой был свой
+          overflow-x-auto, и шапка уезжала отдельно от колонок).
+          `data-journal-doc-pan` — та же pan-зона, что у электронных
+          документов: выключает blanket-правило globals.css, которое на
+          мобильном делает скроллером КАЖДЫЙ div вокруг широкой таблицы. */}
+      <div
+        data-journal-doc-pan
+        className="overflow-x-auto max-sm:-mx-4 max-sm:px-4"
+      >
+      {/* `w-fit min-w-full`: обе таблицы растягиваются до ширины самой
+          широкой из них — правая вертикаль шапки совпадает с краем таблицы. */}
+      <div className="w-fit min-w-full">
+      <section>
+        <table className="w-full min-w-[720px] border-collapse text-[13px]">
           <tbody>
             <tr>
               <td
@@ -243,7 +256,7 @@ export function PaperJournalEditor({
         </table>
       </section>
 
-      <div className="overflow-x-auto rounded-2xl border border-[#ececf4] bg-white">
+      <div className="mt-3 rounded-2xl border border-[#ececf4] bg-white">
         <table className="w-full min-w-[720px] text-[14px]">
           <thead className="bg-[#f6f7fb] text-[13px] text-[#6f7282]">
             <tr>
@@ -290,6 +303,8 @@ export function PaperJournalEditor({
             ))}
           </tbody>
         </table>
+      </div>
+      </div>
       </div>
 
       {isDocument ? (

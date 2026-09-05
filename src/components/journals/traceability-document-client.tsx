@@ -780,7 +780,7 @@ export function TraceabilityDocumentClient(props: Props) {
               }}
             />
           )}
-          <button type="button" onClick={() => window.print()} title="Распечатать журнал" className="inline-flex items-center gap-2 rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]"><Printer className="size-5" />Печать</button>
+          <button type="button" onClick={() => window.print()} title="Печать страницы" aria-label="Печать страницы" className="inline-flex items-center gap-2 rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]"><Printer className="size-5" /></button>
           {!isClosed && <button type="button" onClick={() => setSettingsOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Настройки документа</button>}
           {!isClosed && <button type="button" onClick={() => setFinishOpen(true)} className="rounded-2xl bg-[#f7f8fd] px-5 py-4 text-[18px] font-medium text-[#5563ff]">Закончить журнал</button>}
         </div>

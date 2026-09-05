@@ -890,11 +890,10 @@ export function GlassControlDocumentClient(props: Props) {
             type="button"
             variant="outline"
             onClick={() => window.print()}
-            title="Распечатать журнал"
+            title="Печать страницы" aria-label="Печать страницы"
             className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
           >
             <Printer className="size-4" />
-            Печать
           </Button>
           <Button
             type="button"
@@ -928,6 +927,10 @@ export function GlassControlDocumentClient(props: Props) {
           </span>
         </label>
 
+        {/* Тумблер вида — ВНЕ широкого листа: внутри min-w-[1100px] он растягивался на весь лист, и «Таблица» уезжала за экран. */}
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
         <div className="mx-auto min-w-[1100px] max-w-[1160px] space-y-8 sm:min-w-0">
           <table className="w-full border-collapse text-[13px]">
@@ -994,10 +997,6 @@ export function GlassControlDocumentClient(props: Props) {
                 Закончить журнал
               </Button>
             )}
-          </div>
-
-          <div className="sm:hidden print:hidden">
-            <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
           </div>
 
           {mobileView === "cards" ? (

@@ -1,0 +1,125 @@
+{
+  "metal_impurity": {
+    "name": "Журнал учета металлопримесей в сырье",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 126,
+      "bottom": 655,
+      "height": 529,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1540,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "glass_items_list": {
+    "name": "Перечень изделий из стекла и хрупкого пластика",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 32,
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[overflow-hidden]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "accident_journal": {
+    "name": "Журнал учета аварий",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": "no-button",
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1650,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  }
+}

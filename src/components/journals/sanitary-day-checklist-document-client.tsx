@@ -931,10 +931,10 @@ export function SanitaryDayChecklistDocumentClient({
                 type="button"
                 variant="outline"
                 onClick={() => window.print()}
-                title="Распечатать журнал"
+                title="Печать страницы" aria-label="Печать страницы"
                 className="h-9 shrink-0 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
               >
-                <Printer className="size-4" />Печать
+                <Printer className="size-4" />
               </Button>
               {isActive && (
                 <Button
@@ -970,6 +970,10 @@ export function SanitaryDayChecklistDocumentClient({
           )}
         </div>
 
+        {/* Тумблер вида — ВНЕ широкого листа (min-w-[1100px]): внутри он растягивался на весь лист, и «Таблица» уезжала за экран. */}
+        <div className="sm:hidden print:hidden mb-6">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
         <div className="min-w-[1100px] sm:min-w-0">
 
@@ -985,10 +989,6 @@ export function SanitaryDayChecklistDocumentClient({
         <div className="mb-6 flex items-center gap-3 text-[18px]">
           <span className="font-semibold uppercase">Дата проведения</span>
           <span>{formatRuDate(entryDate)}</span>
-        </div>
-
-        <div className="sm:hidden print:hidden mb-6">
-          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
         </div>
 
         {mobileView === "cards" ? (

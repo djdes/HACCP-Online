@@ -1379,10 +1379,10 @@ export function DisinfectantDocumentClient({
               <Button
                 variant="outline"
                 onClick={() => window.print()}
-                title="Распечатать журнал"
-                className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] print:hidden"
+                title="Печать страницы" aria-label="Печать страницы"
+                className="size-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-0 text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] print:hidden"
               >
-                <Printer className="size-4" /> Печать
+                <Printer className="size-4" />
               </Button>
               <Button
                 variant="outline"

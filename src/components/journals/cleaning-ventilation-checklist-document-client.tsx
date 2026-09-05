@@ -1349,7 +1349,7 @@ export function CleaningVentilationChecklistDocumentClient({
             лица» раньше сжималось до «Администрат…». */}
         <MobileViewTableWrapper
           mobileView={mobileView}
-          className="-mx-4 max-h-[70vh] overflow-auto px-4 sm:mx-0 sm:px-0 rounded-[28px] border border-[#333] print:mx-0 print:max-h-none print:overflow-visible print:px-0 print:border-black"
+          className="-mx-4 max-h-[70vh] overflow-auto px-4 max-sm:max-h-none max-sm:overflow-visible sm:mx-0 sm:px-0 rounded-[28px] border border-[#333] print:mx-0 print:max-h-none print:overflow-visible print:px-0 print:border-black"
         >
           <table className="min-w-[1140px] w-full table-fixed border-collapse text-[13px]">
             <colgroup>

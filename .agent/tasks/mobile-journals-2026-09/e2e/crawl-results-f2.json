@@ -1,0 +1,686 @@
+{
+  "pest_control": {
+    "name": "Журнал учета дезинфекции, дезинсекции и дератизации",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": "no-button",
+    "hasToggle": false,
+    "table": {
+      "toggle": null,
+      "panScrollLeft": 0,
+      "h1": null,
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": null,
+      "sameContainer": null,
+      "tablesTotal": 0,
+      "paperHeaderFound": false
+    }
+  },
+  "glass_control": {
+    "name": "Журнал контроля изделий из стекла и хрупкого пластика",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 101,
+      "bottom": 679,
+      "height": 578,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 32,
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden print:overflow-visible]",
+      "gridContainer": "div[overflow-hidden print:overflow-visible]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "glass_items_list": {
+    "name": "Перечень изделий из стекла и хрупкого пластика",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": -628,
+        "width": 1100,
+        "widerThanScreen": true
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 326,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[overflow-hidden]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "intensive_cooling": {
+    "name": "Журнал контроля интенсивного охлаждения горячих блюд",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 169,
+      "bottom": 611,
+      "height": 442,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1650,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "equipment_cleaning": {
+    "name": "Журнал мойки и дезинфекции оборудования",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 92,
+      "bottom": 688,
+      "height": 596,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 33,
+        "width": 324,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[overflow-hidden]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "audit_report": {
+    "name": "Отчет о внутреннем аудите",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 71,
+      "bottom": 709,
+      "height": 638,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": false,
+    "table": {
+      "toggle": null,
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": null,
+      "sameContainer": null,
+      "tablesTotal": 0,
+      "paperHeaderFound": false
+    }
+  },
+  "audit_protocol": {
+    "name": "Протокол внутреннего аудита",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 79,
+      "bottom": 701,
+      "height": 622,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 37,
+        "width": 316,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": "section[overflow-hidden print:overflow-visible]",
+      "sameContainer": null,
+      "tablesTotal": 1,
+      "paperHeaderFound": false
+    },
+    "cardsPageOverflow": false
+  },
+  "audit_plan": {
+    "name": "План-программа внутренних аудитов",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 85,
+      "bottom": 695,
+      "height": 610,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 37,
+        "width": 316,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": "section[overflow-hidden print:overflow-visible]",
+      "sameContainer": null,
+      "tablesTotal": 1,
+      "paperHeaderFound": false
+    },
+    "cardsPageOverflow": false
+  },
+  "complaint_register": {
+    "name": "Журнал регистрации жалоб",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 165,
+      "bottom": 616,
+      "height": 451,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1520,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "accident_journal": {
+    "name": "Журнал учета аварий",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 169,
+      "bottom": 611,
+      "height": 442,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": false,
+    "table": {
+      "toggle": null,
+      "panScrollLeft": 0,
+      "h1": null,
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": null,
+      "sameContainer": null,
+      "tablesTotal": 0,
+      "paperHeaderFound": false
+    }
+  },
+  "ppe_issuance": {
+    "name": "Журнал учета выдачи СИЗ",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 12,
+      "bottom": 768,
+      "height": 756,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": false,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1450,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "equipment_calibration": {
+    "name": "График поверки средств измерений",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 105,
+      "bottom": 675,
+      "height": 570,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": false,
+    "table": {
+      "toggle": null,
+      "panScrollLeft": 0,
+      "h1": null,
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": null,
+      "sameContainer": null,
+      "tablesTotal": 0,
+      "paperHeaderFound": false
+    }
+  },
+  "breakdown_history": {
+    "name": "Карточка истории поломок",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 199,
+      "bottom": 581,
+      "height": 382,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1601,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "equipment_maintenance": {
+    "name": "График профилактического обслуживания оборудования",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 105,
+      "bottom": 675,
+      "height": 570,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 33,
+        "width": 324,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[overflow-hidden]",
+      "sameContainer": true,
+      "tablesTotal": 3,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "staff_training": {
+    "name": "Журнал регистрации инструктажей (обучения) сотрудников",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 114,
+      "bottom": 666,
+      "height": 553,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 33,
+        "width": 324,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": "div[overflow-hidden]",
+      "gridContainer": "div[overflow-hidden]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "training_plan": {
+    "name": "План обучения персонала",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 73,
+      "bottom": 707,
+      "height": 634,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 37,
+        "width": 316,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [],
+      "headerContainer": null,
+      "gridContainer": "section[overflow-hidden]",
+      "sameContainer": null,
+      "tablesTotal": 1,
+      "paperHeaderFound": false
+    },
+    "cardsPageOverflow": false
+  },
+  "med_books": {
+    "name": "Медицинские книжки",
+    "status": "active",
+    "listPageOverflow": false,
+    "createDialog": {
+      "top": 151,
+      "bottom": 629,
+      "height": 478,
+      "vh": 780,
+      "fits": true,
+      "submitText": "Создать",
+      "submitVisible": true,
+      "scrollsInside": false
+    },
+    "hasToggle": true,
+    "table": {
+      "toggle": {
+        "left": 16,
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 358,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4",
+          "scrollWidth": 1320,
+          "clientWidth": 390,
+          "tables": 5,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "gridContainer": "div[max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 3,
+      "paperHeaderFound": true
+    },
+    "cardsPageOverflow": false
+  },
+  "paper_ot_intro": {
+    "title": "E2E Бумажный вводный инструктаж",
+    "status": "active",
+    "listPageOverflow": false,
+    "table": {
+      "toggle": null,
+      "panScrollLeft": 0,
+      "h1": {
+        "width": 316,
+        "widerThanScreen": false
+      },
+      "pageScrollWidth": 390,
+      "innerWidth": 390,
+      "pageOverflow": false,
+      "scrollers": [
+        {
+          "tag": "div",
+          "cls": "overflow-x-auto max-sm:-mx-4 max-sm:px-4",
+          "scrollWidth": 1098,
+          "clientWidth": 390,
+          "tables": 2,
+          "hasPaperHeader": true
+        }
+      ],
+      "headerContainer": "div[overflow-x-auto max-sm:-mx-4 max-sm:px-4]",
+      "gridContainer": "div[overflow-x-auto max-sm:-mx-4 max-sm:px-4]",
+      "sameContainer": true,
+      "tablesTotal": 2,
+      "paperHeaderFound": true
+    }
+  }
+}

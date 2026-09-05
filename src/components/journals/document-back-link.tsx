@@ -32,7 +32,9 @@ export function DocumentBackLink({
   label = "Назад",
   className,
   documentId,
-  showBack = true,
+  // По умолчанию «Назад» скрыта: и в дашборде, и в Mini App навигация
+  // вверх уже есть (крошки / стрелка шапки), вторая ссылка дублировала её.
+  showBack = false,
 }: DocumentBackLinkProps) {
   const showPrint = Boolean(documentId);
   if (!showBack && !showPrint) return null;

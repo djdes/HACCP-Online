@@ -42,7 +42,8 @@ export function DocumentPageHeader({
         "mb-5 flex flex-col gap-2 print:hidden sm:flex-row sm:flex-wrap sm:items-center sm:justify-end"
       }
     >
-      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+      {/* На телефоне действия идут строкой с переносом, а не столбиком во всю ширину: три кнопки занимали половину первого экрана. */}
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
         {hasPrint ? (
           <Button
             type="button"
@@ -54,7 +55,7 @@ export function DocumentPageHeader({
                 "noopener,noreferrer"
               )
             }
-            className="h-9 w-full rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px] sm:w-auto"
+            className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
           >
             <Printer className="size-4" />
             Печать

@@ -671,11 +671,10 @@ export function TrainingPlanDocumentClient({
             type="button"
             variant="outline"
             onClick={() => window.print()}
-            title="Распечатать журнал"
+            title="Печать страницы" aria-label="Печать страницы"
             className="h-12 rounded-xl border-[#e8ebf7] px-5 text-[14px] text-[#5566f6] hover:bg-[#f6f7ff]"
           >
             <Printer className="size-4" />
-            Печать
           </Button>
           {!readOnly && (
             <Button

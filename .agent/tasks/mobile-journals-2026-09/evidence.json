@@ -1,0 +1,310 @@
+{
+  "task": "mobile-journals-2026-09",
+  "date": "2026-09-05",
+  "viewport": "390x780",
+  "ac": {
+    "AC1": "PASS",
+    "AC2": "PASS",
+    "AC3": "PASS",
+    "AC4": "PASS",
+    "AC5": "PASS",
+    "AC6": "PASS",
+    "AC7": "PASS"
+  },
+  "counts": {
+    "journals": 36,
+    "pageOverflow": 0,
+    "toggleWide": 0,
+    "dialogsNotFitting": 0
+  },
+  "rows": [
+    {
+      "code": "disinfectant_usage",
+      "pageOverflow": false,
+      "sameContainer": null,
+      "toggleWidth": 316,
+      "dialogHeight": null,
+      "dialogFits": null
+    },
+    {
+      "code": "metal_impurity",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 529,
+      "dialogFits": true
+    },
+    {
+      "code": "traceability_test",
+      "pageOverflow": false,
+      "sameContainer": false,
+      "toggleWidth": 358,
+      "dialogHeight": 756,
+      "dialogFits": true
+    },
+    {
+      "code": "product_writeoff",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 326,
+      "dialogHeight": 646,
+      "dialogFits": true
+    },
+    {
+      "code": "incoming_raw_materials_control",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 756,
+      "dialogFits": true
+    },
+    {
+      "code": "fryer_oil",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 570,
+      "dialogFits": true
+    },
+    {
+      "code": "incoming_control",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 756,
+      "dialogFits": true
+    },
+    {
+      "code": "perishable_rejection",
+      "pageOverflow": false,
+      "sameContainer": null,
+      "toggleWidth": null,
+      "dialogHeight": 727,
+      "dialogFits": true
+    },
+    {
+      "code": "finished_product",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 756,
+      "dialogFits": true
+    },
+    {
+      "code": "uv_lamp_runtime",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 646,
+      "dialogFits": true
+    },
+    {
+      "code": "cleaning",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 570,
+      "dialogFits": true
+    },
+    {
+      "code": "cleaning_ventilation_checklist",
+      "pageOverflow": false,
+      "sameContainer": false,
+      "toggleWidth": 358,
+      "dialogHeight": 585,
+      "dialogFits": true
+    },
+    {
+      "code": "cold_equipment_control",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": null,
+      "dialogFits": null
+    },
+    {
+      "code": "climate_control",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 570,
+      "dialogFits": true
+    },
+    {
+      "code": "health_check",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 514,
+      "dialogFits": true
+    },
+    {
+      "code": "hygiene",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 557,
+      "dialogFits": true
+    },
+    {
+      "code": "general_cleaning",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 390,
+      "dialogHeight": 756,
+      "dialogFits": true
+    },
+    {
+      "code": "sanitary_day_control",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 382,
+      "dialogFits": true
+    },
+    {
+      "code": "pest_control",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 390,
+      "dialogHeight": 298,
+      "dialogFits": true
+    },
+    {
+      "code": "glass_control",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 326,
+      "dialogHeight": 578,
+      "dialogFits": true
+    },
+    {
+      "code": "glass_items_list",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 326,
+      "dialogHeight": 756,
+      "dialogFits": true
+    },
+    {
+      "code": "intensive_cooling",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 442,
+      "dialogFits": true
+    },
+    {
+      "code": "equipment_cleaning",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 324,
+      "dialogHeight": 596,
+      "dialogFits": true
+    },
+    {
+      "code": "audit_report",
+      "pageOverflow": false,
+      "sameContainer": null,
+      "toggleWidth": null,
+      "dialogHeight": 638,
+      "dialogFits": true
+    },
+    {
+      "code": "audit_protocol",
+      "pageOverflow": false,
+      "sameContainer": null,
+      "toggleWidth": 316,
+      "dialogHeight": 622,
+      "dialogFits": true
+    },
+    {
+      "code": "audit_plan",
+      "pageOverflow": false,
+      "sameContainer": null,
+      "toggleWidth": 316,
+      "dialogHeight": 610,
+      "dialogFits": true
+    },
+    {
+      "code": "complaint_register",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 451,
+      "dialogFits": true
+    },
+    {
+      "code": "accident_journal",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": null,
+      "dialogFits": null
+    },
+    {
+      "code": "ppe_issuance",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 756,
+      "dialogFits": true
+    },
+    {
+      "code": "equipment_calibration",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 324,
+      "dialogHeight": 570,
+      "dialogFits": true
+    },
+    {
+      "code": "breakdown_history",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 382,
+      "dialogFits": true
+    },
+    {
+      "code": "equipment_maintenance",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 324,
+      "dialogHeight": 570,
+      "dialogFits": true
+    },
+    {
+      "code": "staff_training",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 324,
+      "dialogHeight": 553,
+      "dialogFits": true
+    },
+    {
+      "code": "training_plan",
+      "pageOverflow": false,
+      "sameContainer": null,
+      "toggleWidth": 316,
+      "dialogHeight": 634,
+      "dialogFits": true
+    },
+    {
+      "code": "med_books",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": 358,
+      "dialogHeight": 478,
+      "dialogFits": true
+    },
+    {
+      "code": "paper_ot_intro",
+      "pageOverflow": false,
+      "sameContainer": true,
+      "toggleWidth": null,
+      "dialogHeight": null,
+      "dialogFits": null
+    }
+  ]
+}

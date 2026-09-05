@@ -404,10 +404,9 @@ export function StaffTrainingDocumentClient({
             type="button"
             variant="outline"
             onClick={() => window.print()}
-            title="Распечатать журнал"
+            title="Печать страницы" aria-label="Печать страницы"
           >
             <Printer className="size-4" />
-            Печать
           </Button>
           {!isClosed && (
             <Button

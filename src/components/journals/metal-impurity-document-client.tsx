@@ -1213,11 +1213,10 @@ export function MetalImpurityDocumentClient({
               type="button"
               variant="outline"
               onClick={() => window.print()}
-              title="Распечатать журнал"
+              title="Печать страницы" aria-label="Печать страницы"
               className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-6 text-[16px] text-[#5566f6] shadow-none"
             >
               <Printer className="size-4" />
-              Печать
             </Button>
             {status === "active" && (
               <Button

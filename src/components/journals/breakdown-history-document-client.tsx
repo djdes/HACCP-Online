@@ -563,7 +563,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
         />
         <DocumentBackLink href="/journals/breakdown_history" documentId={props.documentId} />
         {/* Page heading */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em]">
             {title || BREAKDOWN_HISTORY_HEADING}
           </h1>
@@ -572,11 +572,10 @@ export function BreakdownHistoryDocumentClient(props: Props) {
               type="button"
               variant="outline"
               onClick={() => window.print()}
-              title="Распечатать журнал"
+              title="Печать страницы" aria-label="Печать страницы"
               className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]"
             >
               <Printer className="size-4" />
-              Печать
             </Button>
             <Button
               type="button"

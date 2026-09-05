@@ -308,9 +308,8 @@ export function ProductWriteoffDocumentClient({
 
       <div className="overflow-hidden rounded-[28px] bg-white p-4 shadow-sm print:overflow-visible sm:p-8 print:rounded-none print:p-0 print:shadow-none">
         <div className="flex flex-wrap items-center justify-end gap-3 print:hidden">
-          <Button type="button" variant="outline" onClick={() => window.print()} title="Распечатать журнал" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]">
+          <Button type="button" variant="outline" onClick={() => window.print()} title="Печать страницы" aria-label="Печать страницы" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]">
             <Printer className="size-4" />
-            Печать
           </Button>
           <Button type="button" variant="outline" className="h-9 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09]" onClick={() => setSettingsOpen(true)} disabled={isClosed}>
             Настройки журнала
@@ -330,6 +329,10 @@ export function ProductWriteoffDocumentClient({
           </div>
         ) : null}
 
+        {/* Тумблер вида — ВНЕ широкого листа (min-w-[1100px]): внутри он растягивался на весь лист, и «Таблица» уезжала за экран. */}
+        <div className="sm:hidden print:hidden">
+          <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
+        </div>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 print:mx-0 print:overflow-visible print:px-0">
         <div className="mx-auto mt-8 min-w-[1100px] max-w-[1120px] space-y-8 print:mt-0 sm:min-w-0">
           <table className="w-full border-collapse text-[13px]">
@@ -387,10 +390,6 @@ export function ProductWriteoffDocumentClient({
               и поставлены...
             </p>
             <p>Комиссия постановила выполнить в отношении выявленных ТМЦ следующие действия:</p>
-          </div>
-
-          <div className="sm:hidden print:hidden">
-            <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
           </div>
 
           {mobileView === "cards" ? (
