@@ -10,6 +10,8 @@ const STALE_KEEP_DAYS = 30;
 export type PreviewCandidate = {
   organizationId: string;
   code: string;
+  /** Точки: "" — общее превью, иначе id точки. */
+  buildingKey: string;
   documentId: string;
   sourceUpdatedAt: Date;
 };
@@ -23,6 +25,7 @@ export type PreviewPlan = {
 type ActiveDoc = {
   id: string;
   organizationId: string;
+  buildingId?: string | null;
   updatedAt: Date;
   dateFrom: Date;
   template: { code: string };
@@ -32,10 +35,18 @@ type ExistingPreview = {
   id: string;
   organizationId: string;
   code: string;
+  buildingKey?: string;
   documentId: string;
   sourceUpdatedAt: Date;
   renderedAt: Date;
 };
+
+const KEY_SEPARATOR = "::";
+
+/** (организация, код, точка) — один активный документ и одно превью. */
+function previewKey(organizationId: string, code: string, buildingKey: string): string {
+  return [organizationId, code, buildingKey].join(KEY_SEPARATOR);
+}
 
 /**
  * Чистая часть планировщика: что перерисовать, что удалить.
@@ -56,31 +67,34 @@ export function planPreviewRun(input: {
 }): PreviewPlan {
   const latestByKey = new Map<string, ActiveDoc>();
   for (const doc of input.activeDocs) {
-    const key = `${doc.organizationId}::${doc.template.code}`;
+    const key = previewKey(doc.organizationId, doc.template.code, doc.buildingId ?? "");
     const prev = latestByKey.get(key);
     if (!prev || doc.dateFrom > prev.dateFrom) latestByKey.set(key, doc);
   }
 
   const previewByKey = new Map<string, ExistingPreview>();
-  for (const p of input.previews) previewByKey.set(`${p.organizationId}::${p.code}`, p);
+  for (const p of input.previews) {
+    previewByKey.set(previewKey(p.organizationId, p.code, p.buildingKey ?? ""), p);
+  }
 
   const staleBefore = new Date(input.now.getTime() - STALE_KEEP_DAYS * 24 * 60 * 60 * 1000);
   const toDelete: string[] = [];
   for (const p of input.previews) {
     const disabled = input.disabledByOrg.get(p.organizationId)?.has(p.code) ?? false;
-    const hasActive = latestByKey.has(`${p.organizationId}::${p.code}`);
+    const hasActive = latestByKey.has(previewKey(p.organizationId, p.code, p.buildingKey ?? ""));
     if (disabled || (!hasActive && p.renderedAt < staleBefore)) toDelete.push(p.id);
   }
 
   const missing: Array<PreviewCandidate & { renderedAt: Date }> = [];
   const stale: Array<PreviewCandidate & { renderedAt: Date }> = [];
   for (const [key, doc] of latestByKey) {
-    const [organizationId, code] = key.split("::");
+    const [organizationId, code, buildingKey] = key.split(KEY_SEPARATOR);
     if (input.disabledByOrg.get(organizationId)?.has(code)) continue;
     const existing = previewByKey.get(key);
     const candidate = {
       organizationId,
       code,
+      buildingKey: buildingKey ?? "",
       documentId: doc.id,
       sourceUpdatedAt: doc.updatedAt,
       renderedAt: existing?.renderedAt ?? new Date(0),
@@ -116,6 +130,7 @@ export async function loadPreviewPlan(now = new Date()): Promise<PreviewPlan> {
       select: {
         id: true,
         organizationId: true,
+        buildingId: true,
         updatedAt: true,
         dateFrom: true,
         template: { select: { code: true } },
@@ -126,6 +141,7 @@ export async function loadPreviewPlan(now = new Date()): Promise<PreviewPlan> {
         id: true,
         organizationId: true,
         code: true,
+        buildingKey: true,
         documentId: true,
         sourceUpdatedAt: true,
         renderedAt: true,
@@ -146,14 +162,16 @@ export async function renderPreview(candidate: PreviewCandidate): Promise<void> 
   const png = new Uint8Array(rendered.png);
   await db.journalPreview.upsert({
     where: {
-      organizationId_code: {
+      organizationId_code_buildingKey: {
         organizationId: candidate.organizationId,
         code: candidate.code,
+        buildingKey: candidate.buildingKey,
       },
     },
     create: {
       organizationId: candidate.organizationId,
       code: candidate.code,
+      buildingKey: candidate.buildingKey,
       documentId: candidate.documentId,
       png,
       width: rendered.width,
@@ -233,16 +251,25 @@ export async function runJournalPreviewCron(opts: {
  * code → URL превью для карточек. Версия в query — браузер кэширует
  * навсегда, новая отрисовка меняет URL.
  */
-export async function getJournalPreviewMap(organizationId: string): Promise<Map<string, string>> {
+export async function getJournalPreviewMap(
+  organizationId: string,
+  /** Точка: её превью, если есть, иначе общее. null — только общие. */
+  buildingId: string | null = null,
+): Promise<Map<string, string>> {
+  const wanted = buildingId ?? "";
   const rows = await db.journalPreview
     .findMany({
-      where: { organizationId },
-      select: { code: true, renderedAt: true },
+      where: { organizationId, buildingKey: { in: wanted ? [wanted, ""] : [""] } },
+      select: { code: true, buildingKey: true, renderedAt: true },
     })
     .catch(() => []);
   const map = new Map<string, string>();
-  for (const row of rows) {
-    map.set(row.code, `/api/journal-previews/${encodeURIComponent(row.code)}?v=${row.renderedAt.getTime()}`);
+  // Сначала общие, затем превью точки перекрывают их.
+  for (const row of [...rows].sort((a, b) => a.buildingKey.length - b.buildingKey.length)) {
+    map.set(
+      row.code,
+      `/api/journal-previews/${encodeURIComponent(row.code)}?v=${row.renderedAt.getTime()}&b=${encodeURIComponent(row.buildingKey)}`,
+    );
   }
   return map;
 }

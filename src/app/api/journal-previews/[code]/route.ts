@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  * меняется вместе с перерисовкой.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ code: string }> }
 ) {
   const session = await getServerSession(authOptions);
@@ -23,10 +23,19 @@ export async function GET(
   const { code } = await params;
   const organizationId = getActiveOrgId(session);
 
-  const preview = await db.journalPreview.findUnique({
-    where: { organizationId_code: { organizationId, code } },
-    select: { png: true, renderedAt: true },
-  });
+  // Точки: `b` — ключ точки из URL превью; без своего снимка отдаём общий.
+  const buildingKey = new URL(request.url).searchParams.get("b") ?? "";
+  const preview =
+    (await db.journalPreview.findUnique({
+      where: { organizationId_code_buildingKey: { organizationId, code, buildingKey } },
+      select: { png: true, renderedAt: true },
+    })) ??
+    (buildingKey
+      ? await db.journalPreview.findUnique({
+          where: { organizationId_code_buildingKey: { organizationId, code, buildingKey: "" } },
+          select: { png: true, renderedAt: true },
+        })
+      : null);
   if (!preview) {
     return new Response(null, { status: 404 });
   }

@@ -122,6 +122,7 @@ export async function GET(request: Request) {
     },
     include: {
       template: { select: { code: true, name: true } },
+      building: { select: { name: true } },
     },
     orderBy: [
       { template: { sortOrder: "asc" } },
@@ -151,7 +152,7 @@ export async function GET(request: Request) {
   for (const doc of documents) {
     const templateFolder = sanitizeForZip(doc.template.name || doc.template.code);
     const fileLabel = sanitizeForZip(
-      `${doc.title} · ${ymd(doc.dateFrom)}..${ymd(doc.dateTo)}`
+      `${doc.title}${doc.building ? ` · ${doc.building.name}` : ""} · ${ymd(doc.dateFrom)}..${ymd(doc.dateTo)}`
     );
     try {
       const { buffer } = await generateJournalDocumentPdf({

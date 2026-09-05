@@ -54,6 +54,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
   JOURNAL_LIST_STACK_CLASS,
 } from "@/components/journals/journal-responsive";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 
 /**
  * Список документов журнала медкнижек.
@@ -69,6 +70,8 @@ import {
 type MedBookListDocument = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   /** `YYYY-MM-DD`, показывается мета-колонкой карточки. */
   dateFrom: string;
@@ -254,6 +257,7 @@ export function MedBookDocumentsClient({
               <div key={document.id} className={JOURNAL_LIST_CARD_CLASS}>
                 <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                   {document.title}
+              <SharedDocumentBadge shared={document.shared} />
                 </Link>
                 <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
                   <div className={JOURNAL_CARD_LABEL_CLASS}>Дата начала</div>

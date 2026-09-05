@@ -11,6 +11,7 @@ import { Prisma } from "@prisma/client";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { getActiveBuildingId } from "@/lib/active-building";
 import { buildingWhere } from "@/lib/building-scope";
+import { sharedDocumentFlag } from "@/lib/journal-document-shared";
 import { aclActorFromSession, hasJournalAccess } from "@/lib/journal-acl";
 import { db } from "@/lib/db";
 import { HygieneDocumentsClient } from "@/components/journals/hygiene-documents-client";
@@ -1469,6 +1470,7 @@ export default async function JournalDocumentsPage({
         : {};
       return {
         id: document.id,
+        shared: sharedDocumentFlag(document, documents),
         title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
         status: document.status as "active" | "closed",
         responsibleTitle: document.responsibleTitle,
@@ -1552,6 +1554,7 @@ export default async function JournalDocumentsPage({
         defaultResponsibleUserId={pickPrimaryManager(orgUsers)?.id || null}
         documents={documents.map((document) => ({
           id: document.id,
+          shared: sharedDocumentFlag(document, documents),
           title: document.title || (scanConfig?.title || template.name),
           status: document.status as "active" | "closed",
           dateLabel: scanConfig?.dateLabel || "Период",
@@ -1703,6 +1706,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={medBookDocuments.map((doc) => ({
           id: doc.id,
+          shared: sharedDocumentFlag(doc, medBookDocuments),
           title: doc.title || MED_BOOK_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           dateFrom: doc.dateFrom.toISOString().slice(0, 10),
@@ -1795,6 +1799,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
+          shared: sharedDocumentFlag(doc, documents),
           title: doc.title || PERISHABLE_REJECTION_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           startedAtLabel: doc.dateFrom.toLocaleDateString("ru-RU").replaceAll(".", "-"),
@@ -1946,6 +1951,7 @@ export default async function JournalDocumentsPage({
           const config = normalizeGlassListConfig(doc.config);
           return {
             id: doc.id,
+            shared: sharedDocumentFlag(doc, documents),
             title: doc.title || GLASS_LIST_DOCUMENT_TITLE,
             status: doc.status as "active" | "closed",
             dateFrom: doc.dateFrom.toISOString().slice(0, 10),
@@ -1987,6 +1993,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
+          shared: sharedDocumentFlag(doc, documents),
           title: doc.title || glassControlDocument.GLASS_CONTROL_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           responsibleTitle: doc.responsibleTitle,
@@ -2086,6 +2093,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
+          shared: sharedDocumentFlag(doc, documents),
           title: doc.title || STAFF_TRAINING_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           startedAtLabel: doc.dateFrom.toLocaleDateString("ru-RU").replaceAll(".", "-"),
@@ -2250,6 +2258,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
+          shared: sharedDocumentFlag(doc, documents),
           title: doc.title || EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           dateFrom: doc.dateFrom.toISOString().slice(0, 10),
@@ -2331,6 +2340,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((doc) => ({
           id: doc.id,
+          shared: sharedDocumentFlag(doc, documents),
           title: doc.title || EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
           status: doc.status as "active" | "closed",
           dateFrom: doc.dateFrom.toISOString().slice(0, 10),
@@ -2732,6 +2742,7 @@ export default async function JournalDocumentsPage({
           dishSuggestions={products.map((item) => item.name)}
           documents={documents.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, documents),
             title: document.title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -2750,6 +2761,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={documents.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, documents),
             title: document.title || PRODUCT_WRITEOFF_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -2768,6 +2780,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={documents.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, documents),
             title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
             status: document.status as "active" | "closed",
             responsibleTitle: document.responsibleTitle,
@@ -2810,6 +2823,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={sanitationDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, sanitationDocuments),
             title: document.title || SANITATION_DAY_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -2905,6 +2919,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={disDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, disDocuments),
             title: document.title || DISINFECTANT_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             config: document.config,
@@ -2984,6 +2999,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={tpDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, tpDocuments),
             title: document.title || TRAINING_PLAN_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3059,6 +3075,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={auditPlanDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, auditPlanDocuments),
             title: document.title || AUDIT_PLAN_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3128,6 +3145,7 @@ export default async function JournalDocumentsPage({
             const config = normalizeEquipmentCleaningConfig(document.config);
             return {
               id: document.id,
+              shared: sharedDocumentFlag(document, equipmentCleaningDocuments),
               title: document.title || getEquipmentCleaningDocumentTitle(),
               status: document.status as "active" | "closed",
               startedAtLabel: getEquipmentCleaningPeriodLabel(document.dateFrom),
@@ -3262,6 +3280,7 @@ export default async function JournalDocumentsPage({
           availableSuppliers={supplierNames}
           documents={metalDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, metalDocuments),
             title: document.title || METAL_IMPURITY_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3399,6 +3418,7 @@ export default async function JournalDocumentsPage({
           availableSuppliers={supplierNames}
           documents={acceptanceDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, acceptanceDocuments),
             title: document.title || getAcceptanceDocumentTitle(resolvedCode),
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3462,6 +3482,7 @@ export default async function JournalDocumentsPage({
           activeTab={activeTab}
           documents={bhDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, bhDocuments),
             title: document.title || BREAKDOWN_HISTORY_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3548,6 +3569,7 @@ export default async function JournalDocumentsPage({
           activeTab={activeTab}
           documents={accidentDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, accidentDocuments),
             title: document.title || ACCIDENT_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3584,6 +3606,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={ppeDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, ppeDocuments),
             title: document.title || PPE_ISSUANCE_DOCUMENT_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3664,6 +3687,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={checklistDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, checklistDocuments),
             title: document.title || CLEANING_VENTILATION_CHECKLIST_TITLE,
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3733,6 +3757,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={sdcDocuments.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, sdcDocuments),
             title: document.title || getSanitaryDayChecklistTitle(resolvedCode),
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3754,6 +3779,7 @@ export default async function JournalDocumentsPage({
           templateName={template.name}
           documents={documents.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, documents),
             title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
             status: document.status as "active" | "closed",
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3781,6 +3807,7 @@ export default async function JournalDocumentsPage({
             users={orgUsers}
             documents={documents.map((document) => ({
               id: document.id,
+              shared: sharedDocumentFlag(document, documents),
               title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
               status: document.status as "active" | "closed",
               dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3801,6 +3828,7 @@ export default async function JournalDocumentsPage({
             users={orgUsers}
             documents={documents.map((document) => ({
               id: document.id,
+              shared: sharedDocumentFlag(document, documents),
               title: document.title || "Журнал учета использования фритюрных жиров",
               status: document.status as "active" | "closed",
               responsibleTitle: document.responsibleTitle,
@@ -3820,6 +3848,7 @@ export default async function JournalDocumentsPage({
             users={orgUsers}
             documents={documents.map((document) => ({
               id: document.id,
+              shared: sharedDocumentFlag(document, documents),
               title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
               status: document.status as "active" | "closed",
               responsibleTitle: document.responsibleTitle,
@@ -3851,6 +3880,7 @@ export default async function JournalDocumentsPage({
               const config = normalizeUvRuntimeDocumentConfig(document.config);
               return {
                 id: document.id,
+                shared: sharedDocumentFlag(document, documents),
                 title: buildUvRuntimeDocumentTitle(config),
                 status: document.status as "active" | "closed",
                 responsibleTitle: document.responsibleTitle,
@@ -3881,6 +3911,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={documents.map((document) => ({
             id: document.id,
+            shared: sharedDocumentFlag(document, documents),
             title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
             status: document.status as "active" | "closed",
             responsibleTitle: document.responsibleTitle,
@@ -3909,6 +3940,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={documents.map((document) => ({
           id: document.id,
+          shared: sharedDocumentFlag(document, documents),
           title: document.title || getJournalDocumentDefaultTitle(resolvedCode),
           status: document.status as "active" | "closed",
           responsibleTitle: document.responsibleTitle,
@@ -3936,6 +3968,7 @@ export default async function JournalDocumentsPage({
         routeCode={code}
         documents={documents.map((document) => ({
           id: document.id,
+          shared: sharedDocumentFlag(document, documents),
           title: document.title || COMPLAINT_REGISTER_TITLE,
           status: document.status as "active" | "closed",
           dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3962,6 +3995,7 @@ export default async function JournalDocumentsPage({
         routeCode={code}
         documents={documents.map((document) => ({
           id: document.id,
+          shared: sharedDocumentFlag(document, documents),
           title: document.title || AUDIT_PROTOCOL_DOCUMENT_TITLE,
           status: document.status as "active" | "closed",
           dateFrom: document.dateFrom.toISOString().slice(0, 10),
@@ -3988,6 +4022,7 @@ export default async function JournalDocumentsPage({
         routeCode={code}
         documents={documents.map((document) => ({
           id: document.id,
+          shared: sharedDocumentFlag(document, documents),
           title: document.title || AUDIT_REPORT_DOCUMENT_TITLE,
           status: document.status as "active" | "closed",
           dateFrom: document.dateFrom.toISOString().slice(0, 10),

@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { loadBuildingContext } from "@/lib/active-building";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { scheduleObligationSync, utcDayKey } from "@/lib/obligation-sync-throttle";
 import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 import {
   getManagerObligationSummary,
@@ -100,10 +101,17 @@ export async function GET() {
   };
 
   if (isManagerLike) {
+    // Сверка всей организации тяжёлая: ждём её только пока за сегодня нет
+    // ни одной строки, дальше — в фоне, не чаще раза в минуту.
     try {
-      await syncDailyJournalObligationsForOrganization(
-        getActiveOrgId(session),
-        requestNow
+      const orgHasRowsToday =
+        (await db.journalObligation.count({
+          where: { organizationId: getActiveOrgId(session), dateKey: utcDayKey(requestNow) },
+        })) > 0;
+      await scheduleObligationSync(
+        `org:${getActiveOrgId(session)}`,
+        () => syncDailyJournalObligationsForOrganization(getActiveOrgId(session), requestNow),
+        { force: !orgHasRowsToday },
       );
     } catch (syncErr) {
       console.error("[mini:home] org sync failed:", syncErr);
@@ -149,11 +157,20 @@ export async function GET() {
   }
 
   try {
-    await syncDailyJournalObligationsForUser({
-      userId: session.user.id,
-      organizationId: getActiveOrgId(session),
-      now: requestNow,
-    });
+    const userHasRowsToday =
+      (await db.journalObligation.count({
+        where: { userId: session.user.id, dateKey: utcDayKey(requestNow) },
+      })) > 0;
+    await scheduleObligationSync(
+      `user:${session.user.id}`,
+      () =>
+        syncDailyJournalObligationsForUser({
+          userId: session.user.id,
+          organizationId: getActiveOrgId(session),
+          now: requestNow,
+        }),
+      { force: !userHasRowsToday },
+    );
   } catch (syncErr) {
     console.error("[mini:home] user sync failed:", syncErr);
   }

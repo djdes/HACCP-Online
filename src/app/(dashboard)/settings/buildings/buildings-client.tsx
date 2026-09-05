@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Check, Copy, MapPin, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Building2, Check, Copy, MapPin, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -41,6 +41,9 @@ type Building = {
   id: string;
   name: string;
   address: string | null;
+  /** Точки: реквизиты для шапки PDF. */
+  kpp?: string | null;
+  phone?: string | null;
   sortOrder: number;
   rooms: Room[];
 };
@@ -60,9 +63,12 @@ export function BuildingsClient({
   perLocationJournals = false,
   readOnly = false,
   unnamedCount = 0,
+  userBuildingIds = {},
 }: {
   initial: Building[];
   users: RoomResponsibleUser[];
+  /** Точки: id точек каждого сотрудника (пусто — работает везде). */
+  userBuildingIds?: Record<string, string[]>;
   /** Точки (2026-09-05): документы журналов ведутся отдельно по зданиям. */
   perLocationJournals?: boolean;
   /** Консультант уровня «просмотр»: всё видно, ничего не меняется. */
@@ -269,6 +275,9 @@ export function BuildingsClient({
           building={b}
           userNameById={userNameById}
           readOnly={readOnly}
+          perLocationJournals={perLocationJournals}
+          users={users}
+          userBuildingIds={userBuildingIds}
           donors={initial
             .filter((x) => x.id !== b.id && x.rooms.length > 0)
             .map((x) => ({ id: x.id, name: x.name, roomsCount: x.rooms.length }))}
@@ -342,6 +351,9 @@ function BuildingCard({
   building,
   userNameById,
   readOnly = false,
+  perLocationJournals = false,
+  users,
+  userBuildingIds,
   donors,
   onRefresh,
   onDelete,
@@ -350,6 +362,9 @@ function BuildingCard({
   building: Building;
   userNameById: Map<string, string>;
   readOnly?: boolean;
+  perLocationJournals?: boolean;
+  users: RoomResponsibleUser[];
+  userBuildingIds: Record<string, string[]>;
   /** Другие точки с помещениями — откуда можно скопировать справочник. */
   donors: Array<{ id: string; name: string; roomsCount: number }>;
   onRefresh: () => void;
@@ -364,6 +379,34 @@ function BuildingCard({
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(building.name);
   const [draftAddress, setDraftAddress] = useState(building.address ?? "");
+  const [draftKpp, setDraftKpp] = useState(building.kpp ?? "");
+  const [draftPhone, setDraftPhone] = useState(building.phone ?? "");
+  // Сотрудники точки: кто работает здесь (User.buildingIds содержит точку).
+  const staffHere = users.filter((u) => (userBuildingIds[u.id] ?? []).includes(building.id));
+  const staffEverywhere = users.filter((u) => (userBuildingIds[u.id] ?? []).length === 0);
+  const [editingStaff, setEditingStaff] = useState(false);
+  const [staffDraft, setStaffDraft] = useState<Set<string>>(() => new Set(staffHere.map((u) => u.id)));
+  const [savingStaff, setSavingStaff] = useState(false);
+
+  async function saveStaff() {
+    setSavingStaff(true);
+    try {
+      const res = await fetch(`/api/settings/buildings/${building.id}/staff`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: Array.from(staffDraft) }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { changed?: number; error?: string };
+      if (!res.ok) throw new Error(d?.error ?? "Не удалось сохранить");
+      toast.success(d.changed ? `Обновлено сотрудников: ${d.changed}` : "Без изменений");
+      setEditingStaff(false);
+      onRefresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setSavingStaff(false);
+    }
+  }
   const [savingHead, setSavingHead] = useState(false);
   const [donorId, setDonorId] = useState<string>(donors[0]?.id ?? "");
   const [copying, setCopying] = useState(false);
@@ -379,7 +422,12 @@ function BuildingCard({
       const res = await fetch(`/api/settings/buildings/${building.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, address: draftAddress.trim() || null }),
+        body: JSON.stringify({
+          name,
+          address: draftAddress.trim() || null,
+          kpp: draftKpp.trim() || null,
+          phone: draftPhone.trim() || null,
+        }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d?.error ?? "Не удалось сохранить");
@@ -478,6 +526,25 @@ function BuildingCard({
               aria-label="Адрес точки"
               className="h-10 w-full rounded-xl border border-[#dcdfed] px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
             />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={draftKpp}
+                onChange={(e) => setDraftKpp(e.target.value)}
+                placeholder="КПП точки"
+                aria-label="КПП точки"
+                className="h-10 w-full rounded-xl border border-[#dcdfed] px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+              <input
+                type="tel"
+                value={draftPhone}
+                onChange={(e) => setDraftPhone(e.target.value)}
+                placeholder="Телефон точки"
+                aria-label="Телефон точки"
+                className="h-10 w-full rounded-xl border border-[#dcdfed] px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -494,6 +561,8 @@ function BuildingCard({
                   setEditing(false);
                   setDraftName(building.name);
                   setDraftAddress(building.address ?? "");
+                  setDraftKpp(building.kpp ?? "");
+                  setDraftPhone(building.phone ?? "");
                 }}
                 className="inline-flex h-9 items-center rounded-xl px-3 text-[13px] text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#0b1024]"
               >
@@ -514,6 +583,13 @@ function BuildingCard({
             ) : (
               <div className="mt-0.5 text-[13px] text-[#9b9fb3]">Адрес не указан</div>
             )}
+            {building.kpp || building.phone ? (
+              <div className="mt-0.5 text-[12px] text-[#9b9fb3]">
+                {[building.kpp ? `КПП ${building.kpp}` : null, building.phone ? `тел. ${building.phone}` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </div>
+            ) : null}
           </div>
         )}
         {!readOnly && !editing ? (
@@ -538,6 +614,89 @@ function BuildingCard({
           </div>
         ) : null}
       </div>
+
+      {perLocationJournals ? (
+        <div className="mb-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-3.5 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+            <span className="inline-flex items-center gap-1.5 font-medium text-[#0b1024]">
+              <Users className="size-4 text-[#5566f6]" />
+              Сотрудники точки
+            </span>
+            <span className="text-[#6f7282]">
+              здесь: <b className="font-semibold text-[#0b1024] tabular-nums">{staffHere.length}</b>
+              {staffEverywhere.length > 0 ? (
+                <>
+                  {" "}· везде: <b className="font-semibold text-[#0b1024] tabular-nums">{staffEverywhere.length}</b>
+                </>
+              ) : null}
+            </span>
+            {!readOnly ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setStaffDraft(new Set(staffHere.map((u) => u.id)));
+                  setEditingStaff((v) => !v);
+                }}
+                className="ml-auto text-[13px] font-medium text-[#5566f6] hover:text-[#4a5bf0]"
+              >
+                {editingStaff ? "Скрыть" : "Изменить"}
+              </button>
+            ) : null}
+          </div>
+          {!editingStaff && staffHere.length > 0 ? (
+            <div className="mt-1 truncate text-[12px] text-[#6f7282]">
+              {staffHere.slice(0, 6).map((u) => u.name).join(", ")}
+              {staffHere.length > 6 ? ` и ещё ${staffHere.length - 6}` : ""}
+            </div>
+          ) : null}
+          {editingStaff ? (
+            <div className="mt-2 space-y-2">
+              <div className="grid max-h-56 gap-1 overflow-y-auto sm:grid-cols-2">
+                {users.map((u) => {
+                  const checked = staffDraft.has(u.id);
+                  const everywhere = (userBuildingIds[u.id] ?? []).length === 0;
+                  return (
+                    <label
+                      key={u.id}
+                      className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-1.5 text-[13px] text-[#0b1024] hover:bg-white"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = new Set(staffDraft);
+                          if (e.target.checked) next.add(u.id);
+                          else next.delete(u.id);
+                          setStaffDraft(next);
+                        }}
+                        className="size-4 rounded border-[#dcdfed] accent-[#5566f6]"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{u.name}</span>
+                      {everywhere && !checked ? (
+                        <span className="shrink-0 text-[11px] text-[#9b9fb3]">везде</span>
+                      ) : null}
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void saveStaff()}
+                  disabled={savingStaff}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#5566f6] px-3 text-[13px] font-medium text-white hover:bg-[#4a5bf0] disabled:opacity-60"
+                >
+                  <Check className="size-3.5" />
+                  Сохранить
+                </button>
+                <span className="text-[11px] leading-snug text-[#6f7282]">
+                  «Везде» — у сотрудника не выбрано ни одной точки. Снять единственную точку — он снова будет получать задачи со всех.
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="space-y-1.5">
         {building.rooms.length === 0 && !addingRoom ? (

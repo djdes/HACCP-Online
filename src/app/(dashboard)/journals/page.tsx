@@ -87,7 +87,7 @@ export default async function JournalsPage() {
   );
 
   // Снимки реальных документов — те же, что на дашборде.
-  const previewUrls = await getJournalPreviewMap(getActiveOrgId(session));
+  const previewUrls = await getJournalPreviewMap(getActiveOrgId(session), activeBuildingId);
 
   const items = visibleTemplates.map((template) => ({
     id: template.id,

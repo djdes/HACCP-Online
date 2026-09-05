@@ -85,6 +85,7 @@ import {
 } from "@/lib/control-periodicity";
 import { localDayKey } from "@/lib/entry-defaults";
 import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type UserItem = {
   id: string;
   name: string;
@@ -94,6 +95,8 @@ type UserItem = {
 type SanitationDocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   dateTo: string;
@@ -545,6 +548,7 @@ export function SanitationDayDocumentsClient({
                 className={JOURNAL_CARD_TITLE_CLASS}
               >
                 {document.title || SANITATION_DAY_DOCUMENT_TITLE}
+              <SharedDocumentBadge shared={document.shared} />
               </Link>
 
               <Link

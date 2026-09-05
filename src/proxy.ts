@@ -30,7 +30,22 @@ function withRequestContext(
   headers.set(PARTNER_HEADER_METHOD, req.method);
   headers.set(PARTNER_HEADER_PATH, req.nextUrl.pathname);
   if (claim) headers.set(PARTNER_HEADER_PARTNER_ID, claim.partnerId);
-  return NextResponse.next({ request: { headers } });
+  const res = NextResponse.next({ request: { headers } });
+  // Страницы кабинета не кэшируем (раньше это делал отдельный корневой
+  // middleware.ts, который в dev перекрывал этот файл целиком — и guard
+  // партнёра там не работал).
+  const { pathname } = req.nextUrl;
+  const isAppPage =
+    !pathname.startsWith("/_next") &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/favicon") &&
+    !pathname.includes(".");
+  if (isAppPage) {
+    res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+    res.headers.set("Pragma", "no-cache");
+    res.headers.set("Expires", "0");
+  }
+  return res;
 }
 
 function partnerDenied(req: NextRequest, reason: string): NextResponse {
@@ -70,7 +85,9 @@ function isStaffRestrictedWebPath(pathname: string): boolean {
 }
 
 /**
- * Global middleware.
+ * Global proxy (Next 16: файл `proxy.ts`, раньше — `middleware.ts`;
+ * на dev-сервере устаревшая конвенция не выполнялась вовсе, и guard
+ * партнёра там не срабатывал).
  *
  * 1. `/root/*` is the platform superadmin area. Non-root requests get a plain
  *    404 so customer users can't even probe for the URL's existence (we
@@ -83,7 +100,7 @@ function isStaffRestrictedWebPath(pathname: string): boolean {
  * We decode the JWT manually (not via getToken) so we can read the custom
  * cookie this project installed on top of NextAuth.
  */
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Трейлинг-слеш обрабатываем вручную: автоматический редирект

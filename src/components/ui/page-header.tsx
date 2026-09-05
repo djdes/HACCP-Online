@@ -30,11 +30,14 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+        // flex-wrap: когда действий много (страница сотрудников — семь
+        // кнопок), они переносятся под заголовок, а не сжимают описание
+        // в узкий столбец.
+        "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between",
         className,
       )}
     >
-      <div className="min-w-0">
+      <div className="min-w-0 sm:min-w-[320px] sm:flex-1">
         {eyebrow ? (
           <div className="mb-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
             {eyebrow}
@@ -50,7 +53,7 @@ export function PageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:ml-auto sm:justify-end">
           {actions}
         </div>
       ) : null}

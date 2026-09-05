@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyTaskFillToken } from "@/lib/task-fill-token";
 import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
-import { reopenJournalForDay } from "@/lib/journal-close-events";
+import { reopenJournalForDay, documentBuildingId } from "@/lib/journal-close-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,6 +86,7 @@ export async function POST(
   const result = await reopenJournalForDay({
     organizationId: link.integration.organizationId,
     templateId: template.id,
+    buildingId: await documentBuildingId(link.journalDocumentId),
     date: new Date(),
     reopenedByUserId: actorId,
   });

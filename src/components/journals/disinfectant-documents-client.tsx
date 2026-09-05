@@ -62,11 +62,14 @@ import {
   JOURNAL_CARD_TITLE_CLASS,
   JOURNAL_CARD_VALUE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type UserItem = { id: string; name: string; role: string };
 
 type DisinfectantDocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   config: unknown;
 };
@@ -393,6 +396,7 @@ export function DisinfectantDocumentsClient({
                 className={JOURNAL_CARD_TITLE_CLASS}
               >
                 {document.title || DISINFECTANT_DOCUMENT_TITLE}
+              <SharedDocumentBadge shared={document.shared} />
               </Link>
               <div className="flex items-center gap-6">
                 <div className={JOURNAL_CARD_SECTION_CLASS}>

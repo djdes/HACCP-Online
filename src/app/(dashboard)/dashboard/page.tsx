@@ -50,7 +50,8 @@ import { QuickStartCard } from "@/components/dashboard/quick-start-card";
 import { PrintAgentCard } from "@/components/dashboard/print-agent-card";
 import { runOrgHealthCheck } from "@/lib/org-health-check";
 import { getTemplatesFilledToday } from "@/lib/today-compliance";
-import { getActiveBuildingId } from "@/lib/active-building";
+import { getActiveBuildingId, loadBuildingContext } from "@/lib/active-building";
+import { LocationsSummaryStrip } from "@/components/dashboard/locations-summary-strip";
 import { getStrugglingWorkers, getWorkerLeaderboard } from "@/lib/worker-leaderboard";
 import { normalizeSphere } from "@/lib/org-profile";
 import { paperJournalsFor } from "@/lib/sphere-journal-rules";
@@ -243,7 +244,7 @@ export default async function DashboardPage() {
   );
   // Снимки реальных документов (cron journal-previews). Нет снимка —
   // карточка показывает стандартный образец, ждать нечего.
-  const previewUrls = await getJournalPreviewMap(organizationId);
+  const previewUrls = await getJournalPreviewMap(organizationId, activeBuildingId);
   const complianceItems = selectedEnabledTemplates.map((t) => ({
     id: t.id,
     name: t.name,
@@ -255,6 +256,32 @@ export default async function DashboardPage() {
   }));
   const unfilledCount = complianceItems.filter((c) => !c.filled).length;
   const filledCount = complianceItems.length - unfilledCount;
+  // Точки: сводка по точкам — заполнено сегодня на каждой, клик переключает.
+  const buildingContext = await loadBuildingContext(session);
+  const locationItems = buildingContext.canSwitch
+    ? await Promise.all(
+        buildingContext.buildings.map(async (building) => {
+          const filled =
+            building.id === activeBuildingId
+              ? filledTodayIds
+              : await getTemplatesFilledToday(
+                  organizationId,
+                  now,
+                  templates.map((t) => ({ id: t.id, code: t.code })),
+                  disabledCodes,
+                  { treatAperiodicAsFilled: false, buildingId: building.id }
+                );
+          return {
+            id: building.id,
+            name: building.name,
+            address: building.address,
+            filled: selectedEnabledTemplates.filter((t) => filled.has(t.id)).length,
+            total: selectedEnabledTemplates.length,
+            active: building.id === activeBuildingId,
+          };
+        })
+      )
+    : [];
   // Партнёр-консультант (white-label): блок «Ваш консультант» показываем
   // после стартовой карточки. null — партнёра нет или клиент выбрал
   // стандартный интерфейс WeSetup.
@@ -290,6 +317,8 @@ export default async function DashboardPage() {
       {/* Без собственной рамки: внутри уже лежат карточки-секции, и
           обёртка добавляла третий уровень коробок — «блок в блоке в
           блоке». Заголовок и прогресс просто стоят на фоне страницы. */}
+      {locationItems.length >= 2 ? <LocationsSummaryStrip items={locationItems} /> : null}
+
       <section className="space-y-4">
           {complianceItems.length > 0 && (
             <DashboardSection

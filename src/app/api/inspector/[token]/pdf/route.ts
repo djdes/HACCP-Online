@@ -69,6 +69,7 @@ export async function GET(
         dateFrom: true,
         dateTo: true,
         status: true,
+        building: { select: { name: true } },
         // Считаем только реально заполненные строки. _autoSeeded —
         // это пустые матриксы (employee × day) которые bulk-assign и
         // sync-* проставляют для рендера UI. Они НЕ являются
@@ -185,7 +186,7 @@ export async function GET(
       startY: 28,
       head: [["Документ", "Период", "Статус", "Записей"]],
       body: docs.map((d) => [
-        d.title,
+        [d.title, d.building?.name].filter(Boolean).join(" · "),
         `${fmt(d.dateFrom)} — ${fmt(d.dateTo)}`,
         d.status === "active" ? "Активен" : "Закрыт",
         String(d._count.entries),

@@ -381,6 +381,10 @@ model Building {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name           String
   address        String?
+  /// Точки (2026-09-05): реквизиты точки для шапки PDF — у сети КПП и
+  /// телефон свои на каждом адресе.
+  kpp            String?
+  phone          String?
   sortOrder      Int          @default(0)
   rooms          Room[]
   /// Точки (2026-09-05): документы и обязательства, привязанные к этому
@@ -1348,6 +1352,9 @@ model JournalCloseEvent {
   journalDocument   JournalDocument? @relation(fields: [journalDocumentId], references: [id], onDelete: Cascade)
   /// UTC midnight того дня, который закрывается.
   date              DateTime
+  /// Точки (2026-09-05): ключ точки в уникальном индексе — id здания или
+  /// "" для общего закрытия организации (до точек и без точек).
+  buildingKey       String           @default("")
   kind              String
   /// Текст причины (либо из noEventsReasons-list, либо free-text).
   /// Пусто для "auto-closed-empty" и "closed-with-events".
@@ -1362,7 +1369,7 @@ model JournalCloseEvent {
 
   /// На один (template, date, org) — одно закрытие. Reopen не плодит
   /// новых записей, обновляет существующую.
-  @@unique([organizationId, templateId, date])
+  @@unique([organizationId, templateId, date, buildingKey])
   @@index([organizationId, date])
   @@index([templateId, date])
 }
@@ -2824,6 +2831,9 @@ model JournalPreview {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   code            String
   documentId      String
+  /// Точки (2026-09-05): "" — общее превью, иначе id точки: у каждой
+  /// точки свой активный документ и свой снимок.
+  buildingKey     String       @default("")
   png             Bytes
   width           Int
   height          Int
@@ -2832,6 +2842,6 @@ model JournalPreview {
   sourceUpdatedAt DateTime
   renderedAt      DateTime     @default(now())
 
-  @@unique([organizationId, code])
+  @@unique([organizationId, code, buildingKey])
   @@index([renderedAt])
 }

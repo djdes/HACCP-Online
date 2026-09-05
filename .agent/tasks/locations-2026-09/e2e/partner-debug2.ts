@@ -27,7 +27,7 @@ const state = JSON.parse(fs.readFileSync(".agent/tasks/locations-2026-09/e2e/sta
   const deny = await page.request.post(`${BASE}/api/organizations`, { data: {} });
   console.log("POST /api/organizations (denylist):", deny.status(), (await deny.text()).slice(0, 120));
   const cb = await page.request.post(`${BASE}/api/settings/buildings`, { data: { name: "Партнёрская точка 3" } });
-  console.log("POST /api/settings/buildings:", cb.status(), (await cb.text()).slice(0, 120));
+  console.log("POST /api/settings/buildings:", cb.status(), (await cb.text()).slice(0, 120), "diag:", cb.headers()["x-proxy-diag"]);
   const doc = await page.request.post(`${BASE}/api/journal-documents`, { data: { templateCode: "hygiene", dateFrom: "2026-11-01", dateTo: "2026-11-15" } });
   console.log("POST /api/journal-documents:", doc.status(), (await doc.text()).slice(0, 100));
   await page.request.post(`${BASE}/api/partner/exit`);

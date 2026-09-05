@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { getActiveBuildingId } from "@/lib/active-building";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
@@ -75,7 +76,7 @@ export default async function JournalsSettingsPage() {
   }
 
   // Снимки реальных документов — те же, что на дашборде и в /journals.
-  const previewUrls = await getJournalPreviewMap(organizationId);
+  const previewUrls = await getJournalPreviewMap(organizationId, await getActiveBuildingId(session));
 
   const items = templates.map((t) => ({
     id: t.id,

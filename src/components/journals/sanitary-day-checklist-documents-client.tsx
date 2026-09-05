@@ -45,9 +45,12 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type DocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   config?: Record<string, unknown> | null;
@@ -410,6 +413,7 @@ export function SanitaryDayChecklistDocumentsClient({
             >
               <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                 {document.title || checklistTitle}
+              <SharedDocumentBadge shared={document.shared} />
               </Link>
 
               <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>

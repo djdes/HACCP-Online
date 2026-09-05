@@ -41,11 +41,14 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type UserItem = { id: string; name: string; role: string };
 
 type DocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
 };
@@ -486,6 +489,7 @@ export function PestControlDocumentsClient(props: Props) {
             >
               <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                 {document.title || PEST_CONTROL_DOCUMENT_TITLE}
+              <SharedDocumentBadge shared={document.shared} />
               </Link>
 
               <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>

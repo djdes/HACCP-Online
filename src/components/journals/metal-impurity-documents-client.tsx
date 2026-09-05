@@ -59,9 +59,12 @@ import {
   PositionSelectItems,
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type DocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   config: unknown;
@@ -557,6 +560,7 @@ export function MetalImpurityDocumentsClient({
                   className={JOURNAL_CARD_TITLE_CLASS}
                 >
                   {document.title || METAL_IMPURITY_DOCUMENT_TITLE}
+              <SharedDocumentBadge shared={document.shared} />
                 </Link>
                 <Link
                   href={`/journals/${routeCode}/documents/${document.id}`}

@@ -54,6 +54,8 @@ export default async function BuildingsPage() {
         isRoot: true,
         positionTitle: true,
         jobPosition: { select: { name: true } },
+        // Точки: кто где работает — для блока «Сотрудники точки».
+        buildingIds: true,
       },
     }),
     db.organization.findUnique({
@@ -92,6 +94,7 @@ export default async function BuildingsPage() {
         initial={buildings}
         users={users}
         perLocationJournals={organization?.perLocationJournals === true}
+        userBuildingIds={Object.fromEntries(users.map((u) => [u.id, u.buildingIds]))}
         // Консультант уровня «просмотр» видит точки, но не меняет их:
         // отказ по клику выглядел бы как поломка.
         readOnly={session.user.partnerAccess?.level === "view"}

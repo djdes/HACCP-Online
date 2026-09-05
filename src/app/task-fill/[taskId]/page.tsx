@@ -6,8 +6,7 @@ import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
 import { isManagementRole } from "@/lib/user-roles";
 import {
   getActiveCloseEvent,
-  utcDayStart,
-} from "@/lib/journal-close-events";
+  utcDayStart, documentBuildingId } from "@/lib/journal-close-events";
 import { TaskFillClient } from "./task-fill-client";
 import { TaskVerifyClient } from "./task-verify-client";
 
@@ -403,10 +402,8 @@ export default async function TaskFillPage({
   const isShared = template?.taskScope === "shared";
   const [closeEvent, todaysEntryCount] = await Promise.all([
     template
-      ? getActiveCloseEvent(
-          link.integration.organizationId,
-          template.id,
-          new Date()
+      ? documentBuildingId(link.journalDocumentId).then((buildingId) =>
+          getActiveCloseEvent(link.integration.organizationId, template.id, new Date(), buildingId),
         )
       : Promise.resolve(null),
     isShared

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyTaskFillToken } from "@/lib/task-fill-token";
-import { getActiveCloseEvent, utcDayStart } from "@/lib/journal-close-events";
+import { getActiveCloseEvent, documentBuildingId, utcDayStart } from "@/lib/journal-close-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,10 +91,8 @@ export async function GET(
         createdAt: { gte: todayStart, lt: todayEnd },
       },
     }),
-    getActiveCloseEvent(
-      link.integration.organizationId,
-      template.id,
-      today
+    documentBuildingId(link.journalDocumentId).then((buildingId) =>
+      getActiveCloseEvent(link.integration.organizationId, template.id, today, buildingId),
     ),
   ]);
 

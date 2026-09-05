@@ -96,11 +96,19 @@ export async function GET() {
       )
     : null;
 
+  // Точки: справочник точек, чтобы buildingId в документах читался.
+  const buildings = await db.building.findMany({
+    where: { organizationId: orgId },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, address: true, kpp: true, phone: true },
+  });
+
   const zip = new JSZip();
   const fmt = (data: unknown) => JSON.stringify(data, null, 2);
   zip.file("organization.json", fmt(organization));
   zip.file("users.json", fmt(users));
   zip.file("journal-templates.json", fmt(templates));
+  zip.file("buildings.json", fmt(buildings));
   zip.file("journal-documents.json", fmt(documents));
   zip.file("journal-document-entries.json", fmt(docEntries));
   zip.file("journal-entries.json", fmt(fieldEntries));

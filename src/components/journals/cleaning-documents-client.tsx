@@ -69,6 +69,7 @@ import {
   getDefaultControlPeriodicity,
   readControlPeriodicity,
 } from "@/lib/control-periodicity";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 
 type UserItem = {
   id: string;
@@ -79,6 +80,8 @@ type UserItem = {
 type DocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   dateTo: string;
@@ -684,6 +687,7 @@ export function CleaningDocumentsClient(props: Props) {
               >
                 <Link href={href} className={`${JOURNAL_CARD_TITLE_CLASS} min-w-0`}>
                   {document.title || CLEANING_DOCUMENT_TITLE}
+              <SharedDocumentBadge shared={document.shared} />
                 </Link>
                 <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
                   <div className={JOURNAL_CARD_LABEL_CLASS}>{CLEANING_ROW_LABELS.cleaning}</div>

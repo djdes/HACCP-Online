@@ -51,9 +51,12 @@ import {
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { PageGuide } from "@/components/ui/page-guide";
 import { AUTOMATION_ENABLE_BULLETS } from "@/lib/journal-automation";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type JournalListDocument = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   responsibleTitle: string | null;
   responsibleUserId: string | null;
@@ -224,6 +227,7 @@ function DocumentRow({
     <div className={JOURNAL_LIST_CARD_CLASS} data-tour={TOUR.documentCard}>
       <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
         {document.title}
+              <SharedDocumentBadge shared={document.shared} />
       </Link>
       <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
         <div className={JOURNAL_CARD_LABEL_CLASS}>Должность ответственного</div>

@@ -48,6 +48,7 @@ import {
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type UserItem = {
   id: string;
   name: string;
@@ -57,6 +58,8 @@ type UserItem = {
 type DocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   config?: unknown;
@@ -366,6 +369,7 @@ export function IntensiveCoolingDocumentsClient({
             >
               <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                 {document.title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
+              <SharedDocumentBadge shared={document.shared} />
               </Link>
               <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>
                 <div className={JOURNAL_CARD_LABEL_CLASS}>Дата начала</div>

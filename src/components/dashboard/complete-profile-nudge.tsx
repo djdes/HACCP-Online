@@ -261,6 +261,9 @@ function CompleteProfileModal({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  // Точки: после «Готово» с двумя и более точками — шаг «Назовите точки».
+  const [namingBuildings, setNamingBuildings] = useState<NamingBuilding[] | null>(null);
+  const [namingSaving, setNamingSaving] = useState(false);
 
   const nameOk = organizationName.trim().length >= 2;
   const phoneOk = phoneLooksValid(phone);
@@ -277,7 +280,7 @@ function CompleteProfileModal({
    * это делает вызывающий: «Готово» просто закрывает, а «демо» после
    * сохранения ещё создаёт демо-организацию и уводит в неё.
    */
-  async function saveProfile(): Promise<boolean> {
+  async function saveProfile(): Promise<{ buildings?: Array<{ id: string; name: string; address: string | null }> } | null> {
     try {
       const res = await fetch("/api/profile/complete", {
         method: "POST",
@@ -298,12 +301,39 @@ function CompleteProfileModal({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || "Не удалось сохранить");
-      return true;
+      return (data ?? {}) as { buildings?: Array<{ id: string; name: string; address: string | null }> };
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Не удалось сохранить",
       );
-      return false;
+      return null;
+    }
+  }
+
+  async function saveNaming() {
+    if (!namingBuildings) return;
+    setNamingSaving(true);
+    try {
+      for (const item of namingBuildings) {
+        const name = item.name.trim();
+        if (!name || (name === item.initialName && item.address.trim() === item.initialAddress)) continue;
+        const res = await fetch(`/api/settings/buildings/${item.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, address: item.address.trim() || null }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || `Не удалось сохранить «${name}»`);
+        }
+      }
+      toast.success("Точки названы — они уже в шапке и в меню");
+      onClose();
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Не удалось сохранить");
+    } finally {
+      setNamingSaving(false);
     }
   }
 
@@ -316,8 +346,24 @@ function CompleteProfileModal({
     if (!canSubmit) return;
     setSaving(true);
     try {
-      if (!(await saveProfile())) return;
+      const saved = await saveProfile();
+      if (!saved) return;
       toast.success(savedMessage);
+      const buildings = saved.buildings ?? [];
+      if (buildings.length >= 2) {
+        // Имена и адреса сразу: «Точка 1» иначе так и напечатается в PDF.
+        setNamingBuildings(
+          buildings.map((b) => ({
+            id: b.id,
+            name: b.name,
+            address: b.address ?? "",
+            initialName: b.name,
+            initialAddress: b.address ?? "",
+          })),
+        );
+        router.refresh();
+        return;
+      }
       onClose();
       router.refresh();
     } finally {
@@ -379,10 +425,20 @@ function CompleteProfileModal({
               id="complete-profile-title"
               className="text-[16px] font-semibold tracking-[-0.01em] text-[#0b1024]"
             >
-              {welcome ? "Аккаунт создан!" : "Завершите регистрацию"}
+              {namingBuildings
+                ? "Назовите точки"
+                : welcome
+                  ? "Аккаунт создан!"
+                  : "Завершите регистрацию"}
             </h2>
             <p className="mt-0.5 text-[12px] leading-snug text-[#6f7282]">
-              Логин: <span className="text-[#3c4053]">{email}</span>
+              {namingBuildings ? (
+                "Названия и адреса печатаются в шапке журналов и PDF"
+              ) : (
+                <>
+                  Логин: <span className="text-[#3c4053]">{email}</span>
+                </>
+              )}
             </p>
           </div>
           <button
@@ -395,6 +451,19 @@ function CompleteProfileModal({
           </button>
         </div>
 
+        {namingBuildings ? (
+          <LocationNamingStep
+            items={namingBuildings}
+            saving={namingSaving}
+            onChange={setNamingBuildings}
+            onSkip={() => {
+              onClose();
+              router.refresh();
+            }}
+            onSave={() => void saveNaming()}
+          />
+        ) : (
+          <>
         <form
           id="complete-profile-form"
           noValidate
@@ -701,8 +770,94 @@ function CompleteProfileModal({
             </button>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+type NamingBuilding = {
+  id: string;
+  name: string;
+  address: string;
+  initialName: string;
+  initialAddress: string;
+};
+
+/**
+ * Шаг «Назовите точки» после анкеты: строка на точку — название и адрес.
+ * Компактно: две колонки, без подписей у полей (плейсхолдеры), «Позже»
+ * рядом с «Сохранить» — всё в первом экране телефона при 2–4 точках,
+ * дальше список прокручивается внутри окна.
+ */
+function LocationNamingStep({
+  items,
+  saving,
+  onChange,
+  onSkip,
+  onSave,
+}: {
+  items: NamingBuilding[];
+  saving: boolean;
+  onChange: (next: NamingBuilding[]) => void;
+  onSkip: () => void;
+  onSave: () => void;
+}) {
+  const inputClass =
+    "h-11 w-full rounded-2xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15";
+  return (
+    <>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-3 pt-2 sm:px-5">
+        {items.map((item, index) => (
+          <div key={item.id} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-2">
+            <input
+              type="text"
+              value={item.name}
+              onChange={(e) =>
+                onChange(items.map((it, i) => (i === index ? { ...it, name: e.target.value } : it)))
+              }
+              placeholder={`Точка ${index + 1}`}
+              aria-label={`Название точки ${index + 1}`}
+              className={inputClass}
+            />
+            <input
+              type="text"
+              value={item.address}
+              onChange={(e) =>
+                onChange(items.map((it, i) => (i === index ? { ...it, address: e.target.value } : it)))
+              }
+              placeholder="Адрес"
+              aria-label={`Адрес точки ${index + 1}`}
+              className={inputClass}
+            />
+          </div>
+        ))}
+        <p className="text-[12px] leading-snug text-[#6f7282]">
+          Сотрудники общие; кому с какой точки приходят задачи — в карточке сотрудника.
+        </p>
+      </div>
+      <div className="shrink-0 border-t border-[#eef0f6] p-4 sm:p-5">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onSkip}
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            Позже
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving || items.some((it) => !it.name.trim())}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-semibold text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 

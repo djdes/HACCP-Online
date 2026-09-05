@@ -40,9 +40,12 @@ import {
 } from "@/components/journals/journal-responsive";
 import { localDayKey } from "@/lib/entry-defaults";
 import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type TraceabilityDocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   config?: Record<string, unknown> | null;
@@ -469,6 +472,7 @@ export function TraceabilityDocumentsClient({
               <Link href={`/journals/${routeCode}/documents/${document.id}`} className="min-w-0">
                 <div className={`${JOURNAL_CARD_TITLE_CLASS} truncate`}>
                   {document.title || DEFAULT_TITLE}
+              <SharedDocumentBadge shared={document.shared} />
                 </div>
               </Link>
               <Link href={`/journals/${routeCode}/documents/${document.id}`} className={`${JOURNAL_CARD_SECTION_CLASS} justify-self-end`}>

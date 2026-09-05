@@ -63,9 +63,12 @@ import {
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
 import { getUsersForRoleLabel } from "@/lib/user-roles";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type JournalListDocument = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   responsibleTitle: string | null;
   responsibleUserId?: string | null;
@@ -462,6 +465,7 @@ function TrackedDocumentsClientImpl({
               >
                 <Link href={href} className={JOURNAL_CARD_TITLE_CLASS}>
                   {document.title}
+              <SharedDocumentBadge shared={document.shared} />
                 </Link>
 
                 <Link href={href} className={JOURNAL_CARD_SECTION_CLASS}>

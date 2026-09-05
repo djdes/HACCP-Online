@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { buildingWhere } from "@/lib/building-scope";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
 /**
@@ -16,7 +17,8 @@ export type TrendPoint = {
 export async function getComplianceTrend(
   organizationId: string,
   monthsBack: number = 12,
-  refDate: Date = new Date()
+  refDate: Date = new Date(),
+  options: { buildingId?: string | null } = {}
 ): Promise<TrendPoint[]> {
   const points: TrendPoint[] = [];
   const monthLabels = [
@@ -61,7 +63,7 @@ export async function getComplianceTrend(
       }),
       db.journalDocumentEntry.findMany({
         where: {
-          document: { organizationId },
+          document: { organizationId, ...buildingWhere(options.buildingId) },
           createdAt: { gte: m.start, lt: m.end },
           ...NOT_AUTO_SEEDED,
         },

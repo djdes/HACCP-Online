@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { buildingTargets } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
+import { closeEventBuildingKey } from "@/lib/journal-close-events";
 import { checkCronSecret } from "@/lib/cron-auth";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { closeJournalForDay, utcDayStart } from "@/lib/journal-close-events";
@@ -70,17 +73,19 @@ async function handle(request: Request) {
   for (const org of orgs) {
     let closed = 0;
     let skipped = 0;
+    // Точки: день закрывается на каждой точке отдельно (или один раз для
+    // организации без точек).
+    const targets = await buildingTargets(org.id);
 
-    for (const tplId of sharedTemplateIds) {
+    for (const tplId of sharedTemplateIds) for (const buildingId of targets) {
       // Skip if уже есть closure (включая reopened — мы НЕ авто-закрываем
       // переоткрытые, юзер уже принял решение).
-      const existing = await db.journalCloseEvent.findUnique({
+      const existing = await db.journalCloseEvent.findFirst({
         where: {
-          organizationId_templateId_date: {
-            organizationId: org.id,
-            templateId: tplId,
-            date: targetDate,
-          },
+          organizationId: org.id,
+          templateId: tplId,
+          date: targetDate,
+          buildingKey: closeEventBuildingKey(buildingId),
         },
         select: { id: true },
       });
@@ -99,7 +104,7 @@ async function handle(request: Request) {
       const [docEntryCount, legacyEntryCount] = await Promise.all([
         db.journalDocumentEntry.count({
           where: {
-            document: { organizationId: org.id, templateId: tplId },
+            document: { organizationId: org.id, templateId: tplId, ...buildingWhere(buildingId) },
             date: { gte: targetDate, lt: targetEnd },
             ...NOT_AUTO_SEEDED,
           },
@@ -126,6 +131,7 @@ async function handle(request: Request) {
           status: "active",
           dateFrom: { lte: targetDate },
           dateTo: { gte: targetDate },
+          ...buildingWhere(buildingId),
         },
         select: { id: true },
       });
@@ -134,6 +140,7 @@ async function handle(request: Request) {
         organizationId: org.id,
         templateId: tplId,
         journalDocumentId: activeDoc?.id ?? null,
+        buildingId,
         date: targetDate,
         kind: "auto-closed-empty",
         reason: null,

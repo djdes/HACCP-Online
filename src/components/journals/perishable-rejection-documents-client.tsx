@@ -38,9 +38,12 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type JournalListDocument = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   startedAtLabel: string;
   dateFrom: string;
@@ -140,7 +143,8 @@ export function PerishableRejectionDocumentsClient({
             className={JOURNAL_LIST_CARD_CLASS}
           >
             <Link href={`/journals/${templateCode}/documents/${document.id}`} className="min-w-0">
-              <div className={JOURNAL_CARD_TITLE_CLASS}>{document.title}</div>
+              <div className={JOURNAL_CARD_TITLE_CLASS}>{document.title}
+              <SharedDocumentBadge shared={document.shared} /></div>
             </Link>
             <Link href={`/journals/${templateCode}/documents/${document.id}`} className={`${JOURNAL_CARD_SECTION_CLASS} justify-self-end`}>
               <div className={JOURNAL_CARD_LABEL_CLASS}>Дата начала</div>

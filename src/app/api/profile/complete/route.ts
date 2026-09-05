@@ -189,5 +189,14 @@ export async function POST(request: Request) {
     }).catch((err) => console.error("sendPasswordChangedEmail failed", err));
   }
 
-  return NextResponse.json({ ok: true });
+  // Точки: анкета показывает шаг «Назовите точки» — отдаём созданные.
+  const buildings =
+    data.locationsCount >= 2
+      ? await db.building.findMany({
+          where: { organizationId },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          select: { id: true, name: true, address: true },
+        })
+      : [];
+  return NextResponse.json({ ok: true, buildings });
 }

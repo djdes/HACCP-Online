@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { buildingWhere } from "@/lib/building-scope";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 
@@ -33,7 +34,8 @@ export type HeatmapRow = {
 export async function getComplianceHeatmap(
   organizationId: string,
   daysBack: number = 30,
-  refDate: Date = new Date()
+  refDate: Date = new Date(),
+  options: { buildingId?: string | null } = {}
 ): Promise<{ rows: HeatmapRow[]; days: string[] }> {
   // Нормализуем периоды на UTC midnight.
   const todayStart = new Date(refDate);
@@ -69,7 +71,7 @@ export async function getComplianceHeatmap(
       }),
       db.journalDocumentEntry.findMany({
         where: {
-          document: { organizationId },
+          document: { organizationId, ...buildingWhere(options.buildingId) },
           date: { gte: periodStart, lte: todayStart },
           ...NOT_AUTO_SEEDED,
         },
@@ -156,7 +158,8 @@ const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"] 
 export async function getWeekdayHeatmap(
   organizationId: string,
   weeksBack: number = 8,
-  refDate: Date = new Date()
+  refDate: Date = new Date(),
+  options: { buildingId?: string | null } = {}
 ): Promise<{ rows: WeekdayHeatmapRow[]; weekdayLabels: typeof WEEKDAY_LABELS }> {
   const todayStart = new Date(refDate);
   todayStart.setUTCHours(0, 0, 0, 0);
@@ -183,7 +186,7 @@ export async function getWeekdayHeatmap(
       }),
       db.journalDocumentEntry.findMany({
         where: {
-          document: { organizationId },
+          document: { organizationId, ...buildingWhere(options.buildingId) },
           date: { gte: periodStart, lte: todayStart },
           ...NOT_AUTO_SEEDED,
         },

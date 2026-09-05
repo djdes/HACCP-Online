@@ -54,6 +54,7 @@ export default async function InspectorTemplatePage({
       dateFrom: true,
       dateTo: true,
       status: true,
+      building: { select: { name: true } },
       // Тот же фикс что в /api/inspector/[token]/pdf — не считать
       // _autoSeeded плейсхолдеры как «заполненные записи». Иначе
       // инспектор видит inflated счёт «300 записей за месяц», когда
@@ -128,6 +129,7 @@ export default async function InspectorTemplatePage({
                     {doc.title}
                   </div>
                   <div className="mt-1 text-[12px] text-[#6f7282]">
+                    {doc.building ? <>{doc.building.name} ·{" "}</> : null}
                     {formatRange(doc.dateFrom, doc.dateTo)} ·{" "}
                     {doc.status === "active" ? "активен" : "закрыт"} · записей:{" "}
                     {doc._count.entries}

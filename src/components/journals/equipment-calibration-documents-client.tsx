@@ -47,11 +47,14 @@ import {
   PositionSelectItems,
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
 
 type JournalListDocument = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   config?: unknown;
@@ -194,7 +197,8 @@ export function EquipmentCalibrationDocumentsClient({
               className={JOURNAL_LIST_CARD_CLASS}
             >
               <Link href={`/journals/${templateCode}/documents/${doc.id}`} className="min-w-0">
-                <div className={JOURNAL_CARD_TITLE_CLASS}>{doc.title}</div>
+                <div className={JOURNAL_CARD_TITLE_CLASS}>{doc.title}
+              <SharedDocumentBadge shared={doc.shared} /></div>
               </Link>
               <div className={JOURNAL_CARD_SECTION_CLASS}>
                 <div className={JOURNAL_CARD_LABEL_CLASS}>Год</div>

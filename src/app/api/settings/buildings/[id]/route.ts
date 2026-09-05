@@ -10,6 +10,9 @@ export const dynamic = "force-dynamic";
 const UpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   address: z.string().trim().max(200).optional().nullable(),
+  /// Точки: реквизиты точки для шапки PDF.
+  kpp: z.string().trim().max(20).optional().nullable(),
+  phone: z.string().trim().max(40).optional().nullable(),
   sortOrder: z.number().int().optional(),
 });
 
@@ -53,6 +56,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
     data: {
       ...(body.name !== undefined ? { name: body.name } : {}),
       ...(body.address !== undefined ? { address: body.address } : {}),
+      ...(body.kpp !== undefined ? { kpp: body.kpp || null } : {}),
+      ...(body.phone !== undefined ? { phone: body.phone || null } : {}),
       ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
     },
   });

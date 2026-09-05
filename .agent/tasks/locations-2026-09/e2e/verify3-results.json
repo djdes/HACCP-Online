@@ -1,0 +1,22 @@
+{
+  "proxyTrailingSlash": "308 -> /journals/hygiene",
+  "partnerOpen": 200,
+  "partnerCreateBuilding": 403,
+  "partnerToggleFlag": 403,
+  "partnerCreateDocument": 403,
+  "partnerSwitchBuilding": 400,
+  "dashboardStrip": true,
+  "dashboardStripText": "ТОЧКИ СЕГОДНЯ Нажмите, чтобы перейти в точку E2E Точка А 0/35 E2E Точка Б 0/35",
+  "stripSwitchedPill": "E2E Точка Б",
+  "sharedBadgeCount": 2,
+  "closeDayStatus": 200,
+  "closeDayHygieneA": "{\"code\":\"hygiene\",\"name\":\"Гигиенический журнал\",\"status\":\"completed\",\"realCount\":12,\"totalCount\":12,\"tfCompleted\":0,\"tfT",
+  "closeDayHygieneB": "{\"code\":\"hygiene\",\"name\":\"Гигиенический журнал\",\"status\":\"completed\",\"realCount\":6,\"totalCount\":6,\"tfCompleted\":0,\"tfTot",
+  "kppShown": true,
+  "staffHereAfter": "0",
+  "reportsPointNote": true,
+  "miniHomeSecondMs": 102,
+  "namingStepTitle": "",
+  "namingInputs": 0,
+  "namingDialog": null
+}

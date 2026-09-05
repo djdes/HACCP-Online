@@ -35,9 +35,12 @@ import {
   JOURNAL_LIST_CARD_CLASS,
   JOURNAL_LIST_CARDS_CLASS,
 } from "@/components/journals/journal-responsive";
+import { SharedDocumentBadge } from "@/components/journals/shared-document-badge";
 type DocumentItem = {
   id: string;
   title: string;
+  /** Точки: документ без точки рядом с документами точек. */
+  shared?: boolean;
   status: "active" | "closed";
   dateFrom: string;
   config: unknown;
@@ -261,7 +264,8 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
             const config = normalizeAuditReportConfig(document.config);
             return (
               <div key={document.id} className={JOURNAL_LIST_CARD_CLASS}>
-                <Link href={`/journals/${routeCode}/documents/${document.id}`} className={JOURNAL_CARD_TITLE_CLASS}>{document.title || AUDIT_REPORT_DOCUMENT_TITLE}</Link>
+                <Link href={`/journals/${routeCode}/documents/${document.id}`} className={JOURNAL_CARD_TITLE_CLASS}>{document.title || AUDIT_REPORT_DOCUMENT_TITLE}
+              <SharedDocumentBadge shared={document.shared} /></Link>
                 <Link href={`/journals/${routeCode}/documents/${document.id}`} className={JOURNAL_CARD_SECTION_CLASS}>
                   <div className={JOURNAL_CARD_LABEL_CLASS}>Объект аудита</div>
                   <div className={JOURNAL_CARD_VALUE_CLASS}>{config.auditedObject}</div>

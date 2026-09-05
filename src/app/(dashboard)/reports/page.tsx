@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { loadBuildingContext } from "@/lib/active-building";
+import { buildingWhere } from "@/lib/building-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
@@ -26,6 +28,10 @@ export default async function ReportsPage() {
   if (!hasFullWorkspaceAccess(session.user)) redirect("/journals");
 
   const orgId = getActiveOrgId(session);
+  // Точки: графики и счётчики по документам — для активной точки; записи
+  // поле-ориентированных журналов остаются на организацию.
+  const buildingContext = await loadBuildingContext(session);
+  const activeBuildingId = buildingContext.activeBuildingId;
   const now = new Date();
   const since30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   // E7 — compare-mode: 7 дней «эта неделя» vs предыдущие 7 дней.
@@ -56,9 +62,9 @@ export default async function ReportsPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    getComplianceHeatmap(orgId, 30),
-    getWeekdayHeatmap(orgId, 8),
-    getComplianceTrend(orgId, 12),
+    getComplianceHeatmap(orgId, 30, now, { buildingId: activeBuildingId }),
+    getWeekdayHeatmap(orgId, 8, now, { buildingId: activeBuildingId }),
+    getComplianceTrend(orgId, 12, now, { buildingId: activeBuildingId }),
     db.journalEntry.count({
       where: { organizationId: orgId, createdAt: { gte: since30 } },
     }),
@@ -74,7 +80,7 @@ export default async function ReportsPage() {
     }),
     db.journalDocumentEntry.count({
       where: {
-        document: { organizationId: orgId },
+        document: { organizationId: orgId, ...buildingWhere(activeBuildingId) },
         createdAt: { gte: since7 },
         ...NOT_AUTO_SEEDED,
       },
@@ -87,7 +93,7 @@ export default async function ReportsPage() {
     }),
     db.journalDocumentEntry.count({
       where: {
-        document: { organizationId: orgId },
+        document: { organizationId: orgId, ...buildingWhere(activeBuildingId) },
         createdAt: { gte: since14, lt: since7 },
         ...NOT_AUTO_SEEDED,
       },
@@ -222,6 +228,12 @@ export default async function ReportsPage() {
       <ComplianceBundleCard />
 
       <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-7">
+        {buildingContext.activeBuilding ? (
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#f5f6ff] px-3 py-1.5 text-[13px] text-[#3848c7]">
+            Точка: <b className="font-semibold">{buildingContext.activeBuilding.name}</b> — графики и
+            счётчики по документам считаются для неё
+          </div>
+        ) : null}
         <ReportForm templates={templates} areas={areas} />
       </div>
     </div>

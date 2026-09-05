@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { buildingWhere } from "@/lib/building-scope";
+import { getActiveCloseEvent } from "@/lib/journal-close-events";
 import {
   DAILY_JOURNAL_CODES,
   CONFIG_DAILY_CODES,
@@ -719,17 +720,14 @@ export async function getTemplateTodaySummary(
   // журнал считается заполненным (зелёный), независимо от entry-count
   // и TF readiness. Это применяется к ЛЮБОМУ template'у, включая
   // aperiodic — менеджер может вручную закрыть «без событий».
-  const closeEvent = await db.journalCloseEvent.findUnique({
-    where: {
-      organizationId_templateId_date: {
-        organizationId,
-        templateId,
-        date: todayStart,
-      },
-    },
-    select: { id: true, kind: true, reason: true, reopenedAt: true },
-  });
-  if (closeEvent && !closeEvent.reopenedAt) {
+  // Точки: своё закрытие точки или общее закрытие организации.
+  const closeEvent = await getActiveCloseEvent(
+    organizationId,
+    templateId,
+    todayStart,
+    options.buildingId ?? null,
+  );
+  if (closeEvent) {
     return {
       filled: true,
       aperiodic: false,

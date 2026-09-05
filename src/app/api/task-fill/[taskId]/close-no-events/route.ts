@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyTaskFillToken } from "@/lib/task-fill-token";
 import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
-import { closeJournalForDay } from "@/lib/journal-close-events";
+import { closeJournalForDay, documentBuildingId } from "@/lib/journal-close-events";
 import { TasksFlowError, tasksflowClientFor } from "@/lib/tasksflow-client";
 
 export const runtime = "nodejs";
@@ -132,6 +132,7 @@ export async function POST(
     organizationId: link.integration.organizationId,
     templateId: template.id,
     journalDocumentId: link.journalDocumentId,
+    buildingId: await documentBuildingId(link.journalDocumentId),
     date: new Date(),
     kind: parsed.kind,
     reason: parsed.reason ?? null,
