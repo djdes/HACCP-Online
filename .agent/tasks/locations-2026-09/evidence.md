@@ -35,3 +35,8 @@
 ## Ограничения v1 (в спеке)
 
 Уникальные ключи `JournalCloseEvent`/`JournalPreview` не менялись (деплой через `prisma db push` без флагов); поле-ориентированные журналы не делятся по точкам; режима «Все точки» нет.
+
+## Деплой
+
+- `ded6fc8b` фича, `094473e1` SHA заметок, `1b697534` фикс относительного Location в `/api/me/active-building/go` (за nginx `request.url` = localhost).
+- Прод после `094473e1`: `.build-sha` совпадает, PM2 online (перезапуск 2026-09-05T10:21:17Z), `/` → 200, `POST /api/me/active-building` без сессии → 401, `GET /api/me/active-building/go` → 307, `/settings/buildings` без сессии → 307 на вход.

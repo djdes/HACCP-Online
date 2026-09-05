@@ -4,8 +4,16 @@
   "checks": {
     "prisma_validate_db_push": "PASS",
     "typecheck": "PASS",
-    "unit_tests": { "status": "PASS", "tests": 570, "fail": 0 },
-    "eslint_changed_files": { "status": "PASS", "errors": 0, "warnings": 24 },
+    "unit_tests": {
+      "status": "PASS",
+      "tests": 570,
+      "fail": 0
+    },
+    "eslint_changed_files": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 24
+    },
     "e2e": "PASS"
   },
   "acceptance": {
@@ -22,7 +30,7 @@
     "AC11": "PASS (code: bulk-assign iterates docs per building, titles suffixed; unit test withBuildingSuffix)",
     "AC12": "PASS",
     "AC13": "PASS",
-    "AC14": "PENDING until SHA commit"
+    "AC14": "PASS (LATEST_NOTES_BUILD_SHA = ded6fc8b, commit 094473e1)"
   },
   "artifacts": [
     "e2e/results.json",
@@ -34,5 +42,18 @@
     "shots/06-mini-me.png",
     "shots/07-restricted-no-pill.png",
     "shots/08-mini-home-chip.png"
-  ]
+  ],
+  "commits": {
+    "feature": "ded6fc8b",
+    "notes_sha": "094473e1",
+    "redirect_fix": "1b697534"
+  },
+  "production": {
+    "deploy_run_094473e1": "success",
+    "pm2_restarted_at": "2026-09-05T10:21:17Z",
+    "probes": {
+      "POST /api/me/active-building anon": 401,
+      "GET /api/me/active-building/go anon": 307
+    }
+  }
 }
