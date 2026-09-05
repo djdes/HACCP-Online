@@ -1,4 +1,5 @@
 "use client";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -81,11 +82,8 @@ export function FillGuideDialog({
   // Body scroll lock пока открыто.
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    lockBodyScroll();
+    return () => unlockBodyScroll();
   }, [open]);
 
   if (!open || typeof document === "undefined") return null;

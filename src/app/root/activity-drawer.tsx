@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -55,6 +56,7 @@ export function ActivityDrawer({
 
   return (
     <div className="fixed inset-0 z-[70] flex justify-end">
+      <BodyScrollLock />
       <button
         type="button"
         aria-label="Закрыть"

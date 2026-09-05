@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
@@ -33,6 +34,7 @@ export function PhotoLightbox({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
       onClick={onClose}
     >
+      <BodyScrollLock />
       <button
         onClick={onClose}
         className="absolute right-4 top-4 rounded-full bg-black/50 p-2 text-white"

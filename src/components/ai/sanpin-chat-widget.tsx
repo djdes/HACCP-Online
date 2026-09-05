@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -326,6 +327,7 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
       {/* Sheet */}
       {open ? (
         <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/30 sm:items-end sm:p-5">
+          <BodyScrollLock />
           <div className="flex h-[80svh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.4)] sm:h-[600px] sm:max-h-[80svh] sm:w-[440px] sm:rounded-3xl">
             {/* Header */}
             <div className="flex items-center justify-between gap-3 border-b border-[#ececf4] bg-gradient-to-br from-[#5566f6] to-[#7a5cff] px-5 py-4 text-white">

@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useCallback, useRef, useState } from "react";
 import { Camera, Image as ImageIcon, X, Loader2 } from "lucide-react";
@@ -151,6 +152,7 @@ export function PhotoUploader({
           aria-modal="true"
           onClick={() => setSheetOpen(false)}
         >
+          <BodyScrollLock />
           <div
             className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0a0b0f] p-3 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
             onClick={(e) => e.stopPropagation()}

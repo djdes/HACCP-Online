@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -50,6 +51,7 @@ export function StaleCapaNag({ count }: Props) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+      <BodyScrollLock />
       <div className="w-full max-w-md rounded-3xl border border-[#ffd2cd] bg-white p-6 shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
         <div className="flex items-start gap-3">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#fff4f2] text-[#a13a32]">

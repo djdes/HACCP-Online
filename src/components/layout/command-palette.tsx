@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -289,6 +290,7 @@ export function CommandPalette() {
       className="fixed inset-0 z-[70] flex items-start justify-center bg-black/40 p-4 pt-[10vh]"
       onClick={() => setOpen(false)}
     >
+      <BodyScrollLock />
       <div
         className="w-full max-w-xl rounded-2xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]"
         onClick={(e) => e.stopPropagation()}

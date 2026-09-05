@@ -16,8 +16,6 @@ export const TASKSFLOW_PROMO_CODE = "WESETUP50";
 
 /** Человекочитаемая выгода — используется в текстах промо-блока. */
 export const TASKSFLOW_PROMO_BENEFIT = "−50 % на первый месяц";
-/** Для однострочного варианта промо, где на полную фразу нет места. */
-export const TASKSFLOW_PROMO_BENEFIT_SHORT = "−50 %";
 
 const TASKSFLOW_PROMO_ORIGIN = "https://tasksflow.ru";
 const TASKSFLOW_PROMO_PATH = "/";

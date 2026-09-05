@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -93,6 +94,7 @@ export function MiniTour() {
       role="dialog"
       aria-modal="true"
     >
+      <BodyScrollLock />
       <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0a0b0f] p-6 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]">
         <div className="flex items-start justify-between gap-3">
           <span className="flex size-12 items-center justify-center rounded-2xl bg-[#5566f6]/15 text-[#a3b0ff]">

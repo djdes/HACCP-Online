@@ -4,7 +4,6 @@ import { ExternalLink, Zap } from "lucide-react";
 import { toast } from "sonner";
 import {
   TASKSFLOW_PROMO_BENEFIT,
-  TASKSFLOW_PROMO_BENEFIT_SHORT,
   TASKSFLOW_PROMO_CODE,
   tasksflowPromoUrl,
 } from "@/lib/tasksflow-promo";
@@ -22,7 +21,6 @@ export function TasksFlowPromoHint({
   hasIntegration = false,
   autolinkNote = "Аккаунт TasksFlow с этим номером свяжется автоматически.",
   compact = false,
-  inline = false,
   className = "",
 }: {
   /** Точка входа для utm_campaign: `staff_add`, `register_nudge`, ... */
@@ -37,12 +35,6 @@ export function TasksFlowPromoHint({
    * высоты форме, ради которой человек сюда и пришёл.
    */
   compact?: boolean;
-  /**
-   * Одна строка: иконка, имя, промокод, короткая выгода, «Перейти».
-   * Для анкеты после регистрации на телефоне, где каждая строка формы
-   * на счету; описание живёт в title промокода.
-   */
-  inline?: boolean;
   className?: string;
 }) {
   if (hasIntegration) {
@@ -62,38 +54,6 @@ export function TasksFlowPromoHint({
     }
   }
 
-
-  if (inline) {
-    return (
-      <div
-        className={`flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-[#f5f6ff] px-3 py-1.5 text-[11px] leading-[1.35] text-[#3c4053] ${className}`}
-      >
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
-          <Zap className="size-3" />
-        </span>
-        <span className="font-semibold text-[#0b1024]">TasksFlow.ru</span>
-        <button
-          type="button"
-          onClick={copyPromo}
-          title={`Скопировать промокод: ${TASKSFLOW_PROMO_BENEFIT}`}
-          className="rounded-full bg-white px-1.5 py-0.5 font-semibold tracking-[0.04em] text-[#3848c7] ring-1 ring-[#dcdfed] transition-colors hover:bg-[#eef1ff] hover:ring-[#5566f6]/40"
-        >
-          {TASKSFLOW_PROMO_CODE}
-        </button>
-        <span className="text-[#6f7282]">{TASKSFLOW_PROMO_BENEFIT_SHORT}</span>
-        <a
-          href={tasksflowPromoUrl(campaign)}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="TasksFlow.ru — задачи сотрудникам"
-          className="ml-auto inline-flex items-center gap-1 font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
-        >
-          Перейти
-          <ExternalLink className="size-3" />
-        </a>
-      </div>
-    );
-  }
 
   if (compact) {
     return (

@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -1060,6 +1061,7 @@ function NoEventsSheet({
     (picked !== "__free__" || free.trim().length > 0);
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 backdrop-blur-[2px] animate-in fade-in-0 duration-200 sm:items-center">
+      <BodyScrollLock />
       <div className="w-full max-w-md rounded-t-3xl border-x border-t border-[#ececf4] bg-white p-6 shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.3)] animate-in slide-in-from-bottom-8 fade-in-0 duration-300 sm:rounded-3xl sm:border sm:zoom-in-95">
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-[18px] font-semibold text-[#0b1024]">
@@ -1277,6 +1279,7 @@ function ConfirmSheet({
   }, [form, values]);
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 backdrop-blur-[2px] animate-in fade-in-0 duration-200 sm:items-center">
+      <BodyScrollLock />
       <div className="w-full max-w-md rounded-t-3xl border-x border-t border-[#ececf4] bg-white p-6 shadow-[0_-20px_60px_-20px_rgba(11,16,36,0.3)] animate-in slide-in-from-bottom-8 fade-in-0 duration-300 sm:rounded-3xl sm:border sm:zoom-in-95">
         <h3 className="text-[18px] font-semibold text-[#0b1024]">
           Проверьте данные

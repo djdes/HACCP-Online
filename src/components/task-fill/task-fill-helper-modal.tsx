@@ -1,4 +1,5 @@
 "use client";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/use-body-scroll-lock";
 
 import { useEffect } from "react";
 import {
@@ -55,11 +56,8 @@ export function TaskFillHelperModal({
   // Body scroll-lock пока модалка открыта.
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    lockBodyScroll();
+    return () => unlockBodyScroll();
   }, [open]);
 
   if (!open) return null;

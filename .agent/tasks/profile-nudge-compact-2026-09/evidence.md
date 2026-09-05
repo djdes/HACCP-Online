@@ -16,3 +16,15 @@ throwaway-менеджер без телефона в org «Кафе Тесто�
 Примечание: форму в dev не отправляли, чтобы не переписывать название и
 телефон тестовой организации; статус «Всё заполнено» и активная «Готово»
 проверены (`statusAllFilled=true`, `submitEnabled=true`).
+
+## Итерация 2 (2026-09-05, правки владельца по скриншотам с прода)
+
+Скрипты `check2.ts` → `results-v2.json`, `check3.ts`; скриншоты `shots/05-mobile-v2.png`, `shots/06-after-close.png`.
+
+| Пункт | Результат | Доказательство |
+| --- | --- | --- |
+| Убрана фраза про пароль в шапке | PASS | `layout.headerText = "Аккаунт создан! Логин: …"` |
+| «Точек» и «Пароль для входа» той же высоты, что остальные поля | PASS | `layout.fieldHeights` — девять полей по 55px, `allFieldsSameHeight=true`; форма по-прежнему без скролла на 390×758 (465/465) |
+| Промо TasksFlow с подписью «задачи сотрудникам» (прежний компактный блок) | PASS | `layout.promoText = "TasksFlow.ru — задачи сотрудникам WESETUP50 −50 % на первый месяц Перейти"`; однострочный вариант удалён из кода |
+| Фон не прокручивается под всплывашками (iOS-safe, по всему сайту) | PASS | `src/lib/use-body-scroll-lock.ts` (body `position: fixed; top: -scrollY`, счётчик вложенности, компенсация полосы прокрутки); при открытой анкете и при открытом «Как заполнить?» `body.position=fixed`, колесо не двигает страницу (`scrollY` 0); после закрытия «Как заполнить?» `position=static`, колесо прокручивает (`scrollY` 600). После закрытия анкеты блокировку удерживает окно «14 дней тестового периода прошли» тестовой организации, стоящее за ней (`check3`: overlays after close), — это корректно |
+| Охват | — | 6 самописных окон переведены с `body.style.overflow` на общий lock (ConfirmDialog, prompt-async, «Что нового», «Как заполнить?», sheet гайда, task-fill helper); в 16 оверлеев без блокировки добавлен `<BodyScrollLock />` (mini-tour, photo-uploader, activity-drawer, blog-admin, task-fill ×2, sanpin-chat, bonus-feed, stale-capa-nag, trial-expired, command-palette, create-demo, create-organization, notifications-bell, photo-lightbox, staff-bulk-add, staff-qr-invite). Radix `Dialog`/`Sheet`/`partner-hint` блокируют сами (react-remove-scroll). Оверлей импорта Excel (product-writeoff) и спотлайт-тур намеренно без блокировки |

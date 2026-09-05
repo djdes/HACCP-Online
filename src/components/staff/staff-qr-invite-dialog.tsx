@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useState } from "react";
 import { Copy, Loader2, Printer, RefreshCcw, X } from "lucide-react";
@@ -110,6 +111,7 @@ export function StaffQrInviteDialog({ open, onClose, positions }: Props) {
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
     >
+      <BodyScrollLock />
       <div className="w-full max-w-md rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>

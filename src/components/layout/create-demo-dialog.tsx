@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ export function CreateDemoDialog({
       className="fixed inset-0 z-[120] flex items-center justify-center bg-[#0b1024]/40 p-4 backdrop-blur-sm"
       onClick={creating ? undefined : onClose}
     >
+      <BodyScrollLock />
       <form
         onSubmit={submit}
         onClick={(event) => event.stopPropagation()}

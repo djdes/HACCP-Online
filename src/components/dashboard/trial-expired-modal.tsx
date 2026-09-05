@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -83,6 +84,7 @@ export function TrialExpiredModal({ endedAt, billingTestMode }: Props) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+      <BodyScrollLock />
       <div className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_30px_80px_-20px_rgba(11,16,36,0.45)]">
         <div className="flex items-start gap-3">
           <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">

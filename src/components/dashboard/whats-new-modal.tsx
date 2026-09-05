@@ -1,4 +1,5 @@
 "use client";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import {
@@ -135,11 +136,10 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") dismiss();
     }
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
+      unlockBodyScroll();
       document.removeEventListener("keydown", onKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

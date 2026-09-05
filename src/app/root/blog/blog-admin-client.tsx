@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -284,6 +285,7 @@ function ArticleEditor({
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b1024]/40 p-4"
       onClick={onClose}
     >
+      <BodyScrollLock />
       <div
         className="flex max-h-[90vh] w-full max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-w-[900px]"
         onClick={(e) => e.stopPropagation()}

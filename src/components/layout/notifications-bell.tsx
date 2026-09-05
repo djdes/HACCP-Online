@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -335,6 +336,7 @@ export function NotificationsBell() {
           className="fixed inset-0 z-40 flex items-start justify-end bg-[#0b1024]/15 p-4 pt-20 sm:p-8 sm:pt-24"
           onClick={closePanel}
         >
+          <BodyScrollLock />
           <div
             className="flex max-h-[80vh] w-full max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.35)] sm:max-w-[640px]"
             onClick={(e) => e.stopPropagation()}

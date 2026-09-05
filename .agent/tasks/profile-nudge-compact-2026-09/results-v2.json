@@ -1,0 +1,71 @@
+{
+  "layout": {
+    "rows": [
+      55,
+      118,
+      55,
+      55,
+      55,
+      55
+    ],
+    "fieldHeights": [
+      55,
+      55,
+      55,
+      55,
+      55,
+      55,
+      55,
+      55,
+      55
+    ],
+    "allFieldsSameHeight": true,
+    "headerText": "Аккаунт создан! Логин: e2e-fill-guide@wesetup.local",
+    "promoText": "TasksFlow.ru — задачи сотрудникам WESETUP50 −50 % на первый месяц Перейти",
+    "fits": true,
+    "formScroll": {
+      "scrollHeight": 465,
+      "clientHeight": 465
+    }
+  },
+  "lockWhileOpen": {
+    "scrollY": 0,
+    "bodyPosition": "fixed",
+    "bodyTop": "0px"
+  },
+  "afterWheelWhileOpen": {
+    "scrollY": 0,
+    "bodyPosition": "fixed",
+    "bodyTop": "0px"
+  },
+  "afterClose": {
+    "scrollY": 0,
+    "bodyPosition": "fixed",
+    "bodyTop": "0px"
+  },
+  "afterWheelWhenClosed": {
+    "scrollY": 0,
+    "bodyPosition": "fixed",
+    "bodyTop": "0px"
+  },
+  "guideLockWhileOpen": {
+    "scrollY": 0,
+    "bodyPosition": "fixed",
+    "bodyTop": "0px"
+  },
+  "guideAfterWheel": {
+    "scrollY": 0,
+    "bodyPosition": "fixed",
+    "bodyTop": "0px"
+  },
+  "guideAfterClose": {
+    "scrollY": 0,
+    "bodyPosition": "static",
+    "bodyTop": ""
+  },
+  "guideAfterWheelWhenClosed": {
+    "scrollY": 600,
+    "bodyPosition": "static",
+    "bodyTop": ""
+  }
+}

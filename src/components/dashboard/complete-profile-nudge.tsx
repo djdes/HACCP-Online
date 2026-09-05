@@ -20,6 +20,7 @@ import {
   normalizeSphere,
 } from "@/lib/org-profile";
 import { suggestPassword } from "@/lib/password-suggest";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import {
   DEFAULT_OWNER_POSITION,
   OWNER_POSITION_CATEGORY,
@@ -127,7 +128,7 @@ function phoneLooksValid(raw: string): boolean {
  * Раскладка рассчитана на первый экран телефона без прокрутки: поля
  * стоят парами по смыслу («Сфера · Тип», «Точек · ИНН», «Имя · Пароль»),
  * галочка сотрудника и должность — в одной строке, промо TasksFlow —
- * одной строкой под телефоном, кнопки футера — в один ряд.
+ * под телефоном, кнопки футера — в один ряд.
  *
  * Пароль подставляется сам (6 знаков, см. `suggestPassword`) и виден
  * открытым текстом: человек либо запоминает его, либо перегенерирует
@@ -147,6 +148,8 @@ function CompleteProfileModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  // Фон под анкетой не должен прокручиваться (на iOS body.overflow не помогает).
+  useBodyScrollLock(true);
 
   const [organizationName, setOrganizationName] = useState("");
   const [phone, setPhone] = useState("");
@@ -284,7 +287,12 @@ function CompleteProfileModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0b1024]/45 p-3 backdrop-blur-sm sm:p-4">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0b1024]/45 p-3 backdrop-blur-sm sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="complete-profile-title"
+    >
       {/* dvh, а не vh: на iPhone Safari vh считается без учёта панелей
           браузера, и низ модалки уезжал под нижнюю панель. */}
       <div className="flex max-h-[94dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_40px_100px_-40px_rgba(11,16,36,0.6)]">
@@ -293,12 +301,14 @@ function CompleteProfileModal({
             <Sparkles className="size-[18px]" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-[#0b1024]">
+            <h2
+              id="complete-profile-title"
+              className="text-[16px] font-semibold tracking-[-0.01em] text-[#0b1024]"
+            >
               {welcome ? "Аккаунт создан!" : "Завершите регистрацию"}
             </h2>
             <p className="mt-0.5 text-[12px] leading-snug text-[#6f7282]">
-              Логин: <span className="text-[#3c4053]">{email}</span>. Пароль —
-              внизу, продублируем его на почту.
+              Логин: <span className="text-[#3c4053]">{email}</span>
             </p>
           </div>
           <button
@@ -364,8 +374,8 @@ function CompleteProfileModal({
 
             <TasksFlowPromoHint
               campaign="register_nudge"
-              inline
-              className="min-w-0 flex-1 sm:self-stretch"
+              compact
+              className="min-w-0 flex-1"
             />
           </div>
 
@@ -455,13 +465,18 @@ function CompleteProfileModal({
 
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-2">
             <Field label="Точек" plain>
-              <NumberStepper
-                value={locationsCount}
-                onChange={setLocationsCount}
-                min={1}
-                max={MAX_LOCATIONS}
-                ariaLabel="Количество точек"
-              />
+              {/* -my-1: кнопки счётчика 32px, а строка значения в соседних
+                  полях 24px — вытягиваем поле до общей высоты, зона нажатия
+                  остаётся 32px. */}
+              <span className="-my-1 block">
+                <NumberStepper
+                  value={locationsCount}
+                  onChange={setLocationsCount}
+                  min={1}
+                  max={MAX_LOCATIONS}
+                  ariaLabel="Количество точек"
+                />
+              </span>
             </Field>
 
             <Field label="ИНН">
@@ -514,7 +529,7 @@ function CompleteProfileModal({
                   onClick={() => setNewPassword(suggestPassword())}
                   aria-label="Подобрать другой пароль"
                   title="Другой пароль"
-                  className="-mr-1.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-[#5566f6] transition-colors hover:bg-[#eef1ff] hover:text-[#3848c7]"
+                  className="-my-0.5 -mr-1.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-[#5566f6] transition-colors hover:bg-[#eef1ff] hover:text-[#3848c7]"
                 >
                   <RefreshCw className="size-3.5" />
                 </button>

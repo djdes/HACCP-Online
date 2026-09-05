@@ -1,4 +1,5 @@
 "use client";
+import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -170,6 +171,7 @@ export function BonusFeedTable({ items }: { items: BonusFeedItem[] }) {
 
       {activeReject ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0b1024]/35 px-4 py-6 sm:items-center">
+          <BodyScrollLock />
           <div className="w-full max-w-md rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_30px_80px_-30px_rgba(11,16,36,0.45)]">
             <div className="text-[18px] font-semibold text-[#0b1024]">
               Отозвать премию
