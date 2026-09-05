@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-  CheckCircle2,
   ChevronDown,
   Loader2,
   RefreshCw,
   Sparkles,
+  UserRoundPen,
   X,
 } from "lucide-react";
 import { NumberStepper } from "@/components/ui/number-stepper";
@@ -190,14 +190,9 @@ function CompleteProfileModal({
   const busy = saving || demoLoading;
   const canSubmit = nameOk && phoneOk && passwordOk && !busy;
 
-  // Чего не хватает — говорим прямо под кнопкой. Нативные тултипы
-  // браузера («Вы пропустили это поле») выключены: они появляются
-  // только по клику и выглядят чужеродно.
-  const missing = [
-    !nameOk ? "название организации" : null,
-    !phoneOk ? "телефон" : null,
-    !passwordOk ? "пароль от 6 знаков" : null,
-  ].filter(Boolean) as string[];
+  // Нативные тултипы браузера («Вы пропустили это поле») выключены —
+  // они появляются только по клику и выглядят чужеродно. Незаполненное
+  // обязательное поле подсвечивается рамкой, «Готово» неактивна.
 
   /**
    * Сохраняет анкету в свою организацию. Без закрытия модалки и refresh —
@@ -298,7 +293,7 @@ function CompleteProfileModal({
       <div className="flex max-h-[94dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_40px_100px_-40px_rgba(11,16,36,0.6)]">
         <div className="flex shrink-0 items-start gap-3 border-b border-[#eef0f6] px-4 py-3.5 sm:p-5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
-            <Sparkles className="size-[18px]" />
+            <UserRoundPen className="size-[18px]" />
           </span>
           <div className="min-w-0 flex-1">
             <h2
@@ -356,9 +351,7 @@ function CompleteProfileModal({
               label="Телефон"
               required
               className="sm:w-[188px] sm:shrink-0"
-              error={
-                touched.phone && !phoneOk ? "Формат: +7 999 123-45-67" : null
-              }
+              invalid={touched.phone && !phoneOk}
             >
               <input
                 value={phone}
@@ -547,54 +540,44 @@ function CompleteProfileModal({
         </form>
 
         <div className="shrink-0 border-t border-[#eef0f6] p-4 sm:p-5">
-          {/* Обе кнопки в один ряд: «Готово» и та же «Готово», но дальше — в
-              отдельную демо-организацию с сотрудниками и заполненными
-              журналами. Активны по одним условиям: анкета сохраняется первой. */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Демо слева с подписью под своей кнопкой — чтобы «7 дней» не
+              читалось как условие для «Готово». «Готово» справа, как
+              основное действие. Обе активны по одним условиям: анкета
+              сохраняется первой, демо — отдельная организация после. */}
+          <div className="grid grid-cols-2 items-start gap-2">
+            <div>
+              <button
+                type="button"
+                onClick={submitWithDemo}
+                disabled={!canSubmit}
+                data-testid="complete-profile-demo"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:border-[#eef0f6] disabled:text-[#9b9fb3] disabled:hover:bg-white"
+              >
+                {demoLoading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin text-[#5566f6]" />
+                    Готовим…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="size-4 text-[#5566f6]" />
+                    Показать демо
+                  </>
+                )}
+              </button>
+              <p className="mt-1.5 text-center text-[11px] leading-snug text-[#9b9fb3]">
+                Отдельная организация на 7 дней
+              </p>
+            </div>
             <button
               type="submit"
               form="complete-profile-form"
               disabled={!canSubmit}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-semibold text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c9cef7] disabled:shadow-none"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-semibold text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:cursor-not-allowed disabled:bg-[#c9cef7] disabled:shadow-none"
             >
               {saving ? <Loader2 className="size-4 animate-spin" /> : null}
               Готово
             </button>
-            <button
-              type="button"
-              onClick={submitWithDemo}
-              disabled={!canSubmit}
-              data-testid="complete-profile-demo"
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:cursor-not-allowed disabled:border-[#eef0f6] disabled:text-[#9b9fb3] disabled:hover:bg-white"
-            >
-              {demoLoading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin text-[#5566f6]" />
-                  Готовим…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="size-4 text-[#5566f6]" />
-                  Показать демо
-                </>
-              )}
-            </button>
-          </div>
-          <p className="mt-1.5 text-center text-[11px] leading-snug text-[#6f7282]">
-            Демо — отдельная организация с примерами на 7 дней.
-          </p>
-
-          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[12px]">
-            {missing.length === 0 ? (
-              <>
-                <CheckCircle2 className="size-3.5 text-[#116b2a]" />
-                <span className="text-[#116b2a]">Всё заполнено</span>
-              </>
-            ) : (
-              <span className="text-[#9b9fb3]">
-                Осталось: {missing.join(", ")}
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -638,6 +621,7 @@ function Field({
   label,
   required,
   error,
+  invalid = false,
   plain = false,
   className = "",
   children,
@@ -645,6 +629,8 @@ function Field({
   label: string;
   required?: boolean;
   error?: string | null;
+  /** Красная рамка без текста — когда формат и так виден в плейсхолдере. */
+  invalid?: boolean;
   /**
    * Обернуть в <div>, а не в <label>. Нужно, когда внутри не один
    * инпут, а группа контролов (счётчик «−/значение/+»): <label>
@@ -661,7 +647,7 @@ function Field({
     <Tag className={`block ${className}`}>
       <span
         className={`flex flex-col gap-0.5 rounded-2xl border bg-white px-3.5 py-2 transition-[border-color,box-shadow] focus-within:ring-4 ${
-          error
+          error || invalid
             ? "border-[#ff8d7d] focus-within:border-[#d2453d] focus-within:ring-[#d2453d]/15"
             : "border-[#dcdfed] focus-within:border-[#5566f6] focus-within:ring-[#5566f6]/15"
         }`}

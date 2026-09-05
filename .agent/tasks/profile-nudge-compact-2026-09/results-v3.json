@@ -1,0 +1,13 @@
+{
+  "state": {
+    "hasFormatText": false,
+    "hasStatusLine": false,
+    "phoneRedBorder": true,
+    "demoLeftOfDone": true,
+    "caption": "Отдельная организация на 7 дней",
+    "captionUnderDemo": true,
+    "headerIcon": "lucide lucide-user-round-pen size-[18px]",
+    "fits": true,
+    "modalHeight": 654
+  }
+}

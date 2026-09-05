@@ -28,3 +28,15 @@ throwaway-менеджер без телефона в org «Кафе Тесто�
 | Промо TasksFlow с подписью «задачи сотрудникам» (прежний компактный блок) | PASS | `layout.promoText = "TasksFlow.ru — задачи сотрудникам WESETUP50 −50 % на первый месяц Перейти"`; однострочный вариант удалён из кода |
 | Фон не прокручивается под всплывашками (iOS-safe, по всему сайту) | PASS | `src/lib/use-body-scroll-lock.ts` (body `position: fixed; top: -scrollY`, счётчик вложенности, компенсация полосы прокрутки); при открытой анкете и при открытом «Как заполнить?» `body.position=fixed`, колесо не двигает страницу (`scrollY` 0); после закрытия «Как заполнить?» `position=static`, колесо прокручивает (`scrollY` 600). После закрытия анкеты блокировку удерживает окно «14 дней тестового периода прошли» тестовой организации, стоящее за ней (`check3`: overlays after close), — это корректно |
 | Охват | — | 6 самописных окон переведены с `body.style.overflow` на общий lock (ConfirmDialog, prompt-async, «Что нового», «Как заполнить?», sheet гайда, task-fill helper); в 16 оверлеев без блокировки добавлен `<BodyScrollLock />` (mini-tour, photo-uploader, activity-drawer, blog-admin, task-fill ×2, sanpin-chat, bonus-feed, stale-capa-nag, trial-expired, command-palette, create-demo, create-organization, notifications-bell, photo-lightbox, staff-bulk-add, staff-qr-invite). Radix `Dialog`/`Sheet`/`partner-hint` блокируют сами (react-remove-scroll). Оверлей импорта Excel (product-writeoff) и спотлайт-тур намеренно без блокировки |
+
+## Итерация 3 (2026-09-05, второй круг замечаний)
+
+Скрипт `check4.ts` → `results-v3.json`, скриншот `shots/07-mobile-v3.png` (390×758).
+
+| Пункт | Результат | Доказательство |
+| --- | --- | --- |
+| Под телефоном нет текста «Формат: …», невалидный номер подсвечен рамкой | PASS | `hasFormatText=false`, `phoneRedBorder=true` |
+| Нет строки «Осталось: …» / «Всё заполнено» | PASS | `hasStatusLine=false` |
+| «Показать демо» слева, «Готово» справа, подпись про демо под кнопкой демо | PASS | `demoLeftOfDone=true`, `captionUnderDemo=true`, `caption="Отдельная организация на 7 дней"` |
+| Иконка шапки — пользователь с ручкой вместо звёздочек | PASS | `headerIcon="lucide-user-round-pen"` |
+| Форма без прокрутки на 390×758 | PASS | `fits=true`, высота модалки 654px |
