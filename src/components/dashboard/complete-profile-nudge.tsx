@@ -650,8 +650,12 @@ function CompleteProfileModal({
           {/* Единственное пояснение: что произойдёт с точками. */}
           {locationsCount > 1 ? (
             <p className="text-[12px] leading-snug text-[#6f7282]">
-              Создадим точки ({locationsCount}): журналы по каждой отдельно,
-              сотрудники общие. Названия и адреса — в настройках.
+              Создадим {locationsCount}{" "}
+              {locationsCount % 10 >= 2 && locationsCount % 10 <= 4 && (locationsCount % 100 < 12 || locationsCount % 100 > 14)
+                ? "точки"
+                : "точек"}
+              : журналы по каждой отдельно, сотрудники общие. Названия и
+              адреса — в настройках.
             </p>
           ) : null}
         </form>

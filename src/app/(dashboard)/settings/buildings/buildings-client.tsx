@@ -184,7 +184,7 @@ export function BuildingsClient({
   async function deleteBuilding(id: string, name: string) {
     const ok = await confirmAsync({
       title: "Удалить точку?",
-      description: `Здание «${name}» и все его помещения будут удалены. Записи журналов с привязкой к ним перестанут связываться с зоной.`,
+      description: `Точка «${name}» и её помещения будут удалены. Документы журналов этой точки останутся в организации и станут общими — видимыми на каждой точке.`,
       variant: "danger",
       confirmLabel: "Удалить точку",
     });
@@ -384,7 +384,7 @@ function BuildingCard({
         <button
           type="button"
           onClick={onDelete}
-          aria-label="Удалить здание"
+          aria-label="Удалить точку"
           className="rounded-full p-1.5 text-[#9b9fb3] hover:bg-[#fff4f2] hover:text-[#d2453d]"
         >
           <Trash2 className="size-4" />

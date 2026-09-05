@@ -311,8 +311,9 @@ export function MetricsTable({
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums">
                     {m.locationsCount > 1 ? (
-                      // Больше одной точки — организация ждёт multi-org,
-                      // которого в продукте пока нет. Подсвечиваем.
+                      // Больше одной точки — сеть: с 2026-09-05 анкета
+                      // заводит точки и включает раздельные журналы.
+                      // Подсвечиваем, чтобы такие организации были на виду.
                       <span className="inline-flex items-center rounded-full bg-[#fff3ed] px-2.5 py-0.5 text-[13px] font-medium text-[#b45309]">
                         {m.locationsCount}
                       </span>
