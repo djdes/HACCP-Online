@@ -1,0 +1,78 @@
+{
+  "dashboard": {
+    "floating": [
+      {
+        "label": "AI помощник по СанПиН",
+        "top": 716,
+        "right": 20,
+        "size": "44×44"
+      },
+      {
+        "label": "Поддержка · новых сообще",
+        "top": 716,
+        "right": 68,
+        "size": "44×44"
+      }
+    ],
+    "coveredByFloating": [
+      "button",
+      "button"
+    ],
+    "smallTargets": 1,
+    "smallestHeight": 18,
+    "pageBottomPadding": "16px"
+  },
+  "journal-list": {
+    "floating": [
+      {
+        "label": "AI помощник по СанПиН",
+        "top": 716,
+        "right": 20,
+        "size": "44×44"
+      },
+      {
+        "label": "Поддержка · новых сообще",
+        "top": 716,
+        "right": 68,
+        "size": "44×44"
+      }
+    ],
+    "coveredByFloating": [
+      "button",
+      "button"
+    ],
+    "smallTargets": 6,
+    "smallestHeight": 20,
+    "pageBottomPadding": "16px"
+  },
+  "document": {
+    "floating": [
+      {
+        "label": "AI помощник по СанПиН",
+        "top": 716,
+        "right": 20,
+        "size": "44×44"
+      },
+      {
+        "label": "Поддержка · новых сообще",
+        "top": 716,
+        "right": 68,
+        "size": "44×44"
+      },
+      {
+        "label": "Как заполнить этот журна",
+        "top": 664,
+        "right": 20,
+        "size": "44×44"
+      }
+    ],
+    "coveredByFloating": [
+      "button",
+      "button",
+      "button"
+    ],
+    "smallTargets": 12,
+    "smallestHeight": 20,
+    "pageBottomPadding": "16px"
+  }
+}
