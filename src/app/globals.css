@@ -155,6 +155,13 @@
 /* ════════════════════════════════════════════════════════════════════
  * Dark-mode overrides для hardcoded hex tailwind-классов.
  *
+ * ВАЖНО: значения берутся из токенов темы (`app-theme.css`). Раньше
+ * здесь стояли свои почти чёрные хексы (#131726, #0e1224), и из-за
+ * `!important` именно они, а не токены, красили весь кабинет: поменять
+ * палитру в одном месте было невозможно, а всплывашки (порталы вне
+ * `.app-shell`) красились токенами и расходились со страницей.
+ * Один источник правды — токены.
+ *
  * Большинство компонентов написано через `bg-[#fafbff]`, `text-[#0b1024]`,
  * `border-[#dcdfed]` и т.п. — эти классы НЕ адаптируются автоматически
  * между темами. Чтобы не переписывать 286 файлов вручную, переопределяем
@@ -194,7 +201,7 @@
 .app-shell[data-app-theme="dark"] .bg-gray-50,
 .app-shell[data-app-theme="dark"] .bg-slate-50,
 .app-shell[data-app-theme="dark"] .bg-neutral-50 {
-  background-color: #131726 !important;
+  background-color: var(--app-surface) !important;
 }
 .app-shell[data-app-theme="dark"] .bg-\[\#fafbff\],
 .app-shell[data-app-theme="dark"] .bg-\[\#f3f4fb\],
@@ -202,18 +209,18 @@
 .app-shell[data-app-theme="dark"] .bg-\[\#f2f2f2\],
 .app-shell[data-app-theme="dark"] .bg-\[\#ececec\],
 .app-shell[data-app-theme="dark"] .bg-gray-100 {
-  background-color: #0e1224 !important;
+  background-color: var(--app-surface-muted) !important;
 }
 /* #ececf4 = border-color же используется и как surface для progress
    bars, badges, pill-backgrounds. На dark — slightly lifted than body. */
 .app-shell[data-app-theme="dark"] .bg-\[\#ececf4\] {
-  background-color: #1f2540 !important;
+  background-color: var(--app-border) !important;
 }
 .app-shell[data-app-theme="dark"] .bg-\[\#f5f6ff\] {
-  background-color: #1a1f3a !important;
+  background-color: var(--app-tint-indigo) !important;
 }
 .app-shell[data-app-theme="dark"] .bg-\[\#eef1ff\] {
-  background-color: #1f254a !important;
+  background-color: var(--app-tint-indigo-2) !important;
 }
 .app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\],
 .app-shell[data-app-theme="dark"] .bg-\[\#fff3f2\],
@@ -231,7 +238,7 @@
 .app-shell[data-app-theme="dark"] .border-\[\#ececf4\],
 .app-shell[data-app-theme="dark"] .border-\[\#eceef5\],
 .app-shell[data-app-theme="dark"] .border-\[\#e8ebf7\] {
-  border-color: #1f2540 !important;
+  border-color: var(--app-border) !important;
 }
 .app-shell[data-app-theme="dark"] .border-\[\#dcdfed\],
 .app-shell[data-app-theme="dark"] .border-\[\#dfe1ec\],
@@ -239,10 +246,10 @@
 .app-shell[data-app-theme="dark"] .border-\[\#d9dceb\],
 .app-shell[data-app-theme="dark"] .border-\[\#d7dbea\],
 .app-shell[data-app-theme="dark"] .border-\[\#d9dce8\] {
-  border-color: #2a3258 !important;
+  border-color: var(--app-border-strong) !important;
 }
 .app-shell[data-app-theme="dark"] .border-\[\#ccc\] {
-  border-color: #2a3258 !important;
+  border-color: var(--app-border-strong) !important;
 }
 .app-shell[data-app-theme="dark"] .border-\[\#ffd2cd\],
 .app-shell[data-app-theme="dark"] .border-\[\#ffd7d3\] {
@@ -258,25 +265,25 @@
 /* ── Text colors ───────────────────────────────────────────────────── */
 .app-shell[data-app-theme="dark"] .text-\[\#0b1024\],
 .app-shell[data-app-theme="dark"] .text-\[\#101425\] {
-  color: #e8e9f5 !important;
+  color: var(--app-text) !important;
 }
 .app-shell[data-app-theme="dark"] .text-\[\#3c4053\],
 .app-shell[data-app-theme="dark"] .text-\[\#3a3f55\] {
-  color: #c4c7d8 !important;
+  color: var(--app-text-secondary) !important;
 }
 .app-shell[data-app-theme="dark"] .text-\[\#6f7282\],
 .app-shell[data-app-theme="dark"] .text-\[\#6e7080\],
 .app-shell[data-app-theme="dark"] .text-\[\#6e7387\],
 .app-shell[data-app-theme="dark"] .text-\[\#73738a\],
 .app-shell[data-app-theme="dark"] .text-\[\#7a7c8e\] {
-  color: #9ea2bb !important;
+  color: var(--app-text-muted) !important;
 }
 .app-shell[data-app-theme="dark"] .text-\[\#9b9fb3\],
 .app-shell[data-app-theme="dark"] .text-\[\#8a8ea4\] {
-  color: #6e7290 !important;
+  color: var(--app-text-faint) !important;
 }
 .app-shell[data-app-theme="dark"] .text-\[\#3848c7\] {
-  color: #8e9eff !important;
+  color: var(--app-indigo-deep) !important;
 }
 .app-shell[data-app-theme="dark"] .text-\[\#136b2a\],
 .app-shell[data-app-theme="dark"] .text-\[\#116b2a\] {
@@ -294,7 +301,7 @@
   color: #ff6e66 !important;
 }
 .app-shell[data-app-theme="dark"] .text-\[\#c7ccea\] {
-  color: #c4c7d8 !important;
+  color: var(--app-text-secondary) !important;
 }
 
 /* ── Card shadow halo ──────────────────────────────────────────────── */
@@ -304,10 +311,10 @@
 
 /* ── Hover variants ────────────────────────────────────────────────── */
 .app-shell[data-app-theme="dark"] .hover\:bg-\[\#f5f6ff\]:hover {
-  background-color: #1f254a !important;
+  background-color: var(--app-tint-indigo-2) !important;
 }
 .app-shell[data-app-theme="dark"] .hover\:bg-\[\#eef1ff\]:hover {
-  background-color: #252b56 !important;
+  background-color: var(--app-tint-indigo-2) !important;
 }
 
 /* ── Inline-styles с hex (style="background-color:#xxx") ──────────
@@ -335,21 +342,21 @@
 }
 .app-shell[data-app-theme="dark"] [style*="background-color:#eef1ff"],
 .app-shell[data-app-theme="dark"] [style*="background-color: #eef1ff"] {
-  background-color: #1f254a !important;
+  background-color: var(--app-tint-indigo-2) !important;
 }
 .app-shell[data-app-theme="dark"] [style*="background-color:#f5f6ff"],
 .app-shell[data-app-theme="dark"] [style*="background-color: #f5f6ff"] {
-  background-color: #1a1f3a !important;
+  background-color: var(--app-tint-indigo) !important;
 }
 .app-shell[data-app-theme="dark"] [style*="background-color:#ffffff"],
 .app-shell[data-app-theme="dark"] [style*="background-color: #ffffff"],
 .app-shell[data-app-theme="dark"] [style*="background-color:#fff;"],
 .app-shell[data-app-theme="dark"] [style*="background-color: #fff;"] {
-  background-color: #131726 !important;
+  background-color: var(--app-surface) !important;
 }
 .app-shell[data-app-theme="dark"] [style*="background-color:#fafbff"],
 .app-shell[data-app-theme="dark"] [style*="background-color: #fafbff"] {
-  background-color: #0e1224 !important;
+  background-color: var(--app-surface-muted) !important;
 }
 
 /* Inline text colors — light text стоковых state palettes тоже надо
@@ -370,7 +377,7 @@
 }
 .app-shell[data-app-theme="dark"] [style*="color:#0b1024"],
 .app-shell[data-app-theme="dark"] [style*="color: #0b1024"] {
-  color: #e8e9f5 !important;
+  color: var(--app-text) !important;
 }
 
 /* ── Gradients with light hex sources ────────────────────────────────
@@ -404,7 +411,7 @@
   background-color: rgba(245, 158, 11, 0.12) !important;
 }
 .app-shell[data-app-theme="dark"] .from-\[\#f5f6ff\] {
-  background-color: #1a1f3a !important;
+  background-color: var(--app-tint-indigo) !important;
 }
 .app-shell[data-app-theme="dark"] .from-amber-50 {
   background-color: rgba(245, 158, 11, 0.12) !important;
@@ -424,20 +431,20 @@
  * которые я мог пропустить выше. */
 .app-shell[data-app-theme="dark"] [class*="bg-gradient-to"][class*="from-[#ff"]:not([class*="from-[#fde"]) {
   background-image: none !important;
-  background-color: #131726 !important;
+  background-color: var(--app-surface) !important;
 }
 .app-shell[data-app-theme="dark"] [class*="bg-gradient-to"][class*="from-[#fa"] {
   background-image: none !important;
-  background-color: #0e1224 !important;
+  background-color: var(--app-surface-muted) !important;
 }
 .app-shell[data-app-theme="dark"] [class*="bg-gradient-to"][class*="from-[#f5"]:not([class*="from-[#5"]) {
   background-image: none !important;
-  background-color: #1a1f3a !important;
+  background-color: var(--app-tint-indigo) !important;
 }
 
 /* #f7f8ff — saving-row highlight в hygiene/health grids */
 .app-shell[data-app-theme="dark"] .bg-\[\#f7f8ff\] {
-  background-color: #1a1f3a !important;
+  background-color: var(--app-tint-indigo) !important;
 }
 
 /* ════════════════════════════════════════════════════════════════════

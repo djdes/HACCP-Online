@@ -317,7 +317,7 @@ function applyThemeToDOM(theme: SiteTheme) {
     'meta[name="theme-color"]'
   );
   if (meta) {
-    meta.setAttribute("content", theme === "dark" ? "#0b0d1a" : "#ffffff");
+    meta.setAttribute("content", theme === "dark" ? "#2b2841" : "#ffffff");
   }
 }
 
@@ -370,7 +370,7 @@ export function SiteThemeBootstrap() {
       var els=document.querySelectorAll('.app-shell');
       for(var i=0;i<els.length;i++){els[i].setAttribute(attr,t);}
       var m=document.querySelector('meta[name="theme-color"]');
-      if(m&&t==='dark'){m.setAttribute('content','#0b0d1a');}
+      if(m&&t==='dark'){m.setAttribute('content','#2b2841');}
     }
   }catch(e){}})();`;
   return <script dangerouslySetInnerHTML={{ __html: code }} />;
@@ -466,7 +466,7 @@ export function PublicThemeBootstrap() {
     b.classList.add('app-shell','public-theme');
     b.setAttribute(attr,t);
     var m=document.querySelector('meta[name="theme-color"]');
-    if(m){m.setAttribute('content',t==='dark'?'#0b0d1a':'#ffffff');}
+    if(m){m.setAttribute('content',t==='dark'?'#2b2841':'#ffffff');}
   }catch(e){}})();`;
   return <script dangerouslySetInnerHTML={{ __html: code }} />;
 }

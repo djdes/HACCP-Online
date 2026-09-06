@@ -110,30 +110,40 @@ body:has(.app-shell) {
 
 .app-shell[data-app-theme="dark"],
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
-  --app-bg: #0b0d1a;
-  --app-surface: #16182a;
-  --app-surface-elevated: #1c1f33;
-  --app-surface-muted: #131526;
-  --app-soft-surface: #0f1121;
-  --app-tint-indigo: rgba(85, 102, 246, 0.12);
-  --app-tint-indigo-2: rgba(85, 102, 246, 0.2);
-  --app-border: rgba(255, 255, 255, 0.08);
-  --app-border-strong: rgba(255, 255, 255, 0.16);
-  --app-text: #f5f6ff;
-  --app-text-secondary: #c1c5d6;
-  --app-text-muted: #8f93a8;
-  --app-text-faint: #686c82;
+  /* Тёмная не «выключенный экран», а приглушённый фиолетово-серый:
+     почти чёрный (#0b0d1a) слепил границами и делал карточки
+     неразличимыми. Вся лестница поднята на пару ступеней и уведена
+     в фиолет, чтобы бренд читался и в тёмной. Разница между фоном и
+     карточкой сохранена: карточка светлее фона, окно светлее карточки. */
+  --app-bg: #2b2841;
+  --app-surface: #3a3757;
+  --app-surface-elevated: #454165;
+  --app-surface-muted: #322f4b;
+  --app-soft-surface: #2f2c47;
+  --app-tint-indigo: rgba(126, 140, 255, 0.16);
+  --app-tint-indigo-2: rgba(126, 140, 255, 0.26);
+  /* Рамки на светлом фоне теряются — подняли непрозрачность. */
+  --app-border: rgba(255, 255, 255, 0.12);
+  --app-border-strong: rgba(255, 255, 255, 0.2);
+  --app-text: #f2f3fb;
+  --app-text-secondary: #cccee0;
+  --app-text-muted: #a0a3b8;
+  --app-text-faint: #82859b;
+  /* Заливка основной кнопки: белый текст на ней должен читаться,
+     поэтому её НЕ осветляем вместе с фоном. */
   --app-indigo: #7081f8;
   --app-indigo-hover: #6173f3;
-  --app-indigo-deep: #4857d9;
-  --app-success-bg: rgba(124, 245, 192, 0.12);
-  --app-success-fg: #7cf5c0;
-  --app-warn-bg: rgba(255, 144, 130, 0.12);
-  --app-warn-fg: #ffa899;
-  --app-hero: #0b1024;
-  --app-scrim: rgba(0, 0, 0, 0.35);
-  --app-skeleton-base: #1c1f33;
-  --app-skeleton-sheen: rgba(255, 255, 255, 0.06);
+  /* А вот индиговый ТЕКСТ на светлом фоне стал нечитаемым — поднят. */
+  --app-indigo-deep: #a3adff;
+  --app-success-bg: rgba(124, 245, 192, 0.16);
+  --app-success-fg: #86f2c1;
+  --app-warn-bg: rgba(255, 144, 130, 0.18);
+  --app-warn-fg: #ffb0a4;
+  --app-hero: #201d36;
+  /* Подложка всплывашек: на светлом фоне 0.35 не отделяли окно. */
+  --app-scrim: rgba(12, 10, 24, 0.5);
+  --app-skeleton-base: #454165;
+  --app-skeleton-sheen: rgba(255, 255, 255, 0.09);
   color-scheme: dark;
   background-color: var(--app-bg);
   color: var(--app-text);
@@ -162,7 +172,7 @@ body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
 /* Body background follows the shell so sticky header blur doesn't show
    a stripe of the old color when scrolling on long pages. */
 body:has(.app-shell[data-app-theme="dark"]) {
-  background-color: #0b0d1a;
+  background-color: #2b2841;
 }
 
 /* ====================================================================
@@ -747,7 +757,7 @@ body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class
    но в dark theme добавим чуть больше света чтобы отличался от общего
    bg-а (иначе карточка сливается с фоном). */
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#0b1024\] {
-  background-color: #13172e;
+  background-color: #201d36;
 }
 
 /* Border strip под headers (sticky top-0 border-b bg-white) — должен

@@ -150,33 +150,33 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
       className="relative w-full shrink-0 overflow-hidden rounded-2xl border shadow-[0_12px_30px_-18px_rgba(11,16,36,0.35)] sm:w-[220px]"
       style={{
         borderColor: isDark ? "rgba(255,255,255,0.1)" : "#ececf4",
-        background: isDark ? "#0b0d1a" : "#fafbff",
+        background: isDark ? "#2b2841" : "#fafbff",
       }}
     >
       <div
         className="flex items-center gap-1.5 border-b px-3 py-2"
         style={{
           borderColor: isDark ? "rgba(255,255,255,0.08)" : "#ececf4",
-          background: isDark ? "#131526" : "#ffffff",
+          background: isDark ? "#322f4b" : "#ffffff",
         }}
       >
         <span
           className="size-2 rounded-full"
-          style={{ background: isDark ? "#2b2e45" : "#ff6059" }}
+          style={{ background: isDark ? "#565274" : "#ff6059" }}
         />
         <span
           className="size-2 rounded-full"
-          style={{ background: isDark ? "#2b2e45" : "#ffbe2f" }}
+          style={{ background: isDark ? "#565274" : "#ffbe2f" }}
         />
         <span
           className="size-2 rounded-full"
-          style={{ background: isDark ? "#2b2e45" : "#29d153" }}
+          style={{ background: isDark ? "#565274" : "#29d153" }}
         />
       </div>
       <div className="space-y-2 p-3">
         <div
           className="rounded-lg p-2"
-          style={{ background: isDark ? "#13172e" : "#0b1024" }}
+          style={{ background: isDark ? "#201d36" : "#0b1024" }}
         >
           <div
             className="mb-1.5 h-1.5 w-12 rounded-full"
@@ -193,7 +193,7 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
               key={i}
               className="h-8 rounded-md"
               style={{
-                background: isDark ? "#16182a" : "#ffffff",
+                background: isDark ? "#3a3757" : "#ffffff",
                 border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#ececf4"}`,
               }}
             />
@@ -204,7 +204,7 @@ function ThemePreview({ theme }: { theme: SiteTheme }) {
             key={i}
             className="h-4 rounded-md"
             style={{
-              background: isDark ? "#16182a" : "#ffffff",
+              background: isDark ? "#3a3757" : "#ffffff",
               border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#ececf4"}`,
             }}
           />
