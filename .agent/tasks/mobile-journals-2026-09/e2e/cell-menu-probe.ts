@@ -62,9 +62,10 @@ const NAV = { waitUntil: "domcontentloaded" as const, timeout: 180_000 };
     await page.evaluate(() => document.querySelectorAll("nextjs-portal").forEach((el) => el.remove()));
 
     out.result = await page.evaluate(() => {
-      const dialog = document.querySelector('[role="dialog"][aria-modal="true"]');
+      const dialog = document.querySelector('[data-vaul-drawer]')
+        ?? document.querySelector('[role="dialog"][aria-modal="true"]');
       const menu = document.querySelector('[role="menu"]');
-      const card = dialog?.querySelector<HTMLElement>(":scope > div:nth-child(2)");
+      const card = (dialog as HTMLElement | null) ?? null;
       const r = card?.getBoundingClientRect();
       return {
         sheet: Boolean(dialog),
