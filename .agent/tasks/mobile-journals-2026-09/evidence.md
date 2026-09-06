@@ -230,3 +230,68 @@ Dev `http://localhost:3020`, Chrome 390×780 (isMobile), тестовая орг
 В журналах не осталось меню действий, открывающихся на телефоне
 выпадающим списком. Осталось только меню профиля на компьютере — там
 выпадающий список и есть канон.
+
+## Круг 8 — док кнопок, тёмная тема в порталах, скелетоны, отклик (2026-09-06)
+
+Запрос: «Реализуй всё, и добавь скелетон современный как у ютюба или
+инстаграмма, по нажатию на кнопки можно добавить еще анимацию загрузки
+в самой кнопке».
+
+Коммиты: `dc929987` (основной), `4259ddb6` (SHA заметок), `17c1d987`
+(ширины листа и подпись к точкам).
+
+### Что сделано
+
+| Тема | Как | Файлы |
+|---|---|---|
+| Один док плавающих кнопок | `FabDockProvider` + `useFabAction`: виджеты регистрируют кнопку, док рисует ряд на компьютере и одну кнопку с листом снизу на телефоне | `layout/fab-dock.tsx`, `ai/sanpin-chat-widget.tsx`, `support/support-widget.tsx`, `journals/journal-guide-fab.tsx`, `(dashboard)/layout.tsx` |
+| Тёмная тема в порталах | 269 правил переехали с `.app-shell[data-app-theme="dark"]` на `body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"]))`; токены продублированы на `:root` и `body`; печать по-прежнему светлая | `app/app-theme.css` |
+| Скелетоны-шиммеры | `.skeleton-shimmer` (бегущий блик, токены `--app-skeleton-*`, уважает reduce-motion, не печатается) + `SkeletonText/Card/List/Table/PageHeader` | `app/globals.css`, `ui/skeleton.tsx` |
+| Заглушки маршрутов | Новые `loading.tsx` для дашборда, настроек, отчётов, команды, контрольной доски и прогресса | `(dashboard)/*/loading.tsx` |
+| Отклик на нажатие | `LinkPendingSpinner` / `LinkPendingOverlay` / `PendingLink` поверх `useLinkStatus`; крошки — через `useTransition`; у `Button` появился `loading` | `ui/link-pending.tsx`, `ui/button.tsx`, карточки дашборда, `settings/page.tsx`, `document-list-ui.tsx`, `ui/breadcrumbs.tsx` |
+| «Сегодня осталось» | Полоса под шапкой четырёх журналов, выходные при `skipWeekends` не считаются | `journals/today-progress-strip.tsx` + hygiene / health / climate / cold-equipment |
+| Предупреждение при закрытии | `confirmDescription` у `useDocumentCloseAction`, `closeWarning` у `StaffJournalToolbar` | `document-close-button.tsx`, `staff-journal-toolbar.tsx` |
+| Бумажная шапка в карточках | Скрыта на телефоне в карточном виде (приёмка, климат, фритюр, медкнижки, УФ-лампы); «Добавить строку» осталась | `DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS` в `journal-responsive.ts` |
+| Ширина листа | Колонка листа `w-max` — ширину задаёт самая широкая таблица | `journal-document-shell.tsx`, `cold-equipment-document-client.tsx` |
+| Цели нажатия и фокус | `min-h-[44px]` в строках листа и пунктах меню, кольцо фокуса `ring-[#5566f6]/15` | `ui/menu-styles.ts`, `ui/bottom-sheet.tsx`, `ui/responsive-menu.tsx` |
+| Мелочи | Компактный баннер регистрации, `[text-wrap:balance]` у заголовка страницы, подпись к точкам статуса в листе крошек | `complete-profile-nudge.tsx`, `ui/page-header.tsx`, `ui/breadcrumbs.tsx` |
+
+### Замеры
+
+- **Док, 390×780, документ гигиенического журнала**: одна кнопка 48×48 в
+  углу (было три), лист снизу со строками «AI помощник», «Поддержка» (с
+  счётчиком 4), «Инструкция». На 1280×900 — ряд 148×44 с теми же тремя
+  кнопками. Футер получил `pb-24` на телефоне, замер — 96px.
+  Скриншоты: `shots-round11/dock-sheet-mobile.png`, `desktop-dock.png`.
+- **Тёмная тема**: карточка листа профиля — `rgb(22,24,42)`, текст
+  `rgb(245,246,255)`, `insideAppShell: false`. Было `rgb(255,255,255)`.
+  Скриншот: `shots-round11/dark-portal-mobile.png`.
+- **Скелетон**: `.skeleton-shimmer` — подложка `rgb(28,31,51)` в тёмной,
+  анимация `wesetup-skeleton-sheen`, `overflow: hidden`.
+  `animate-pulse` в кабинете не осталось (0 узлов на девяти страницах).
+- **Девять страниц кабинета на 390×780 и 1280×900**: горизонтального
+  скролла нет, ошибок в консоли нет (кроме гидрации в шапке — она была
+  и раньше, приходит из `Sheet` бургер-меню).
+- **Ширина листа, все 35 документов**: расхождений шапки и таблицы не
+  осталось. Было три: фритюр (шапка 521 против таблицы 1159), холодильное
+  оборудование (1060 против 1129), климат (ложное срабатывание на
+  вложенной таблице норм).
+- **Фритюр на 390**: ячейки шапки больше не налезают друг на друга,
+  приложение «Методика определения качества» скроллится вместо наложения
+  «удовлетворительно» на «неудовлетворительно».
+  Скриншот: `shots-round11/fryer_oil-table.png`.
+- Гейты: `npx tsc --noEmit` — 0 ошибок, `npm test` — 570/570.
+
+### Скрипты
+
+`e2e/dock-dark-check.ts`, `e2e/desk-dock.ts`, `e2e/round11-smoke.ts`,
+`e2e/round11-shots.ts`, `e2e/round11-pages.ts`, `e2e/sheet-width-check.ts`,
+`e2e/one-doc-shot.ts`, `e2e/crumb-legend.ts`, `e2e/hydration-probe.ts`.
+
+### Осталось (сознательно не делал)
+
+- Мгновенная шапка документа с скелетоном только под таблицей: требует
+  переноса загрузки данных в Suspense-границу на странице документа —
+  это отдельная задача, `loading.tsx` документа уже повторяет раскладку.
+- Кнопка «Печать» показывается во всех журналах: проверить бумажный
+  вывод каждого из 40 журналов в этот круг не успел.
