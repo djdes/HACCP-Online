@@ -7,12 +7,6 @@ import { useRouter } from "next/navigation";
 import { Archive, ChevronDown, Copy, Plus, UserPlus, Users, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   DocumentCloseButton,
   useDocumentCloseAction,
@@ -927,8 +922,25 @@ export function StaffJournalAddButton({
 
   return (
     <div className={className ?? DOC_ADD_ROW_CLASS}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <ResponsiveMenu
+        title="Добавить"
+        align="start"
+        contentClassName="max-w-[calc(100vw-1rem)] rounded-2xl border-0 p-1.5 shadow-xl sm:min-w-[280px]"
+        items={[
+          {
+            key: "add-employee",
+            label: "Добавить сотрудника",
+            icon: <UserPlus className="size-4 text-[#3848c7]" />,
+            onSelect: () => setAddOpen(true),
+          },
+          {
+            key: "fill-from-staff",
+            label: "Заполнить из списка сотрудников",
+            icon: <Users className="size-4 text-[#3848c7]" />,
+            onSelect: () => setFillOpen(true),
+          },
+        ]}
+        trigger={
           <Button
             data-tour={TOUR.addStaff}
             className="h-11 w-fit gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
@@ -937,30 +949,8 @@ export function StaffJournalAddButton({
             Добавить
             <ChevronDown className="size-4" />
           </Button>
-        </DropdownMenuTrigger>
-        {/* Размеры пунктов — как в остальных журналах (text-[14px] / py-2).
-            Раньше здесь стояли text-[18px] + size-6 иконки в p-4 контейнере:
-            дропдаун выглядел «огромным» на фоне соседних меню. */}
-        <DropdownMenuContent
-          align="start"
-          className="max-w-[calc(100vw-1rem)] rounded-2xl border-0 p-1.5 shadow-xl sm:min-w-[280px]"
-        >
-          <DropdownMenuItem
-            className="rounded-xl px-3 py-2 text-[14px] text-[#3848c7]"
-            onSelect={() => setAddOpen(true)}
-          >
-            <UserPlus className="mr-2.5 size-4 text-[#3848c7]" />
-            Добавить сотрудника
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="rounded-xl px-3 py-2 text-[14px] text-[#3848c7]"
-            onSelect={() => setFillOpen(true)}
-          >
-            <Users className="mr-2.5 size-4 text-[#3848c7]" />
-            Заполнить из списка сотрудников
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        }
+      />
 
       <AddEmployeeDialog
         open={addOpen}

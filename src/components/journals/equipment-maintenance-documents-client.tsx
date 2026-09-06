@@ -14,12 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Select,
   SelectContent,
@@ -237,42 +232,66 @@ export function EquipmentMaintenanceDocumentsClient({
                 <div className={JOURNAL_CARD_LABEL_CLASS}>Дата документа</div>
                 <div className={JOURNAL_CARD_VALUE_CLASS}>{formatMaintenanceDate(cfg.documentDate)}</div>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <ResponsiveMenu
+                title="Действия"
+                items={[
+                  ...(doc.status === "active"
+                    ? [
+                        {
+                          key: "settings",
+                          label: "Настройки",
+                          icon: <Pencil className="size-4 text-[#6f7282]" />,
+                          onSelect: () => setEditingDoc(doc),
+                        },
+                        {
+                          key: "copy",
+                          label: "Сделать копию",
+                          icon: <Copy className="size-4 text-[#6f7282]" />,
+                          onSelect: () => handleCopy(doc),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: "print",
+                    label: "Печать",
+                    icon: <Printer className="size-4 text-[#6f7282]" />,
+                    onSelect: () => openDocumentPdf(doc.id),
+                  },
+                  ...(doc.status === "active"
+                    ? [
+                        {
+                          key: "archive",
+                          label: "Отправить в закрытые",
+                          icon: <Archive className="size-4 text-[#6f7282]" />,
+                          onSelect: () => handleStatusChange(doc.id, "closed", doc.title),
+                        },
+                      ]
+                    : [
+                        {
+                          key: "restore",
+                          label: "Отправить в активные",
+                          icon: <ArchiveRestore className="size-4 text-[#6f7282]" />,
+                          onSelect: () => handleStatusChange(doc.id, "active", doc.title),
+                        },
+                      ]),
+                  ...(doc.status === "active"
+                    ? [
+                        {
+                          key: "delete",
+                          label: "Удалить",
+                          icon: <Trash2 className="size-4 text-[#6f7282]" />,
+                          tone: "danger" as const,
+                          onSelect: () => handleDelete(doc.id, doc.title),
+                        },
+                      ]
+                    : []),
+                ]}
+                trigger={
                   <button className="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
                     <Ellipsis className="size-5" />
                   </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[280px] rounded-2xl border-0 p-3 shadow-xl">
-                  {doc.status === "active" && (
-                    <>
-                      <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => setEditingDoc(doc)}>
-                        <Pencil className="mr-3 size-5 text-[#6f7282]" /> Настройки
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleCopy(doc)}>
-                        <Copy className="mr-3 size-5 text-[#6f7282]" /> Сделать копию
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => openDocumentPdf(doc.id)}>
-                    <Printer className="mr-3 size-5 text-[#6f7282]" /> Печать
-                  </DropdownMenuItem>
-                  {doc.status === "active" ? (
-                    <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleStatusChange(doc.id, "closed", doc.title)}>
-                      <Archive className="mr-3 size-5 text-[#6f7282]" /> Отправить в закрытые
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px]" onSelect={() => handleStatusChange(doc.id, "active", doc.title)}>
-                      <ArchiveRestore className="mr-3 size-5 text-[#6f7282]" /> Отправить в активные
-                    </DropdownMenuItem>
-                  )}
-                  {doc.status === "active" && (
-                    <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#ff3b30] focus:text-[#ff3b30]" onSelect={() => handleDelete(doc.id, doc.title)}>
-                      <Trash2 className="mr-3 size-5 text-[#ff3b30]" /> Удалить
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                }
+              />
             </div>
           );
         })}

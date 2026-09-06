@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, List, ListPlus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
@@ -32,12 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   createPerishableRejectionRow,
   normalizePerishableRejectionConfig,
@@ -720,8 +715,39 @@ export function PerishableRejectionDocumentClient({
         {/* Action buttons */}
         <div className={DOC_ADD_ROW_CLASS}>
           {!readOnly && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <ResponsiveMenu
+              title="Добавить"
+              align="start"
+              items={[
+                {
+                  key: "add-product",
+                  label: "Добавить изделие",
+                  icon: <Plus className="size-4 text-[#6f7282]" />,
+                  onSelect: () => setAddModalOpen(true),
+                },
+                {
+                  key: "add-several",
+                  label: "Добавить несколько изделий",
+                  icon: <Plus className="size-4 text-[#6f7282]" />,
+                  onSelect: () => void addSeveralRows(),
+                },
+                {
+                  key: "add-from-list",
+                  label: "Добавить из списка",
+                  icon: <List className="size-4 text-[#6f7282]" />,
+                  onSelect: addRowsFromList,
+                },
+                {
+                  key: "add-bulk-list",
+                  label: "Добавить списком",
+                  icon: <ListPlus className="size-4 text-[#6f7282]" />,
+                  onSelect: () => {
+                    setBulkText("");
+                    setBulkOpen(true);
+                  },
+                },
+              ]}
+              trigger={
                 <Button
                   type="button"
                   className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors hover:bg-[#4a5bf0]"
@@ -730,37 +756,8 @@ export function PerishableRejectionDocumentClient({
                   Добавить
                   <ChevronDown className="size-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[280px] rounded-[24px] border-0 p-3 shadow-xl">
-                <DropdownMenuItem
-                  className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
-                  onSelect={() => setAddModalOpen(true)}
-                >
-                  Добавить изделие
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
-                  onSelect={() => void addSeveralRows()}
-                >
-                  Добавить несколько изделий
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
-                  onSelect={addRowsFromList}
-                >
-                  Добавить из списка
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="h-9 rounded-xl px-3.5 text-[13.5px]"
-                  onSelect={() => {
-                    setBulkText("");
-                    setBulkOpen(true);
-                  }}
-                >
-                  Добавить списком
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+            />
           )}
           {/* P1: прямая кнопка добавления рядом со сплитом — ровно как
               «+ Добавить изделие» в finished_product. Раньше единственный

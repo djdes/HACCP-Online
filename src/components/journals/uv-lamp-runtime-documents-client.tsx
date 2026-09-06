@@ -17,12 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Select,
   SelectContent,
@@ -381,61 +376,65 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
               </Link>
 
               <div className="flex items-center justify-center text-[#5566f6]">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия"
+                  items={[
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "settings",
+                            label: "Настройки",
+                            icon: <Pencil className="size-4 text-[#6f7282]" />,
+                            onSelect: () =>
+                              setEditing({
+                                id: document.id,
+                                title: resolvedTitle,
+                                dateFrom: document.dateFrom,
+                                responsibleTitle: document.responsibleTitle || "",
+                                responsibleUserId:
+                                  document.responsibleUserId || props.users[0]?.id || "",
+                                config,
+                              }),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () => openPdf({ documentId: document.id }),
+                    },
+                    ...(document.status === "closed"
+                      ? [
+                          {
+                            key: "restore",
+                            label: "Отправить в активные",
+                            icon: <RotateCcw className="size-4 text-[#6f7282]" />,
+                            onSelect: () => handleReactivate(document.id, resolvedTitle),
+                          },
+                        ]
+                      : []),
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "delete",
+                            label: "Удалить",
+                            icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+                            tone: "danger" as const,
+                            onSelect: () => handleDelete(document, resolvedTitle),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-6" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[260px] rounded-[20px] border border-[#eceef5] p-3 shadow-lg">
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() =>
-                          setEditing({
-                            id: document.id,
-                            title: resolvedTitle,
-                            dateFrom: document.dateFrom,
-                            responsibleTitle: document.responsibleTitle || "",
-                            responsibleUserId: document.responsibleUserId || props.users[0]?.id || "",
-                            config,
-                          })
-                        }
-                      >
-                        <Pencil className="mr-2 size-4 text-[#6f7282]" />
-                        Настройки
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() => openPdf({ documentId: document.id })}
-                    >
-                      <Printer className="mr-2 size-4 text-[#6f7282]" />
-                      Печать
-                    </DropdownMenuItem>
-                    {document.status === "closed" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => handleReactivate(document.id, resolvedTitle)}
-                      >
-                        <RotateCcw className="mr-2 size-4 text-[#6f7282]" />
-                        Отправить в активные
-                      </DropdownMenuItem>
-                    )}
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => handleDelete(document, resolvedTitle)}
-                      >
-                        <Trash2 className="mr-2 size-4 text-[#ff3b30]" />
-                        Удалить
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

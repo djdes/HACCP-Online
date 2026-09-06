@@ -25,12 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Select,
   SelectContent,
@@ -558,72 +553,74 @@ export function AuditPlanDocumentsClient({
                 </div>
               </Link>
               <div className="flex justify-start sm:justify-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия с документом"
+                  contentClassName="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
+                  items={[
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "settings",
+                            label: "Настройки",
+                            icon: <Pencil className="size-4 text-[#6f7282]" />,
+                            onSelect: () => setSettingsTarget(document),
+                          },
+                        ]
+                      : []),
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "copy",
+                            label: "Сделать копию",
+                            icon: <Copy className="size-4 text-[#6f7282]" />,
+                            onSelect: () => copyDocument(document),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () =>
+                        void openDocumentPdf(document.id).catch((error) =>
+                          toast.error(
+                            error instanceof Error ? error.message : "Не удалось открыть PDF"
+                          )
+                        ),
+                    },
+                    {
+                      key: document.status === "active" ? "archive" : "unarchive",
+                      label:
+                        document.status === "active"
+                          ? "Отправить в закрытые"
+                          : "Вернуть в активные",
+                      icon: <BookOpenText className="size-4 text-[#6f7282]" />,
+                      onSelect: () =>
+                        document.status === "active"
+                          ? setArchiveTarget(document)
+                          : moveToStatus(document.id, "active"),
+                    },
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "delete",
+                            label: "Удалить",
+                            icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+                            onSelect: () => setDeleteTarget(document),
+                            tone: "danger" as const,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-8" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
-                  >
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setSettingsTarget(document)}
-                      >
-                        <Pencil className="mr-3 size-6 text-[#6f7282]" /> Настройки
-                      </DropdownMenuItem>
-                    )}
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => copyDocument(document)}
-                      >
-                        <Copy className="mr-3 size-6 text-[#6f7282]" /> Сделать копию
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() =>
-                        void openDocumentPdf(document.id).catch((error) =>
-                          toast.error(
-                            error instanceof Error ? error.message : "Не удалось открыть PDF"
-                          )
-                        )
-                      }
-                    >
-                      <Printer className="mr-3 size-6 text-[#6f7282]" /> Печать
-                    </DropdownMenuItem>
-                    {document.status === "active" ? (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setArchiveTarget(document)}
-                      >
-                        <BookOpenText className="mr-3 size-6 text-[#6f7282]" /> Отправить в закрытые
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => moveToStatus(document.id, "active")}
-                      >
-                        <BookOpenText className="mr-3 size-6 text-[#6f7282]" /> Вернуть в активные
-                      </DropdownMenuItem>
-                    )}
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => setDeleteTarget(document)}
-                      >
-                        <Trash2 className="mr-3 size-6 text-[#ff3b30]" /> Удалить
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

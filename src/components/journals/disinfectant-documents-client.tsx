@@ -23,12 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Select,
   SelectContent,
@@ -410,69 +405,63 @@ export function DisinfectantDocumentsClient({
                       : ""}
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия"
+                  items={[
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "settings",
+                            label: "Настройки",
+                            icon: <Pencil className="size-4 text-[#6f7282]" />,
+                            onSelect: () => setSettingsTarget(document),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () => openPdf({ documentId: document.id }),
+                    },
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "archive",
+                            label: "Отправить в закрытые",
+                            icon: <BookOpenText className="size-4 text-[#6f7282]" />,
+                            onSelect: () => void handleArchive(document),
+                          },
+                          {
+                            key: "delete",
+                            label: "Удалить",
+                            icon: <Trash2 className="size-4 text-[#6f7282]" />,
+                            tone: "danger" as const,
+                            onSelect: () => void handleDelete(document),
+                          },
+                        ]
+                      : []),
+                    ...(document.status === "closed"
+                      ? [
+                          {
+                            key: "restore",
+                            label: "Отправить в активные",
+                            icon: <BookOpenText className="size-4 text-[#6f7282]" />,
+                            onSelect: () =>
+                              void setStatus("active", { documentId: document.id }),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-8" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
-                  >
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setSettingsTarget(document)}
-                      >
-                        <Pencil className="mr-3 size-6 text-[#6f7282]" />{" "}
-                        Настройки
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() => openPdf({ documentId: document.id })}
-                    >
-                      <Printer className="mr-3 size-6 text-[#6f7282]" /> Печать
-                    </DropdownMenuItem>
-                    {document.status === "active" && (
-                      <>
-                        <DropdownMenuItem
-                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                          onSelect={() => {
-                            void handleArchive(document);
-                          }}
-                        >
-                          <BookOpenText className="mr-3 size-6 text-[#6f7282]" />{" "}
-                          Отправить в закрытые
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                          onSelect={() => {
-                            void handleDelete(document);
-                          }}
-                        >
-                          <Trash2 className="mr-3 size-6 text-[#ff3b30]" />{" "}
-                          Удалить
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {document.status === "closed" && (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => {
-                          void setStatus("active", { documentId: document.id });
-                        }}
-                      >
-                        <BookOpenText className="mr-3 size-6 text-[#6f7282]" />{" "}
-                        Отправить в активные
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

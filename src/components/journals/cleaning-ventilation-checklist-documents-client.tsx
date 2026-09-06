@@ -20,12 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   CLEANING_VENTILATION_CHECKLIST_TITLE,
   getDefaultCleaningVentilationConfig,
@@ -441,50 +436,47 @@ export function CleaningVentilationChecklistDocumentsClient({
               </Link>
 
               <div className="flex items-center justify-center text-[#5566f6]">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия с документом"
+                  items={[
+                    {
+                      key: "settings",
+                      label: "Настройки",
+                      icon: <Settings2 className="size-4 text-[#6f7282]" />,
+                      onSelect: () => setSettingsTarget(document),
+                    },
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () => openPdf({ documentId: document.id }),
+                    },
+                    {
+                      key: "toggle-status",
+                      label: document.status === "active" ? "Закрыть" : "Вернуть в активные",
+                      icon: <CalendarDays className="size-4 text-[#6f7282]" />,
+                      onSelect: () =>
+                        setStatus(document.status === "active" ? "closed" : "active", {
+                          documentId: document.id,
+                        }),
+                    },
+                    {
+                      key: "delete",
+                      label: "Удалить",
+                      icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+                      onSelect: () => handleDelete(document),
+                      tone: "danger" as const,
+                    },
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-8" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
-                    <DropdownMenuItem
-                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() => setSettingsTarget(document)}
-                    >
-                      <Settings2 className="mr-3 size-5 text-[#6f7282]" />
-                      Настройки
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() => openPdf({ documentId: document.id })}
-                    >
-                      <Printer className="mr-3 size-5 text-[#6f7282]" />
-                      Печать
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() =>
-                        setStatus(document.status === "active" ? "closed" : "active", {
-                          documentId: document.id,
-                        })
-                      }
-                    >
-                      <CalendarDays className="mr-3 size-5 text-[#6f7282]" />
-                      {document.status === "active" ? "Закрыть" : "Вернуть в активные"}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                      onSelect={() => handleDelete(document)}
-                    >
-                      <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
-                      Удалить
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

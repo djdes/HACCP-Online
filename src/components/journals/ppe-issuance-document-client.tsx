@@ -11,6 +11,7 @@ import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/jou
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useRouter } from "next/navigation";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -21,12 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -825,32 +820,29 @@ export function PpeIssuanceDocumentClient(props: Props) {
         sheetMinWidth={1450}
         toolbar={
           !isClosed ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  className={DOC_PRIMARY_BUTTON_CLASS}
-                >
+            <ResponsiveMenu
+              title="Добавить"
+              align="start"
+              contentClassName="w-[220px] rounded-2xl border-0 p-2 shadow-xl"
+              items={[
+                {
+                  key: "add-row",
+                  label: "Добавить",
+                  icon: <Plus className="size-4 text-[#5566f6]" />,
+                  onSelect: () => {
+                    setEditingRow(null);
+                    setRowDialogOpen(true);
+                  },
+                },
+              ]}
+              trigger={
+                <Button type="button" className={DOC_PRIMARY_BUTTON_CLASS}>
                   <Plus className="mr-2 size-5" />
                   Добавить
                   <ChevronDown className="ml-2 size-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-[220px] rounded-2xl border-0 p-2 shadow-xl"
-              >
-                <DropdownMenuItem
-                  className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]"
-                  onSelect={() => {
-                    setEditingRow(null);
-                    setRowDialogOpen(true);
-                  }}
-                >
-                  <Plus className="mr-2 size-4" /> Добавить
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+            />
           ) : null
         }
       >

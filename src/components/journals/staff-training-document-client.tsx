@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { Button } from "@/components/ui/button";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
@@ -22,12 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -423,26 +418,31 @@ export function StaffTrainingDocumentClient({
         toolbar={
           !isClosed ? (
             <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    className="bg-[#5566f6] hover:bg-[#4d58f5]"
-                  >
-                    <Plus className="size-4" />
-                    Добавить
-                    <ChevronDown className="ml-1 size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[280px] rounded-2xl border-0 p-2">
-                  <DropdownMenuItem onSelect={() => setAddModalOpen(true)}>
-                    Добавить сотрудника
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setPlanModalOpen(true)}>
-                    Заполнить из плана обучения
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ResponsiveMenu
+              title="Добавить"
+              contentClassName="w-[280px] rounded-2xl border-0 p-2 shadow-xl"
+              items={[
+                {
+                  key: "add-employee",
+                  label: "Добавить сотрудника",
+                  icon: <Plus className="size-4 text-[#6f7282]" />,
+                  onSelect: () => setAddModalOpen(true),
+                },
+                {
+                  key: "fill-from-plan",
+                  label: "Заполнить из плана обучения",
+                  icon: <ClipboardList className="size-4 text-[#6f7282]" />,
+                  onSelect: () => setPlanModalOpen(true),
+                },
+              ]}
+              trigger={
+                <Button type="button" className="bg-[#5566f6] hover:bg-[#4d58f5]">
+                  <Plus className="size-4" />
+                  Добавить
+                  <ChevronDown className="ml-1 size-4" />
+                </Button>
+              }
+            />
 
               {selectedRows.length > 0 && (
                 <>

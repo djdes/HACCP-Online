@@ -11,12 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { DOC_TITLE_ROW_CLASS } from "@/components/journals/journal-responsive";
 import type { DocumentBarUndo } from "@/components/journals/undo-redo-buttons";
 import { usePublishUndoToHeader } from "@/components/journals/journal-undo-slot";
@@ -186,8 +181,43 @@ export function DocumentActionsBar({
             </Button>
           ) : null}
           {hasMenu ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            // На телефоне это лист снизу, на компьютере — выпадающий
+            // список. Пункты одни и те же (см. `responsive-menu.tsx`).
+            <ResponsiveMenu
+              title="Действия с журналом"
+              items={[
+                ...(hasPrint
+                  ? [
+                      {
+                        key: "print-pdf",
+                        label: "Печать",
+                        icon: <Printer className="size-4 text-[#6f7282]" />,
+                        onSelect: () =>
+                          window.open(
+                            `/api/journal-documents/${documentId}/pdf`,
+                            "_blank",
+                            "noopener,noreferrer"
+                          ),
+                      },
+                      {
+                        key: "print-agent",
+                        label: "На принтер заведения",
+                        icon: <PrinterCheck className="size-4 text-[#5566f6]" />,
+                        onSelect: () => void sendToAgent(documentId as string),
+                      },
+                    ]
+                  : []),
+                ...items.map((item) => ({
+                  key: item.key,
+                  label: item.label,
+                  icon: item.icon,
+                  onSelect: item.onSelect,
+                  disabled: item.disabled,
+                  title: item.title,
+                  tone: item.tone,
+                })),
+              ]}
+              trigger={
                 <button
                   type="button"
                   aria-label="Ещё действия"
@@ -197,57 +227,8 @@ export function DocumentActionsBar({
                 >
                   <MoreHorizontal className="size-4" />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-[280px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl"
-              >
-                {hasPrint ? (
-                  <DropdownMenuItem
-                    className="h-9 rounded-xl px-3 text-[13.5px]"
-                    onSelect={() =>
-                      window.open(
-                        `/api/journal-documents/${documentId}/pdf`,
-                        "_blank",
-                        "noopener,noreferrer"
-                      )
-                    }
-                  >
-                    <Printer className="mr-3 size-4 text-[#6f7282]" />
-                    Печать
-                  </DropdownMenuItem>
-                ) : null}
-                {hasPrint ? (
-                  <DropdownMenuItem
-                    className="h-9 rounded-xl px-3 text-[13.5px]"
-                    onSelect={() => sendToAgent(documentId as string)}
-                  >
-                    <PrinterCheck className="mr-3 size-4 text-[#5566f6]" />
-                    На принтер заведения
-                  </DropdownMenuItem>
-                ) : null}
-                {items.map((item) => (
-                  <DropdownMenuItem
-                    key={item.key}
-                    disabled={item.disabled}
-                    title={item.title}
-                    className={cn(
-                      "h-9 rounded-xl px-3 text-[13.5px]",
-                      item.tone === "danger" &&
-                        "text-[#a13a32] focus:bg-[#fff4f2] focus:text-[#a13a32]"
-                    )}
-                    onSelect={item.onSelect}
-                  >
-                    {item.icon ? (
-                      <span className="mr-3 flex size-4 items-center justify-center text-[#6f7282]">
-                        {item.icon}
-                      </span>
-                    ) : null}
-                    {item.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+            />
           ) : null}
         </div>
       </div>

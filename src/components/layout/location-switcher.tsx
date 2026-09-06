@@ -1,20 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Loader2, MapPin, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { BuildingOption } from "@/lib/building-scope";
 import { cn } from "@/lib/utils";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 
 /**
  * Точки (2026-09-05): переключатель точки в шапке сайта.
@@ -68,86 +60,68 @@ export function LocationSwitcherPill({
   /** Ссылка «Настроить точки» внизу меню — только тем, кто может их менять. */
   manageHref?: string | null;
 }) {
+  const router = useRouter();
   const { switchTo, busyId } = useSwitchBuilding();
   const active = buildings.find((building) => building.id === activeBuildingId) ?? buildings[0];
   if (!active || buildings.length < 2) return null;
 
+  const trigger = (
+    <button
+      type="button"
+      title={active.address ? `${active.name}, ${active.address}` : active.name}
+      aria-label={`Точка: ${active.name}. Сменить точку`}
+      data-tour="location-switcher"
+      className={cn(
+        "flex min-w-0 items-center rounded-lg bg-[#5566f6]/[0.04] font-semibold text-[#5566f6] transition-colors duration-200 hover:bg-[#5566f6]/[0.09]",
+        compact
+          ? "h-8 max-w-full gap-1.5 px-2.5 text-[13px]"
+          : "ml-1 h-10 max-w-[220px] gap-2 px-3 text-[14px]",
+        className,
+      )}
+    >
+      <MapPin className={cn("shrink-0", compact ? "size-4" : "size-5")} />
+      <span className="min-w-0 flex-1 truncate text-left">{active.name}</span>
+      <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden />
+    </button>
+  );
+
+  // На телефоне выбор точки открывается листом снизу — тем же жестом,
+  // что меню профиля и действия документа.
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          title={active.address ? `${active.name}, ${active.address}` : active.name}
-          aria-label={`Точка: ${active.name}. Сменить точку`}
-          data-tour="location-switcher"
-          className={cn(
-            "flex min-w-0 items-center rounded-lg bg-[#5566f6]/[0.04] font-semibold text-[#5566f6] transition-colors duration-200 hover:bg-[#5566f6]/[0.09] data-[state=open]:bg-[#5566f6]/[0.09]",
-            // Компактный вариант живёт в отдельной строке под мобильной
-            // шапкой: ниже, с полным названием точки.
-            compact
-              ? "h-8 max-w-full gap-1.5 px-2.5 text-[13px]"
-              : "ml-1 h-10 max-w-[220px] gap-2 px-3 text-[14px]",
-            className,
-          )}
-        >
-          <MapPin className={cn("shrink-0", compact ? "size-4" : "size-5")} />
-          <span className="min-w-0 flex-1 truncate text-left">{active.name}</span>
-          <ChevronDown
-            className="size-4 shrink-0 opacity-60 transition-transform duration-150 data-[state=open]:rotate-180"
-            aria-hidden
-          />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={6} className="w-[280px]">
-        <DropdownMenuLabel>Точка</DropdownMenuLabel>
-        {buildings.map((building) => {
-          const isActive = building.id === active.id;
-          return (
-            <DropdownMenuItem
-              key={building.id}
-              onSelect={(event) => {
-                event.preventDefault();
-                void switchTo(building, active.id);
-              }}
-              className={cn("items-start gap-2.5", isActive && "bg-[#f5f6ff]")}
-            >
-              <MapPin
-                className={cn(
-                  "mt-0.5 size-4 shrink-0",
-                  isActive ? "text-[#5566f6]" : "text-[#9b9fb3]",
-                )}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium text-[#0b1024]">
-                  {building.name}
-                </span>
-                {building.address ? (
-                  <span className="block truncate text-[12px] text-[#6f7282]">
-                    {building.address}
-                  </span>
-                ) : null}
-              </span>
-              {busyId === building.id ? (
-                <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-[#5566f6]" />
-              ) : isActive ? (
-                <Check className="mt-0.5 size-4 shrink-0 text-[#5566f6]" />
-              ) : null}
-            </DropdownMenuItem>
-          );
-        })}
-        {manageHref ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={manageHref} className="gap-2.5 text-[#3848c7]">
-                <Settings2 className="size-4 shrink-0" />
-                Настроить точки
-              </Link>
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ResponsiveMenu
+      title="Точка"
+      align="start"
+      contentClassName="w-[280px] rounded-2xl border-0 p-2 shadow-xl"
+      trigger={trigger}
+      items={[
+        ...buildings.map((building) => ({
+          key: building.id,
+          label: building.address
+            ? `${building.name} · ${building.address}`
+            : building.name,
+          icon: (
+            <MapPin
+              className={cn(
+                "size-4",
+                building.id === active.id ? "text-[#5566f6]" : "text-[#9b9fb3]",
+              )}
+            />
+          ),
+          disabled: busyId !== null,
+          onSelect: () => void switchTo(building, active.id),
+        })),
+        ...(manageHref
+          ? [
+              {
+                key: "manage",
+                label: "Настроить точки",
+                icon: <Settings2 className="size-4 text-[#3848c7]" />,
+                onSelect: () => router.push(manageHref),
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 }
 

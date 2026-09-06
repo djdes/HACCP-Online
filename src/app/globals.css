@@ -593,7 +593,15 @@ html, body {
     }
   }
 
-  [role="dialog"][data-state="open"]:not([data-slot="dialog-content"]),
+  /* Лист снизу (Sheet side="bottom") — во всю ширину: правило ниже
+     режет ширину у обычных диалогов, а лист должен упираться в края. */
+  [data-slot="sheet-content"] {
+    max-width: 100vw !important;
+  }
+
+  [role="dialog"][data-state="open"]:not([data-slot="dialog-content"]):not(
+      [data-slot="sheet-content"]
+    ),
   .DialogContent,
   [class*="DialogContent"] {
     max-width: calc(100vw - 1.5rem) !important;

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import {
   Archive,
   ChevronDown,
+  ListPlus,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -32,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   FINISHED_PRODUCT_QUALITY_GUIDE_TITLE,
   createFinishedProductRow,
@@ -565,16 +566,36 @@ export function FinishedProductDocumentClient({
         <h2 className={`${DOC_CAPS_TITLE_CLASS} text-center text-[13px] font-bold uppercase leading-tight sm:text-[14px]`}>Журнал бракеража готовой пищевой продукции</h2>
 
         {!readOnly && <div className={DOC_ADD_ROW_CLASS}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <ResponsiveMenu
+            title="Добавить"
+            align="start"
+            items={[
+              {
+                key: "add-product",
+                label: "Добавить изделие",
+                icon: <Plus className="size-4 text-[#6f7282]" />,
+                onSelect: () => setAddModalOpen(true),
+              },
+              {
+                key: "add-several",
+                label: "Добавить несколько изделий",
+                icon: <Plus className="size-4 text-[#6f7282]" />,
+                onSelect: () => void addSeveralRows(),
+              },
+              {
+                key: "add-bulk-list",
+                label: "Добавить списком",
+                icon: <ListPlus className="size-4 text-[#6f7282]" />,
+                onSelect: () => {
+                  setBulkText("");
+                  setBulkOpen(true);
+                },
+              },
+            ]}
+            trigger={
               <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]"><Plus className="size-5" strokeWidth={2.5} />Добавить<ChevronDown className="size-4" /></Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[300px] rounded-[24px] border-0 p-3 shadow-xl">
-              <DropdownMenuItem className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => setAddModalOpen(true)}>Добавить изделие</DropdownMenuItem>
-              <DropdownMenuItem className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => void addSeveralRows()}>Добавить несколько изделий</DropdownMenuItem>
-              <DropdownMenuItem className="h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => { setBulkText(""); setBulkOpen(true); }}>Добавить списком</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            }
+          />
           {/* Тот же обработчик, что у пункта «Добавить изделие» в дропдауне —
               на эталоне это отдельная кнопка рядом. */}
           <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => setAddModalOpen(true)}><Plus className="size-5" strokeWidth={2.5} />Добавить изделие</Button>

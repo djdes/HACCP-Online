@@ -21,12 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { cn } from "@/lib/utils";
 import { FloatingInputField } from "@/components/journals/journal-dialog-field";
 
@@ -266,8 +261,55 @@ export function MedBookDocumentsClient({
                   </div>
                 </Link>
                 <div className="justify-self-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                  <ResponsiveMenu
+                    title="Действия"
+                    items={[
+                      {
+                        key: "open",
+                        label: "Открыть",
+                        icon: <ExternalLink className="size-4 text-[#6f7282]" />,
+                        onSelect: () => router.push(href),
+                      },
+                      {
+                        key: "settings",
+                        label: "Настройки",
+                        icon: <Settings2 className="size-4 text-[#6f7282]" />,
+                        onSelect: () => setSettingsDoc(document),
+                      },
+                      {
+                        key: "print",
+                        label: "Печать",
+                        icon: <Printer className="size-4 text-[#6f7282]" />,
+                        onSelect: () => openPdf({ documentId: document.id }),
+                      },
+                      document.status === "active"
+                        ? {
+                            key: "close",
+                            label: "Закрыть",
+                            icon: <Archive className="size-4 text-[#6f7282]" />,
+                            onSelect: () => {
+                              void setStatus("closed", { documentId: document.id });
+                            },
+                          }
+                        : {
+                            key: "restore",
+                            label: "Вернуть в активные",
+                            icon: <RotateCcw className="size-4 text-[#6f7282]" />,
+                            onSelect: () => {
+                              void setStatus("active", { documentId: document.id });
+                            },
+                          },
+                      {
+                        key: "delete",
+                        label: "Удалить",
+                        icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+                        tone: "danger" as const,
+                        onSelect: () => {
+                          void handleDelete(document);
+                        },
+                      },
+                    ]}
+                    trigger={
                       <button
                         type="button"
                         disabled={isBusy}
@@ -275,64 +317,8 @@ export function MedBookDocumentsClient({
                       >
                         <Ellipsis className="size-6" />
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
-                    >
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => router.push(href)}
-                      >
-                        <ExternalLink className="mr-3 size-5 text-[#6f7282]" />
-                        Открыть
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setSettingsDoc(document)}
-                      >
-                        <Settings2 className="mr-3 size-5 text-[#6f7282]" />
-                        Настройки
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => openPdf({ documentId: document.id })}
-                      >
-                        <Printer className="mr-3 size-5 text-[#6f7282]" />
-                        Печать
-                      </DropdownMenuItem>
-                      {document.status === "active" ? (
-                        <DropdownMenuItem
-                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                          onSelect={() => {
-                            void setStatus("closed", { documentId: document.id });
-                          }}
-                        >
-                          <Archive className="mr-3 size-5 text-[#6f7282]" />
-                          Закрыть
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem
-                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                          onSelect={() => {
-                            void setStatus("active", { documentId: document.id });
-                          }}
-                        >
-                          <RotateCcw className="mr-3 size-5 text-[#6f7282]" />
-                          Вернуть в активные
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => {
-                          void handleDelete(document);
-                        }}
-                      >
-                        <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
-                        Удалить
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    }
+                  />
                 </div>
               </div>
             );

@@ -24,12 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Select,
   SelectContent,
@@ -551,47 +546,47 @@ export function PpeIssuanceDocumentsClient({
                 </div>
               </Link>
               <div className="flex justify-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия"
+                  items={[
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "settings",
+                            label: "Настройки",
+                            icon: <Pencil className="size-4 text-[#6f7282]" />,
+                            onSelect: () => setSettingsTarget(document),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () =>
+                        window.open(`/api/journal-documents/${document.id}/pdf`, "_blank"),
+                    },
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "delete",
+                            label: "Удалить",
+                            icon: <Trash2 className="size-4 text-[#6f7282]" />,
+                            tone: "danger" as const,
+                            onSelect: () => setDeleteTarget(document),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-8" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
-                  >
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setSettingsTarget(document)}
-                      >
-                        <Pencil className="mr-3 size-6 text-[#6f7282]" /> Настройки
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className={`h-9 rounded-xl px-3.5 text-[13.5px] ${
-                        document.status === "active" ? "mb-2" : ""
-                      }`}
-                      onSelect={() =>
-                        window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
-                      }
-                    >
-                      <Printer className="mr-3 size-6 text-[#6f7282]" /> Печать
-                    </DropdownMenuItem>
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => setDeleteTarget(document)}
-                      >
-                        <Trash2 className="mr-3 size-6 text-[#ff3b30]" /> Удалить
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

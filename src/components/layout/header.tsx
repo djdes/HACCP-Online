@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProfileSheet } from "@/components/layout/profile-sheet";
 import { useIsNarrowViewport } from "@/components/ui/spotlight-tour";
+import { useSwipeToDismiss } from "@/components/ui/use-swipe-to-dismiss";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -195,6 +196,9 @@ export function Header({
     !fullAccess &&
     (userRole === "head_chef" || userRole === "technologist");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Меню организации закрывается свайпом вниз — тем же жестом, что и
+  // остальные листы.
+  const navSwipe = useSwipeToDismiss(() => setMobileNavOpen(false));
   // Меню профиля управляемое: модалка создания организации/демо живёт
   // вне Radix-меню (внутри её обрезает transform), а меню при этом
   // нужно закрыть — иначе оно останется висеть под оверлеем.
@@ -515,15 +519,23 @@ export function Header({
             eliminates the split-screen artefact. Width is clamped so it
             doesn't cover everything on tablets.
           */}
+          {/* Лист снизу — тот же жест, что у меню профиля и окон:
+              на телефоне «шторка сбоку» ощущалась чужеродной, а
+              большим пальцем до неё дальше тянуться. */}
           <SheetContent
-            side="right"
-            className="flex w-[86%] max-w-[360px] flex-col gap-0 border-l border-[#ececf4] bg-white p-0"
+            side="bottom"
+            {...navSwipe.dragProps}
+            style={navSwipe.dragStyle}
+            className="flex max-h-[88vh] w-full touch-pan-y flex-col gap-0 rounded-t-3xl border-t border-[#ececf4] bg-white p-0 supports-[height:100dvh]:max-h-[88dvh]"
           >
             <SheetTitle className="sr-only">Навигация</SheetTitle>
-            <div className="flex items-center justify-between border-b border-[#ececf4] px-5 py-4">
-              <span className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#0b1024]">
-                Меню
-              </span>
+            <div className="shrink-0 px-5 pb-3 pt-3">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#dcdfed]" />
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#0b1024]">
+                  Меню
+                </span>
+              </div>
             </div>
             {/*
               Закрываем шторку по клику на любой ссылке. Один обработчик на

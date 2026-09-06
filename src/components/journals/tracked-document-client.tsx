@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Wand2 } from "lucide-react";
 import {
   JournalDocumentHeader,
 } from "@/components/journals/journal-document-header";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,12 +24,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { RecordCardsView, type RecordCardItem } from "@/components/journals/record-cards-view";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -408,8 +403,31 @@ function TrackedDocumentClientImpl({
         toolbar={
           status === "active" ? (
             <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <ResponsiveMenu
+                title="Добавить"
+                align="start"
+                contentClassName="min-w-[260px] rounded-2xl border-0 p-2 shadow-xl"
+                items={[
+                  {
+                    key: "add-row",
+                    label: "Добавить строку",
+                    icon: <Plus className="size-4 text-[#6f7282]" />,
+                    onSelect: () => setAddRowOpen(true),
+                  },
+                  {
+                    key: "fill-today",
+                    label: "Заполнить за сегодня",
+                    icon: <Wand2 className="size-4 text-[#6f7282]" />,
+                    onSelect: () => {
+                      fillForToday().catch((error) =>
+                        toast.error(
+                          error instanceof Error ? error.message : "Ошибка автозаполнения"
+                        )
+                      );
+                    },
+                  },
+                ]}
+                trigger={
                   <Button
                     type="button"
                     disabled={isCreating || employees.length === 0}
@@ -419,31 +437,8 @@ function TrackedDocumentClientImpl({
                     Добавить
                     <ChevronDown className="size-4" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="min-w-[260px] rounded-2xl border-0 p-2 shadow-xl"
-                >
-                  <DropdownMenuItem
-                    className="h-12 rounded-xl px-3 text-[15px] text-[#3848c7]"
-                    onSelect={() => setAddRowOpen(true)}
-                  >
-                    Добавить строку
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="h-12 rounded-xl px-3 text-[15px] text-[#3848c7]"
-                    onSelect={() => {
-                      fillForToday().catch((error) =>
-                        toast.error(
-                          error instanceof Error ? error.message : "Ошибка автозаполнения"
-                        )
-                      );
-                    }}
-                  >
-                    Заполнить за сегодня
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                }
+              />
               {selectedRowIds.length > 0 ? (
                 <Button
                   type="button"

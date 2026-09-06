@@ -14,12 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   PEST_CONTROL_DOCUMENT_TITLE,
   PEST_CONTROL_PAGE_TITLE,
@@ -497,54 +492,51 @@ export function PestControlDocumentsClient(props: Props) {
               </Link>
 
               <div className="flex justify-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия"
+                  items={[
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "settings",
+                            label: "Настройки",
+                            icon: <Pencil className="size-4 text-[#6f7282]" />,
+                            onSelect: () =>
+                              setEditing({
+                                id: document.id,
+                                title: document.title || PEST_CONTROL_DOCUMENT_TITLE,
+                                dateFrom: document.dateFrom,
+                              }),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () => openDocumentPdf(document.id),
+                    },
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "delete",
+                            label: "Удалить",
+                            icon: <Trash2 className="size-4 text-[#6f7282]" />,
+                            tone: "danger" as const,
+                            onSelect: () => setDeleting(document),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-8 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-6" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-[220px] rounded-[14px] border border-[#eceef5] p-2 shadow-lg"
-                  >
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-lg px-3 text-[14px]"
-                        onSelect={() =>
-                          setEditing({
-                            id: document.id,
-                            title: document.title || PEST_CONTROL_DOCUMENT_TITLE,
-                            dateFrom: document.dateFrom,
-                          })
-                        }
-                      >
-                        <Pencil className="mr-2 size-4 text-[#6f7282]" />
-                        Настройки
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="h-9 rounded-lg px-3 text-[14px]"
-                      onSelect={() =>
-                        openDocumentPdf(document.id)
-                      }
-                    >
-                      <Printer className="mr-2 size-4 text-[#6f7282]" />
-                      Печать
-                    </DropdownMenuItem>
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-lg px-3 text-[14px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => setDeleting(document)}
-                      >
-                        <Trash2 className="mr-2 size-4 text-[#ff3b30]" />
-                        Удалить
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

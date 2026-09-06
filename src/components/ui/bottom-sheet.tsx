@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/use-body-scroll-lock";
+import { useSwipeToDismiss } from "@/components/ui/use-swipe-to-dismiss";
 import {
   MODAL_BODY_CLASS,
   MODAL_CARD_HEIGHT_CLASS,
@@ -16,7 +17,8 @@ import {
  * Зачем: выпадающее меню профиля на телефоне открывалось «облаком» у
  * правого края, второй уровень (подменю «Тема») уезжал за экран, а
  * пункты были мелкими. Лист снизу решает всё сразу: он во всю ширину,
- * пункты крупные, закрывается крестиком, свайпом по фону или Esc.
+ * пункты крупные, закрывается крестиком, свайпом вниз, тапом по фону
+ * или Esc.
  *
  * Портал в `document.body` обязателен: полотно дашборда обёрнуто в блок
  * с `translate: -50%`, и `position: fixed` внутри считался бы от него
@@ -52,6 +54,9 @@ export function BottomSheet({
     return () => unlockBodyScroll();
   }, [open]);
 
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const swipe = useSwipeToDismiss(onClose, { scrollRef: bodyRef });
+
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
@@ -68,11 +73,14 @@ export function BottomSheet({
       />
 
       <div
-        className={`relative flex w-full flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white shadow-[0_-20px_60px_-30px_rgba(11,16,36,0.5)] animate-in slide-in-from-bottom-6 duration-200 ${MODAL_CARD_HEIGHT_CLASS}`}
+        {...swipe.dragProps}
+        style={swipe.dragStyle}
+        className={`relative flex w-full touch-pan-y flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white shadow-[0_-20px_60px_-30px_rgba(11,16,36,0.5)] transition-transform duration-200 animate-in slide-in-from-bottom-6 ${MODAL_CARD_HEIGHT_CLASS}`}
       >
         <div className="shrink-0 px-4 pb-3 pt-3">
-          {/* Полоска-«ручка»: узнаваемый признак листа снизу. */}
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#e6e8f2]" />
+          {/* Ручка: признак листа снизу и место, за которое тянут,
+              чтобы закрыть свайпом. */}
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#dcdfed]" />
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="truncate text-[16px] font-semibold leading-tight text-[#0b1024]">
@@ -95,7 +103,10 @@ export function BottomSheet({
           </div>
         </div>
 
-        <div className={`${MODAL_BODY_CLASS} border-t border-[#f0f1f7] px-3 py-2`}>
+        <div
+          ref={bodyRef}
+          className={`${MODAL_BODY_CLASS} border-t border-[#f0f1f7] px-3 py-2`}
+        >
           {children}
         </div>
 

@@ -37,15 +37,11 @@ import {
   ChevronUp,
   Copy,
   Plus,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Dialog,
   DialogContent,
@@ -1094,8 +1090,27 @@ export function ColdEquipmentDocumentClient({
             <Plus className="size-5" strokeWidth={2.5} />
             Добавить
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <ResponsiveMenu
+            title="Добавить"
+            align="start"
+            items={[
+              {
+                key: "add-equipment",
+                label: "Добавить ХК",
+                icon: <Plus className="size-4 text-[#6f7282]" />,
+                onSelect: () => {
+                  setEditingEquipment(null);
+                  setEquipmentDialogOpen(true);
+                },
+              },
+              {
+                key: "add-responsible",
+                label: "Добавить ответственного",
+                icon: <UserPlus className="size-4 text-[#6f7282]" />,
+                onSelect: () => setSettingsOpen(true),
+              },
+            ]}
+            trigger={
               <Button
                 type="button"
                 aria-label="Что добавить"
@@ -1103,21 +1118,8 @@ export function ColdEquipmentDocumentClient({
               >
                 <ChevronDown className="size-5" strokeWidth={2.5} />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuItem
-                onSelect={() => {
-                  setEditingEquipment(null);
-                  setEquipmentDialogOpen(true);
-                }}
-              >
-                Добавить ХК
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setSettingsOpen(true)}>
-                Добавить ответственного
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            }
+          />
         </div>
       </div>
     ) : null;

@@ -43,12 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Select,
   SelectContent,
@@ -2388,27 +2383,44 @@ export function AcceptanceDocumentClient(props: Props) {
         {/* Toolbar */}
         {!isClosed && (
           <div className={DOC_ADD_ROW_CLASS}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <ResponsiveMenu
+              title="Добавить"
+              align="start"
+              items={[
+                {
+                  key: "add-row",
+                  label: "Добавить",
+                  icon: <Plus className="size-4 text-[#6f7282]" />,
+                  onSelect: () => {
+                    setEditingRow(null);
+                    setRowDialogOpen(true);
+                  },
+                },
+                {
+                  key: "add-bulk",
+                  label: "Добавить несколько строк",
+                  icon: <Plus className="size-4 text-[#6f7282]" />,
+                  onSelect: () => setBulkAddOpen(true),
+                },
+                {
+                  key: "add-file",
+                  label: "Добавить из файла",
+                  icon: <Upload className="size-4 text-[#6f7282]" />,
+                  onSelect: () => setRowsImportOpen(true),
+                },
+                {
+                  key: "add-iiko",
+                  label: "Добавить из Айко",
+                  icon: <span aria-hidden>📋</span>,
+                  onSelect: () => setIikoOpen(true),
+                },
+              ]}
+              trigger={
                 <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]">
                   <Plus className="size-5" strokeWidth={2.5} /> Добавить <ChevronDown className="size-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[300px] rounded-2xl border-0 p-2 shadow-xl">
-                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => { setEditingRow(null); setRowDialogOpen(true); }}>
-                  <Plus className="mr-2 size-4" /> Добавить
-                </DropdownMenuItem>
-                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => setBulkAddOpen(true)}>
-                  <Plus className="mr-2 size-4" /> Добавить несколько строк
-                </DropdownMenuItem>
-                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => setRowsImportOpen(true)}>
-                  <Upload className="mr-2 size-4" /> Добавить из файла
-                </DropdownMenuItem>
-                <DropdownMenuItem className="h-9 rounded-xl px-3 text-[13.5px] text-[#5566f6]" onSelect={() => setIikoOpen(true)}>
-                  <span className="mr-2">📋</span> Добавить из Айко
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+            />
 
             {/* Эталон держит рядом со сплит-кнопкой ОТДЕЛЬНУЮ обычную
                 «+ Добавить» — добавление одной строки в один клик,

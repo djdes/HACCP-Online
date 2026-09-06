@@ -25,12 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { getSanitaryDayChecklistTitle } from "@/lib/sanitary-day-checklist-document";
 
 import { toast } from "sonner";
@@ -421,70 +416,69 @@ export function SanitaryDayChecklistDocumentsClient({
               </Link>
 
               <div className="flex justify-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия с документом"
+                  items={[
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "settings",
+                            label: "Настройки",
+                            icon: <Pencil className="size-4 text-[#6f7282]" />,
+                            onSelect: () => setSettingsTarget(document),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "clone",
+                      label: "Сделать копию",
+                      icon: <Copy className="size-4 text-[#6f7282]" />,
+                      onSelect: () => cloneDocument(document.id),
+                    },
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () =>
+                        window.open(`/api/journal-documents/${document.id}/pdf`, "_blank"),
+                    },
+                    ...(document.status === "closed"
+                      ? [
+                          {
+                            key: "activate",
+                            label: "Отправить в активные",
+                            icon: <BookOpenText className="size-4 text-[#6f7282]" />,
+                            onSelect: () => moveToActive(document.id),
+                          },
+                        ]
+                      : []),
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "archive",
+                            label: "Отправить в закрытые",
+                            icon: <BookOpenText className="size-4 text-[#6f7282]" />,
+                            onSelect: () => setArchiveTarget(document),
+                          },
+                          {
+                            key: "delete",
+                            label: "Удалить",
+                            icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+                            onSelect: () => handleDelete(document.id, document.title),
+                            tone: "danger" as const,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-10 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-8" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setSettingsTarget(document)}
-                      >
-                        <Pencil className="mr-3 size-6 text-[#6f7282]" />
-                        Настройки
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() => cloneDocument(document.id)}
-                    >
-                      <Copy className="mr-3 size-6 text-[#6f7282]" />
-                      Сделать копию
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() =>
-                        window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
-                      }
-                    >
-                      <Printer className="mr-3 size-6 text-[#6f7282]" />
-                      Печать
-                    </DropdownMenuItem>
-                    {document.status === "closed" && (
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => moveToActive(document.id)}
-                      >
-                        <BookOpenText className="mr-3 size-6 text-[#6f7282]" />
-                        Отправить в активные
-                      </DropdownMenuItem>
-                    )}
-                    {document.status === "active" && (
-                      <>
-                        <DropdownMenuItem
-                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                          onSelect={() => setArchiveTarget(document)}
-                        >
-                          <BookOpenText className="mr-3 size-6 text-[#6f7282]" />
-                          Отправить в закрытые
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                          onSelect={() => handleDelete(document.id, document.title)}
-                        >
-                          <Trash2 className="mr-3 size-6 text-[#ff3b30]" />
-                          Удалить
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

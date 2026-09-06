@@ -1,0 +1,28 @@
+{
+  "profileOpened": true,
+  "swipe": {
+    "start": 398,
+    "down": true,
+    "transformMid": "none"
+  },
+  "closedBySwipe": true,
+  "navSheet": {
+    "top": 58,
+    "bottom": 780,
+    "width": 390,
+    "vw": 390,
+    "vh": 780,
+    "fromBottom": true,
+    "fullWidth": true
+  },
+  "docMenu": {
+    "fromBottom": true,
+    "fullWidth": true,
+    "rows": [
+      "Печать",
+      "На принтер заведения",
+      "Скопировать вчерашнее",
+      "Закончить журнал"
+    ]
+  }
+}

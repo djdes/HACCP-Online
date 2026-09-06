@@ -18,15 +18,8 @@ import { signOut } from "next-auth/react";
 import { BrandLogo } from "@/components/brand/logo";
 import { IncomingMessagePopup } from "@/components/support/incoming-message-popup";
 import { useIncomingMessages } from "@/components/support/use-incoming-messages";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 
 const NAV = [
   { href: "/partner", label: "Обзор", icon: LayoutDashboard, exact: true },
@@ -115,8 +108,28 @@ export function PartnerShell({
             {/* Переключатель контекста. Кабинет клиента открывается
                 отдельной кнопкой из карточки клиента, здесь — только
                 «своя организация ↔ партнёрский кабинет». */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <ResponsiveMenu
+              title="Контекст"
+              contentClassName="w-[280px] rounded-2xl p-1.5"
+              items={[
+                {
+                  key: "partner",
+                  label: `Партнёрский кабинет · ${brandName}`,
+                  icon: <Handshake className="size-4 text-[#5566f6]" />,
+                  onSelect: () => router.push("/partner"),
+                },
+                ...(hasOwnOrganization
+                  ? [
+                      {
+                        key: "own",
+                        label: ownOrganizationName ?? "Моя организация",
+                        icon: <Building2 className="size-4 text-[#5566f6]" />,
+                        onSelect: () => router.push("/dashboard"),
+                      },
+                    ]
+                  : []),
+              ]}
+              trigger={
                 <button
                   type="button"
                   className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
@@ -125,64 +138,31 @@ export function PartnerShell({
                   <span className="hidden sm:inline">Партнёрский кабинет</span>
                   <ChevronDown className="size-4 text-[#9b9fb3]" />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[280px] rounded-2xl p-1.5">
-                <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6f7282]">
-                  Контекст
-                </DropdownMenuLabel>
-                <DropdownMenuItem asChild className="rounded-xl bg-[#f5f6ff]">
-                  <Link href="/partner" className="flex items-center gap-2.5 px-2 py-2">
-                    <Handshake className="size-4 text-[#5566f6]" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px] font-medium text-[#0b1024]">Партнёрский кабинет</span>
-                      <span className="block truncate text-[12px] text-[#6f7282]">{brandName}</span>
-                    </span>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#3848c7]">
-                      сейчас
-                    </span>
-                  </Link>
-                </DropdownMenuItem>
-                {hasOwnOrganization ? (
-                  <DropdownMenuItem asChild className="rounded-xl">
-                    <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-2">
-                      <Building2 className="size-4 text-[#5566f6]" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] font-medium text-[#0b1024]">Моя организация</span>
-                        <span className="block truncate text-[12px] text-[#6f7282]">
-                          {ownOrganizationName ?? "Кабинет заведения"}
-                        </span>
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+            />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <ResponsiveMenu
+              title={userName}
+              contentClassName="w-[240px] rounded-2xl p-1.5"
+              items={[
+                {
+                  key: "logout",
+                  label: "Выйти",
+                  icon: <LogOut className="size-4 text-[#6f7282]" />,
+                  onSelect: () => void signOut({ callbackUrl: "/login" }),
+                  tone: "danger" as const,
+                },
+              ]}
+              trigger={
                 <button
                   type="button"
                   aria-label="Профиль"
-                  className="flex size-10 items-center justify-center rounded-full bg-[#eef1ff] text-[14px] font-semibold text-[#3848c7] transition-colors hover:bg-[#e2e6ff]"
+                  className="flex size-10 items-center justify-center rounded-full bg-[#eef1ff] text-[14px] font-semibold text-[#3848c7] transition-colors hover:bg-[#e3e8ff]"
                 >
                   {initials}
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[240px] rounded-2xl p-1.5">
-                <div className="px-2 py-2">
-                  <div className="truncate text-[14px] font-medium text-[#0b1024]">{userName}</div>
-                  <div className="truncate text-[12px] text-[#6f7282]">{userEmail}</div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="rounded-xl px-2 py-2 text-[14px]"
-                  onSelect={() => void signOut({ callbackUrl: "/login" })}
-                >
-                  <LogOut className="size-4 text-[#6f7282]" />
-                  Выйти
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+            />
           </div>
         </div>
 

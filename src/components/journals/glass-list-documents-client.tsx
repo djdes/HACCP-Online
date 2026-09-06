@@ -17,12 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
@@ -527,57 +522,55 @@ export function GlassListDocumentsClient(props: Props) {
                   </div>
                 </Link>
                 <div className="flex justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                  <ResponsiveMenu
+                    title="Действия"
+                    items={[
+                      {
+                        key: "settings",
+                        label: "Настройки",
+                        icon: <Pencil className="size-4 text-[#6f7282]" />,
+                        onSelect: () => setSettingsDocument(document),
+                      },
+                      {
+                        key: "copy",
+                        label: "Сделать копию",
+                        icon: <Copy className="size-4 text-[#6f7282]" />,
+                        onSelect: () => copyDocument(document),
+                      },
+                      {
+                        key: "print",
+                        label: "Печать",
+                        icon: <Printer className="size-4 text-[#6f7282]" />,
+                        onSelect: () =>
+                          window.open(`/api/journal-documents/${document.id}/pdf`, "_blank"),
+                      },
+                      ...(document.status === "active"
+                        ? [
+                            {
+                              key: "archive",
+                              label: "Отправить в закрытые",
+                              icon: <Archive className="size-4 text-[#6f7282]" />,
+                              onSelect: () => setArchiveDocument(document),
+                            },
+                          ]
+                        : []),
+                      {
+                        key: "delete",
+                        label: "Удалить",
+                        icon: <Trash2 className="size-4 text-[#6f7282]" />,
+                        tone: "danger" as const,
+                        onSelect: () => setDeleteDocument(document),
+                      },
+                    ]}
+                    trigger={
                       <button
                         type="button"
                         className="flex size-10 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
                       >
                         <Ellipsis className="size-8" />
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-5 shadow-xl sm:w-[320px]">
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setSettingsDocument(document)}
-                      >
-                        <Pencil className="mr-4 size-6 text-[#6f7282]" />
-                        Настройки
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => copyDocument(document)}
-                      >
-                        <Copy className="mr-4 size-6 text-[#6f7282]" />
-                        Сделать копию
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() =>
-                          window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
-                        }
-                      >
-                        <Printer className="mr-4 size-6 text-[#6f7282]" />
-                        Печать
-                      </DropdownMenuItem>
-                      {document.status === "active" && (
-                        <DropdownMenuItem
-                          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-                          onSelect={() => setArchiveDocument(document)}
-                        >
-                          <Archive className="mr-4 size-6 text-[#6f7282]" />
-                          Отправить в закрытые
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() => setDeleteDocument(document)}
-                      >
-                        <Trash2 className="mr-4 size-6 text-[#ff3b30]" />
-                        Удалить
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    }
+                  />
                 </div>
               </div>
             );

@@ -8,12 +8,7 @@ import { useRouter } from "next/navigation";
 import { BookOpenText, Copy, Ellipsis, Plus, Printer, Settings2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -342,37 +337,57 @@ export function AuditProtocolDocumentsClient({
                   <div className={JOURNAL_CARD_VALUE_CLASS}>{config.documentDate}</div>
                 </Link>
                 <div className="justify-self-start sm:justify-self-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                  <ResponsiveMenu
+                    title="Действия с документом"
+                    contentClassName="w-[290px] rounded-[24px] border-0 p-4 shadow-xl"
+                    items={[
+                      ...(document.status === "active"
+                        ? [
+                            {
+                              key: "settings",
+                              label: "Настройки",
+                              icon: <Settings2 className="size-4 text-[#6f7282]" />,
+                              onSelect: () => setSettingsDocument(document),
+                            },
+                          ]
+                        : []),
+                      ...(document.status === "active"
+                        ? [
+                            {
+                              key: "copy",
+                              label: "Сделать копию",
+                              icon: <Copy className="size-4 text-[#6f7282]" />,
+                              onSelect: () => copyDocument(document),
+                            },
+                          ]
+                        : []),
+                      {
+                        key: "print",
+                        label: "Печать",
+                        icon: <Printer className="size-4 text-[#6f7282]" />,
+                        onSelect: () =>
+                          void openDocumentPdf(document.id).catch((error) =>
+                            toast.error(error instanceof Error ? error.message : "Не удалось открыть PDF")
+                          ),
+                      },
+                      ...(document.status === "active"
+                        ? [
+                            {
+                              key: "delete",
+                              label: "Удалить",
+                              icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+                              onSelect: () => setDeleteDocument(document),
+                              tone: "danger" as const,
+                            },
+                          ]
+                        : []),
+                    ]}
+                    trigger={
                       <button type="button" className="flex size-9 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]">
                         <Ellipsis className="size-6" />
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-[290px] rounded-[24px] border-0 p-4 shadow-xl">
-                      {document.status === "active" && (
-                        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => setSettingsDocument(document)}>
-                          <Settings2 className="mr-3 size-5 text-[#6f7282]" />
-                          Настройки
-                        </DropdownMenuItem>
-                      )}
-                      {document.status === "active" && (
-                        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => copyDocument(document)}>
-                          <Copy className="mr-3 size-5 text-[#6f7282]" />
-                          Сделать копию
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={() => void openDocumentPdf(document.id).catch((error) => toast.error(error instanceof Error ? error.message : "Не удалось открыть PDF"))}>
-                        <Printer className="mr-3 size-5 text-[#6f7282]" />
-                        Печать
-                      </DropdownMenuItem>
-                      {document.status === "active" && (
-                        <DropdownMenuItem className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]" onSelect={() => setDeleteDocument(document)}>
-                          <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
-                          Удалить
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    }
+                  />
                 </div>
               </div>
             );

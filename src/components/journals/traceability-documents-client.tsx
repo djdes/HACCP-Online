@@ -21,12 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { cn } from "@/lib/utils";
 
 import { toast } from "sonner";
@@ -267,49 +262,51 @@ function TraceabilityActionsMenu(props: {
   const isActive = props.document.status === "active";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <ResponsiveMenu
+      title="Действия"
+      items={[
+        {
+          key: "settings",
+          label: "Настройки",
+          icon: <Pencil className="size-4 text-[#6f7282]" />,
+          onSelect: props.onSettings,
+        },
+        {
+          key: "print",
+          label: "Печать",
+          icon: <Printer className="size-4 text-[#6f7282]" />,
+          onSelect: props.onPrint,
+        },
+        isActive
+          ? {
+              key: "archive",
+              label: "Закрыть",
+              icon: <Archive className="size-4 text-[#6f7282]" />,
+              onSelect: props.onArchiveToggle,
+            }
+          : {
+              key: "restore",
+              label: "В активные",
+              icon: <ArchiveRestore className="size-4 text-[#6f7282]" />,
+              onSelect: props.onArchiveToggle,
+            },
+        {
+          key: "delete",
+          label: "Удалить",
+          icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+          tone: "danger" as const,
+          onSelect: props.onDelete,
+        },
+      ]}
+      trigger={
         <button
           type="button"
           className="flex size-10 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
         >
           <Ellipsis className="size-8 text-[#5566f6]" />
         </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-4 shadow-xl sm:w-[320px]">
-        <DropdownMenuItem
-          className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-          onSelect={props.onSettings}
-        >
-          <Pencil className="mr-3 size-5 text-[#6f7282]" />
-          Настройки
-        </DropdownMenuItem>
-        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={props.onPrint}>
-          <Printer className="mr-3 size-5 text-[#6f7282]" />
-          Печать
-        </DropdownMenuItem>
-        <DropdownMenuItem className="mb-2 h-9 rounded-xl px-3.5 text-[13.5px]" onSelect={props.onArchiveToggle}>
-          {isActive ? (
-            <>
-              <Archive className="mr-3 size-5 text-[#6f7282]" />
-              Закрыть
-            </>
-          ) : (
-            <>
-              <ArchiveRestore className="mr-3 size-5 text-[#6f7282]" />
-              В активные
-            </>
-          )}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-          onSelect={props.onDelete}
-        >
-          <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
-          Удалить
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+    />
   );
 }
 

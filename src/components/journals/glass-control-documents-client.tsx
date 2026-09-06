@@ -15,12 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   Select,
   SelectContent,
@@ -420,53 +415,51 @@ export function GlassControlDocumentsClient(props: Props) {
               </Link>
 
               <div className="flex justify-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <ResponsiveMenu
+                  title="Действия"
+                  items={[
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "settings",
+                            label: "Настройки",
+                            icon: <Pencil className="size-4 text-[#6f7282]" />,
+                            onSelect: () => setEditingDocument(document),
+                          },
+                        ]
+                      : []),
+                    {
+                      key: "print",
+                      label: "Печать",
+                      icon: <Printer className="size-4 text-[#6f7282]" />,
+                      onSelect: () =>
+                        window.open(`/api/journal-documents/${document.id}/pdf`, "_blank"),
+                    },
+                    ...(document.status === "active"
+                      ? [
+                          {
+                            key: "delete",
+                            label: "Удалить",
+                            icon: <Trash2 className="size-4 text-[#6f7282]" />,
+                            tone: "danger" as const,
+                            onSelect: () =>
+                              handleDelete(
+                                document.id,
+                                config.documentName || document.title || props.templateName
+                              ),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={
                     <button
                       type="button"
                       className="flex size-8 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]"
                     >
                       <Ellipsis className="size-6" />
                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="w-[240px] rounded-[24px] border-0 p-3 shadow-xl"
-                  >
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
-                        onSelect={() => setEditingDocument(document)}
-                      >
-                        <Pencil className="mr-3 size-5 text-[#6f7282]" />
-                        Настройки
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="mb-1 h-9 rounded-xl px-3.5 text-[13.5px]"
-                      onSelect={() =>
-                        window.open(`/api/journal-documents/${document.id}/pdf`, "_blank")
-                      }
-                    >
-                      <Printer className="mr-3 size-5 text-[#6f7282]" />
-                      Печать
-                    </DropdownMenuItem>
-                    {document.status === "active" && (
-                      <DropdownMenuItem
-                        className="h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                        onSelect={() =>
-                          handleDelete(
-                            document.id,
-                            config.documentName || document.title || props.templateName
-                          )
-                        }
-                      >
-                        <Trash2 className="mr-3 size-5 text-[#ff3b30]" />
-                        Удалить
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                  }
+                />
               </div>
             </div>
           );

@@ -9,14 +9,9 @@ import {
   JOURNAL_TAB_RAIL_CLASS,
   JOURNAL_TAB_VIEWPORT_CLASS,
 } from "@/components/journals/journal-responsive";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
 import { TOUR } from "@/lib/tour-anchors";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 
 export function JournalTopBar(props: {
   heading: string;
@@ -208,65 +203,55 @@ export function DocumentActionsMenu(props: {
   onDelete?: () => void;
   size?: "sm" | "md";
 }) {
-  const md = (props.size ?? "md") === "md";
-  const hasDelete = Boolean(props.onDelete);
-
+  // На телефоне это лист снизу, на компьютере — выпадающий список:
+  // общий `ResponsiveMenu`. Меню карточки документа одно на полтора
+  // десятка журналов, поэтому правка здесь меняет их все разом.
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <ResponsiveMenu
+      title="Действия с документом"
+      contentClassName={
+        (props.size ?? "md") === "md"
+          ? "w-[300px] rounded-[22px] border-0 p-3 shadow-xl"
+          : "w-[260px] rounded-[20px] border-0 p-3 shadow-xl"
+      }
+      items={[
+        ...(props.onEdit
+          ? [
+              {
+                key: "settings",
+                label: "Настройки",
+                icon: <Pencil className="size-4 text-[#6f7282]" />,
+                onSelect: props.onEdit,
+              },
+            ]
+          : []),
+        {
+          key: "print",
+          label: "Печать",
+          icon: <Printer className="size-4 text-[#6f7282]" />,
+          onSelect: props.onPrint,
+        },
+        ...(props.onDelete
+          ? [
+              {
+                key: "delete",
+                label: "Удалить",
+                icon: <Trash2 className="size-4 text-[#ff3b30]" />,
+                onSelect: props.onDelete,
+                tone: "danger" as const,
+              },
+            ]
+          : []),
+      ]}
+      trigger={
         <button
           type="button"
+          aria-label="Действия с документом"
           className="flex size-8 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
         >
           <Ellipsis className="size-5 text-[#5566f6]" />
         </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className={
-          md
-            ? "w-[300px] rounded-[22px] border-0 p-3 shadow-xl"
-            : "w-[260px] rounded-[20px] border-0 p-3 shadow-xl"
-        }
-      >
-        {props.onEdit && (
-          <DropdownMenuItem
-            className={
-              md
-                ? "mb-3 h-9 rounded-xl px-3.5 text-[13.5px]"
-                : "mb-2 h-9 rounded-xl px-3.5 text-[13.5px]"
-            }
-            onSelect={props.onEdit}
-          >
-            <Pencil className={md ? "mr-3 size-4 text-[#6f7282]" : "mr-3 size-4 text-[#6f7282]"} />
-            Настройки
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem
-          className={
-            md
-              ? `${hasDelete ? "mb-3 " : ""}h-9 rounded-xl px-3.5 text-[13.5px]`
-              : `${hasDelete ? "mb-2 " : ""}h-9 rounded-xl px-3.5 text-[13.5px]`
-          }
-          onSelect={props.onPrint}
-        >
-          <Printer className={md ? "mr-3 size-4 text-[#6f7282]" : "mr-3 size-4 text-[#6f7282]"} />
-          Печать
-        </DropdownMenuItem>
-        {props.onDelete && (
-          <DropdownMenuItem
-            className={
-              md
-                ? "h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-                : "h-9 rounded-xl px-3.5 text-[13.5px] text-[#ff3b30] focus:text-[#ff3b30]"
-            }
-            onSelect={props.onDelete}
-          >
-            <Trash2 className={md ? "mr-3 size-4 text-[#ff3b30]" : "mr-3 size-4 text-[#ff3b30]"} />
-            Удалить
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+    />
   );
 }

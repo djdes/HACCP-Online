@@ -17,6 +17,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -811,25 +812,39 @@ export function TraceabilityDocumentClient(props: Props) {
         toolbar={
           !isClosed ? (
             <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button type="button" disabled={saving || isPending} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]">
-                    <Plus className="size-6" />
-                    Добавить
-                    <ChevronDown className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl">
-                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setEditingRow(null); setRowOpen(true); }}>
-                    <Plus className="mr-2 size-4" />
-                    Добавить
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="h-12 rounded-xl px-3 text-[16px] text-[#5563ff]" onSelect={(event) => { event.preventDefault(); setImportOpen(true); }}>
-                    <Upload className="mr-2 size-4" />
-                    Добавить из файла
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ResponsiveMenu
+              title="Добавить"
+              align="start"
+              contentClassName="min-w-[280px] rounded-[22px] border-0 p-2 shadow-xl"
+              items={[
+                {
+                  key: "add-row",
+                  label: "Добавить",
+                  icon: <Plus className="size-4 text-[#6f7282]" />,
+                  onSelect: () => {
+                    setEditingRow(null);
+                    setRowOpen(true);
+                  },
+                },
+                {
+                  key: "add-file",
+                  label: "Добавить из файла",
+                  icon: <Upload className="size-4 text-[#6f7282]" />,
+                  onSelect: () => setImportOpen(true),
+                },
+              ]}
+              trigger={
+                <Button
+                  type="button"
+                  disabled={saving || isPending}
+                  className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] font-medium text-white shadow-md shadow-[#5563ff]/20 hover:bg-[#4957fb]"
+                >
+                  <Plus className="size-6" />
+                  Добавить
+                  <ChevronDown className="size-4" />
+                </Button>
+              }
+            />
               <button type="button" onClick={() => setListsOpen(true)} className={DOC_SECONDARY_BUTTON_CLASS}>
                 Редактировать списки
               </button>
