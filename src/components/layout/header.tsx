@@ -7,7 +7,6 @@ import type { PartnerHintRates } from "@/lib/partners/partner-hint";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
-  CreditCard,
   AlertTriangle,
   Building2,
   CalendarRange,
@@ -15,6 +14,7 @@ import {
   CircleArrowUp,
   ClipboardList,
   Coins,
+  CreditCard,
   FileText,
   GitBranch,
   GraduationCap,
@@ -22,8 +22,8 @@ import {
   LogOut,
   Menu,
   Package,
+  Palette,
   Settings,
-  SunMoon,
   ShieldCheck,
   TrendingDown,
   UserRound,
@@ -34,15 +34,14 @@ import { isManagementRole } from "@/lib/user-roles";
 import { getWebHomeHref, hasFullWorkspaceAccess } from "@/lib/role-access";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfileSheet } from "@/components/layout/profile-sheet";
+import { useIsNarrowViewport } from "@/components/ui/spotlight-tour";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -55,7 +54,6 @@ import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
 import { useHeaderUndo } from "@/components/journals/journal-undo-slot";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
-import { ThemeModeControls } from "@/components/theme/theme-quick-switch";
 import { planLabel } from "@/lib/plan-limits";
 import { orgDisplayName } from "@/lib/org-display-name";
 import {
@@ -185,6 +183,10 @@ export function Header({
   const pathname = usePathname();
   const headerUndo = useHeaderUndo();
   const fullAccess = hasFullWorkspaceAccess({ role: userRole, isRoot });
+  // На телефоне меню профиля — лист снизу (как в приложениях), на
+  // компьютере остаётся выпадающее меню.
+  const narrowViewport = useIsNarrowViewport();
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   // Заведующая (head_chef / technologist) — даём отдельную ссылку
   // на /verifications вместо «Журналы». Сотрудник так и не узнает что
   // система внутри хранит «журналы».
@@ -668,6 +670,21 @@ export function Header({
             <LogOut className="size-5" />
           </button>
 
+          {narrowViewport ? (
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => setProfileSheetOpen(true)}
+              className="relative size-10 shrink-0 rounded-full p-0"
+              aria-label="Профиль"
+            >
+              <Avatar size="lg">
+                <AvatarFallback className="bg-[#5566f6]/[0.09] text-[13px] font-semibold text-[#5566f6]">
+                  {getInitials(userName)}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          ) : (
           <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button
@@ -779,18 +796,14 @@ export function Header({
                   </DropdownMenuItem>
                 ) : null}
 
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="gap-2">
-                    <SunMoon className="size-4" />
-                    Тема
-                  </DropdownMenuSubTrigger>
-                  {/* Содержимое — не DropdownMenuItem'ы: клик по режиму
-                      темы не должен закрывать меню, юзер обычно пробует
-                      два-три варианта подряд. */}
-                  <DropdownMenuSubContent className="w-72 rounded-2xl border-[#ececf4] p-2">
-                    <ThemeModeControls />
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
+                {fullAccess ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings/appearance">
+                      <Palette className="mr-2 size-4" />
+                      Внешний вид
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
 
                 {fullAccess ? (
                   <DropdownMenuItem asChild>
@@ -824,8 +837,28 @@ export function Header({
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
         </div>
       </div>
+
+      <ProfileSheet
+        open={profileSheetOpen}
+        onClose={() => setProfileSheetOpen(false)}
+        userName={userName}
+        userEmail={userEmail}
+        planLine={planLine}
+        organizations={organizations}
+        activeOrganizationId={activeOrganizationId}
+        canCreateOrganization={canCreateOrganization}
+        onOpenCreate={openCreateDialog}
+        partnerCabinet={partnerCabinet}
+        balanceRub={balanceRub}
+        canManagePlan={canManagePlan}
+        onFreePlan={onFreePlan}
+        fullAccess={fullAccess}
+        isRoot={isRoot}
+        onLogout={handleLogout}
+      />
 
       {createDialog === "demo" ? (
         <CreateDemoDialog

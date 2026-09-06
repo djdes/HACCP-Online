@@ -17,6 +17,7 @@ import {
   KeyRound,
   ListChecks,
   Package,
+  Palette,
   Phone,
   Sparkles,
   Plug,
@@ -355,6 +356,13 @@ const settingsCards = [
     iconClass: "text-[#9a4a06]",
     bgClass: "bg-[#fff7ed]",
   },
+  {
+    description: "Светлая или тёмная тема кабинета",
+    href: "/settings/appearance",
+    icon: Palette,
+    iconClass: "text-[#5566f6]",
+    bgClass: "bg-[#eef1ff]",
+  },
 ];
 
 export default async function SettingsPage() {
@@ -429,7 +437,9 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {/* Одна строка на любом экране: на телефоне это компактная
+              полоса цифр, а не четыре крупные плитки в пол-экрана. */}
+          <div className="no-mobile-shrink mt-6 grid grid-cols-4 gap-2 sm:mt-8 sm:gap-4">
             <StatPill label="Цехов" value={areaCount} />
             <StatPill label="Оборудования" value={equipmentCount} />
             <StatPill label="Сотрудников" value={userCount} />
@@ -443,38 +453,34 @@ export default async function SettingsPage() {
           теряется среди настроечных групп — сразу видна. */}
       <Link
         href="/settings/onboarding"
-        className="group relative block overflow-hidden rounded-3xl border border-[#5566f6]/30 bg-gradient-to-br from-[#5566f6] via-[#4a5bf0] to-[#3848c7] p-6 text-white shadow-[0_20px_60px_-25px_rgba(85,102,246,0.65)] transition-all hover:shadow-[0_24px_72px_-25px_rgba(85,102,246,0.85)] sm:p-8"
+        className="group relative block overflow-hidden rounded-3xl border border-[#5566f6]/30 bg-gradient-to-br from-[#5566f6] via-[#4a5bf0] to-[#3848c7] p-4 text-white shadow-[0_20px_60px_-30px_rgba(85,102,246,0.8)] transition-transform duration-150 hover:-translate-y-0.5 sm:p-7"
       >
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -right-20 -top-20 size-[300px] rounded-full bg-white opacity-10 blur-[100px]" />
           <div className="absolute -bottom-24 -left-20 size-[280px] rounded-full bg-[#7a5cff] opacity-30 blur-[120px]" />
         </div>
-        <div className="relative z-10 flex items-center justify-between gap-5">
-          <div className="flex items-start gap-4">
-            <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur">
-              <Sparkles className="size-7" />
-            </span>
-            <div>
-              <h2 className="text-[clamp(1.375rem,1.5vw+1rem,1.75rem)] font-semibold tracking-[-0.02em]">
-                Быстрый старт
-              </h2>
-              <p className="mt-1.5 max-w-[640px] text-[14px] leading-relaxed text-white/80 sm:text-[15px]">
-                Все шаги настройки по pipeline — компания, команда,
-                журналы, интеграции. Жми любой блок чтобы открыть
-                страницу с подсказкой что делать.
-              </p>
-            </div>
+        {/* На телефоне — компактная строка «иконка · название · стрелка»,
+            как карточки дашборда: описание на трёх строках занимало
+            треть экрана и отодвигало сами настройки. */}
+        <div className="relative z-10 flex items-center gap-3 sm:gap-5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur sm:size-14">
+            <Sparkles className="size-5 sm:size-7" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[18px] font-semibold tracking-[-0.02em] sm:text-[clamp(1.375rem,1.5vw+1rem,1.75rem)]">
+              Быстрый старт
+            </h2>
+            <p className="mt-0.5 text-[13px] leading-snug text-white/80 sm:mt-1.5 sm:max-w-[640px] sm:text-[15px] sm:leading-relaxed">
+              Настройка по шагам: компания, команда, журналы, интеграции.
+            </p>
           </div>
-          <div className="hidden shrink-0 sm:block">
-            <span className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-[14px] font-semibold text-[#0b1024] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.4)] transition-transform group-hover:translate-x-0.5">
-              Открыть
-              <ArrowRight className="size-4" />
-            </span>
-          </div>
-        </div>
-        <div className="relative z-10 mt-4 inline-flex items-center gap-2 text-[13px] font-medium text-white sm:hidden">
-          Открыть
-          <ArrowRight className="size-4" />
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30 sm:hidden">
+            <ArrowRight className="size-4" />
+          </span>
+          <span className="hidden shrink-0 items-center gap-2 rounded-2xl bg-white px-5 py-3 text-[14px] font-semibold text-[#0b1024] shadow-[0_10px_30px_-12px_rgba(11,16,36,0.45)] sm:inline-flex">
+            Открыть
+            <ArrowRight className="size-4" />
+          </span>
         </div>
       </Link>
 
@@ -511,109 +517,115 @@ export default async function SettingsPage() {
         ]}
       />
 
-      {/* Card grid — сгруппирована по разделам, чтобы не оверлоадить
-          новый админ. Сначала «Старт» (быстрая настройка), потом
-          по логике действий. «Дополнительно» — collapsible, с
-          редко-нужными вещами. */}
+      {/* Разделы по смыслу. «Быстрая настройка» сюда не попадает —
+          она уже большой кнопкой сверху, дублировать её карточкой
+          значит показывать один и тот же адрес дважды. */}
       <SettingsGroup
-        title="Старт"
-        subtitle="Минимум, чтобы запустить работу"
-        items={settingsCards.filter((c) =>
-          GROUP_START.has(c.href as string)
-        )}
+        title="Организация"
+        subtitle="Реквизиты, точки, помещения, оборудование, вид кабинета"
+        items={settingsCards.filter((c) => GROUP_ORG.has(c.href as string))}
       />
       <SettingsGroup
         title="Команда и доступы"
-        subtitle="Сотрудники, должности, иерархия"
-        items={settingsCards.filter((c) =>
-          GROUP_TEAM.has(c.href as string)
-        )}
+        subtitle="Сотрудники, должности, права, графики"
+        items={settingsCards.filter((c) => GROUP_TEAM.has(c.href as string))}
       />
       <SettingsGroup
         title="Журналы"
-        subtitle="Что заполнять, кому, как и когда"
-        items={settingsCards.filter((c) =>
-          GROUP_JOURNALS.has(c.href as string)
-        )}
+        subtitle="Какие ведём, кто отвечает, как заполняются"
+        items={settingsCards.filter((c) => GROUP_JOURNALS.has(c.href as string))}
       />
       <SettingsGroup
-        title="Интеграции"
-        subtitle="TasksFlow, Telegram, бухгалтерия, консультант"
+        title="Задачи сотрудникам"
+        subtitle="Кто получает задачи, как проверяются, премии"
+        items={settingsCards.filter((c) => GROUP_TASKS.has(c.href as string))}
+      />
+      <SettingsGroup
+        title="Оплата"
+        subtitle="Баланс, тариф, партнёрская программа"
+        items={settingsCards.filter((c) => GROUP_MONEY.has(c.href as string))}
+      />
+      <SettingsGroup
+        title="Интеграции и уведомления"
+        subtitle="TasksFlow, Telegram, бухгалтерия, API, бэкапы"
         items={settingsCards.filter((c) =>
           GROUP_INTEGRATIONS.has(c.href as string)
         )}
       />
-      <details className="group">
-        <summary className="cursor-pointer list-none px-1 py-2 text-[14px] font-semibold text-[#6f7282] hover:text-[#0b1024]">
-          <span className="mr-2 inline-block transition-transform group-open:rotate-90">▸</span>
-          Дополнительно — для опытных
-        </summary>
-        <div className="mt-3">
-          <SettingsGroup
-            title=""
-            subtitle=""
-            items={settingsCards.filter((c) =>
-              GROUP_ADVANCED.has(c.href as string)
-            )}
-          />
-        </div>
-      </details>
+      <SettingsGroup
+        title="Проверки и безопасность"
+        subtitle="Инспектор, соответствие, журнал действий"
+        items={settingsCards.filter((c) => GROUP_CHECKS.has(c.href as string))}
+      />
     </div>
   );
 }
 
-const GROUP_START = new Set([
-  "/settings/balance",
-  "/settings/onboarding",
+/**
+ * Группы разделов — по смыслу, а не «старт / дополнительно».
+ *
+ * Что было не так: в группе «Старт» вперемешку лежали баланс, реквизиты,
+ * сотрудники, журналы и быстрая настройка — по названию группы нельзя
+ * было понять, что там найдёшь, а баланс и тариф прятались в разных
+ * местах. Теперь: сначала организация, потом люди, потом журналы, потом
+ * деньги, интеграции и проверки. Быстрая настройка живёт отдельной
+ * большой кнопкой сверху и в группах не дублируется.
+ */
+const GROUP_ORG = new Set([
   "/settings/organization",
-  "/settings/users",
   "/settings/buildings",
+  "/settings/areas",
   "/settings/equipment",
-  "/settings/journals",
-  // Тариф — не «дополнительно»: это первое, что ищет владелец, когда
-  // хочет понять, за что платит. В свёрнутом блоке его не находили.
+  "/settings/products",
+  "/settings/appearance",
 ]);
 const GROUP_TEAM = new Set([
+  "/settings/users",
   "/settings/role-presets",
+  "/settings/permissions",
   "/settings/staff-hierarchy",
   "/settings/position-staff-visibility",
-  "/settings/permissions",
   "/settings/schedule",
   "/settings/phone",
 ]);
 const GROUP_JOURNALS = new Set([
+  "/settings/journals",
   "/settings/journal-responsibles",
-  "/settings/journal-pipelines",
-  "/settings/journal-flow",
-  "/settings/journal-task-mode",
-  "/settings/journal-checklists",
-  "/settings/journal-periods",
-  "/settings/journal-bonuses",
-  "/settings/journal-difficulty",
-  "/settings/workload-balance",
-  "/settings/task-visibility",
   "/settings/auto-journals",
+  "/settings/journal-periods",
   "/settings/journal-access",
   "/settings/journals-by-position",
+  "/settings/journal-checklists",
+  "/settings/journal-pipelines",
   "/settings/onboarding-template",
-  "/settings/areas",
-  "/settings/products",
+]);
+const GROUP_TASKS = new Set([
+  "/settings/journal-task-mode",
+  "/settings/journal-flow",
+  "/settings/task-visibility",
+  "/settings/workload-balance",
+  "/settings/journal-difficulty",
+  "/settings/journal-bonuses",
+]);
+const GROUP_MONEY = new Set([
+  "/settings/balance",
+  "/settings/subscription",
+  "/settings/partner",
 ]);
 const GROUP_INTEGRATIONS = new Set([
   "/settings/integrations/tasksflow",
   "/settings/notifications",
   "/settings/accounting",
   "/settings/consultant",
-]);
-const GROUP_ADVANCED = new Set([
-  "/settings/partner",
   "/settings/api",
   "/settings/backup",
-  "/settings/audit",
-  "/settings/compliance",
-  "/settings/experimental",
+]);
+const GROUP_CHECKS = new Set([
   "/settings/inspector-portal",
+  "/settings/compliance",
+  "/settings/audit",
   "/sanpin",
+  "/settings/experimental",
 ]);
 
 function SettingsGroup({
@@ -671,11 +683,13 @@ function SettingsGroup({
 
 function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm">
-      <div className="text-[24px] font-semibold leading-none tabular-nums">
+    <div className="rounded-2xl bg-white/10 px-2 py-2.5 text-center backdrop-blur-sm sm:px-4 sm:py-3 sm:text-left">
+      <div className="text-[20px] font-semibold leading-none tabular-nums sm:text-[24px]">
         {value}
       </div>
-      <div className="mt-1 text-[12px] text-white/60">{label}</div>
+      <div className="mt-1 text-[10.5px] leading-tight text-white/60 sm:text-[12px]">
+        {label}
+      </div>
     </div>
   );
 }

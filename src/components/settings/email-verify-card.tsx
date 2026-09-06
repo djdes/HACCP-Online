@@ -73,7 +73,10 @@ export function EmailVerifyCard({ email }: { email: string }) {
       id="email-verify"
       className="rounded-3xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-6"
     >
-      <div className="flex flex-wrap items-center gap-4">
+      {/* На телефоне — сверху вниз: раньше кнопка стояла рядом и
+          сжимала текст в колонку по два слова. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center sm:gap-4">
         <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#5566f6] text-white">
           <Mail className="size-5" />
         </span>
@@ -86,6 +89,7 @@ export function EmailVerifyCard({ email }: { email: string }) {
             подтверждение нужно, чтобы мы могли до вас дописаться.
           </p>
         </div>
+        </div>
 
         {sent ? (
           <div className="flex items-center gap-2">
@@ -96,7 +100,7 @@ export function EmailVerifyCard({ email }: { email: string }) {
               }
               inputMode="numeric"
               placeholder="000000"
-              className="h-11 w-[130px] rounded-2xl border border-[#dcdfed] bg-white px-4 text-center text-[16px] tracking-[0.3em] text-[#0b1024] placeholder:tracking-normal placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              className="h-11 w-full max-w-[130px] rounded-2xl border border-[#dcdfed] bg-white px-4 text-center text-[16px] tracking-[0.3em] text-[#0b1024] placeholder:tracking-normal placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
             />
             <button
               type="button"
@@ -117,7 +121,7 @@ export function EmailVerifyCard({ email }: { email: string }) {
             type="button"
             onClick={send}
             disabled={busy}
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+            className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-5 sm:w-auto text-[14px] font-medium text-white transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
             Отправить код

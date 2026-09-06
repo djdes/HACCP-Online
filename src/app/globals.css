@@ -577,8 +577,23 @@ html, body {
   /* ── Modals/Dialogs: cap max-w в любых вариациях ─────────────── */
   /* Любой Radix Dialog или popover не должен выезжать за viewport.
      Перебиваем custom max-w-[XXXpx] классы — для mobile 100vw - 24px. */
-  [data-slot="dialog-content"],
-  [role="dialog"][data-state="open"],
+  /* Shadcn-диалоги на телефоне — лист снизу во всю ширину (см.
+     `dialog.tsx`), поэтому ширину им не режем. */
+  [data-slot="dialog-content"] {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    /* Лист снизу: высоту режем по видимой части экрана, как у всех
+       окон (см. modal-tokens.ts). */
+    max-height: 92vh !important;
+  }
+
+  @supports (height: 100dvh) {
+    [data-slot="dialog-content"] {
+      max-height: 92dvh !important;
+    }
+  }
+
+  [role="dialog"][data-state="open"]:not([data-slot="dialog-content"]),
   .DialogContent,
   [class*="DialogContent"] {
     max-width: calc(100vw - 1.5rem) !important;

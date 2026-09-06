@@ -31,8 +31,8 @@
   },
   "create-document": {
     "geometry": {
-      "cardTop": 12,
-      "cardBottom": 556,
+      "cardTop": 24,
+      "cardBottom": 568,
       "cardHeight": 544,
       "vh": 568,
       "cardFits": true,
@@ -61,8 +61,8 @@
   },
   "staff-add": {
     "geometry": {
-      "cardTop": 12,
-      "cardBottom": 556,
+      "cardTop": 24,
+      "cardBottom": 568,
       "cardHeight": 544,
       "vh": 568,
       "cardFits": true,
@@ -76,8 +76,8 @@
   },
   "document-settings": {
     "geometry": {
-      "cardTop": 12,
-      "cardBottom": 556,
+      "cardTop": 24,
+      "cardBottom": 568,
       "cardHeight": 544,
       "vh": 568,
       "cardFits": true,
@@ -106,8 +106,8 @@
   },
   "feedback": {
     "geometry": {
-      "cardTop": 12,
-      "cardBottom": 556,
+      "cardTop": 24,
+      "cardBottom": 568,
       "cardHeight": 544,
       "vh": 568,
       "cardFits": true,

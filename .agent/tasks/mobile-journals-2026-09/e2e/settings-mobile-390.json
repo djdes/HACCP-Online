@@ -1,0 +1,44 @@
+{
+  "settings": {
+    "statTiles": 4,
+    "statsInOneRow": true,
+    "groups": [
+      "Быстрый старт",
+      "Организация",
+      "Команда и доступы",
+      "Журналы",
+      "Задачи сотрудникам",
+      "Оплата",
+      "Интеграции и уведомления",
+      "Проверки и безопасность"
+    ],
+    "quickStartHeight": 99,
+    "pageOverflow": false
+  },
+  "profileSheet": {
+    "top": 378,
+    "bottom": 780,
+    "width": 390,
+    "vw": 390,
+    "vh": 780,
+    "fullWidth": true,
+    "anchoredToBottom": true,
+    "rows": [
+      "Баланс и бонусы0 ₽",
+      "Улучшить тариф",
+      "Внешний вид",
+      "Настройки",
+      "Выйти"
+    ],
+    "hasTheme": true,
+    "hasLogout": true
+  },
+  "appearance": {
+    "title": "Внешний вид",
+    "modes": [
+      "Системная",
+      "Светлая",
+      "Тёмная"
+    ]
+  }
+}

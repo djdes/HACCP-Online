@@ -98,10 +98,18 @@ async function measure(page: Page) {
     const dialog = dialogs[dialogs.length - 1] as HTMLElement | undefined;
     if (!dialog) return null;
     // Карточка: сам элемент, если он и есть карточка (Radix), иначе второй ребёнок.
-    const isOverlay = getComputedStyle(dialog).position === "fixed" && dialog.clientWidth >= window.innerWidth - 1;
-    const card = (isOverlay
-      ? (dialog.querySelector(":scope > div:nth-child(2)") as HTMLElement | null) ?? dialog
-      : dialog) as HTMLElement;
+    // Карточка: у shadcn-диалога это сам content, у самописных
+    // оверлеев — второй ребёнок (первый — затемнение).
+    const slot = document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
+    const isOverlay =
+      getComputedStyle(dialog).position === "fixed" &&
+      dialog.clientWidth >= window.innerWidth - 1 &&
+      dialog.clientHeight >= window.innerHeight - 1;
+    const card = (slot && dialog.contains(slot)
+      ? slot
+      : isOverlay
+        ? (dialog.querySelector(":scope > div:nth-child(2)") as HTMLElement | null) ?? dialog
+        : dialog) as HTMLElement;
     const r = card.getBoundingClientRect();
     const closes = Array.from(
       card.querySelectorAll<HTMLElement>('button[aria-label="Закрыть"], button[aria-label="Close"], [data-slot="dialog-close"], button:has(svg.lucide-x)'),
