@@ -28,12 +28,19 @@ export function useDocumentCloseAction({
   documentId,
   title,
   confirmMessage,
+  confirmDescription,
   successMessage = CLOSED_TOAST,
   onClosed,
 }: {
   documentId: string;
   title: string;
   confirmMessage?: string;
+  /**
+   * Предупреждение под заголовком — например «Не заполнено дней: 3».
+   * Заголовок остаётся коротким вопросом, а тревожная цифра читается
+   * отдельной строкой.
+   */
+  confirmDescription?: string;
   successMessage?: string;
   onClosed?: () => void;
 }) {
@@ -44,6 +51,7 @@ export function useDocumentCloseAction({
     if (isClosing) return;
     const confirmed = await confirmAsync({
       title: confirmMessage || `${CLOSE_LABEL} "${title}"?`,
+      description: confirmDescription,
       variant: "warn",
       confirmLabel: CLOSE_LABEL,
     });

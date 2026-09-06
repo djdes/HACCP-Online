@@ -30,6 +30,7 @@ import {
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
+  DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -1261,7 +1262,11 @@ export function FryerOilDocumentClient(props: Props) {
           <div>
             {/* Бумажная шапка — общие строки в той же сетке, что и таблица
                 ниже (раньше была самодельная grid-вёрстка без части рамок). */}
-            <table className={`${DOC_PAPER_HEADER_CLASS} w-full table-fixed border-collapse text-[13px]`}>
+            <table
+              className={`${DOC_PAPER_HEADER_CLASS} w-full table-fixed border-collapse text-[13px] ${
+                mobileView === "cards" ? DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS : ""
+              }`}
+            >
               <tbody>
                 <JournalPaperHeaderRows
                   orgName={props.organizationName}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { LinkPendingOverlay } from "@/components/ui/link-pending";
 
 /**
  * Карточка быстрого старта на /dashboard: заголовок, прогресс и большая
@@ -111,6 +112,7 @@ export function QuickStartCardCompact({
           </div>
         </div>
       </div>
+      <LinkPendingOverlay />
     </Link>
   );
 }

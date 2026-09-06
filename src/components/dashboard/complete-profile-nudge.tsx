@@ -83,11 +83,20 @@ export function CompleteProfileNudge({ email }: { email: string }) {
       {!hidden ? (
         <div className="flex items-center gap-3 bg-[#5566f6] px-4 py-2.5 text-white md:px-6">
           <Sparkles className="size-4 shrink-0" />
-          <p className="min-w-0 flex-1 text-[13px] leading-[1.45]">
+          <p className="hidden min-w-0 flex-1 text-[13px] leading-[1.45] sm:block">
             <span className="font-medium">Завершите регистрацию:</span>{" "}
             <span className="text-white/85">
               название организации и телефон — они идут в шапку журналов и
               PDF для проверок.
+            </span>
+          </p>
+          {/* На узком экране — короче: без «и PDF для проверок», чтобы
+              уместиться в одну-две строки и не толкать кнопку с крестиком
+              на отдельную строку. */}
+          <p className="line-clamp-2 min-w-0 flex-1 text-[13px] leading-[1.45] sm:hidden">
+            <span className="font-medium">Завершите регистрацию:</span>{" "}
+            <span className="text-white/85">
+              название организации и телефон — они идут в шапку журналов.
             </span>
           </p>
           <button

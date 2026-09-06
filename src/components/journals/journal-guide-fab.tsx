@@ -3,6 +3,8 @@
 import { createPortal } from "react-dom";
 import { BookOpen } from "lucide-react";
 
+import { useFabAction, useHasFabDock } from "@/components/layout/fab-dock";
+
 /**
  * Круглая 44px кнопка гайда внизу справа. Общая для старого sheet'а с
  * правилами (журналы без walkthrough) и нового окна «Как заполнить?».
@@ -33,6 +35,23 @@ export function JournalGuideFab({
   ariaLabel?: string;
   bottomOffset?: number;
 }) {
+  // В кабинете кнопка живёт в общем доке (`FabDockProvider`): на телефоне
+  // три плавающие кнопки закрывали правый край таблицы. В Mini App дока
+  // нет — там компонент по-прежнему рисует свою кнопку сам.
+  const docked = useHasFabDock();
+  useFabAction(
+    {
+      id: "journal-guide",
+      order: 30,
+      label,
+      hint: "Как заполнять этот журнал",
+      icon: BookOpen,
+      onSelect: onClick,
+    },
+    docked,
+  );
+
+  if (docked) return null;
   if (typeof document === "undefined") return null;
   return createPortal(
     <button

@@ -1845,3 +1845,51 @@ html, body {
     transform: translate3d(0, 0, 0) scale(1);
   }
 }
+
+/* ── Скелетоны загрузки ────────────────────────────────────────────────
+ * Современный «шиммер»: по подложке слева направо бежит светлый блик,
+ * как в лентах YouTube и Instagram. Раньше был `animate-pulse` —
+ * мигание всей плашки, из-за которого страница выглядела дёргано.
+ *
+ * Подложка и блик берутся из токенов темы (`app-theme.css`), поэтому
+ * скелетон правильно выглядит и в тёмной. Фолбэк — на случай, если
+ * скелетон окажется вне кабинета (лендинг, /login). */
+@keyframes wesetup-skeleton-sheen {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--app-skeleton-base, #eceef5);
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--app-skeleton-sheen, rgba(255, 255, 255, 0.75)) 50%,
+    transparent 100%
+  );
+  animation: wesetup-skeleton-sheen 1.5s ease-in-out infinite;
+}
+
+/* Блик отключаем и при печати: на бумаге он даёт серую полосу. */
+@media print {
+  .skeleton-shimmer::after {
+    animation: none;
+    background-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+  }
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, PauseCircle } from "lucide-react";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 
 /**
  * Баннер «аккаунт на паузе» над дашбордом. Пока организация в `paused`,
@@ -22,6 +23,7 @@ export function PausedBanner() {
       >
         Возобновить работу
         <ArrowRight className="size-4" />
+        <LinkPendingSpinner />
       </Link>
     </div>
   );

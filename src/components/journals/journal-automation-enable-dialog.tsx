@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarPlus, Loader2, RotateCw, Search, Wand2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PositionEmployeePicker } from "@/components/shared/position-select";
 import { getUserPositionLabel, type UserLike } from "@/lib/user-roles";
 import type {
@@ -289,9 +290,9 @@ export function JournalAutomationEnableDialog({
     >
       {loading && !preview ? (
         <div className="space-y-2.5" aria-busy="true">
-          <div className="h-4 w-2/3 animate-pulse rounded-full bg-[#f0f1f7]" />
-          <div className="h-[68px] animate-pulse rounded-2xl bg-[#f0f1f7]" />
-          <div className="h-[68px] animate-pulse rounded-2xl bg-[#f5f6ff]" />
+          <Skeleton className="h-4 w-2/3 rounded-full" />
+          <Skeleton className="h-[68px] rounded-2xl" />
+          <Skeleton className="h-[68px] rounded-2xl" />
         </div>
       ) : loadError ? (
         <div className="rounded-2xl border border-[#ffd2cd] bg-[#fff4f2] p-3.5">

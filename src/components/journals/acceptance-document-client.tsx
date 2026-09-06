@@ -20,6 +20,7 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
+  DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS,
   DOC_PAPER_HEADER_CLASS,
   DOC_SECONDARY_BUTTON_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
@@ -2356,7 +2357,11 @@ export function AcceptanceDocumentClient(props: Props) {
         <div className={DOC_PAPER_CANVAS_CLASS}>
         {/* HACCP header */}
 
-        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
+        <div
+          className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} ${
+            mobileView === "cards" ? DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS : ""
+          }`}
+        >
         <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
             <JournalPaperHeaderRows

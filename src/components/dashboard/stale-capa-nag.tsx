@@ -4,6 +4,7 @@ import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, X } from "lucide-react";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 
 type Props = {
   count: number;
@@ -73,6 +74,7 @@ export function StaleCapaNag({ count }: Props) {
                 onClick={dismiss}
               >
                 Открыть CAPA
+                <LinkPendingSpinner />
               </Link>
               <button
                 type="button"

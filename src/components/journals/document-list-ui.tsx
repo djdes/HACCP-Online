@@ -12,6 +12,7 @@ import {
 import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
 import { TOUR } from "@/lib/tour-anchors";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 
 export function JournalTopBar(props: {
   heading: string;
@@ -102,23 +103,25 @@ export function JournalTabs(props: {
         <div className={JOURNAL_TAB_RAIL_CLASS}>
           <Link
             href={`/journals/${props.templateCode}`}
-            className={`relative pb-5 ${
+            className={`relative flex items-center gap-1.5 pb-5 ${
               props.activeTab === "active"
                 ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
                 : "text-[#6f7282]"
             }`}
           >
             Активные
+            <LinkPendingSpinner />
           </Link>
           <Link
             href={`/journals/${props.templateCode}?tab=closed`}
-            className={`relative pb-5 ${
+            className={`relative flex items-center gap-1.5 pb-5 ${
               props.activeTab === "closed"
                 ? "font-medium text-black after:absolute after:bottom-[-1px] after:left-0 after:h-[3px] after:w-full after:bg-[#5566f6]"
                 : "text-[#6f7282]"
             }`}
           >
             Закрытые
+            <LinkPendingSpinner />
           </Link>
         </div>
       </div>

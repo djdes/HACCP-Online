@@ -24,6 +24,10 @@
    из-за чего кабинет оставался на Segoe UI. `--font-manrope` приходит
    из next/font (класс на <body>, см. src/app/layout.tsx). */
 
+/* Токены объявляем и на :root — Radix-порталы (диалоги, листы, меню,
+   тосты) рисуются в <body>, вне `.app-shell`, и переменные темы туда
+   не наследуются. Сами по себе объявления ничего не красят. */
+:root,
 .app-shell {
   /* Canonical tokens — одинаковые имена в обеих темах, меняются значения */
   --app-bg: #fafbff;
@@ -48,6 +52,9 @@
   --app-warn-fg: #a13a32;
   --app-hero: #0b1024;
   --app-scrim: rgba(11, 16, 36, 0.04);
+  /* Скелетоны: подложка и «блик», который по ней бежит. */
+  --app-skeleton-base: #eceef5;
+  --app-skeleton-sheen: rgba(255, 255, 255, 0.75);
   color-scheme: light;
 
   /* ── Типографика эталона (lk.haccp-online.ru, замеры 1440×900) ──────
@@ -58,7 +65,9 @@
    * Ширина контента: 1800px — кабинет живёт во всю ширину экрана,
    * ограничение нужно только сверхшироким мониторам (R1). */
   --app-content-max: 1800px;
+}
 
+.app-shell {
   font-family: var(--font-manrope, "Manrope"), "Manrope", "Segoe UI",
     "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
@@ -77,7 +86,8 @@ body:has(.app-shell) [data-slot="dialog-content"],
 body:has(.app-shell) [data-slot="popover-content"],
 body:has(.app-shell) [data-slot="dropdown-menu-content"],
 body:has(.app-shell) [data-radix-popper-content-wrapper],
-body:has(.app-shell) [data-sonner-toaster] {
+body:has(.app-shell) [data-sonner-toaster],
+body:has(.app-shell) {
   font-family: var(--font-manrope, "Manrope"), "Manrope", "Segoe UI",
     "Helvetica Neue", Arial, sans-serif;
 }
@@ -98,7 +108,8 @@ body:has(.app-shell) [data-sonner-toaster] {
  * усилением для контраста. Бренд остаётся — «дизайн тот же, цвет другой».
  * ================================================================== */
 
-.app-shell[data-app-theme="dark"] {
+.app-shell[data-app-theme="dark"],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
   --app-bg: #0b0d1a;
   --app-surface: #16182a;
   --app-surface-elevated: #1c1f33;
@@ -121,6 +132,8 @@ body:has(.app-shell) [data-sonner-toaster] {
   --app-warn-fg: #ffa899;
   --app-hero: #0b1024;
   --app-scrim: rgba(0, 0, 0, 0.35);
+  --app-skeleton-base: #1c1f33;
+  --app-skeleton-sheen: rgba(255, 255, 255, 0.06);
   color-scheme: dark;
   background-color: var(--app-bg);
   color: var(--app-text);
@@ -143,61 +156,61 @@ body:has(.app-shell[data-app-theme="dark"]) {
  * ================================================================== */
 
 /* --- BACKGROUNDS: whites → dark surface ----------------------------- */
-.app-shell[data-app-theme="dark"] .bg-white,
-.app-shell[data-app-theme="dark"] .bg-\[\#ffffff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#FFFFFF\],
-.app-shell[data-app-theme="dark"] [class*="bg-white/"] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffffff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#FFFFFF\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="bg-white/"] {
   background-color: var(--app-surface);
 }
 
 /* white/90, white/80 etc — translucent overlays. Keep them translucent
    но основываться на текущей surface. */
-.app-shell[data-app-theme="dark"] .bg-white\/90 { background-color: color-mix(in srgb, var(--app-surface) 90%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/80 { background-color: color-mix(in srgb, var(--app-surface) 80%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/70 { background-color: color-mix(in srgb, var(--app-surface) 70%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/60 { background-color: color-mix(in srgb, var(--app-surface) 60%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/50 { background-color: color-mix(in srgb, var(--app-surface) 50%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/40 { background-color: color-mix(in srgb, var(--app-surface) 40%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/30 { background-color: color-mix(in srgb, var(--app-surface) 30%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/20 { background-color: color-mix(in srgb, var(--app-surface) 20%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/10 { background-color: color-mix(in srgb, var(--app-surface) 10%, transparent); }
-.app-shell[data-app-theme="dark"] .bg-white\/5 { background-color: color-mix(in srgb, var(--app-surface) 5%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/90 { background-color: color-mix(in srgb, var(--app-surface) 90%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/80 { background-color: color-mix(in srgb, var(--app-surface) 80%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/70 { background-color: color-mix(in srgb, var(--app-surface) 70%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/60 { background-color: color-mix(in srgb, var(--app-surface) 60%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/50 { background-color: color-mix(in srgb, var(--app-surface) 50%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/40 { background-color: color-mix(in srgb, var(--app-surface) 40%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/30 { background-color: color-mix(in srgb, var(--app-surface) 30%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/20 { background-color: color-mix(in srgb, var(--app-surface) 20%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/10 { background-color: color-mix(in srgb, var(--app-surface) 10%, transparent); }
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-white\/5 { background-color: color-mix(in srgb, var(--app-surface) 5%, transparent); }
 
 /* Soft surfaces / gray-50-ish */
-.app-shell[data-app-theme="dark"] .bg-gray-50,
-.app-shell[data-app-theme="dark"] .bg-\[\#fafbff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#FAFBFF\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f5f6fa\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f8f9fc\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f7f7fb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f2f3f8\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f1f2f8\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0f2f7\],
-.app-shell[data-app-theme="dark"] .bg-\[\#eef0f6\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f3f4f6\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f4f5fb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f2f2f2\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ececec\],
-.app-shell[data-app-theme="dark"] .bg-\[\#efefef\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-gray-50,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fafbff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#FAFBFF\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f5f6fa\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f8f9fc\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f7f7fb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f2f3f8\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f1f2f8\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0f2f7\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#eef0f6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f3f4f6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f4f5fb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f2f2f2\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ececec\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#efefef\] {
   background-color: var(--app-soft-surface);
 }
 
 /* Tint-indigo backgrounds (hover / active / icon tile) — стают
    полупрозрачным индиго на тёмном. Через color-mix чтобы не хардкодить. */
-.app-shell[data-app-theme="dark"] .bg-\[\#f5f6ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#F5F6FF\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0edff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#eceeff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#eceffd\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0f0ff\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f5f6ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#F5F6FF\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0edff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#eceeff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#eceffd\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0f0ff\] {
   background-color: var(--app-tint-indigo);
 }
 
-.app-shell[data-app-theme="dark"] .bg-\[\#eef1ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#EEF1FF\],
-.app-shell[data-app-theme="dark"] .bg-\[\#e5e9ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#d6d9ee\],
-.app-shell[data-app-theme="dark"] .bg-\[\#d4d8ec\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#eef1ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#EEF1FF\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#e5e9ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#d6d9ee\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#d4d8ec\] {
   background-color: var(--app-tint-indigo-2);
 }
 
@@ -206,88 +219,88 @@ body:has(.app-shell[data-app-theme="dark"]) {
    чтобы статус читался без агрессивного давления на глаза. */
 
 /* — карточный фон status (success): почти невидимый sage-налёт */
-.app-shell[data-app-theme="dark"] .bg-\[\#ecfdf5\],
-.app-shell[data-app-theme="dark"] .bg-\[\#e6f8ec\],
-.app-shell[data-app-theme="dark"] .bg-\[\#effaf1\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0fff0\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ecfdf5\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#e6f8ec\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#effaf1\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0fff0\] {
   background-color: rgba(155, 200, 176, 0.05);
 }
 /* — иконочный фон status (success) — заметнее, для чипсов */
-.app-shell[data-app-theme="dark"] .bg-\[\#d9f4e1\],
-.app-shell[data-app-theme="dark"] .bg-\[\#e8f7ff\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#d9f4e1\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#e8f7ff\] {
   background-color: rgba(155, 200, 176, 0.14);
 }
 /* — карточный фон status (warn): rosé hint */
-.app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff4f2\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff0ef\] {
   background-color: rgba(219, 165, 156, 0.06);
 }
 /* Тот же rosé-hint, но чуть плотнее, для hover-состояния (кнопка «Выйти»
    в шапке кабинета). Отдельный класс — Tailwind генерирует его сам по
    себе, `.bg-[#fff4f2]` выше его не покрывает. */
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#fff4f2\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#fff4f2\]:hover {
   background-color: rgba(219, 165, 156, 0.16);
 }
 /* — иконочный фон status (warn) */
-.app-shell[data-app-theme="dark"] .bg-\[\#ffe2de\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffd2cd\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffe1dc\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffe2de\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffd2cd\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffe1dc\] {
   background-color: rgba(219, 165, 156, 0.14);
 }
 
 /* — amber/оранжевые тинты (warning-soft, alarm-soft) */
-.app-shell[data-app-theme="dark"] .bg-\[\#fff8eb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff7ed\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff2e5\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fef3c7\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffe9b0\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffe2a0\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffe0c2\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffd1a8\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff8eb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff7ed\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff2e5\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fef3c7\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffe9b0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffe2a0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffe0c2\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffd1a8\] {
   background-color: rgba(220, 180, 120, 0.10);
 }
 
 /* — фиолетово-розовые тинты (info-soft, magenta accent) */
-.app-shell[data-app-theme="dark"] .bg-\[\#f5f0ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0edff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f5f3ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fdf4ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fdf2f8\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f5f0ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0edff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f5f3ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fdf4ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fdf2f8\] {
   background-color: rgba(180, 150, 230, 0.10);
 }
 
 /* — teal / mint тинты */
-.app-shell[data-app-theme="dark"] .bg-\[\#f0fdfa\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0fdfa\] {
   background-color: rgba(120, 200, 200, 0.10);
 }
 
 /* — bonus-tone palette (struggler stat-card, journal-bonuses cards):
    pale lavender / rose / yellow ещё не в map'е выше. */
-.app-shell[data-app-theme="dark"] .bg-\[\#dadfff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#e3e7ff\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#dadfff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#e3e7ff\] {
   background-color: var(--app-tint-indigo-2);
 }
-.app-shell[data-app-theme="dark"] .bg-\[\#c8cbe0\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#c8cbe0\] {
   background-color: rgba(255, 255, 255, 0.10);
 }
-.app-shell[data-app-theme="dark"] .bg-\[\#ffe9e4\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffe6e1\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffe9e4\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffe6e1\] {
   background-color: rgba(219, 165, 156, 0.10);
 }
-.app-shell[data-app-theme="dark"] .bg-\[\#fff4d9\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff4d9\] {
   background-color: rgba(220, 180, 120, 0.10);
 }
 
 /* — destructive accent reds (ff3b30, e0342a) — мягкая dusty-rose
    как кнопка-удаления. */
-.app-shell[data-app-theme="dark"] .bg-\[\#ff3b30\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ff5e57\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ff6059\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ff6f5e\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ff3b30\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ff5e57\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ff6059\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ff6f5e\] {
   background-color: #b87a72;
   color: #fff;
 }
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#ff3b30\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#ff3b30\]:hover {
   background-color: #a06b62;
 }
 
@@ -298,82 +311,82 @@ body:has(.app-shell[data-app-theme="dark"]) {
  */
 
 /* Whites / pale grays → soft surface */
-.app-shell[data-app-theme="dark"] .bg-\[\#f0f0f0\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0f2f7\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f1f2f8\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f1f2f9\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f2f2f2\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f2f3f8\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f3f4f6\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f3f4fb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f3f4fe\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f3f5ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f4f5fb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f4f5fe\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f5f6fb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f6f6f6\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f6f7fb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f6f7ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f7f7fb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f7f8fd\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f7f8ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f8f9fc\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f8f9ff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f9f9f9\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f9f9fc\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fafafa\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fbfbfe\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fbfbff\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f0fff0\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0f0f0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0f2f7\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f1f2f8\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f1f2f9\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f2f2f2\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f2f3f8\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f3f4f6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f3f4fb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f3f4fe\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f3f5ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f4f5fb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f4f5fe\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f5f6fb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f6f6f6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f6f7fb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f6f7ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f7f7fb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f7f8fd\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f7f8ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f8f9fc\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f8f9ff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f9f9f9\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f9f9fc\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fafafa\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fbfbfe\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fbfbff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0fff0\] {
   background-color: var(--app-soft-surface);
 }
 
 /* Pale rose / blush — warn-tint */
-.app-shell[data-app-theme="dark"] .bg-\[\#fef2f2\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff0ef\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff0f0\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff1ef\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff2f1\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff3f2\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff4f4\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff5f4\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff6f5\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffecea\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fef2f2\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff0ef\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff0f0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff1ef\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff2f1\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff3f2\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff4f4\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff5f4\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff6f5\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffecea\] {
   background-color: rgba(219, 165, 156, 0.06);
 }
 
 /* Saturated salmon (chip icons, alarms) — slightly stronger rose */
-.app-shell[data-app-theme="dark"] .bg-\[\#f6caca\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fda5a5\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffb08a\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f6caca\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fda5a5\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffb08a\] {
   background-color: rgba(219, 165, 156, 0.20);
 }
 
 /* Pale ambers (warning soft) — amber-tint */
-.app-shell[data-app-theme="dark"] .bg-\[\#fde68a\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fef3c7\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff7e6\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff8ed\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff9eb\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fffbf0\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff4c7\],
-.app-shell[data-app-theme="dark"] .bg-\[\#fff5d9\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fde68a\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fef3c7\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff7e6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff8ed\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff9eb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fffbf0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff4c7\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff5d9\] {
   background-color: rgba(220, 180, 120, 0.10);
 }
 
 /* Saturated yellow / orange chip icons */
-.app-shell[data-app-theme="dark"] .bg-\[\#ffbe2f\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ffd466\],
-.app-shell[data-app-theme="dark"] .bg-\[\#f3b75a\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffbe2f\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ffd466\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f3b75a\] {
   background-color: rgba(220, 180, 120, 0.30);
   color: #f5f6ff;
 }
 
 /* Gradient sweep: добавляем популярные from/to для journal-bonuses,
    landing CTA и т.п. */
-.app-shell[data-app-theme="dark"] [class*="from-\[\#fde68a\]"],
-.app-shell[data-app-theme="dark"] [class*="to-\[\#fbbf24\]"],
-.app-shell[data-app-theme="dark"] [class*="to-\[\#f59e0b\]"] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="from-\[\#fde68a\]"],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="to-\[\#fbbf24\]"],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="to-\[\#f59e0b\]"] {
   --tw-gradient-from: rgba(220, 180, 120, 0.20) !important;
   --tw-gradient-to: rgba(220, 180, 120, 0.30) !important;
   background-image: linear-gradient(to bottom right, rgba(220, 180, 120, 0.20), rgba(220, 180, 120, 0.30));
@@ -381,77 +394,77 @@ body:has(.app-shell[data-app-theme="dark"]) {
 
 /* Цветные иконки амбер / оранж / фиолет / тиал — приглушаем чтобы не
    слепили на тёмном (но сохраняем оттенок для distinction) */
-.app-shell[data-app-theme="dark"] .text-\[\#b25f00\],
-.app-shell[data-app-theme="dark"] .text-\[\#7a4a00\],
-.app-shell[data-app-theme="dark"] .text-\[\#92400e\],
-.app-shell[data-app-theme="dark"] .text-\[\#9a3412\],
-.app-shell[data-app-theme="dark"] .text-\[\#c2510a\],
-.app-shell[data-app-theme="dark"] .text-\[\#b45309\],
-.app-shell[data-app-theme="dark"] .text-\[\#f59e0b\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#b25f00\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#7a4a00\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#92400e\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#9a3412\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#c2510a\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#b45309\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#f59e0b\] {
   color: #d4b078;
 }
-.app-shell[data-app-theme="dark"] .text-\[\#5d3ab3\],
-.app-shell[data-app-theme="dark"] .text-\[\#7a5cff\],
-.app-shell[data-app-theme="dark"] .text-\[\#8b5cf6\],
-.app-shell[data-app-theme="dark"] .text-\[\#d946ef\],
-.app-shell[data-app-theme="dark"] .text-\[\#ec4899\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#5d3ab3\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#7a5cff\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#8b5cf6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#d946ef\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#ec4899\] {
   color: #b496e6;
 }
-.app-shell[data-app-theme="dark"] .text-\[\#0ea5e9\],
-.app-shell[data-app-theme="dark"] .text-\[\#14b8a6\],
-.app-shell[data-app-theme="dark"] .text-\[\#10b981\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#0ea5e9\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#14b8a6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#10b981\] {
   color: #78c8c8;
 }
-.app-shell[data-app-theme="dark"] .text-\[\#3848c7\],
-.app-shell[data-app-theme="dark"] .text-\[\#5566f6\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#3848c7\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#5566f6\] {
   color: var(--app-indigo);
 }
-.app-shell[data-app-theme="dark"] .text-\[\#6b7280\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#6b7280\] {
   color: var(--app-text-muted);
 }
 
 /* Status borders — тонкие приглушённые. На hover ещё видимее
    но без яркой подсветки. */
-.app-shell[data-app-theme="dark"] .border-\[\#ffd2cd\],
-.app-shell[data-app-theme="dark"] .border-\[\#ff8d7d\],
-.app-shell[data-app-theme="dark"] .border-\[\#ffb0a6\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ffd2cd\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ff8d7d\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ffb0a6\] {
   border-color: rgba(219, 165, 156, 0.22);
 }
-.app-shell[data-app-theme="dark"] .border-\[\#ffe2a0\],
-.app-shell[data-app-theme="dark"] .border-\[\#ffd1a8\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ffe2a0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ffd1a8\] {
   border-color: rgba(220, 180, 120, 0.22);
 }
-.app-shell[data-app-theme="dark"] .border-\[\#c7ccea\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#c7ccea\] {
   border-color: rgba(85, 102, 246, 0.28);
 }
-.app-shell[data-app-theme="dark"] .hover\:border-\[\#ff8d7d\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:border-\[\#ff8d7d\]:hover {
   border-color: rgba(219, 165, 156, 0.4);
 }
-.app-shell[data-app-theme="dark"] .border-\[\#c8f0d5\],
-.app-shell[data-app-theme="dark"] .border-\[\#7cf5c0\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#c8f0d5\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#7cf5c0\] {
   border-color: rgba(155, 200, 176, 0.22);
 }
-.app-shell[data-app-theme="dark"] .hover\:border-\[\#7cf5c0\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:border-\[\#7cf5c0\]:hover {
   border-color: rgba(155, 200, 176, 0.4);
 }
 
 /* Status text/icons — приглушённые dusty-rose / sage. */
-.app-shell[data-app-theme="dark"] .text-\[\#7cf5c0\],
-.app-shell[data-app-theme="dark"] .text-\[\#136b2a\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#7cf5c0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#136b2a\] {
   color: #9bc8b0;
 }
-.app-shell[data-app-theme="dark"] .text-\[\#ffb0a6\],
-.app-shell[data-app-theme="dark"] .text-\[\#ff8d7d\],
-.app-shell[data-app-theme="dark"] .text-\[\#d2453d\],
-.app-shell[data-app-theme="dark"] .text-\[\#a13a32\],
-.app-shell[data-app-theme="dark"] .text-\[\#b83a33\],
-.app-shell[data-app-theme="dark"] .text-\[\#bd392f\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#ffb0a6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#ff8d7d\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#d2453d\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#a13a32\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#b83a33\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#bd392f\] {
   color: #dba59c;
 }
 
 /* Override главных переменных, чтобы пиллы Tailwind-у-shadcn
    (`var(--app-warn-fg)` etc) тоже были мягкими */
-.app-shell[data-app-theme="dark"] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
   --app-success-bg: rgba(155, 200, 176, 0.10);
   --app-success-fg: #9bc8b0;
   --app-warn-bg: rgba(219, 165, 156, 0.10);
@@ -460,17 +473,17 @@ body:has(.app-shell[data-app-theme="dark"]) {
 
 /* Кнопки destructive (например "Перейти к сегодня") в dark — тоже
    приглушённый rosé вместо ярко-красного */
-.app-shell[data-app-theme="dark"] .bg-\[\#d2453d\],
-.app-shell[data-app-theme="dark"] .bg-\[\#bd392f\],
-.app-shell[data-app-theme="dark"] .bg-\[\#b83a33\],
-.app-shell[data-app-theme="dark"] .bg-\[\#ef4b44\],
-.app-shell[data-app-theme="dark"] .bg-\[\#e0342a\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#d2453d\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#bd392f\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#b83a33\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#ef4b44\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#e0342a\] {
   background-color: #b87a72;
   color: #fff;
 }
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#b83a33\]:hover,
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#bd392f\]:hover,
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#e0342a\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#b83a33\]:hover,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#bd392f\]:hover,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#e0342a\]:hover {
   background-color: #a06b62;
 }
 
@@ -483,36 +496,36 @@ body:has(.app-shell[data-app-theme="dark"]) {
  * Правим ТОЧЕЧНО по `data-today-banner` на самом баннере: глобальные
  * danger/warn-токены (--app-warn-*, .text-[#d2453d] и т.д.) не трогаем,
  * чтобы не поехали остальные пилюли и кнопки. */
-.app-shell[data-app-theme="dark"] [data-today-banner="pending"] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="pending"] {
   background-color: rgba(219, 165, 156, 0.12);
   border-color: rgba(219, 165, 156, 0.34);
 }
-.app-shell[data-app-theme="dark"] [data-today-banner="pending"] .bg-\[\#ffe1dc\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="pending"] .bg-\[\#ffe1dc\] {
   background-color: rgba(219, 165, 156, 0.2);
 }
-.app-shell[data-app-theme="dark"] [data-today-banner="pending"] .text-\[\#d2453d\],
-.app-shell[data-app-theme="dark"] [data-today-banner="pending"] .text-\[\#d2453d\]\/85 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="pending"] .text-\[\#d2453d\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="pending"] .text-\[\#d2453d\]\/85 {
   color: #f0c9c1;
 }
-.app-shell[data-app-theme="dark"] [data-today-banner="filled"] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="filled"] {
   background-color: rgba(155, 200, 176, 0.12);
   border-color: rgba(155, 200, 176, 0.34);
 }
-.app-shell[data-app-theme="dark"] [data-today-banner="filled"] .bg-\[\#d9f4e1\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="filled"] .bg-\[\#d9f4e1\] {
   background-color: rgba(155, 200, 176, 0.2);
 }
-.app-shell[data-app-theme="dark"] [data-today-banner="filled"] .text-\[\#136b2a\],
-.app-shell[data-app-theme="dark"] [data-today-banner="filled"] .text-\[\#136b2a\]\/80 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="filled"] .text-\[\#136b2a\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="filled"] .text-\[\#136b2a\]\/80 {
   color: #c3e3d1;
 }
 /* Кнопки внутри баннера — заливка остаётся плотной, текст белый. */
-.app-shell[data-app-theme="dark"] [data-today-banner] a {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner] a {
   color: #fff;
 }
-.app-shell[data-app-theme="dark"] [data-today-banner="filled"] a {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="filled"] a {
   background-color: #5e8a71;
 }
-.app-shell[data-app-theme="dark"] [data-today-banner="filled"] a:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [data-today-banner="filled"] a:hover {
   background-color: #517a63;
 }
 
@@ -522,147 +535,147 @@ body:has(.app-shell[data-app-theme="dark"]) {
  * #5566f6 на тёмном контрастирует хуже, чем нужно. Поднимаем плотность
  * подложки и берём осветлённый индиго (--app-indigo = #7081f8), чтобы
  * кнопка оставалась видимой и текст не «проваливался». */
-.app-shell[data-app-theme="dark"] .bg-\[\#5566f6\]\/\[0\.04\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#5566f6\]\/\[0\.04\] {
   background-color: rgba(112, 129, 248, 0.14);
 }
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#5566f6\]\/\[0\.09\]:hover,
-.app-shell[data-app-theme="dark"] .group-hover\/nav\:bg-\[\#5566f6\]\/\[0\.09\],
-.app-shell[data-app-theme="dark"] .bg-\[\#5566f6\]\/\[0\.09\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#5566f6\]\/\[0\.09\]:hover,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .group-hover\/nav\:bg-\[\#5566f6\]\/\[0\.09\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#5566f6\]\/\[0\.09\] {
   background-color: rgba(112, 129, 248, 0.22);
 }
 /* Заливка primary-кнопки на тёмном — чуть светлее, чтобы белый текст
    не давил контрастом 1:1 с фоном страницы. */
-.app-shell[data-app-theme="dark"] .bg-\[\#5566f6\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#5566f6\] {
   background-color: var(--app-indigo);
 }
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#4a5bf0\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#4a5bf0\]:hover {
   background-color: var(--app-indigo-hover);
 }
 /* Групповые варианты tinted-подложки (шапка кабинета: hover по контейнеру
    раскрывает вложенную кнопку). Селекторы отдельные — Tailwind генерирует
    для каждого варианта свой класс, поэтому `.bg-[#5566f6]/[0.09]` выше их
    не покрывает. */
-.app-shell[data-app-theme="dark"] .group-focus-within\/nav\:bg-\[\#5566f6\]\/\[0\.09\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .group-focus-within\/nav\:bg-\[\#5566f6\]\/\[0\.09\] {
   background-color: rgba(112, 129, 248, 0.22);
 }
 
 /* --- SWITCH (тумблеры-слайдеры) -------------------------------------
    `Switch` красится через data-варианты (`data-[state=checked]:bg-…`),
    а это отдельные Tailwind-классы — общий `.bg-[#5566f6]` их не ловит. */
-.app-shell[data-app-theme="dark"]
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"]))
   .data-\[state\=checked\]\:bg-\[\#5566f6\][data-state="checked"] {
   background-color: var(--app-indigo);
 }
-.app-shell[data-app-theme="dark"]
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"]))
   .data-\[state\=unchecked\]\:bg-\[\#dcdfed\][data-state="unchecked"] {
   background-color: var(--app-border-strong);
 }
 
 /* --- BORDERS ------------------------------------------------------- */
-.app-shell[data-app-theme="dark"] .border-\[\#ececf4\],
-.app-shell[data-app-theme="dark"] .border-\[\#ECECF4\],
-.app-shell[data-app-theme="dark"] .border-\[\#ececec\],
-.app-shell[data-app-theme="dark"] .border-\[\#e5e7eb\],
-.app-shell[data-app-theme="dark"] .border-\[\#eceef6\],
-.app-shell[data-app-theme="dark"] .border-\[\#eef0f6\],
-.app-shell[data-app-theme="dark"] .border-\[\#efefef\],
-.app-shell[data-app-theme="dark"] .border-\[\#f0f0f0\],
-.app-shell[data-app-theme="dark"] .border-\[\#f0f1f8\],
-.app-shell[data-app-theme="dark"] .border-gray-200 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ececf4\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ECECF4\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#ececec\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#e5e7eb\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#eceef6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#eef0f6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#efefef\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#f0f0f0\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#f0f1f8\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-gray-200 {
   border-color: var(--app-border);
 }
-.app-shell[data-app-theme="dark"] .border-\[\#dcdfed\],
-.app-shell[data-app-theme="dark"] .border-\[\#DCDFED\],
-.app-shell[data-app-theme="dark"] .border-\[\#d6d6db\],
-.app-shell[data-app-theme="dark"] .border-\[\#d6d9ee\],
-.app-shell[data-app-theme="dark"] .border-\[\#d4d8ec\],
-.app-shell[data-app-theme="dark"] .border-\[\#dbe0f1\],
-.app-shell[data-app-theme="dark"] .border-\[\#dfe1ec\],
-.app-shell[data-app-theme="dark"] .border-gray-300 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#dcdfed\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#DCDFED\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#d6d6db\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#d6d9ee\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#d4d8ec\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#dbe0f1\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-\[\#dfe1ec\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-gray-300 {
   border-color: var(--app-border-strong);
 }
 
 /* --- TEXT ---------------------------------------------------------- */
-.app-shell[data-app-theme="dark"] .text-\[\#0b1024\],
-.app-shell[data-app-theme="dark"] .text-\[\#0B1024\],
-.app-shell[data-app-theme="dark"] .text-black,
-.app-shell[data-app-theme="dark"] .text-gray-900,
-.app-shell[data-app-theme="dark"] .text-slate-900 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#0b1024\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#0B1024\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-black,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-gray-900,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-slate-900 {
   color: var(--app-text);
 }
-.app-shell[data-app-theme="dark"] .text-\[\#3c4053\],
-.app-shell[data-app-theme="dark"] .text-\[\#3C4053\],
-.app-shell[data-app-theme="dark"] .text-gray-700,
-.app-shell[data-app-theme="dark"] .text-slate-700 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#3c4053\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#3C4053\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-gray-700,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-slate-700 {
   color: var(--app-text-secondary);
 }
-.app-shell[data-app-theme="dark"] .text-\[\#6f7282\],
-.app-shell[data-app-theme="dark"] .text-\[\#6F7282\],
-.app-shell[data-app-theme="dark"] .text-\[\#73738a\],
-.app-shell[data-app-theme="dark"] .text-muted-foreground,
-.app-shell[data-app-theme="dark"] .text-gray-500,
-.app-shell[data-app-theme="dark"] .text-gray-600,
-.app-shell[data-app-theme="dark"] .text-slate-500,
-.app-shell[data-app-theme="dark"] .text-slate-600 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#6f7282\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#6F7282\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#73738a\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-muted-foreground,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-gray-500,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-gray-600,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-slate-500,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-slate-600 {
   color: var(--app-text-muted);
 }
-.app-shell[data-app-theme="dark"] .text-\[\#9b9fb3\],
-.app-shell[data-app-theme="dark"] .text-\[\#9B9FB3\],
-.app-shell[data-app-theme="dark"] .text-\[\#c1c5d6\],
-.app-shell[data-app-theme="dark"] .text-gray-400,
-.app-shell[data-app-theme="dark"] .text-slate-400 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#9b9fb3\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#9B9FB3\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#c1c5d6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-gray-400,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-slate-400 {
   color: var(--app-text-faint);
 }
-.app-shell[data-app-theme="dark"] .placeholder\:text-\[\#9b9fb3\]::placeholder,
-.app-shell[data-app-theme="dark"] .placeholder\:text-\[\#c1c5d6\]::placeholder {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .placeholder\:text-\[\#9b9fb3\]::placeholder,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .placeholder\:text-\[\#c1c5d6\]::placeholder {
   color: var(--app-text-faint);
 }
 
 /* Success/warn accent text (leave brand indigo as-is) */
-.app-shell[data-app-theme="dark"] .text-\[\#116b2a\],
-.app-shell[data-app-theme="dark"] .text-\[\#0f5a22\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#116b2a\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#0f5a22\] {
   color: var(--app-success-fg);
 }
-.app-shell[data-app-theme="dark"] .text-\[\#a13a32\],
-.app-shell[data-app-theme="dark"] .text-\[\#d2453d\],
-.app-shell[data-app-theme="dark"] .text-\[\#b83a33\],
-.app-shell[data-app-theme="dark"] .text-\[\#bd392f\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#a13a32\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#d2453d\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#b83a33\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .text-\[\#bd392f\] {
   color: var(--app-warn-fg);
 }
 
 /* --- SHADOWS: на тёмном стандартные shadows почти не видны. Делаем их
    мягче, но ближе к "свечению" вокруг карточек. */
-.app-shell[data-app-theme="dark"] .shadow-\[0_0_0_1px_rgba\(240\,240\,250\,0\.45\)\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .shadow-\[0_0_0_1px_rgba\(240\,240\,250\,0\.45\)\] {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 /* --- Inputs (shadcn + наши кастомные) ------------------------------ */
-.app-shell[data-app-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
-.app-shell[data-app-theme="dark"] textarea,
-.app-shell[data-app-theme="dark"] select {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) textarea,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) select {
   background-color: var(--app-surface-elevated);
   color: var(--app-text);
   border-color: var(--app-border-strong);
 }
-.app-shell[data-app-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
-.app-shell[data-app-theme="dark"] textarea:focus,
-.app-shell[data-app-theme="dark"] select:focus {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):focus,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) textarea:focus,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) select:focus {
   border-color: var(--app-indigo);
 }
 
 /* Hover/accent states — Tailwind hover:bg-gray-50 etc. */
-.app-shell[data-app-theme="dark"] .hover\:bg-gray-50:hover,
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#fafbff\]:hover,
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#f5f6ff\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-gray-50:hover,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#fafbff\]:hover,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#f5f6ff\]:hover {
   background-color: var(--app-tint-indigo);
 }
-.app-shell[data-app-theme="dark"] .hover\:bg-\[\#eef1ff\]:hover {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hover\:bg-\[\#eef1ff\]:hover {
   background-color: var(--app-tint-indigo-2);
 }
 
 /* shadcn Card/Popover/Dialog — они используют bg-popover / bg-card
    которые мапятся через shadcn CSS var. Переопределяем */
-.app-shell[data-app-theme="dark"] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
   --card: oklch(0.22 0.015 265);
   --card-foreground: oklch(0.95 0.01 265);
   --popover: oklch(0.22 0.015 265);
@@ -684,11 +697,11 @@ body:has(.app-shell[data-app-theme="dark"]) {
  * Перебиваем gradient-фон одним сплошным soft-surface там, где он
  * декоративный, чтобы карточка читалась.
  */
-.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#f5f6ff]"],
-.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#fafbff]"],
-.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#ffffff]"],
-.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-white"],
-.app-shell[data-app-theme="dark"] [class*="bg-gradient-to-"][class*="from-[#eef1ff]"] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="bg-gradient-to-"][class*="from-[#f5f6ff]"],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="bg-gradient-to-"][class*="from-[#fafbff]"],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="bg-gradient-to-"][class*="from-[#ffffff]"],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="bg-gradient-to-"][class*="from-white"],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) [class*="bg-gradient-to-"][class*="from-[#eef1ff]"] {
   background-image: none;
   background-color: var(--app-soft-surface);
 }
@@ -696,19 +709,19 @@ body:has(.app-shell[data-app-theme="dark"]) {
 /* --- Dark-hero card (`bg-[#0b1024]`) — остаётся тёмным в обоих темах,
    но в dark theme добавим чуть больше света чтобы отличался от общего
    bg-а (иначе карточка сливается с фоном). */
-.app-shell[data-app-theme="dark"] .bg-\[\#0b1024\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#0b1024\] {
   background-color: #13172e;
 }
 
 /* Border strip под headers (sticky top-0 border-b bg-white) — должен
    наследовать dark, иначе белая полоса при скролле */
-.app-shell[data-app-theme="dark"] header.sticky,
-.app-shell[data-app-theme="dark"] .sticky.top-0 {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) header.sticky,
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .sticky.top-0 {
   background-color: var(--app-surface);
 }
 
 /* --- Impersonation banner: сохранить красный но приглушить фон --- */
-.app-shell[data-app-theme="dark"] .bg-\[\#fff4f2\].text-\[\#d2453d\] {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fff4f2\].text-\[\#d2453d\] {
   background-color: rgba(220, 60, 45, 0.14);
   color: #ff9d95;
 }
@@ -717,17 +730,17 @@ body:has(.app-shell[data-app-theme="dark"]) {
    использует border-black / border-2 border-black как цвет чернил.
    На dark фоне чёрные линии невидимы — смягчаем до белых-полупрозрачных,
    сохраняя структуру таблицы. */
-.app-shell[data-app-theme="dark"] .border-black {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .border-black {
   border-color: rgba(255, 255, 255, 0.18);
 }
-.app-shell[data-app-theme="dark"] .divide-black > :not([hidden]) ~ :not([hidden]) {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .divide-black > :not([hidden]) ~ :not([hidden]) {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Hygiene-grid row header fills (bg-[#f2f2f2]) и подобные "paper gray"
    зафиксируем как app-soft-surface чтобы отличались от основной
    карточки но не создавали визуальной "дырки" в таблице. */
-.app-shell[data-app-theme="dark"] .hygiene-sheet {
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .hygiene-sheet {
   background-color: var(--app-surface);
 }
 
@@ -818,7 +831,10 @@ body:has(.app-shell[data-app-theme="dark"]) {
    * Опт-аут — `data-print-keep-bg` на элементе (например цветная
    * легенда, если она когда-нибудь понадобится на бумаге). */
   .app-shell,
-  .app-shell[data-app-theme="dark"] {
+  .app-shell[data-app-theme="dark"],
+  /* Токены живут ещё и на body (порталы вне оболочки) — иначе
+     всплывашка, открытая в момент печати, ушла бы на лист тёмной. */
+  body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
     /* Значения = светлая тема, см. блок `.app-shell` выше. */
     --app-bg: #ffffff;
     --app-surface: #ffffff;

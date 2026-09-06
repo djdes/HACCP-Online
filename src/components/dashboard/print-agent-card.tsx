@@ -10,6 +10,7 @@ import {
   Printer,
   XCircle,
 } from "lucide-react";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 
 /**
  * Блок «Онлайн принтер» на дашборде: состояние программы печати и
@@ -104,6 +105,7 @@ export function PrintAgentCard() {
           >
             <Download className="size-4" />
             Скачать «Онлайн принтер»
+            <LinkPendingSpinner />
           </Link>
         </div>
       ) : (
@@ -136,9 +138,10 @@ export function PrintAgentCard() {
           ))}
           <Link
             href="/settings/print-agent"
-            className="text-[13px] font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#5566f6] transition-colors hover:text-[#3848c7]"
           >
             Настроить
+            <LinkPendingSpinner />
           </Link>
         </div>
       )}

@@ -125,7 +125,7 @@ export function BottomSheet({
 
 /** Строка листа — крупная, как в мобильных приложениях. */
 export const SHEET_ROW_CLASS =
-  "flex w-full items-center gap-3 rounded-2xl px-3 py-3.5 text-left text-[15px] text-[#0b1024] transition-colors hover:bg-[#f5f6ff] active:bg-[#eef1ff]";
+  "flex w-full min-h-[44px] items-center gap-3 rounded-2xl px-3 py-3.5 text-left text-[15px] text-[#0b1024] transition-colors hover:bg-[#f5f6ff] active:bg-[#eef1ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15";
 
 /** Подпись группы строк. */
 export const SHEET_GROUP_LABEL_CLASS =

@@ -12,6 +12,7 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
+  DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -918,7 +919,11 @@ export function MedBookDocumentClient({
             «СТР. 1 ИЗ 1» физически уезжали за правый край полотна (1150px)
             и обрезались. Скроллятся только таблицы; шапка — во всю ширину
             бумажного полотна. */}
-        <div className={`${DOC_PAPER_HEADER_CLASS} w-full print:mb-2`}>
+        <div
+          className={`${DOC_PAPER_HEADER_CLASS} w-full print:mb-2 ${
+            mobileView === "cards" ? DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS : ""
+          }`}
+        >
           <JournalDocumentHeader
             orgName={organizationName}
             title="Журнал учёта медицинских книжек сотрудников"

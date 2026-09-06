@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type DayStatus =
   | "filled"
@@ -245,19 +246,15 @@ export function CatchUpClient() {
         // быстрее чем спиннер на пустом фоне.
         <div className="overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
           <div className="border-b border-[#ececf4] px-4 py-3">
-            <div className="h-3 w-32 animate-pulse rounded-full bg-[#eceef5]" />
+            <Skeleton className="h-3 w-32 rounded-full" />
           </div>
           <div className="divide-y divide-[#ececf4]">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-3">
-                <div className="h-3 w-32 animate-pulse rounded-full bg-[#eceef5]" />
+                <Skeleton className="h-3 w-32 rounded-full" />
                 <div className="flex-1" />
                 {Array.from({ length: 7 }).map((__, j) => (
-                  <div
-                    key={j}
-                    className="h-7 w-7 animate-pulse rounded-lg bg-[#eef1ff]"
-                    style={{ animationDelay: `${(i * 7 + j) * 30}ms` }}
-                  />
+                  <Skeleton key={j} className="h-7 w-7 rounded-lg" />
                 ))}
               </div>
             ))}

@@ -43,7 +43,7 @@ export function PageHeader({
             {eyebrow}
           </div>
         ) : null}
-        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[#0b1024] [text-wrap:balance]">
           {title}
         </h1>
         {description ? (

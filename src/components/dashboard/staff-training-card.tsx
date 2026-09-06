@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Loader2,
 } from "lucide-react";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 
 type Row = {
   userId: string;
@@ -89,9 +90,10 @@ export function StaffTrainingCard() {
         </div>
         <Link
           href="/journals/staff_training"
-          className="text-[12px] font-medium text-[#3848c7] hover:underline"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#3848c7] hover:underline"
         >
           Журнал обучения
+          <LinkPendingSpinner />
         </Link>
       </div>
 

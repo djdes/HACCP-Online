@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Loader2,
 } from "lucide-react";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 
 type Row = {
   userId: string;
@@ -96,9 +97,10 @@ export function MedBooksExpiryCard() {
         </div>
         <Link
           href="/competencies"
-          className="text-[12px] font-medium text-[#3848c7] hover:underline"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#3848c7] hover:underline"
         >
           Открыть компетенции
+          <LinkPendingSpinner />
         </Link>
       </div>
 
@@ -197,6 +199,7 @@ function RowItem({ row }: { row: Row }) {
         {m.label}
       </span>
       <ArrowRight className="size-4 shrink-0 text-[#9b9fb3]" />
+      <LinkPendingSpinner />
     </Link>
   );
 }

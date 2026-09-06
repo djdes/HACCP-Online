@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
 import { AppStoresTeaser } from "@/components/public/app-stores-teaser";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface NotificationSettingsProps {
   botUsername: string;
@@ -140,8 +141,8 @@ export function NotificationSettings({
       <div className="space-y-6">
         <HeaderBlock />
         <div className="rounded-3xl border border-[#eceef7] bg-white p-8">
-          <div className="h-5 w-64 animate-pulse rounded-full bg-[#eceef7]" />
-          <div className="mt-4 h-3 w-96 animate-pulse rounded-full bg-[#f4f5fb]" />
+          <Skeleton className="h-5 w-64 rounded-full" />
+          <Skeleton className="mt-4 h-3 w-96 rounded-full" />
         </div>
       </div>
     );

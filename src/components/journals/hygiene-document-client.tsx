@@ -3,7 +3,7 @@
 import { getJournalDocumentPeriodLabel } from "@/lib/journal-document-helpers";
 import { TOUR } from "@/lib/tour-anchors";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +26,7 @@ import {
 } from "@/components/journals/table-context-menu";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
+import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
 import {
   JournalDocumentTitle,
   JournalLegendBlock,
@@ -361,6 +362,37 @@ export function HygieneDocumentClient({
     rosterUsers,
     Math.max(rosterUsers.length, 7)
   );
+  // Полоса «сколько осталось заполнить сегодня»: считаем ТОЛЬКО по
+  // реальным строкам сотрудников (без пустых строк-заглушек бланка) и
+  // ТОЛЬКО пока сегодняшняя дата попадает в период документа — иначе
+  // «сегодня» бессмысленно для документа за прошлый месяц.
+  const todayInPeriod = dateKeys.includes(todayKey);
+  const todayProgress = useMemo(() => {
+    if (!todayInPeriod) return { filled: 0, total: 0 };
+    const realEmployees = printableEmployees.filter((employee) => employee.name);
+    const filled = realEmployees.reduce((count, employee) => {
+      const entry = normalizeHygieneEntryData(entryMap[makeCellKey(employee.id, todayKey)]);
+      return count + (entry.status ? 1 : 0);
+    }, 0);
+    return { filled, total: realEmployees.length };
+  }, [entryMap, printableEmployees, todayInPeriod, todayKey]);
+
+  // Предупреждение перед «Закончить журнал»: дни периода до сегодня
+  // включительно, где нет ни одной отметки — день пропущен целиком.
+  const closeWarning = useMemo(() => {
+    const filledDates = new Set(
+      initialEntries
+        .filter((entry) => normalizeHygieneEntryData(entry.data).status)
+        .map((entry) => entry.date)
+    );
+    const missing = dateKeys.filter(
+      (dateKey) => dateKey <= todayKey && !filledDates.has(dateKey)
+    ).length;
+    return missing > 0
+      ? `Не заполнено дней: ${missing}. После закрытия дописать их будет нельзя.`
+      : undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEntries, dateKeys.join(","), todayKey]);
   // Анкоры спотлайт-тура «Как заполнить?»: одна клетка осмотра и одна
   // температуры — у строки текущего пользователя (линейному сотруднику
   // чужие строки закрыты), иначе у первого сотрудника с именем (список
@@ -447,6 +479,15 @@ export function HygieneDocumentClient({
   function toggleAllEmployees(checked: boolean) {
     if (!isActive) return;
     setSelectedEmployeeIds(checked ? rosterUsers.map((employee) => employee.id) : []);
+  }
+
+  /** «Перейти» в полосе прогресса — скролл к сегодняшней колонке дня. */
+  function scrollToTodayColumn() {
+    document.querySelector("[data-focus-today]")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "center",
+    });
   }
 
   /** Локально применить набор ячеек (пустой объект = очистить ячейку). */
@@ -985,6 +1026,7 @@ export function HygieneDocumentClient({
         <StaffJournalToolbar
           subtitle={getJournalDocumentPeriodLabel("hygiene", dateFrom, dateTo)}
           documentId={documentId}
+          closeWarning={closeWarning}
           heading="Гигиенический журнал"
           title={documentTitle}
           status={status}
@@ -1004,6 +1046,13 @@ export function HygieneDocumentClient({
             onRedo: () => void undoStack.redo(),
             undoCount: undoStack.undoCount,
           }}
+        />
+
+        <TodayProgressStrip
+          filled={todayProgress.filled}
+          total={todayProgress.total}
+          label="сотрудников"
+          onJumpToToday={scrollToTodayColumn}
         />
 
         {!isActive ? (

@@ -54,13 +54,14 @@ import {
 import { RoomDirectoryPickerDialog } from "@/components/cleaning/room-directory-picker-dialog";
 import { directoryRoomToEditorInitial } from "@/components/cleaning/room-editor-initial";
 import type { DirectoryBuilding, DirectoryRoom } from "@/lib/room-directory";
-import { getHygienePositionLabel } from "@/lib/hygiene-document";
+import { buildDateKeys, getHygienePositionLabel, isWeekend } from "@/lib/hygiene-document";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
+  DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -72,6 +73,7 @@ import {
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -1073,7 +1075,38 @@ export function ClimateDocumentClient({
       );
     }
   }
-  const closeAction = useDocumentCloseAction({ documentId, title: documentTitle });
+  // Предупреждение при закрытии журнала: дни периода до сегодня
+  // включительно, где НИ ОДНА клетка не заполнена (ни в одном помещении,
+  // ни на одно время контроля) — то есть день пропущен целиком, а не
+  // просто не до конца. `useDocumentCloseAction` живёт в отдельном файле
+  // вне зоны этой правки, поэтому единственный canal — его собственный
+  // проп `confirmMessage` (текст заголовка confirm-диалога).
+  const missingDaysBeforeClose = useMemo(() => {
+    if (!todayKey) return 0;
+    const periodDateKeys = buildDateKeys(dateFrom, dateTo).filter(
+      (dateKey) =>
+        dateKey <= todayKey && !(config.skipWeekends && isWeekend(dateKey))
+    );
+    const hasMeasurementByDate = new Map<string, boolean>();
+    rows.forEach((row) => {
+      const filled = Object.values(row.data.measurements ?? {}).some((byTime) =>
+        Object.values(byTime ?? {}).some(
+          (cell) => cell?.temperature != null || cell?.humidity != null
+        )
+      );
+      hasMeasurementByDate.set(row.date, hasMeasurementByDate.get(row.date) || filled);
+    });
+    return periodDateKeys.filter((dateKey) => !hasMeasurementByDate.get(dateKey)).length;
+  }, [config.skipWeekends, dateFrom, dateTo, rows, todayKey]);
+
+  const closeAction = useDocumentCloseAction({
+    documentId,
+    title: documentTitle,
+    confirmDescription:
+      missingDaysBeforeClose > 0
+        ? `Не заполнено дней: ${missingDaysBeforeClose}. После закрытия дописать их будет нельзя.`
+        : undefined,
+  });
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
   const [responsibleDialogOpen, setResponsibleDialogOpen] = useState(false);
@@ -1129,6 +1162,44 @@ export function ClimateDocumentClient({
       ),
     [config.controlTimes.length, visibleRooms]
   );
+
+  // Полоса «сколько осталось заполнить сегодня»: единица счёта здесь —
+  // ПОМЕЩЕНИЕ, не строка (одна строка климата = один день целиком).
+  // Помещение считается заполненным, только если сегодня проставлены
+  // ВСЕ включённые метрики за ВСЕ времена контроля — иначе забытый
+  // вечерний замер прятался бы за уже заполненным утренним.
+  // Выходной при включённом «не заполнять в выходные» — заполнять нечего,
+  // полосу не показываем совсем.
+  const todayInPeriod =
+    isDateWithinDocumentPeriod(todayKey, dateFrom, dateTo) &&
+    !(config.skipWeekends && isWeekend(todayKey));
+  const todayProgress = useMemo(() => {
+    if (!todayInPeriod || visibleRooms.length === 0 || config.controlTimes.length === 0) {
+      return { filled: 0, total: 0 };
+    }
+    const todayRow = rows.find((row) => row.date === todayKey);
+    const measurements = todayRow?.data.measurements ?? {};
+    const filled = visibleRooms.reduce((count, room) => {
+      const roomMeasurements = measurements[room.id] ?? {};
+      const isRoomDone = config.controlTimes.every((time) => {
+        const cell = roomMeasurements[time];
+        const temperatureOk = !room.temperature.enabled || cell?.temperature != null;
+        const humidityOk = !room.humidity.enabled || cell?.humidity != null;
+        return temperatureOk && humidityOk;
+      });
+      return count + (isRoomDone ? 1 : 0);
+    }, 0);
+    return { filled, total: visibleRooms.length };
+  }, [config.controlTimes, rows, todayInPeriod, todayKey, visibleRooms]);
+
+  /** «Перейти» в полосе прогресса — скролл к сегодняшней строке. */
+  function scrollToTodayColumn() {
+    document.querySelector("[data-focus-today]")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "center",
+    });
+  }
 
   const allSelected =
     rows.length > 0 && selectedRowIds.length > 0 && selectedRowIds.length === rows.length;
@@ -1764,6 +1835,18 @@ export function ClimateDocumentClient({
           </span>
         </div>
 
+        {/* Обёртка с mb-4 — ТОЛЬКО когда полоса реально рисуется: сам
+            компонент при total===0 возвращает null, а className на
+            пустом <div> всё равно потянул бы за собой отступ. */}
+        <div className={todayProgress.total > 0 ? "mb-4" : undefined}>
+          <TodayProgressStrip
+            filled={todayProgress.filled}
+            total={todayProgress.total}
+            label="помещений"
+            onJumpToToday={scrollToTodayColumn}
+          />
+        </div>
+
         {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Широкая сетка климата (min-w 1280) скроллится внутри своего
             GRID_VIEWPORT_CLASS, который лежит ВНУТРИ полотна. */}
@@ -1789,7 +1872,11 @@ export function ClimateDocumentClient({
             понимал, что её надо доскроллить. Теперь обе таблицы одной
             ширины и обе живут в `GRID_VIEWPORT_CLASS` с постоянно видимой
             полосой прокрутки (`GRID_VIEWPORT_SCROLLBAR_CLASS`). */}
-        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
+        <div
+          className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} ${
+            mobileView === "cards" ? DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS : ""
+          }`}
+        >
           <table className="w-full min-w-[1280px] border-collapse text-[13px] text-[#0b1024]">
             <tbody>
               <JournalPaperHeaderRows

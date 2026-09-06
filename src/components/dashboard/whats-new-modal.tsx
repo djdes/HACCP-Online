@@ -26,6 +26,8 @@ import {
   Wand2,
   X,
   MapPin,
+  Smartphone,
+  Zap,
 } from "lucide-react";
 
 const STORAGE_KEY = "wesetup.last-seen-build-sha";
@@ -88,6 +90,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Раньше — тоже полезное": ListChecks,
   "Соответствие методичке ХАССП — 5 новых журналов + выровненные колонки": ShieldCheck,
   "Документы и конфиденциальность": ShieldCheck,
+  "Интерфейс на телефоне": Smartphone,
+  "Скорость и отклик": Zap,
 };
 
 function iconForCategory(name: string): LucideIcon {

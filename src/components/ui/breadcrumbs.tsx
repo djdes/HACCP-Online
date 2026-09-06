@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2 } from "lucide-react";
 import {
@@ -205,6 +205,20 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
   // подменю документов туда не помещалось вовсе.
   const narrow = useIsNarrowViewport();
   const [sheetOpen, setSheetOpen] = useState(false);
+  // Переход по крошке идёт через router.push, а не через <Link> — у
+  // клика нет фиксированной вёрстки-ссылки (сегмент, пункт меню и строка
+  // журнала ведут в разные места). useTransition даёт тот же отклик на
+  // нажатие, что LinkPendingSpinner у настоящих <Link>: крутилка встаёт
+  // рядом с названием этой крошки, пока переход не завершится.
+  const [isPending, startTransition] = useTransition();
+  const navigate = useCallback(
+    (href: string) => {
+      startTransition(() => {
+        router.push(href);
+      });
+    },
+    [router],
+  );
 
   // Длинные названия обрезаем многоточием: одно имя документа иначе
   // растягивает всю строку навигации.
@@ -219,13 +233,16 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
         {...(Tag === "button"
           ? {
               type: "button" as const,
-              onClick: () => router.push(crumb.href as string),
+              onClick: () => navigate(crumb.href as string),
             }
           : { "aria-current": isLast ? ("page" as const) : undefined })}
         title={crumb.label}
         className={segmentClass(isLast)}
       >
         <span className={labelClass}>{crumb.label}</span>
+        {isPending ? (
+          <Loader2 className="size-3.5 shrink-0 animate-spin text-[#5566f6]" />
+        ) : null}
       </Tag>
     );
   }
@@ -240,6 +257,9 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
           className={segmentClass(isLast)}
         >
           <span className={labelClass}>{crumb.label}</span>
+          {isPending ? (
+            <Loader2 className="size-3.5 shrink-0 animate-spin text-[#5566f6]" />
+          ) : null}
         </button>
         <BottomSheet
           open={sheetOpen}
@@ -252,7 +272,7 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
               type="button"
               onClick={() => {
                 setSheetOpen(false);
-                router.push(item.href);
+                navigate(item.href);
               }}
               className={cn(
                 SHEET_ROW_CLASS,
@@ -294,11 +314,14 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
           if (!crumb.href || isLast) return;
           e.preventDefault();
           menu.setOpen(false);
-          router.push(crumb.href);
+          navigate(crumb.href);
         }}
         className={segmentClass(isLast)}
       >
         <span className={labelClass}>{crumb.label}</span>
+        {isPending ? (
+          <Loader2 className="size-3.5 shrink-0 animate-spin text-[#5566f6]" />
+        ) : null}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
@@ -318,11 +341,12 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
               item={item}
               journalCode={item.submenuJournalCode}
               onNavigate={() => menu.setOpen(false)}
+              navigate={navigate}
             />
           ) : (
             <DropdownMenuItem
               key={item.href + item.label}
-              onSelect={() => router.push(item.href)}
+              onSelect={() => navigate(item.href)}
               className={cn(ITEM_CLASS, item.current && CURRENT_ITEM_CLASS)}
             >
               <MenuRow item={item} />
@@ -364,12 +388,14 @@ function JournalRowWithDocuments({
   item,
   journalCode,
   onNavigate,
+  navigate,
 }: {
   item: CrumbMenuItem;
   journalCode: string;
   onNavigate: () => void;
+  /** Общий с родительской крошкой переход (см. `useTransition` в `CrumbNode`). */
+  navigate: (href: string) => void;
 }) {
-  const router = useRouter();
   const [documents, setDocuments] = useState<CrumbMenuItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   // Тип указателя запоминаем на pointerdown: у синтезированного click
@@ -404,7 +430,7 @@ function JournalRowWithDocuments({
           // остаётся быстрым переходом в сам журнал — самый частый сценарий.
           e.preventDefault();
           onNavigate();
-          router.push(item.href);
+          navigate(item.href);
         }}
         className={cn(
           ITEM_CLASS,
@@ -437,7 +463,7 @@ function JournalRowWithDocuments({
                 key={doc.href}
                 onSelect={() => {
                   onNavigate();
-                  router.push(doc.href);
+                  navigate(doc.href);
                 }}
                 className={cn(ITEM_CLASS, "min-w-0")}
               >

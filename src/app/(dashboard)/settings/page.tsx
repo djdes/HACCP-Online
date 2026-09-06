@@ -41,6 +41,7 @@ import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
 import { getRouteTitle } from "@/lib/route-titles";
+import { LinkPendingOverlay } from "@/components/ui/link-pending";
 // ThemeSwitcher убран отсюда — занимал много места. Переключатель темы
 // живёт в меню профиля (иконка справа вверху) → подменю «Тема».
 
@@ -654,7 +655,11 @@ function SettingsGroup({
         {items.map((card) => {
           const Icon = card.icon;
           return (
-            <Link key={card.href} href={card.href} className="group">
+            <Link
+              key={card.href}
+              href={card.href}
+              className="group relative overflow-hidden rounded-2xl"
+            >
               <div className="flex h-full items-start gap-4 rounded-2xl border border-[#ececf4] bg-white px-5 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-all hover:border-[#d6d9ee] hover:shadow-[0_8px_24px_-12px_rgba(85,102,246,0.18)]">
                 <div
                   className={`flex size-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105 ${card.bgClass}`}
@@ -673,6 +678,7 @@ function SettingsGroup({
                   </div>
                 </div>
               </div>
+              <LinkPendingOverlay />
             </Link>
           );
         })}

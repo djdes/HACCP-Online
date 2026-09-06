@@ -80,6 +80,12 @@ type Props = {
   hideHeading?: boolean;
   hidePrint?: boolean;
   hideAutoFill?: boolean;
+  /**
+   * Предупреждение в диалоге «Закончить журнал» — например
+   * «Не заполнено дней: 3». Считает клиент журнала: только он знает,
+   * какая клетка считается заполненной.
+   */
+  closeWarning?: string;
   onSettingsClick?: () => void;
   /**
    * Кнопки «Отменить/Повторить» в шапке. Проброс до
@@ -646,6 +652,7 @@ export function StaffJournalToolbar({
   subtitle,
   hidePrint = false,
   hideAutoFill = false,
+  closeWarning,
   onSettingsClick,
   undo,
   useV2 = false,
@@ -659,7 +666,11 @@ export function StaffJournalToolbar({
   const [autoFillDialog, setAutoFillDialog] = useState<"on" | "off" | null>(null);
   const [revertOnDisable, setRevertOnDisable] = useState(true);
   const copyYesterday = useCopyYesterdayAction(documentId);
-  const closeAction = useDocumentCloseAction({ documentId, title });
+  const closeAction = useDocumentCloseAction({
+    documentId,
+    title,
+    confirmDescription: closeWarning,
+  });
 
   useEffect(() => {
     setChecked(autoFill);

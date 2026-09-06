@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -56,21 +57,55 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  children,
+  disabled,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    /**
+     * Отклик на нажатие: крутилка вместо иконки, кнопка не нажимается.
+     * Нужен там, где после нажатия что-то грузится — на медленном
+     * интернете иначе не видно, что нажатие засчиталось.
+     * С `asChild` не работает (у Slot один ребёнок) — там ставьте
+     * `<LinkPendingSpinner>` внутри ссылки.
+     */
+    loading?: boolean
   }) {
-  const Comp = asChild ? Slot.Root : "button"
+  // `asChild` отдаёт единственного ребёнка в Slot (React.Children.only),
+  // поэтому крутилку туда подмешивать нельзя — ветки разные.
+  if (asChild) {
+    return (
+      <Slot.Root
+        data-slot="button"
+        data-variant={variant}
+        data-size={size}
+        {...(disabled ? { disabled: true } : {})}
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      >
+        {children}
+      </Slot.Root>
+    )
+  }
 
   return (
-    <Comp
+    <button
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      data-loading={loading ? "" : undefined}
+      aria-busy={loading ? true : undefined}
+      disabled={disabled || loading}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {loading ? (
+        <Loader2 aria-hidden className="size-4 shrink-0 animate-spin" />
+      ) : null}
+      {children}
+    </button>
   )
 }
 

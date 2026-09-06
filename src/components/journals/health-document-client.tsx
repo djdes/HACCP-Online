@@ -1,7 +1,7 @@
 "use client";
 
 import { getJournalDocumentPeriodLabel } from "@/lib/journal-document-helpers";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ import {
   type HealthEntryData,
 } from "@/lib/hygiene-document";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
 
 import {
   JournalDocumentTitle,
@@ -244,6 +245,56 @@ export function HealthDocumentClient(props: Props) {
   const allSelected = rosterUsers.length > 0 && selectedCount === rosterUsers.length;
   const isActive = status === "active";
 
+  // Полоса «сколько осталось заполнить сегодня»: только реальные строки
+  // сотрудников (без пустых строк-заглушек бланка под печать) и только
+  // пока сегодняшняя дата попадает в период документа — иначе «сегодня»
+  // бессмысленно для документа за прошлый период.
+  const todayInPeriod = dateKeys.includes(todayKey);
+  const todayProgress = useMemo(() => {
+    if (!todayInPeriod) return { filled: 0, total: 0 };
+    const realEmployees = printableEmployees.filter((employee) => employee.name);
+    // Читаем из initialEntries напрямую (а не из `entryMap` выше) —
+    // `entryMap` пересобирается новым объектом на каждый рендер, и
+    // react-hooks/exhaustive-deps справедливо ругается на такую
+    // зависимость useMemo. `initialEntries` — стабильный проп.
+    const signedTodayByEmployee = new Map(
+      initialEntries
+        .filter((entry) => entry.date === todayKey)
+        .map((entry) => [entry.employeeId, normalizeHealthEntryData(entry.data).signed])
+    );
+    const filled = realEmployees.reduce(
+      (count, employee) => count + (signedTodayByEmployee.get(employee.id) ? 1 : 0),
+      0
+    );
+    return { filled, total: realEmployees.length };
+  }, [initialEntries, printableEmployees, todayInPeriod, todayKey]);
+
+  // Предупреждение перед «Закончить журнал»: дни периода до сегодня
+  // включительно, где нет ни одной подписи — день пропущен целиком.
+  const closeWarning = useMemo(() => {
+    const filledDates = new Set(
+      initialEntries
+        .filter((entry) => normalizeHealthEntryData(entry.data).signed)
+        .map((entry) => entry.date)
+    );
+    const missing = dateKeys.filter(
+      (dateKey) => dateKey <= todayKey && !filledDates.has(dateKey)
+    ).length;
+    return missing > 0
+      ? `Не заполнено дней: ${missing}. После закрытия дописать их будет нельзя.`
+      : undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEntries, dateKeys.join(","), todayKey]);
+
+  /** «Перейти» в полосе прогресса — скролл к сегодняшней колонке дня. */
+  function scrollToTodayColumn() {
+    document.querySelector("[data-focus-today]")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "center",
+    });
+  }
+
   function toggleEmployee(employeeId: string, checked: boolean) {
     setSelectedEmployeeIds((current) =>
       checked ? [...new Set([...current, employeeId])] : current.filter((item) => item !== employeeId)
@@ -378,6 +429,7 @@ export function HealthDocumentClient(props: Props) {
           <StaffJournalToolbar
             subtitle={getJournalDocumentPeriodLabel("health_check", dateFrom, dateTo)}
             documentId={documentId}
+            closeWarning={closeWarning}
             heading="Журнал здоровья"
             title={documentTitle}
             status={status}
@@ -395,6 +447,13 @@ export function HealthDocumentClient(props: Props) {
               setEmptyRows(String(printEmptyRows));
               setSettingsOpen(true);
             }}
+          />
+
+          <TodayProgressStrip
+            filled={todayProgress.filled}
+            total={todayProgress.total}
+            label="сотрудников"
+            onJumpToToday={scrollToTodayColumn}
           />
 
           {!isActive ? (

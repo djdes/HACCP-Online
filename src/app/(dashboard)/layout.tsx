@@ -8,6 +8,7 @@ import { CompleteProfileNudge } from "@/components/dashboard/complete-profile-nu
 import { WelcomeOrgBanner } from "@/components/organizations/welcome-org-banner";
 import { DemoOrgBanner } from "@/components/organizations/demo-org-banner";
 import { DashboardFooter } from "@/components/dashboard/dashboard-footer";
+import { FabDockProvider } from "@/components/layout/fab-dock";
 import { Toaster } from "@/components/ui/sonner";
 import {
   SiteThemeBootstrap,
@@ -250,6 +251,11 @@ export default async function DashboardLayout({
           data-partner-accent={partnerAccent ? "" : undefined}
           suppressHydrationWarning
         >
+          {/* Док плавающих кнопок: AI-помощник, поддержка и «Как
+              заполнять» регистрируются в нём вместо собственных круглых
+              кнопок. На телефоне их было три, и они закрывали правый
+              нижний угол страницы. */}
+          <FabDockProvider>
           {impersonatedName ? (
             <ImpersonationBanner organizationName={impersonatedName} />
           ) : null}
@@ -367,6 +373,7 @@ export default async function DashboardLayout({
           <CommandPalette />
           {/* P2.A.1 — Ctrl+Shift+N → срочный журнал → /journals/[code]/new */}
           <UrgentJournalHotkey />
+          </FabDockProvider>
         </div>
         <Toaster />
       </SiteThemeProvider>

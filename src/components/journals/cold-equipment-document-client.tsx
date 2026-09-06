@@ -83,6 +83,7 @@ import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-but
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
 import { useMobileView } from "@/lib/use-mobile-view";
 
 import { cn } from "@/lib/utils";
@@ -737,7 +738,35 @@ export function ColdEquipmentDocumentClient({
       ),
     );
   }
-  const closeAction = useDocumentCloseAction({ documentId, title });
+  // Предупреждение при закрытии журнала: дни периода до сегодня
+  // включительно, где НИ ОДНА единица оборудования не имеет замера —
+  // день пропущен целиком, а не просто не до конца заполнен.
+  // `useDocumentCloseAction` — файл вне зоны этой правки, поэтому
+  // единственный доступный канал — его собственный проп `confirmMessage`
+  // (текст заголовка confirm-диалога).
+  const missingDaysBeforeClose = useMemo(() => {
+    if (!todayKey) return 0;
+    const periodDateKeys = buildDateKeys(dateFrom, dateTo).filter(
+      (dateKey) =>
+        dateKey <= todayKey && !(config.skipWeekends && isWeekend(dateKey))
+    );
+    return periodDateKeys.filter((dateKey) => {
+      const row = rows.find((item) => item.date === dateKey);
+      const hasAnyValue = row
+        ? Object.values(row.data.temperatures ?? {}).some((value) => value != null)
+        : false;
+      return !hasAnyValue;
+    }).length;
+  }, [config.skipWeekends, dateFrom, dateTo, rows, todayKey]);
+
+  const closeAction = useDocumentCloseAction({
+    documentId,
+    title,
+    confirmDescription:
+      missingDaysBeforeClose > 0
+        ? `Не заполнено дней: ${missingDaysBeforeClose}. После закрытия дописать их будет нельзя.`
+        : undefined,
+  });
   const [equipmentDialogOpen, setEquipmentDialogOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<ColdEquipmentConfigItem | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
@@ -788,6 +817,32 @@ export function ColdEquipmentDocumentClient({
   const allSelected =
     config.equipment.length > 0 &&
     selectedEquipmentIds.length === config.equipment.length;
+
+  // Полоса «сколько осталось заполнить сегодня»: единица счёта —
+  // единица оборудования. Заполнена, если за сегодня есть значение
+  // температуры (независимо от `readingMode` — сетка хранит одно
+  // значение на оборудование в день, а не по времени замера).
+  // Выходной при включённом «не заполнять в выходные» — заполнять нечего.
+  const todayInPeriod =
+    dateKeys.includes(todayKey) && !(config.skipWeekends && isWeekend(todayKey));
+  const todayProgress = useMemo(() => {
+    if (!todayInPeriod || config.equipment.length === 0) return { filled: 0, total: 0 };
+    const todayRow = rowByDate[todayKey];
+    const filled = config.equipment.reduce((count, item) => {
+      const value = todayRow?.data.temperatures?.[item.id];
+      return count + (value != null ? 1 : 0);
+    }, 0);
+    return { filled, total: config.equipment.length };
+  }, [config.equipment, rowByDate, todayInPeriod, todayKey]);
+
+  /** «Перейти» в полосе прогресса — скролл к сегодняшней колонке дня. */
+  function scrollToTodayColumn() {
+    document.querySelector("[data-focus-today]")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "center",
+    });
+  }
 
   async function persistDocument(payload: Record<string, unknown>) {
     const response = await fetch(`/api/journal-documents/${documentId}`, {
@@ -1295,6 +1350,18 @@ export function ColdEquipmentDocumentClient({
             </div>
           </div>
         ) : null}
+
+        {/* Обёртка с mb-4 — ТОЛЬКО когда полоса реально рисуется: сам
+            компонент при total===0 возвращает null, а className на
+            пустом <div> всё равно потянул бы за собой отступ. */}
+        <div className={todayProgress.total > 0 ? "mb-4" : undefined}>
+          <TodayProgressStrip
+            filled={todayProgress.filled}
+            total={todayProgress.total}
+            label="единиц оборудования"
+            onJumpToToday={scrollToTodayColumn}
+          />
+        </div>
 
         {/* Кнопка «Добавить ХО» переехала под КАПС-заголовок, вплотную
             над таблицу — как на эталоне. В mobile-cards ветке она

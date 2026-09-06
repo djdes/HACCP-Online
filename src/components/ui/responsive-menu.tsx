@@ -167,7 +167,7 @@ function MenuRow({ item }: { item: ResponsiveMenuItem }) {
       className={cn(
         "h-9 rounded-xl px-3 text-[13.5px]",
         item.tone === "danger" &&
-          "text-[#a13a32] focus:bg-[#fff4f2] focus:text-[#a13a32]"
+          "text-[#a13a32] focus:bg-[#fff4f2] focus:text-[#a13a32] focus-visible:ring-[#a13a32]/15"
       )}
       onSelect={item.onSelect}
     >
@@ -202,7 +202,7 @@ function SheetRow({
         SHEET_ROW_CLASS,
         item.disabled && "opacity-40",
         item.tone === "danger" &&
-          "text-[#a13a32] hover:bg-[#fff4f2] active:bg-[#ffe9e5]"
+          "text-[#a13a32] hover:bg-[#fff4f2] active:bg-[#ffe9e5] focus-visible:ring-[#a13a32]/15"
       )}
     >
       {item.icon ? (

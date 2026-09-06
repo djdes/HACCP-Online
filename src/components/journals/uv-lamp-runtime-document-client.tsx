@@ -63,6 +63,7 @@ import {
   DOC_CAPS_TITLE_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
+  DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -1466,7 +1467,11 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       {/* Официальный ХАССП-header — для печати в РПН/СЭС-проверки.
           По эталону (uv_lamp_runtime-grid.png) он стоит НАД справочными
           таблицами спецификации и наработки, а не под ними. */}
-      <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>
+      <div
+        className={`${DOC_PAPER_HEADER_CLASS} print:mb-2 ${
+          mobileView === "cards" ? DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS : ""
+        }`}
+      >
         <JournalDocumentHeader
           orgName={props.organizationName}
           title="Журнал учета работы ультрафиолетовой бактерицидной установки"

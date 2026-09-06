@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { HealthCheck } from "@/lib/org-health-check";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 
 type Props = {
   checks: HealthCheck[];
@@ -151,6 +152,7 @@ export function OrgHealthWidget({
                     {c.hint}
                   </span>
                 </span>
+                <LinkPendingSpinner className="mt-0.5 shrink-0" />
               </span>
             );
             return (

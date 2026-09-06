@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, AlertTriangle, CalendarDays, CheckCheck, CheckCircle2, Wand2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LinkPendingSpinner } from "@/components/ui/link-pending";
 import { toast } from "sonner";
 import { localDayKey } from "@/lib/entry-defaults";
 
@@ -222,6 +223,7 @@ export function CloseDayCard({
           <Wand2 className="size-4 text-[#5566f6]" />
           <span className="sm:hidden">Выборочно</span>
           <span className="hidden sm:inline">Закрыть выборочно</span>
+          <LinkPendingSpinner />
         </Link>
         {/* Итог показываем тостом, а не строкой рядом с кнопками:
             в шапке секции ей негде развернуться, а цифры нужны сразу
@@ -268,6 +270,7 @@ export function CloseDayCard({
           >
             <Wand2 className="size-4" />
             Закрыть выборочно
+            <LinkPendingSpinner />
           </Link>
         </div>
       </div>

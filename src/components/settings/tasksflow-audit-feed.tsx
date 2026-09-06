@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Activity, RefreshCw, AlertTriangle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type TfAuditEvent = {
   id: number;
@@ -70,10 +71,7 @@ export function TasksflowAuditFeed() {
         <SectionHeader />
         <div className="mt-4 space-y-2">
           {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-14 animate-pulse rounded-2xl bg-[#fafbff]"
-            />
+            <Skeleton key={i} className="h-14 rounded-2xl" />
           ))}
         </div>
       </section>

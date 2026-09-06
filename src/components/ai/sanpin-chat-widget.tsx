@@ -3,6 +3,8 @@ import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+
+import { useFabAction, useHasFabDock } from "@/components/layout/fab-dock";
 import {
   Bot,
   Check,
@@ -282,6 +284,20 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
 
   const fabBottom = bottomOffset ? { bottom: bottomOffset } : undefined;
 
+  const docked = useHasFabDock();
+  useFabAction(
+    {
+      id: "sanpin-chat",
+      order: 10,
+      label: "AI помощник",
+      hint: "Спросить про СанПиН, ХАССП и ваши журналы",
+      icon: Sparkles,
+      tone: "brand",
+      onSelect: () => setOpen(true),
+    },
+    docked && !open,
+  );
+
   return (
     <>
       <IncomingMessagePopup
@@ -293,8 +309,9 @@ export function SanpinChatWidget({ bottomOffset }: { bottomOffset?: number }) {
         }}
         onDismiss={() => setReplyPopup(null)}
       />
-      {/* FAB launcher — компактная иконка-кнопка */}
-      {!open ? (
+      {/* FAB launcher — компактная иконка-кнопка. В кабинете её рисует
+          общий док (`FabDockProvider`), в Mini App — этот компонент. */}
+      {!open && !docked ? (
         <button
           type="button"
           onClick={() => setOpen(true)}

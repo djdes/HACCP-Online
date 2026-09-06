@@ -28,6 +28,7 @@ import {
   LauncherBadge,
 } from "@/components/support/incoming-message-popup";
 import { useIncomingMessages } from "@/components/support/use-incoming-messages";
+import { useFabAction, useHasFabDock } from "@/components/layout/fab-dock";
 import {
   isNotificationSoundMuted,
   setNotificationSoundMuted,
@@ -293,6 +294,21 @@ export function SupportWidget({
   );
   const showClientAuthors = clientAuthors.size > 1;
 
+  // В кабинете кнопку рисует общий док; здесь только регистрируем её.
+  const docked = useHasFabDock();
+  useFabAction(
+    {
+      id: "support",
+      order: 20,
+      label: "Поддержка",
+      hint: "Написать нам или посмотреть переписку",
+      icon: MessageCircle,
+      badge: incoming.unread,
+      onSelect: () => setOpen(true),
+    },
+    docked && !open,
+  );
+
   const popup = (
     <IncomingMessagePopup
       popup={incoming.popup}
@@ -308,6 +324,7 @@ export function SupportWidget({
     return (
       <>
         {popup}
+        {docked ? null : (
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -322,6 +339,7 @@ export function SupportWidget({
           <LauncherBadge count={incoming.unread} />
           <MessageCircle className="relative size-4" />
         </button>
+        )}
       </>
     );
   }
