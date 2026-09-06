@@ -31,7 +31,10 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45, а не 30: три SSH-шага в сумме просят до 55 минут в худшем
+    # случае (чистая установка зависимостей + сборка + миграции), и
+    # бюджета в 30 не хватало — job убивался раньше своих же шагов.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -160,8 +163,16 @@ jobs:
           password: ${{ secrets.DEPLOY_SSH_PASS }}
           port: ${{ secrets.DEPLOY_SSH_PORT }}
           envs: GITHUB_SHA
-          timeout: 600s
-          command_timeout: 10m
+          timeout: 1200s
+          # 20m, а не 10m. Когда меняется package-lock, шаг сносит
+          # node_modules и ставит зависимости начисто — на этом сервере
+          # это дольше десяти минут. Деплой с новой библиотекой падал
+          # ровно здесь: SSH обрывался посреди `npm ci`, шаги сборки и
+          # рестарта не выполнялись, а кабинет оставался без стилей,
+          # потому что старая статика к тому моменту уже отложена в
+          # сторону. Обычный деплой (lock не менялся) укладывается в
+          # полминуты, так что запас ничего не стоит.
+          command_timeout: 20m
           script: |
             set -eo pipefail
             cd ${{ env.APP_DIR }}
