@@ -13,6 +13,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BottomSheet, SHEET_ROW_CLASS } from "@/components/ui/bottom-sheet";
+import { useIsNarrowViewport } from "@/components/ui/spotlight-tour";
 import { cn } from "@/lib/utils";
 import {
   MENU_ITEM_ACTIVE_CLASS,
@@ -198,6 +200,11 @@ export function Breadcrumbs({
 function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
   const router = useRouter();
   const menu = useHoverMenu();
+  // На телефоне список журналов и документов открывается листом снизу:
+  // выпадающее меню давало мелкие строки у левого края, а вложенное
+  // подменю документов туда не помещалось вовсе.
+  const narrow = useIsNarrowViewport();
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // Длинные названия обрезаем многоточием: одно имя документа иначе
   // растягивает всю строку навигации.
@@ -220,6 +227,57 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
       >
         <span className={labelClass}>{crumb.label}</span>
       </Tag>
+    );
+  }
+
+  if (narrow) {
+    return (
+      <>
+        <button
+          type="button"
+          title={crumb.label}
+          onClick={() => setSheetOpen(true)}
+          className={segmentClass(isLast)}
+        >
+          <span className={labelClass}>{crumb.label}</span>
+        </button>
+        <BottomSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          title={crumb.menuTitle ?? crumb.label}
+        >
+          {crumb.menu.map((item) => (
+            <button
+              key={item.href + item.label}
+              type="button"
+              onClick={() => {
+                setSheetOpen(false);
+                router.push(item.href);
+              }}
+              className={cn(
+                SHEET_ROW_CLASS,
+                item.current && "bg-[#f5f6ff] text-[#3848c7]",
+              )}
+            >
+              {item.status ? (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-2 shrink-0 rounded-full",
+                    STATUS_DOT[item.status],
+                  )}
+                />
+              ) : null}
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              {item.hint ? (
+                <span className="shrink-0 text-[12px] text-[#9b9fb3]">
+                  {item.hint}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </BottomSheet>
+      </>
     );
   }
 

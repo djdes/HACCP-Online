@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Archive, ChevronDown, MousePointerSquareDashed, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus } from "lucide-react";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   RoomEditorDialog,
@@ -22,17 +23,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1819,93 +1809,100 @@ export function CleaningDocumentClient(props: Props) {
         <div className="mb-3 space-y-2 print:hidden">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"><Plus className="size-5" strokeWidth={2.5} />Добавить<ChevronDown className="size-4" /></Button></DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl sm:w-[340px]">
-                    <DropdownMenuItem
-                      className="h-9 rounded-xl text-[14px]"
-                      onSelect={() => {
-                        router.push("/settings/buildings");
-                      }}
-                    >
-                      <Plus className="mr-3 size-4 text-[#5566f6]" />
-                      Помещения в /settings/buildings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="h-9 rounded-xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("cleaning"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за уборку</DropdownMenuItem>
-                    <DropdownMenuItem className="h-9 rounded-xl text-[14px]" onSelect={() => setResponsibleDialog(buildResponsibleState("control"))}><UserPlus className="mr-3 size-4 text-[#5566f6]" />Добавить отв. за контроль</DropdownMenuItem>
-                    {/* P8: «Заполнение ▾» и «Выделение ▾» больше не стоят
-                        отдельной полосой под заголовком — у эталона такой
-                        полосы нет. Оба меню переехали сюда отдельной
-                        секцией: те же самые пункты, тот же обработчик,
-                        просто на один уровень глубже. */}
-                    {props.status === "active" ? (
-                      <>
-                        <DropdownMenuSeparator className="my-2" />
-                        <DropdownMenuLabel className="px-3 pb-1 pt-0 text-[11.5px] font-semibold uppercase tracking-[0.04em] text-[#9b9fb3]">
-                          Массовые операции
-                        </DropdownMenuLabel>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="h-9 rounded-xl text-[14px]">
-                            <Sparkles className="mr-3 size-4 text-[#5566f6]" />
-                            Массовое заполнение…
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="w-[300px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
-                            <DropdownMenuItem
-                              className="h-9 rounded-xl px-3 text-[14px]"
-                              onSelect={() => applySchedulePlan("fill-empty")}
-                              title="Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно weekday-плану помещений"
-                            >
-                              Заполнить по плану
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="h-9 rounded-xl px-3 text-[14px]"
-                              onSelect={() => bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue)}
-                              title="Поставить «/» (не проводилась) на все выходные и праздники периода"
-                            >
-                              Отметить выходные «/»
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="h-9 rounded-xl px-3 text-[14px]"
-                              onSelect={() => bulkSetHolidaysAndWeekends("" as CleaningMatrixValue)}
-                              title="Очистить ячейки выходных и праздников периода"
-                            >
-                              Очистить выходные
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="h-9 rounded-xl text-[14px]">
-                            <MousePointerSquareDashed className="mr-3 size-4 text-[#5566f6]" />
-                            {cellSelectMode ? "Массовое выделение: ВКЛ" : "Массовое выделение…"}
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="w-[320px] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl">
-                            <DropdownMenuItem
-                              className="h-9 rounded-xl px-3 text-[14px]"
-                              onSelect={() => {
-                                if (cellSelectMode) {
-                                  setCellSelectMode(false);
-                                  clearCellSelection();
-                                } else {
-                                  setCellSelectMode(true);
-                                }
-                              }}
-                              title="ВКЛ: тяните мышью / пальцем от одного угла к другому, выделится прямоугольник как в Excel"
-                            >
-                              {cellSelectMode ? "Выключить выделение мышкой" : "Выделить мышкой"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="h-9 rounded-xl px-3 text-[14px]"
-                              onSelect={selectAllCells}
-                              title="Выделить все ячейки матрицы"
-                            >
-                              Выделить всё
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                      </>
-                    ) : null}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <ResponsiveMenu
+                  title="Добавить"
+                  align="start"
+                  contentClassName="max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-3 shadow-xl sm:w-[340px]"
+                  items={[
+                    {
+                      key: "rooms",
+                      label: "Помещения в /settings/buildings",
+                      icon: <Plus className="size-4 text-[#5566f6]" />,
+                      onSelect: () => router.push("/settings/buildings"),
+                    },
+                    {
+                      key: "responsible-cleaning",
+                      label: "Ответственный за уборку",
+                      icon: <UserPlus className="size-4 text-[#5566f6]" />,
+                      onSelect: () =>
+                        setResponsibleDialog(buildResponsibleState("cleaning")),
+                    },
+                    {
+                      key: "responsible-control",
+                      label: "Ответственный за контроль",
+                      icon: <UserPlus className="size-4 text-[#5566f6]" />,
+                      onSelect: () =>
+                        setResponsibleDialog(buildResponsibleState("control")),
+                    },
+                    ...(props.status === "active"
+                      ? [
+                          {
+                            key: "bulk-fill",
+                            label: "Массовое заполнение",
+                            icon: <Sparkles className="size-4 text-[#5566f6]" />,
+                            items: [
+                              {
+                                key: "fill-plan",
+                                label: "Заполнить по плану",
+                                title:
+                                  "Поставить T (текущая) и G (генеральная) во все пустые ячейки согласно плану помещений",
+                                onSelect: () => applySchedulePlan("fill-empty"),
+                              },
+                              {
+                                key: "mark-holidays",
+                                label: "Отметить выходные «/»",
+                                title:
+                                  "Поставить «/» (не проводилась) на все выходные и праздники периода",
+                                onSelect: () =>
+                                  bulkSetHolidaysAndWeekends("/" as CleaningMatrixValue),
+                              },
+                              {
+                                key: "clear-holidays",
+                                label: "Очистить выходные",
+                                title: "Очистить ячейки выходных и праздников периода",
+                                onSelect: () =>
+                                  bulkSetHolidaysAndWeekends("" as CleaningMatrixValue),
+                              },
+                            ],
+                          },
+                          {
+                            key: "bulk-select",
+                            label: cellSelectMode
+                              ? "Массовое выделение: ВКЛ"
+                              : "Массовое выделение",
+                            icon: (
+                              <MousePointerSquareDashed className="size-4 text-[#5566f6]" />
+                            ),
+                            items: [
+                              {
+                                key: "toggle-select",
+                                label: cellSelectMode
+                                  ? "Выключить выделение мышкой"
+                                  : "Выделить мышкой",
+                                title:
+                                  "ВКЛ: тяните мышью / пальцем от одного угла к другому, выделится прямоугольник ячеек",
+                                onSelect: () => {
+                                  if (cellSelectMode) {
+                                    setCellSelectMode(false);
+                                    clearCellSelection();
+                                  } else {
+                                    setCellSelectMode(true);
+                                  }
+                                },
+                              },
+                              {
+                                key: "select-all",
+                                label: "Выделить всё",
+                                title: "Выделить все ячейки матрицы",
+                                onSelect: selectAllCells,
+                              },
+                            ],
+                          },
+                        ]
+                      : []),
+                  ]}
+                  trigger={<Button className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"><Plus className="size-5" strokeWidth={2.5} />Добавить<ChevronDown className="size-4" /></Button>}
+                />
               </div>
             </div>
             <JournalSelectionBar

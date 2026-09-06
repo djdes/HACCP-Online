@@ -24,5 +24,17 @@
       "Скопировать вчерашнее",
       "Закончить журнал"
     ]
-  }
+  },
+  "crumbSheet": {
+    "fromBottom": true,
+    "fullWidth": true,
+    "rows": 37
+  },
+  "cellFound": true,
+  "cellMenuDebug": {
+    "cells": 270,
+    "dialogs": 0,
+    "menus": 1
+  },
+  "cellMenu": null
 }

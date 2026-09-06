@@ -139,6 +139,73 @@ async function swipeDown(page: Page, selector: string, distance = 220): Promise<
       });
       await page.screenshot({ path: path.join(SHOTS, "doc-menu-sheet.png") });
     }
+
+    // 4. Крошки журнала и меню ячейки таблицы.
+    if (hygiene) {
+      await page.goto(`${BASE}/journals/hygiene/documents/${hygiene}`, NAV);
+      await page.waitForTimeout(3000);
+      await killPortal(page);
+      const crumb = page.locator('nav button, header button').filter({ hasText: "Гигиени" }).first();
+      if (await crumb.isVisible().catch(() => false)) {
+        await crumb.click();
+        await page.waitForTimeout(800);
+        await killPortal(page);
+        out.crumbSheet = await page.evaluate(() => {
+          const dialog = document.querySelector('[role="dialog"][aria-modal="true"]');
+          if (!dialog) return null;
+          const card = dialog.querySelector<HTMLElement>(":scope > div:nth-child(2)");
+          const r = (card ?? (dialog as HTMLElement)).getBoundingClientRect();
+          return {
+            fromBottom: Math.abs(Math.round(r.bottom) - window.innerHeight) <= 1,
+            fullWidth: Math.round(r.width) >= window.innerWidth - 1,
+            rows: Array.from(dialog.querySelectorAll("button")).length,
+          };
+        });
+        await page.screenshot({ path: path.join(SHOTS, "crumb-sheet.png") });
+        await page.keyboard.press("Escape");
+      }
+    }
+
+    // 5. Меню ячейки таблицы (ПКМ / долгое нажатие) — тоже лист.
+    if (hygiene) {
+      await page.goto(`${BASE}/journals/hygiene/documents/${hygiene}`, NAV);
+      await page.waitForTimeout(3000);
+      await killPortal(page);
+      // На телефоне журнал по умолчанию в карточках — переключаемся в таблицу.
+      const tableTab = page.locator('[role="tab"]:has-text("Таблица")').first();
+      if (await tableTab.isVisible().catch(() => false)) {
+        await tableTab.click();
+        await page.waitForTimeout(1200);
+      }
+      // Клетка статуса сотрудника: именно она открывает меню по ПКМ.
+      const table = page.locator("table tbody td").filter({ hasText: /Зд\.|В|Б\/л|От/ }).first();
+      out.cellFound = await table.isVisible().catch(() => false);
+      if (out.cellFound) {
+        await table.click({ button: "right" });
+        await page.waitForTimeout(800);
+        await killPortal(page);
+        out.cellMenuDebug = await page.evaluate(() => ({
+          cells: document.querySelectorAll("table tbody td").length,
+          dialogs: document.querySelectorAll('[role="dialog"]').length,
+          menus: document.querySelectorAll('[role="menu"]').length,
+        }));
+        out.cellMenu = await page.evaluate(() => {
+          const dialog = document.querySelector('[role="dialog"][aria-modal="true"]');
+          if (!dialog) return null;
+          const card = dialog.querySelector<HTMLElement>(":scope > div:nth-child(2)");
+          const r = (card ?? (dialog as HTMLElement)).getBoundingClientRect();
+          return {
+            fromBottom: Math.abs(Math.round(r.bottom) - window.innerHeight) <= 1,
+            fullWidth: Math.round(r.width) >= window.innerWidth - 1,
+            rows: Array.from(dialog.querySelectorAll("button"))
+              .map((b) => (b.textContent ?? "").trim())
+              .filter(Boolean)
+              .slice(0, 6),
+          };
+        });
+        await page.screenshot({ path: path.join(SHOTS, "cell-menu-sheet.png") });
+      }
+    }
   } catch (e) {
     out.error = String(e).slice(0, 250);
   } finally {

@@ -8,6 +8,8 @@ import {
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
+import { BottomSheet, SHEET_ROW_CLASS } from "@/components/ui/bottom-sheet";
+import { useIsNarrowViewport } from "@/components/ui/spotlight-tour";
 import { Check } from "lucide-react";
 
 /**
@@ -64,6 +66,7 @@ const VIEWPORT_MARGIN = 8;
  *    скролл, ресайз, выбор пункта.
  */
 export function TableContextMenu({ x, y, items, onClose, ariaLabel }: Props) {
+  const narrow = useIsNarrowViewport();
   const ref = useRef<HTMLDivElement>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(
@@ -123,6 +126,47 @@ export function TableContextMenu({ x, y, items, onClose, ariaLabel }: Props) {
   }, [onClose]);
 
   if (!portalTarget) return null;
+
+  // На телефоне меню ячейки приходит листом снизу: у курсора там нет
+  // курсора — меню открывается долгим нажатием, и «облако» у пальца
+  // перекрывает саму ячейку. Пункты те же.
+  if (narrow) {
+    return (
+      <BottomSheet open onClose={onClose} title={ariaLabel ?? "Действия"}>
+        {items.map((item) => (
+          <div key={item.key}>
+            {item.separatorBefore ? (
+              <div className="mx-3 my-1 h-px bg-[#ececf4]" />
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                item.onSelect();
+              }}
+              className={`${SHEET_ROW_CLASS} ${
+                item.danger
+                  ? "text-[#a13a32] hover:bg-[#fff4f2] active:bg-[#ffe9e5]"
+                  : item.active
+                    ? "bg-[#f5f6ff] text-[#3848c7]"
+                    : ""
+              }`}
+            >
+              {item.code ? (
+                <span className="min-w-[34px] shrink-0 text-center font-semibold tabular-nums">
+                  {item.code}
+                </span>
+              ) : null}
+              <span className="min-w-0 flex-1">{item.label}</span>
+              {item.active ? (
+                <Check className="size-4 shrink-0 text-[#5566f6]" />
+              ) : null}
+            </button>
+          </div>
+        ))}
+      </BottomSheet>
+    );
+  }
 
   // До замера меню рендерится у курсора, но невидимым: так браузер уже
   // посчитал layout, а пользователь не видит прыжка.
