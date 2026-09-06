@@ -235,24 +235,27 @@ export function FillGuideDialog({
           ) : (
             <span />
           )}
+          {/* Порядок кнопок один во всех журналах: слева обычная
+              «Показать на экране», справа фиолетовая «Понятно» —
+              основное действие всегда правое. */}
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:flex-none"
-            >
-              Понятно
-            </button>
             {showSteps && tourAvailable ? (
               <button
                 type="button"
                 onClick={onStartTour}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:flex-none"
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:flex-none"
               >
                 Показать на экране
-                <ArrowRight className="size-4" />
+                <ArrowRight className="size-4 text-[#5566f6]" />
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_26px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] sm:flex-none"
+            >
+              Понятно
+            </button>
           </div>
         </div>
       </div>
