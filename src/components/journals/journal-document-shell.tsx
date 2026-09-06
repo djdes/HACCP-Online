@@ -206,8 +206,12 @@ export function JournalDocumentShell({
         }`}
       >
         <div className={GRID_VIEWPORT_CLASS}>
+          {/* `w-max` — ширину листа задаёт самая широкая таблица внутри.
+              С `w-full` бумажная шапка вставала по ширине контейнера, а
+              таблица распирала себя содержимым, и правая вертикаль
+              бланка расходилась с колонками. */}
           <div
-            className="w-full"
+            className={sheetMinWidth ? "w-max" : "w-full"}
             style={
               sheetMinWidth
                 ? { minWidth: `max(100%, ${sheetMinWidth}px)` }

@@ -30,7 +30,6 @@ import {
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
-  DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
@@ -964,7 +963,13 @@ function Appendix() {
         всё содержимое таблицы центрировано, первый столбец несёт полные
         формулировки показателей с условиями замера.
       */}
-      <table className="w-full table-fixed border-collapse text-[13px]"><colgroup><col className="w-[18%]" /><col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[22%]" /></colgroup><thead><tr><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} ${APPENDIX_LABEL_CLASS} px-3 py-1.5 text-center align-middle leading-tight`}>Показатели качества</th><th colSpan={4} className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center leading-tight`}>Оценка</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>отлично</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>хорошо</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>удовлетворительно</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className={`${GRID_CELL_CLASS} ${APPENDIX_LABEL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.name}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[5]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[4]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[3]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[2]}</td></tr>)}</tbody></table>
+      {/* Приложение с оценками качества — пять колонок на 390px
+          налезали друг на друга («удовлетворительно» поверх
+          «неудовлетворительно»). Даём таблице свою минимальную
+          ширину и скроллер, как у самого бланка. */}
+      <div className={GRID_VIEWPORT_CLASS}>
+      <table className="w-full min-w-[560px] table-fixed border-collapse text-[13px]"><colgroup><col className="w-[18%]" /><col className="w-[16%]" /><col className="w-[22%]" /><col className="w-[22%]" /><col className="w-[22%]" /></colgroup><thead><tr><th rowSpan={2} className={`${GRID_HEAD_CELL_CLASS} ${APPENDIX_LABEL_CLASS} px-3 py-1.5 text-center align-middle leading-tight`}>Показатели качества</th><th colSpan={4} className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center leading-tight`}>Оценка</th></tr><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>отлично</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>хорошо</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>удовлетворительно</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 text-center font-normal leading-tight`}>неудовлетворительно</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.indicators.map((x) => <tr key={x.name}><td className={`${GRID_CELL_CLASS} ${APPENDIX_LABEL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.name}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[5]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[4]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[3]}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center align-middle leading-tight`}>{x.scores[2]}</td></tr>)}</tbody></table>
+      </div>
       <table className="w-full table-fixed border-collapse text-[13px]"><colgroup><col className="w-1/2" /><col className="w-1/2" /></colgroup><thead><tr><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Качество фритюра</th><th className={`${GRID_HEAD_CELL_CLASS} px-3 py-1.5 leading-tight`}>Бальная оценка</th></tr></thead><tbody>{QUALITY_ASSESSMENT_TABLE.gradingTable.map((x) => <tr key={`${x.label}-${x.score}`}><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.label}</td><td className={`${GRID_CELL_CLASS} px-3 py-1 text-center leading-tight`}>{x.score}</td></tr>)}</tbody></table>
       {/*
         Y3: эталон печатает пример расчёта МНОГОСТРОЧНО — сама формула
@@ -1260,27 +1265,6 @@ export function FryerOilDocumentClient(props: Props) {
 
         <div className={DOC_PAPER_CANVAS_CLASS}>
           <div>
-            {/* Бумажная шапка — общие строки в той же сетке, что и таблица
-                ниже (раньше была самодельная grid-вёрстка без части рамок). */}
-            <table
-              className={`${DOC_PAPER_HEADER_CLASS} w-full table-fixed border-collapse text-[13px] ${
-                mobileView === "cards" ? DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS : ""
-              }`}
-            >
-              <tbody>
-                <JournalPaperHeaderRows
-                  orgName={props.organizationName}
-                  title="Журнал учета использования фритюрных жиров"
-                  startedAt={dateFrom}
-                  finishedAt={isActive ? null : dateFrom}
-                  controlPeriodicity={props.controlPeriodicity}
-                  orgCellClass="w-[240px]"
-                  sideCellClass="w-[280px]"
-                />
-              </tbody>
-            </table>
-            {/* Бумажная шапка → КАПС-заголовок 28px, заголовок → «Добавить» 20px. */}
-            <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold uppercase`}>Журнал учета использования фритюрных жиров</div>
             {isActive ? <div className={DOC_ADD_ROW_CLASS}><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]" onClick={() => openDay(null)} disabled={props.users.length === 0}><Plus className="size-5" strokeWidth={2.5} />Добавить</Button><Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setListsOpen(true)}>Редактировать списки</Button></div> : null}
             {isActive ? (
               <JournalSelectionBar
@@ -1297,6 +1281,27 @@ export function FryerOilDocumentClient(props: Props) {
                 скроллить страницу вбок. `table-fixed` + `colgroup`
                 держат 11 колонок в ~1250px (паттерн finished_product). */}
             <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
+            {/* Шапка бланка и таблица — ОДИН лист в одном скроллере и
+                одной ширины. Раньше шапка стояла снаружи скроллера с
+                фиксированными 240+280px: на телефоне ячейки налезали
+                друг на друга («СИСТЕМА ХАССП» поверх «Начат»), а правая
+                вертикаль бланка не совпадала с колонками таблицы.
+                «Добавить» осталась выше скроллера — до неё по-прежнему
+                не нужно листать вбок. */}
+            <table className={`${DOC_PAPER_HEADER_CLASS} w-full min-w-[1158px] table-fixed border-collapse text-[13px]`}>
+              <tbody>
+                <JournalPaperHeaderRows
+                  orgName={props.organizationName}
+                  title="Журнал учета использования фритюрных жиров"
+                  startedAt={dateFrom}
+                  finishedAt={isActive ? null : dateFrom}
+                  controlPeriodicity={props.controlPeriodicity}
+                  orgCellClass="w-[240px]"
+                  sideCellClass="w-[280px]"
+                />
+              </tbody>
+            </table>
+            <div className={`${DOC_CAPS_TITLE_CLASS} text-center text-[15px] font-bold uppercase`}>Журнал учета использования фритюрных жиров</div>
             {/*
               Подколонки «Переходящий остаток, кг» / «Утилизированный, кг»
               были по 90px: слово «Утилизированный» (≈100px) в 74px контента

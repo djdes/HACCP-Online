@@ -1537,7 +1537,11 @@ export function ColdEquipmentDocumentClient({
         <div className={GRID_VIEWPORT_CLASS}>
           <div
             style={{ minWidth: `max(100%, ${gridMinWidth}px)` }}
-            className="w-full"
+            // `w-max` — ширину колонки задаёт самая широкая таблица.
+            // С `w-full` шапка вставала по ширине контейнера, а сетка
+            // замеров распирала себя содержимым и была на ~70px шире:
+            // правая вертикаль бланка расходилась с колонками.
+            className="w-max"
             data-journal-blank-column
           >
           <div className={`${DOC_PAPER_HEADER_CLASS} print:mb-2`}>

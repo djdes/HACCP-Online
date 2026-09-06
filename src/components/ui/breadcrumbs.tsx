@@ -92,6 +92,31 @@ const STATUS_DOT: Record<NonNullable<CrumbMenuItem["status"]>, string> = {
 };
 
 /**
+ * Что означают точки слева от строк. Без подписи зелёная и красная
+ * точки читались как «хорошо/плохо вообще», а не «заполнено сегодня».
+ */
+function StatusDotLegend() {
+  const items: Array<[NonNullable<CrumbMenuItem["status"]>, string]> = [
+    ["ok", "заполнен сегодня"],
+    ["danger", "ждёт заполнения"],
+    ["muted", "выключен"],
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-1 text-[12px] text-[#6f7282]">
+      {items.map(([status, label]) => (
+        <span key={status} className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])}
+          />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Вид сегмента. Наведение — тихая заливка; текущий — плотная пилюля,
  * чтобы текущая страница читалась, а не выглядела «чуть жирнее».
  */
@@ -265,6 +290,9 @@ function CrumbNode({ crumb, isLast }: { crumb: Crumb; isLast: boolean }) {
           open={sheetOpen}
           onClose={() => setSheetOpen(false)}
           title={crumb.menuTitle ?? crumb.label}
+          footer={
+            crumb.menu.some((item) => item.status) ? <StatusDotLegend /> : undefined
+          }
         >
           {crumb.menu.map((item) => (
             <button
