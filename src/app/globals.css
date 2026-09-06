@@ -582,8 +582,20 @@ html, body {
   .DialogContent,
   [class*="DialogContent"] {
     max-width: calc(100vw - 1.5rem) !important;
+    /* dvh, а не vh: на iOS Safari `100vh` — высота БЕЗ адресной строки,
+       поэтому окно оказывалось выше видимой части экрана и шапка с
+       крестиком уезжала за верхний край. */
     max-height: calc(100vh - 1.5rem) !important;
     width: calc(100vw - 1.5rem) !important;
+  }
+
+  @supports (height: 100dvh) {
+    [data-slot="dialog-content"],
+    [role="dialog"][data-state="open"],
+    .DialogContent,
+    [class*="DialogContent"] {
+      max-height: calc(100dvh - 1.5rem) !important;
+    }
   }
 
   /* Popover/dropdown — не должен залезать за viewport */

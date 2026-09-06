@@ -540,7 +540,7 @@ export function EquipmentCalibrationDocumentClient({
 
       {/* ---------- Add Row Dialog ---------- */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
+        <DialogContent showCloseButton={false} className="max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
           <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
             <DialogTitle className="text-[24px] font-semibold text-black">
               Добавление новой строки
@@ -621,7 +621,7 @@ export function EquipmentCalibrationDocumentClient({
 
       {/* ---------- Edit Row Dialog ---------- */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
+        <DialogContent showCloseButton={false} className="max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
           <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
             <DialogTitle className="text-[24px] font-semibold text-black">
               Редактирование строки
@@ -810,7 +810,7 @@ export function EquipmentCalibrationDocumentClient({
         </JournalSettingsModal>
       ) : (
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent showCloseButton={false} className="max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
+          <DialogContent showCloseButton={false} className="max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] overflow-y-auto w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[560px]">
             <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
               <DialogTitle className="text-[24px] font-semibold text-black">
                 Настройки документа

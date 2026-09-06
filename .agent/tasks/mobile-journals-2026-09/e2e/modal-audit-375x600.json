@@ -1,0 +1,80 @@
+{
+  "partner-hint": {
+    "geometry": {
+      "cardTop": 12,
+      "cardBottom": 588,
+      "cardHeight": 576,
+      "vh": 600,
+      "cardFits": true,
+      "closeButtons": 1,
+      "closeVisible": true,
+      "primaryButtons": 0,
+      "primaryVisible": false,
+      "innerScroll": true,
+      "cardScrolls": false
+    }
+  },
+  "journal-instruction": {
+    "geometry": {
+      "cardTop": 60,
+      "cardBottom": 600,
+      "cardHeight": 540,
+      "vh": 600,
+      "cardFits": true,
+      "closeButtons": 1,
+      "closeVisible": true,
+      "primaryButtons": 1,
+      "primaryVisible": true,
+      "innerScroll": true,
+      "cardScrolls": false
+    }
+  },
+  "create-document": {
+    "geometry": {
+      "cardTop": 21,
+      "cardBottom": 579,
+      "cardHeight": 557,
+      "vh": 600,
+      "cardFits": true,
+      "closeButtons": 1,
+      "closeVisible": true,
+      "primaryButtons": 1,
+      "primaryVisible": true,
+      "innerScroll": false,
+      "cardScrolls": false
+    }
+  },
+  "auto-create": {
+    "geometry": {
+      "cardTop": 60,
+      "cardBottom": 600,
+      "cardHeight": 540,
+      "vh": 600,
+      "cardFits": true,
+      "closeButtons": 1,
+      "closeVisible": true,
+      "primaryButtons": 1,
+      "primaryVisible": true,
+      "innerScroll": true,
+      "cardScrolls": false
+    }
+  },
+  "staff-add": {
+    "geometry": {
+      "cardTop": 16,
+      "cardBottom": 584,
+      "cardHeight": 568,
+      "vh": 600,
+      "cardFits": true,
+      "closeButtons": 1,
+      "closeVisible": true,
+      "primaryButtons": 3,
+      "primaryVisible": true,
+      "innerScroll": false,
+      "cardScrolls": false
+    }
+  },
+  "journal-settings": {
+    "geometry": null
+  }
+}

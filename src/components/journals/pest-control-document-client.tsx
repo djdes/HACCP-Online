@@ -286,7 +286,7 @@ function EntryDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[620px]">
+      <DialogContent showCloseButton={false} className="max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[620px]">
         <DialogHeader className="flex flex-row items-center justify-between border-b px-7 py-5">
           <DialogTitle className="text-[24px] font-medium text-black">
             {props.title}

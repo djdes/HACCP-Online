@@ -25,7 +25,7 @@ import { PORTAL_FONT_FAMILY } from "@/components/ui/spotlight-tour";
  * мини-копиями контролов и ссылкой «Показать на экране» (спотлайт-тур);
  * вкладка «Правила» — прежний контент `journal-doc-guides.ts`.
  *
- * Карточка по правилу CLAUDE.md для модалок: `max-h-[90vh]`, шапка и
+ * Карточка по правилу CLAUDE.md для модалок: `max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh]`, шапка и
  * футер `shrink-0`, середина скроллится; на телефоне — bottom-sheet.
  * Портал в body (dark-mode ремапы app-theme.css scoped к `.app-shell`).
  */
@@ -111,7 +111,7 @@ export function FillGuideDialog({
         className="absolute inset-0 bg-[#0b1024]/40 backdrop-blur-sm"
       />
 
-      <div className="relative flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)] animate-in fade-in-0 slide-in-from-bottom-8 duration-200 sm:rounded-3xl sm:zoom-in-95 sm:slide-in-from-bottom-0">
+      <div className="relative flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)] animate-in fade-in-0 slide-in-from-bottom-8 duration-200 sm:rounded-3xl sm:zoom-in-95 sm:slide-in-from-bottom-0">
         {/* Header — fixed */}
         <div className="relative shrink-0 border-b border-[#ececf4] bg-gradient-to-br from-[#f5f6ff] to-white px-5 pb-4 pt-5">
           <div className="pointer-events-none absolute -right-12 -top-12 size-[180px] rounded-full bg-[#5566f6]/10 blur-3xl" />

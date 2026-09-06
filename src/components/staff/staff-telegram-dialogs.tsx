@@ -24,15 +24,15 @@ type Close = { onClose: () => void; open: boolean };
 function shell(title: string, body: React.ReactNode, footer?: React.ReactNode) {
   return (
     <>
-      <DialogHeader className="border-b px-4 py-5 sm:px-6">
+      <DialogHeader className="shrink-0 border-b px-4 py-5 sm:pl-6 pr-14">
         <DialogTitle className="text-[18px] font-semibold text-[#0b1024]">
           {title}
         </DialogTitle>
         <DialogDescription className="sr-only">{title}</DialogDescription>
       </DialogHeader>
-      <div className="px-4 py-5 sm:px-6 sm:py-6">{body}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">{body}</div>
       {footer ? (
-        <DialogFooter className="flex-row justify-end gap-2 border-t px-4 py-4 sm:px-6">
+        <DialogFooter className="shrink-0 bg-white flex-row justify-end gap-2 border-t px-4 py-4 sm:px-6">
           {footer}
         </DialogFooter>
       ) : null}
@@ -68,7 +68,7 @@ export function StaffTelegramInviteDialog(props: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           title,
           pending ? (
@@ -163,7 +163,7 @@ export function StaffUnlinkTelegramDialog(props: {
 } & Close) {
   return (
     <Dialog open={props.open} onOpenChange={(v) => !v && props.onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           `Отвязать TG у "${props.employee.name}"`,
           <div className="space-y-3 text-[13px] leading-5 text-[#3c4053]">

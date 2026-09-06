@@ -47,7 +47,7 @@ function shell(
 ) {
   return (
     <>
-      <DialogHeader className="border-b px-4 py-5 sm:px-6">
+      <DialogHeader className="shrink-0 border-b px-4 py-5 sm:pl-6 pr-14">
         {opts?.leading ?? null}
         {opts?.eyebrow ? (
           <div className="-mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3]">
@@ -59,12 +59,15 @@ function shell(
         </DialogTitle>
         <DialogDescription className="sr-only">{title}</DialogDescription>
       </DialogHeader>
-      <div className="px-4 py-5 sm:px-6 sm:py-6">{body}</div>
+      {/* Скроллится только середина: шапка с крестиком и кнопки видны всегда. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">
+        {body}
+      </div>
       {/* На узком экране кнопки футера переносятся, а не вылезают за
           край: три штуки («Добавить доступ», «Отмена», «Сохранить») в
           один ряд не помещались, и «Сохранить» уезжал за границу. */}
       {footer ? (
-        <DialogFooter className="flex-wrap justify-end gap-2 border-t px-4 py-4 sm:flex-row sm:px-6">
+        <DialogFooter className="shrink-0 flex-wrap justify-end gap-2 border-t bg-white px-4 py-4 sm:flex-row sm:px-6">
           {footer}
         </DialogFooter>
       ) : null}
@@ -167,7 +170,7 @@ export function StaffEditPositionDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={(v) => !v && props.onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           "Редактирование должности",
           <div className="space-y-4">
@@ -416,7 +419,7 @@ export function StaffAddFlowDialog(props: {
     const created = subStep;
     return (
       <Dialog open={props.open} onOpenChange={(v) => !v && closeAll()}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+        <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
           {shell(
             "Сотрудник добавлен",
             <div className="space-y-3 text-[14px] leading-5 text-[#0b1024]">
@@ -449,7 +452,7 @@ export function StaffAddFlowDialog(props: {
   if (step === 1) {
     return (
       <Dialog open={props.open} onOpenChange={(v) => !v && closeAll()}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+        <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
           {shell(
             "Добавление должности",
             <div className="space-y-3">
@@ -524,7 +527,7 @@ export function StaffAddFlowDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={(v) => !v && closeAll()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           "Добавление сотрудника",
           <div className="space-y-4">
@@ -709,7 +712,7 @@ export function StaffEditEmployeeDialog(props: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           `Редактировать: ${employee.name}`,
           <div className="space-y-4">
@@ -865,7 +868,7 @@ export function StaffTelegramInviteDialog(props: {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           title,
           pending ? (
@@ -959,7 +962,7 @@ export function StaffArchiveDialog(props: {
 } & Close) {
   return (
     <Dialog open={props.open} onOpenChange={(v) => !v && props.onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           `Архивирование сотрудника "${props.employee.name}"`,
           <p className="text-[13px] text-[#6f7282]">
@@ -994,7 +997,7 @@ export function StaffDeleteBlockedDialog(props: {
 export function StaffIikoDialog(props: Close) {
   return (
     <Dialog open={props.open} onOpenChange={(v) => !v && props.onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           "Заполнение выходных дней из iiko",
           <p className="text-[13px] text-[#6f7282]">
@@ -1114,7 +1117,7 @@ export function StaffAddPeriodDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={(v) => !v && props.onClose()}>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[460px]">
         {shell(
           title,
           <div className="space-y-4">

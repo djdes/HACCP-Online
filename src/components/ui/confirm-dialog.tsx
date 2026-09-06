@@ -191,7 +191,7 @@ export function ConfirmDialog({
           экрана и кнопка «Подтвердить» уезжает за нижний край. */}
       <div
         ref={dialogRef}
-        className={`relative flex max-h-[90vh] w-full max-w-[480px] flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white sm:rounded-3xl shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)]`}
+        className={`relative flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full max-w-[480px] flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white sm:rounded-3xl shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)]`}
       >
         {/* Header — gradient accent */}
         <div className={`relative shrink-0 overflow-hidden ${styles.accentBg} p-6`}>

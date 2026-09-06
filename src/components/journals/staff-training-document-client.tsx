@@ -589,7 +589,7 @@ export function StaffTrainingDocumentClient({
 
       {/* ---------- Add Row Dialog ---------- */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[620px]">
+        <DialogContent className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] overflow-y-auto sm:max-w-[620px]">
           <DialogHeader>
             <DialogTitle>Добавление записи</DialogTitle>
           </DialogHeader>

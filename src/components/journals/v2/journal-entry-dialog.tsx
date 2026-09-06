@@ -73,7 +73,8 @@ export function JournalEntryDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`max-h-[90vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border-0 p-0 ${sizeClass}`}
+        showCloseButton={false}
+        className={`max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border-0 p-0 ${sizeClass}`}
       >
         <DialogHeader className="shrink-0 border-b border-[#ececf4] bg-white px-6 py-5 sm:px-8 sm:py-6">
           <div className="flex items-start justify-between gap-4">

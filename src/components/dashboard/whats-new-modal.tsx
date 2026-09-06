@@ -104,7 +104,7 @@ function iconForCategory(name: string): LucideIcon {
  *   3. Если != currentSha → показываем modal.
  *   4. Закрытие → пишем currentSha в localStorage.
  *
- * Размер: карточка max-w-[480px], общая высота max-h-[90vh] (даже на
+ * Размер: карточка max-w-[480px], общая высота max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] (даже на
  * мобилке helmet+address bar остаются видимы), внутренняя scroll-зона
  * со списком категорий — overflow-y-auto. На больших экранах
  * accordion'ы помещаются без скролла.
@@ -175,7 +175,7 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
         if (e.target === e.currentTarget) dismiss();
       }}
     >
-      <div className="flex max-h-[90vh] w-full max-w-[480px] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]">
+      <div className="flex max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] w-full max-w-[480px] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.55)]">
         {/* Header — fixed */}
         <div className="relative shrink-0 border-b border-[#ececf4] bg-gradient-to-br from-[#f5f6ff] to-white p-5">
           <div className="pointer-events-none absolute -right-12 -top-12 size-[180px] rounded-full bg-[#5566f6]/10 blur-3xl" />

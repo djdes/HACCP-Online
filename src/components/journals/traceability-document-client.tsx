@@ -263,7 +263,7 @@ function SettingsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[700px]">
+      <DialogContent showCloseButton={false} className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[700px]">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">{props.title}</DialogTitle>
@@ -325,7 +325,7 @@ function ListsDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[920px]">
+      <DialogContent showCloseButton={false} className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[920px]">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">Редактировать списки</DialogTitle>
@@ -446,7 +446,7 @@ function RowDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[760px]">
+      <DialogContent showCloseButton={false} className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">{props.initialRow ? "Редактирование строки" : "Добавление новой строки"}</DialogTitle>
@@ -533,7 +533,7 @@ function ImportDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[760px]">
+      <DialogContent showCloseButton={false} className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[760px]">
         <DialogHeader className="border-b px-8 py-6"><div className="flex items-center justify-between gap-4"><DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">Добавление из Excel</DialogTitle><button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}><X className="size-7" /></button></div></DialogHeader>
         <div className="space-y-5 px-8 py-6">
           <div className="rounded-[24px] border border-[#e6e9f5] bg-[#fbfbff] px-5 py-4 text-[15px] leading-7 text-[#505469]"><p>Список должен быть в Excel-файле на первом листе и начинаться с первой строки.</p><p className="mt-3">Столбцы должны быть в фиксированном порядке:</p><ol className="mt-2 space-y-1 pl-5">{TRACEABILITY_IMPORT_COLUMNS.map((column, index) => <li key={column}>{index + 1}-й столбец - {column}</li>)}</ol></div>

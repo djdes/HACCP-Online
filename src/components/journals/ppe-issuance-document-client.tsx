@@ -444,7 +444,7 @@ function RowDialog(props: {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent showCloseButton={false} className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[720px]">
+      <DialogContent showCloseButton={false} className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[720px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">

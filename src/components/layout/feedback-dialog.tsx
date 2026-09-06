@@ -103,8 +103,8 @@ export function FeedbackDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-[calc(100vw-1rem)] gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[520px]">
-        <DialogHeader className="border-b px-6 py-5">
+      <DialogContent className="flex max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[520px]">
+        <DialogHeader className="shrink-0 border-b py-5 pl-6 pr-14">
           <DialogTitle className="text-[18px] font-semibold text-[#0b1024]">
             Оставить обратную связь
           </DialogTitle>
@@ -114,7 +114,8 @@ export function FeedbackDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-6">
           <div className="space-y-4 text-[14px] leading-[1.55] text-[#3c4053]">
             <p>
               В данной форме вы можете оставить обратную связь по использованию
@@ -185,7 +186,9 @@ export function FeedbackDialog({
             className="h-11 rounded-xl border-[#e2e5ef] bg-white text-[16px] placeholder:text-[#9b9fb3] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 sm:text-[14px]"
           />
 
-          <DialogFooter className="flex-row justify-end gap-2 px-0">
+          </div>
+
+          <DialogFooter className="shrink-0 flex-row justify-end gap-2 border-t bg-white px-6 py-4">
             <Button
               type="submit"
               disabled={submitting}

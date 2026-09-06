@@ -533,7 +533,7 @@ export function ProductWriteoffDocumentClient({
         setRowDialog({ open: false, index: null, row: emptyRow(), newProductName: "" });
         setRowDialogProductOptions([]);
       }}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
           <DialogHeader className="border-b px-6 py-5">
             <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
               {rowDialog.index === null ? "Добавление новой строки" : "Редактирование строки"}
@@ -615,7 +615,7 @@ export function ProductWriteoffDocumentClient({
       </Dialog>
 
       <Dialog open={commissionDialog.open} onOpenChange={(open) => !open && setCommissionDialog({ open: false, index: null, member: emptyCommissionMember() })}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
           <DialogHeader className="border-b px-6 py-5">
             <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
               Редактирование строки
@@ -709,7 +709,7 @@ export function ProductWriteoffDocumentClient({
       </Dialog>
 
       <Dialog open={listsOpen} onOpenChange={setListsOpen}>
-        <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[720px]">
+        <DialogContent className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[720px]">
           <DialogHeader className="border-b px-8 py-6">
             <DialogTitle className="text-[24px] font-medium text-black">Редактировать список продукции</DialogTitle>
           </DialogHeader>

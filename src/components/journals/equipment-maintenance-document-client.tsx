@@ -618,7 +618,7 @@ export function EquipmentMaintenanceDocumentClient({
 
       {/* ---------- Add Row Dialog ---------- */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
           <DialogHeader className="border-b px-6 py-5">
             <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
               Добавление новой строки
@@ -720,7 +720,7 @@ export function EquipmentMaintenanceDocumentClient({
 
       {/* ---------- Edit Row Dialog ---------- */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] overflow-hidden rounded-[24px] border-0 p-0 sm:max-w-[640px]">
           <DialogHeader className="border-b px-6 py-5">
             <DialogTitle className="text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">
               Редактирование строки
@@ -913,7 +913,7 @@ export function EquipmentMaintenanceDocumentClient({
         </JournalSettingsModal>
       ) : (
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[520px]">
+          <DialogContent className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] overflow-y-auto sm:max-w-[520px]">
             <DialogHeader>
               <DialogTitle>Настройки журнала</DialogTitle>
             </DialogHeader>

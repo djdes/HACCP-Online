@@ -951,7 +951,7 @@ export function JournalsSettingsClient({
           if (!open) setDistDialogCode(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] gap-0 overflow-hidden rounded-3xl p-0 sm:max-w-[520px]">
+        <DialogContent className="max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] gap-0 overflow-hidden rounded-3xl p-0 sm:max-w-[520px]">
           {distDialogItem ? (
             <>
               <DialogHeader className="shrink-0 border-b border-[#ececf4] px-5 py-4">

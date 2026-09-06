@@ -241,7 +241,7 @@ export function StaffBulkAddDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0b1024]/40 p-0 backdrop-blur-sm sm:items-center sm:p-6">
       <BodyScrollLock />
-      <div className="flex max-h-[92vh] w-full max-w-[1100px] flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white shadow-[0_40px_100px_-30px_rgba(11,16,36,0.5)] sm:rounded-3xl">
+      <div className="flex max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-full max-w-[1100px] flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white shadow-[0_40px_100px_-30px_rgba(11,16,36,0.5)] sm:rounded-3xl">
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#eef0f6] px-6 py-5">
           <div>
             <h2 className="text-[18px] font-semibold text-[#0b1024]">

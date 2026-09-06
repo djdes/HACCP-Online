@@ -75,8 +75,8 @@ export function PartnerHint({ rates, variant = "site", className }: Props) {
           aria-describedby={undefined}
           className={cn(
             "fixed left-1/2 z-[71] flex w-[calc(100vw-24px)] max-w-[560px] -translate-x-1/2 flex-col overflow-hidden border border-[#ececf4] bg-white text-[#0b1024] shadow-[0_24px_60px_-24px_rgba(11,16,36,0.45)] outline-none",
-            "bottom-3 max-h-[88vh] rounded-3xl",
-            "sm:bottom-auto sm:top-1/2 sm:max-h-[90vh] sm:-translate-y-1/2",
+            "bottom-3 max-h-[88vh] supports-[height:100dvh]:max-h-[88dvh] rounded-3xl",
+            "sm:bottom-auto sm:top-1/2 sm:max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] sm:-translate-y-1/2",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-8 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
           )}
         >

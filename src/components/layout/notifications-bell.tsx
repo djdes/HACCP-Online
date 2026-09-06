@@ -338,7 +338,7 @@ export function NotificationsBell() {
         >
           <BodyScrollLock />
           <div
-            className="flex max-h-[80vh] w-full max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.35)] sm:max-w-[640px]"
+            className="flex max-h-[80vh] supports-[height:100dvh]:max-h-[80dvh] w-full max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-20px_rgba(11,16,36,0.35)] sm:max-w-[640px]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* HEADER */}

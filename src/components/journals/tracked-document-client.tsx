@@ -692,7 +692,7 @@ function TrackedDocumentClientImpl({
       </JournalDocumentShell>
 
       <Dialog open={addRowOpen} onOpenChange={setAddRowOpen}>
-        <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[32px] border-0 p-0 sm:max-w-[760px]">
+        <DialogContent className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[32px] border-0 p-0 sm:max-w-[760px]">
           <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className="text-[22px] font-medium text-black">
               Добавить строку
@@ -810,7 +810,7 @@ function TrackedDocumentClientImpl({
         </JournalSettingsModal>
       ) : (
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent className="max-h-[92vh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[32px] border-0 p-0 sm:max-w-[860px]">
+          <DialogContent className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[32px] border-0 p-0 sm:max-w-[860px]">
             <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
               <DialogTitle className="text-[22px] font-medium text-black">
                 Настройки журнала

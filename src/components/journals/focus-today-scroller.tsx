@@ -109,7 +109,8 @@ export function FocusTodayScroller({
 
   return (
     <Dialog open={showEmpty} onOpenChange={(open) => !open && dismiss()}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[460px]">
+      <DialogContent
+        showCloseButton={false} className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[24px] border-0 p-0 sm:max-w-[460px]">
         <DialogHeader className="border-b px-6 py-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">

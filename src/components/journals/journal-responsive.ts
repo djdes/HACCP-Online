@@ -196,15 +196,15 @@ export const JOURNAL_TABLE_VIEWPORT_CLASS =
  * `src/components/ui/dialog.tsx`) мелким серым 16px — на эталоне это
  * крупный чёрный ~24px крест, выровненный по заголовку шапки.
  * Переопределяем прямо из класса окна: селектор
- * `.<окно> > button[data-slot=dialog-close] > svg` специфичнее
+ * `.<окно> button[data-slot=dialog-close] > svg` специфичнее
  * дефолтного `[&_svg:not([class*='size-'])]:size-4` (0,2,2 против 0,2,1),
  * поэтому размер применяется независимо от порядка правил в бандле.
  */
 const JOURNAL_DIALOG_CLOSE_CLASS =
-  "[&>button[data-slot=dialog-close]]:top-[18px] [&>button[data-slot=dialog-close]]:right-5 [&>button[data-slot=dialog-close]]:rounded-lg [&>button[data-slot=dialog-close]]:text-[#0b1024] [&>button[data-slot=dialog-close]]:opacity-100 [&>button[data-slot=dialog-close]>svg]:size-6";
+  "[&_button[data-slot=dialog-close]]:top-[18px] [&_button[data-slot=dialog-close]]:right-5 [&_button[data-slot=dialog-close]]:rounded-lg [&_button[data-slot=dialog-close]]:text-[#0b1024] [&_button[data-slot=dialog-close]]:opacity-100 [&>button[data-slot=dialog-close]>svg]:size-6";
 
 const JOURNAL_DIALOG_SHELL_CLASS =
-  `flex w-[calc(100vw-2rem)] max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] ${JOURNAL_DIALOG_CLOSE_CLASS}`;
+  `flex w-[calc(100vw-2rem)] max-h-[90vh] supports-[height:100dvh]:max-h-[90dvh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-y-auto overscroll-contain rounded-[24px] border-0 p-0 shadow-[0_24px_80px_rgba(40,45,86,0.16)] ${JOURNAL_DIALOG_CLOSE_CLASS}`;
 
 /** Обычное окно — 480px, ровно как на живом эталоне (S6 аудита). */
 export const JOURNAL_DIALOG_CONTENT_CLASS =
@@ -216,7 +216,10 @@ export const JOURNAL_DIALOG_CONTENT_WIDE_CLASS =
 
 /** Шапка окна: подпись слева, крестик справа, нижняя линия. */
 export const JOURNAL_DIALOG_HEADER_CLASS =
-  "flex shrink-0 flex-row items-center justify-between gap-4 border-b border-[#ececf4] px-6 py-4";
+  // `sticky top-0` — страховка для окон, у которых нет отдельного
+  // скроллящегося тела: шапка с крестиком остаётся на виду, даже когда
+  // прокручивается карточка целиком.
+  "sticky top-0 z-10 flex shrink-0 flex-row items-center justify-between gap-4 border-b border-[#ececf4] bg-white px-6 py-4";
 
 /** Заголовок окна — 18px/600, один размер во всех журналах. */
 export const JOURNAL_DIALOG_TITLE_CLASS =
@@ -259,7 +262,7 @@ export const JOURNAL_DIALOG_BODY_CLASS =
  * остаётся фиксированным (`shrink-0`) — механика скролла тела не меняется.
  */
 export const JOURNAL_DIALOG_FOOTER_CLASS =
-  "flex shrink-0 flex-wrap items-center justify-end gap-2 px-6 pb-5 pt-1";
+  "sticky bottom-0 z-10 flex shrink-0 flex-wrap items-center justify-end gap-2 bg-white px-6 pb-5 pt-1";
 
 /** Подпись поля НАД инпутом — 13px/500. Legacy: новые поля используют
  * floating label внутри рамки (JOURNAL_DIALOG_FIELD_*). */

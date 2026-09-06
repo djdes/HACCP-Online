@@ -183,7 +183,7 @@ export function StaffAccessDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? null : onClose())}>
-      <DialogContent className="flex max-h-[92vh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[560px]">
+      <DialogContent className="flex max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-[560px]">
         <DialogHeader className="border-b border-[#ececf4] px-6 py-4">
           <DialogTitle className="text-[18px] font-semibold text-[#0b1024]">
             Добавление доступа
