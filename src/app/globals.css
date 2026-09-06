@@ -606,9 +606,12 @@ html, body {
     max-width: 100vw !important;
   }
 
+  /* Шторки vaul исключены: они и так во всю ширину, прижаты к низу и
+     сами держат высоту. Общий cap отрезал им по 12px с каждой стороны
+     и обрезал подписи строк. */
   [role="dialog"][data-state="open"]:not([data-slot="dialog-content"]):not(
       [data-slot="sheet-content"]
-    ),
+    ):not([data-vaul-drawer]),
   .DialogContent,
   [class*="DialogContent"] {
     max-width: calc(100vw - 1.5rem) !important;
@@ -621,7 +624,7 @@ html, body {
 
   @supports (height: 100dvh) {
     [data-slot="dialog-content"],
-    [role="dialog"][data-state="open"],
+    [role="dialog"][data-state="open"]:not([data-vaul-drawer]),
     .DialogContent,
     [class*="DialogContent"] {
       max-height: calc(100dvh - 1.5rem) !important;

@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { type ReactNode } from "react";
 import { X } from "lucide-react";
+import { Drawer } from "vaul";
 
-import { lockBodyScroll, unlockBodyScroll } from "@/lib/use-body-scroll-lock";
-import { useSwipeToDismiss } from "@/components/ui/use-swipe-to-dismiss";
 import {
   MODAL_BODY_CLASS,
   MODAL_CARD_HEIGHT_CLASS,
@@ -20,9 +18,16 @@ import {
  * пункты крупные, закрывается крестиком, свайпом вниз, тапом по фону
  * или Esc.
  *
- * Портал в `document.body` обязателен: полотно дашборда обёрнуто в блок
- * с `translate: -50%`, и `position: fixed` внутри считался бы от него
- * (см. `modal-tokens.ts`).
+ * Движение отдано `vaul` — это шторка на Radix Dialog, на ней же
+ * построен `Drawer` из shadcn. Своя реализация (ручной pointer-драг
+ * плюс `animate-in slide-in-from-bottom`) закрывалась рывком: лист
+ * прыгал вниз линейно, палец при перетаскивании обгонял карточку, а
+ * на закрытие анимации не было вовсе. `vaul` даёт пружину, инерцию,
+ * резинку у верхнего края и корректный возврат, если потянули и
+ * передумали. Плюс он сам держит фокус, блокирует прокрутку страницы
+ * и порталит в `document.body` — а портал здесь обязателен: полотно
+ * дашборда обёрнуто в блок с `translate: -50%`, и `position: fixed`
+ * внутри считался бы от него (см. `modal-tokens.ts`).
  */
 export function BottomSheet({
   open,
@@ -39,87 +44,61 @@ export function BottomSheet({
   children: ReactNode;
   footer?: ReactNode;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-    lockBodyScroll();
-    return () => unlockBodyScroll();
-  }, [open]);
-
-  const bodyRef = useRef<HTMLDivElement | null>(null);
-  const swipe = useSwipeToDismiss(onClose, { scrollRef: bodyRef });
-
-  if (!open || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[60] flex items-end justify-center"
+  return (
+    <Drawer.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      // Тянуть можно только вниз: лист и так во всю ширину.
+      direction="bottom"
+      // Заголовок и описание рисуем сами — Radix иначе ругается в консоль.
+      autoFocus
     >
-      <button
-        type="button"
-        aria-label="Закрыть"
-        onClick={onClose}
-        className="absolute inset-0 bg-[#0b1024]/40 backdrop-blur-sm"
-      />
-
-      <div
-        {...swipe.dragProps}
-        style={swipe.dragStyle}
-        className={`relative flex w-full touch-pan-y flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white shadow-[0_-20px_60px_-30px_rgba(11,16,36,0.5)] transition-transform duration-200 animate-in slide-in-from-bottom-6 ${MODAL_CARD_HEIGHT_CLASS}`}
-      >
-        <div className="shrink-0 px-4 pb-3 pt-3">
-          {/* Ручка: признак листа снизу и место, за которое тянут,
-              чтобы закрыть свайпом. */}
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#dcdfed]" />
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="truncate text-[16px] font-semibold leading-tight text-[#0b1024]">
-                {title}
-              </div>
-              {subtitle ? (
-                <div className="mt-0.5 truncate text-[12.5px] text-[#6f7282]">
-                  {subtitle}
-                </div>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Закрыть"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f5f6ff] text-[#6f7282] transition-colors hover:bg-[#eef1ff] hover:text-[#0b1024]"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        </div>
-
-        <div
-          ref={bodyRef}
-          className={`${MODAL_BODY_CLASS} border-t border-[#f0f1f7] px-3 py-2`}
+      <Drawer.Portal>
+        <Drawer.Overlay className="fixed inset-0 z-[60] bg-[#0b1024]/45 backdrop-blur-sm" />
+        <Drawer.Content
+          aria-describedby={undefined}
+          className={`fixed inset-x-0 bottom-0 z-[60] flex flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white outline-none shadow-[0_-20px_60px_-30px_rgba(11,16,36,0.5)] ${MODAL_CARD_HEIGHT_CLASS}`}
         >
-          {children}
-        </div>
-
-        {footer ? (
-          <div className="shrink-0 border-t border-[#f0f1f7] bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-            {footer}
+          <div className="shrink-0 px-4 pb-3 pt-3">
+            {/* Ручка: признак листа снизу и место, за которое тянут,
+                чтобы закрыть свайпом. */}
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#dcdfed]" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Drawer.Title className="truncate text-[16px] font-semibold leading-tight text-[#0b1024]">
+                  {title}
+                </Drawer.Title>
+                {subtitle ? (
+                  <div className="mt-0.5 truncate text-[12.5px] text-[#6f7282]">
+                    {subtitle}
+                  </div>
+                ) : null}
+              </div>
+              <Drawer.Close
+                aria-label="Закрыть"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f5f6ff] text-[#6f7282] transition-colors hover:bg-[#eef1ff] hover:text-[#0b1024]"
+              >
+                <X className="size-4" />
+              </Drawer.Close>
+            </div>
           </div>
-        ) : (
-          <div className="shrink-0 pb-[env(safe-area-inset-bottom)]" />
-        )}
-      </div>
-    </div>,
-    document.body
+
+          <div className={`${MODAL_BODY_CLASS} border-t border-[#f0f1f7] px-3 py-2`}>
+            {children}
+          </div>
+
+          {footer ? (
+            <div className="shrink-0 border-t border-[#f0f1f7] bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              {footer}
+            </div>
+          ) : (
+            <div className="shrink-0 pb-[env(safe-area-inset-bottom)]" />
+          )}
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }
 

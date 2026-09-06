@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
 import { PartnerHint } from "@/components/partner/partner-hint";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import type { PartnerHintRates } from "@/lib/partners/partner-hint";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
@@ -36,7 +37,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProfileSheet } from "@/components/layout/profile-sheet";
 import { useIsNarrowViewport } from "@/components/ui/spotlight-tour";
-import { useSwipeToDismiss } from "@/components/ui/use-swipe-to-dismiss";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,12 +45,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
 import { useHeaderUndo } from "@/components/journals/journal-undo-slot";
@@ -196,9 +190,6 @@ export function Header({
     !fullAccess &&
     (userRole === "head_chef" || userRole === "technologist");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  // Меню организации закрывается свайпом вниз — тем же жестом, что и
-  // остальные листы.
-  const navSwipe = useSwipeToDismiss(() => setMobileNavOpen(false));
   // Меню профиля управляемое: модалка создания организации/демо живёт
   // вне Radix-меню (внутри её обрезает transform), а меню при этом
   // нужно закрыть — иначе оно останется висеть под оверлеем.
@@ -499,58 +490,42 @@ export function Header({
         </div>
 
         <div className="flex-1 md:hidden" />
-        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-10 shrink-0 rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 md:hidden hover:bg-[#5566f6]/[0.09] hover:text-[#5566f6]"
-            >
-              <Menu className="size-5" />
-              <span className="sr-only">Меню</span>
-            </Button>
-          </SheetTrigger>
-          {/*
-            Mobile nav drawer. Originally `side="top"` with `h-auto` — this
-            left the bottom ~60% of the viewport as a dim overlay with no
-            content, which read as "half the screen is white, half dark" on
-            phones. Switching to `side="right"` + full height gives the
-            familiar edge-drawer behaviour of every modern mobile app and
-            eliminates the split-screen artefact. Width is clamped so it
-            doesn't cover everything on tablets.
-          */}
-          {/* Лист снизу — тот же жест, что у меню профиля и окон:
-              на телефоне «шторка сбоку» ощущалась чужеродной, а
-              большим пальцем до неё дальше тянуться. */}
-          <SheetContent
-            side="bottom"
-            {...navSwipe.dragProps}
-            style={navSwipe.dragStyle}
-            className="flex max-h-[88vh] w-full touch-pan-y flex-col gap-0 rounded-t-3xl border-t border-[#ececf4] bg-white p-0 supports-[height:100dvh]:max-h-[88dvh]"
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileNavOpen(true)}
+          className="size-10 shrink-0 rounded-lg bg-[#5566f6]/[0.04] text-[#5566f6] transition-colors duration-200 md:hidden hover:bg-[#5566f6]/[0.09] hover:text-[#5566f6]"
+        >
+          <Menu className="size-5" />
+          <span className="sr-only">Меню</span>
+        </Button>
+          {/* Меню разделов — тот же лист снизу, что у профиля, окон и
+              меню действий: одна механика на весь телефон. Раньше это
+              была шторка shadcn с самодельным перетаскиванием
+              (`navSwipe`) — она закрывалась рывком и без анимации.
+              Движение теперь общее, из `BottomSheet` (vaul). */}
+          <BottomSheet
+            open={mobileNavOpen}
+            onClose={() => setMobileNavOpen(false)}
+            title="Меню"
+            footer={
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-[14px] font-medium text-[#a13a32] transition-colors hover:bg-[#fff4f2]"
+              >
+                <LogOut className="size-5 shrink-0" />
+                Выйти
+              </button>
+            }
           >
-            <SheetTitle className="sr-only">Навигация</SheetTitle>
-            <div className="shrink-0 px-5 pb-3 pt-3">
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#dcdfed]" />
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#0b1024]">
-                  Меню
-                </span>
-              </div>
-            </div>
-            {/*
-              Закрываем шторку по клику на любой ссылке. Один обработчик на
-              всю навигацию, а не onClick у каждой: список разделов растёт,
-              и у новой ссылки его забыли бы поставить — как забыли сейчас.
-              Навигация клиентская, хедер не перемонтируется, поэтому меню
-              оставалось открытым поверх только что открытого раздела.
-            */}
             <nav
               onClick={(event) => {
                 if ((event.target as HTMLElement).closest("a")) {
                   setMobileNavOpen(false);
                 }
               }}
-              className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-3"
+              className="flex flex-col gap-1"
             >
               {buildings.length >= 2 ? (
                 <>
@@ -611,16 +586,7 @@ export function Header({
                 </Link>
               ) : null}
             </nav>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex items-center gap-3 border-t border-[#ececf4] px-5 py-4 text-[14px] font-medium text-[#a13a32] transition-colors hover:bg-[#fff4f2]"
-            >
-              <LogOut className="size-5 shrink-0" />
-              Выйти
-            </button>
-          </SheetContent>
-        </Sheet>
+          </BottomSheet>
 
         {/* Right cluster: settings shortcut + logout + avatar.
             Обратная связь отсюда убрана: вход в поддержку был в двух

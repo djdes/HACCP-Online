@@ -149,7 +149,15 @@ function FabDock({ actions }: { actions: FabAction[] }) {
           aria-label={
             unread > 0 ? `Помощь · новых сообщений: ${unread}` : "Помощь и подсказки"
           }
-          className="fixed bottom-5 right-5 z-30 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white shadow-[0_12px_28px_-10px_rgba(85,102,246,0.6)] transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/25 print:hidden"
+          // Полупрозрачная «таблетка» с размытием, как в приложениях:
+          // сплошная фиолетовая кнопка перебивала контент под собой.
+          // Цвета в токенах — в тёмной общее правило перекрасило бы
+          // `bg-white/70` в непрозрачный фон.
+          style={{
+            background: "var(--app-fab-bg)",
+            borderColor: "var(--app-fab-border)",
+          }}
+          className="fixed bottom-5 right-5 z-30 flex size-12 items-center justify-center rounded-full border text-[#5566f6] shadow-[0_10px_30px_-12px_rgba(11,16,36,0.35)] backdrop-blur-md transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/25 print:hidden"
         >
           <Sparkles className="size-5" />
           {unread > 0 ? (
@@ -221,10 +229,14 @@ function FabButton({
           ? `${action.label} · новых сообщений: ${action.badge}`
           : action.label
       }
-      className={`group relative flex size-11 items-center justify-center rounded-full transition-all duration-150 hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/25 ${
+      style={{
+        background: "var(--app-fab-bg)",
+        borderColor: "var(--app-fab-border)",
+      }}
+      className={`group relative flex size-11 items-center justify-center rounded-full border backdrop-blur-md transition-all duration-150 hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/25 ${
         brand
-          ? "bg-gradient-to-br from-[#5566f6] to-[#7a5cff] text-white shadow-[0_12px_28px_-10px_rgba(85,102,246,0.6)]"
-          : "border border-[#ececf4] bg-white text-[#5566f6] shadow-[0_10px_24px_-10px_rgba(11,16,36,0.25)] hover:border-[#5566f6]/40"
+          ? "text-[#5566f6] shadow-[0_10px_30px_-12px_rgba(85,102,246,0.45)]"
+          : "text-[#5566f6] shadow-[0_10px_24px_-12px_rgba(11,16,36,0.3)]"
       }`}
     >
       <Icon className="size-4" />

@@ -55,6 +55,12 @@
   /* Скелетоны: подложка и «блик», который по ней бежит. */
   --app-skeleton-base: #eceef5;
   --app-skeleton-sheen: rgba(255, 255, 255, 0.75);
+  /* Плавающая кнопка помощи: полупрозрачная «таблетка» поверх контента,
+     как в мобильных приложениях. Держим в токенах — кнопка порталится
+     в body, а `bg-white/70` в тёмной перекрашивается в непрозрачный
+     фон общим правилом и теряет прозрачность. */
+  --app-fab-bg: rgba(255, 255, 255, 0.72);
+  --app-fab-border: rgba(11, 16, 36, 0.08);
   color-scheme: light;
 
   /* ── Типографика эталона (lk.haccp-online.ru, замеры 1440×900) ──────
@@ -127,7 +133,7 @@ body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
   --app-border-strong: rgba(255, 255, 255, 0.2);
   --app-text: #f2f3fb;
   --app-text-secondary: #cccee0;
-  --app-text-muted: #a0a3b8;
+  --app-text-muted: #a9acc0;
   --app-text-faint: #82859b;
   /* Заливка основной кнопки: белый текст на ней должен читаться,
      поэтому её НЕ осветляем вместе с фоном. */
@@ -144,6 +150,8 @@ body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
   --app-scrim: rgba(12, 10, 24, 0.5);
   --app-skeleton-base: #454165;
   --app-skeleton-sheen: rgba(255, 255, 255, 0.09);
+  --app-fab-bg: rgba(69, 65, 101, 0.72);
+  --app-fab-border: rgba(255, 255, 255, 0.16);
   color-scheme: dark;
   background-color: var(--app-bg);
   color: var(--app-text);
