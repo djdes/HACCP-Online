@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -495,16 +497,11 @@ export function MetalImpurityDocumentsClient({
               : METAL_IMPURITY_PAGE_TITLE}
           </h1>
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-            <Button
-              variant="outline"
-              className="h-10 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] shadow-none sm:w-auto"
-              asChild
-            >
-              <Link href="/sanpin">
-                <BookOpenText className="size-4" />
-                Инструкция
-              </Link>
-            </Button>
+            <FillGuideLauncher
+              code="metal_impurity"
+              page="list"
+              variant="button"
+            />
             {activeTab === "active" && (
               <Button
                 type="button"

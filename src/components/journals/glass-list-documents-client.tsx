@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -444,6 +446,8 @@ export function GlassListDocumentsClient(props: Props) {
           <h1 className={JOURNAL_LIST_HEADING_CLASS}>
             {GLASS_LIST_PAGE_TITLE}
           </h1>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <FillGuideLauncher code="glass_items_list" page="list" variant="button" />
           {props.activeTab === "active" && (
             <Button
               type="button"
@@ -454,6 +458,7 @@ export function GlassListDocumentsClient(props: Props) {
               Создать документ
             </Button>
           )}
+          </div>
         </div>
 
         <div className="border-b border-[#d9dce8]">

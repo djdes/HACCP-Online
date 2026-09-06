@@ -155,6 +155,8 @@ export async function POST(request: Request) {
     );
     if (dateKeys.length === 0) continue;
     const result = await applyJournalAutoFill(db, {
+      // Пишем журнал отката: выключение тумблера сможет вернуть как было.
+      recordUndo: true,
       document: {
         id: document.id,
         organizationId,

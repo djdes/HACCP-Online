@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -337,16 +339,11 @@ export function GlassControlDocumentsClient(props: Props) {
           {GLASS_CONTROL_PAGE_TITLE}
         </h1>
         <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-          <Button
-            variant="outline"
-            className="h-10 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
-            asChild
-          >
-            <Link href="/sanpin">
-              <BookOpenText className="size-4" />
-              Инструкция
-            </Link>
-          </Button>
+          <FillGuideLauncher
+            code="glass_control"
+            page="list"
+            variant="button"
+          />
           {props.activeTab === "active" && (
             <Button
               type="button"

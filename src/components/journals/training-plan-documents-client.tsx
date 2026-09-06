@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -456,15 +458,11 @@ export function TrainingPlanDocumentsClient({
           {activeTab === "closed" && " (Закрытые!!!)"}
         </h1>
         <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-          <Button
-            variant="outline"
-            className="h-12 w-full rounded-2xl border-[#e8ebf7] px-6 text-[16px] text-[#5566f6] shadow-none sm:w-auto"
-            asChild
-          >
-            <Link href="/sanpin">
-              <BookOpenText className="size-5" /> Инструкция
-            </Link>
-          </Button>
+          <FillGuideLauncher
+            code={templateCode}
+            page="list"
+            variant="button"
+          />
           {activeTab === "active" && (
             <Button
               className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff] sm:w-auto"

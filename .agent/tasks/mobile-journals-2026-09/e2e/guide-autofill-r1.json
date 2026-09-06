@@ -1,0 +1,232 @@
+{
+  "hygiene": {
+    "guideButton": true,
+    "guideDialog": {
+      "top": 78,
+      "bottom": 780,
+      "height": 702,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": true,
+      "canScrollInside": true,
+      "tabs": [
+        "Как заполнять",
+        "Правила"
+      ],
+      "buttons": [
+        "Как заполнять",
+        "Правила",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Понятно",
+        "Показать на экране"
+      ],
+      "textLength": 1427
+    },
+    "rulesTab": {
+      "top": 78,
+      "bottom": 780,
+      "height": 702,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": true,
+      "canScrollInside": true,
+      "tabs": [
+        "Как заполнять",
+        "Правила"
+      ],
+      "buttons": [
+        "Как заполнять",
+        "Правила",
+        "Понятно"
+      ],
+      "textLength": 2806
+    },
+    "switches": 2,
+    "autoCreateDialog": {
+      "top": 447,
+      "bottom": 780,
+      "height": 333,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": false,
+      "canScrollInside": true,
+      "tabs": [],
+      "buttons": [
+        "Оставить как есть",
+        "Выключить оба"
+      ],
+      "textLength": 268
+    },
+    "autoFillDialog": {
+      "top": 483,
+      "bottom": 780,
+      "height": 297,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": false,
+      "canScrollInside": true,
+      "tabs": [],
+      "buttons": [
+        "Нет",
+        "Да, выключить"
+      ],
+      "textLength": 130
+    }
+  },
+  "climate_control": {
+    "guideButton": true,
+    "guideDialog": {
+      "top": 78,
+      "bottom": 780,
+      "height": 702,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": true,
+      "canScrollInside": true,
+      "tabs": [
+        "Как заполнять",
+        "Правила"
+      ],
+      "buttons": [
+        "Как заполнять",
+        "Правила",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Понятно",
+        "Показать на экране"
+      ],
+      "textLength": 1625
+    },
+    "rulesTab": {
+      "top": 78,
+      "bottom": 780,
+      "height": 702,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": true,
+      "canScrollInside": true,
+      "tabs": [
+        "Как заполнять",
+        "Правила"
+      ],
+      "buttons": [
+        "Как заполнять",
+        "Правила",
+        "Понятно"
+      ],
+      "textLength": 1616
+    },
+    "switches": 2,
+    "autoCreateDialog": null,
+    "autoFillDialog": {
+      "top": 151,
+      "bottom": 780,
+      "height": 629,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": false,
+      "canScrollInside": true,
+      "tabs": [],
+      "buttons": [
+        "Нет",
+        "Да, включить"
+      ],
+      "textLength": 524
+    }
+  },
+  "med_books": {
+    "guideButton": true,
+    "guideDialog": {
+      "top": 78,
+      "bottom": 780,
+      "height": 702,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": true,
+      "canScrollInside": true,
+      "tabs": [
+        "Как заполнять",
+        "Правила"
+      ],
+      "buttons": [
+        "Как заполнять",
+        "Правила",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Показать на экране",
+        "Понятно",
+        "Показать на экране"
+      ],
+      "textLength": 1206
+    },
+    "rulesTab": {
+      "top": 78,
+      "bottom": 780,
+      "height": 702,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": true,
+      "canScrollInside": true,
+      "tabs": [
+        "Как заполнять",
+        "Правила"
+      ],
+      "buttons": [
+        "Как заполнять",
+        "Правила",
+        "Понятно"
+      ],
+      "textLength": 1862
+    },
+    "switches": 1,
+    "autoCreateDialog": {
+      "top": 281,
+      "bottom": 780,
+      "height": 499,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": false,
+      "canScrollInside": true,
+      "tabs": [],
+      "buttons": [
+        "Нет",
+        "Да, включить"
+      ],
+      "textLength": 338
+    }
+  },
+  "audit_plan": {
+    "guideButton": false,
+    "switches": 1,
+    "autoCreateDialog": {
+      "top": 281,
+      "bottom": 780,
+      "height": 499,
+      "vh": 780,
+      "fits": true,
+      "innerScroll": false,
+      "canScrollInside": true,
+      "tabs": [],
+      "buttons": [
+        "Нет",
+        "Да, включить"
+      ],
+      "textLength": 338
+    }
+  }
+}

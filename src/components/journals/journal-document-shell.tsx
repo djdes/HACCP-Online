@@ -23,7 +23,7 @@ import {
 } from "@/components/journals/journal-responsive";
 import { GRID_VIEWPORT_CLASS } from "@/components/journals/journal-grid";
 import { Switch } from "@/components/ui/switch";
-import type { TourAnchor } from "@/lib/tour-anchors";
+import { TOUR, type TourAnchor } from "@/lib/tour-anchors";
 
 /**
  * Единая раскладка страницы документа — канон журналов «Уборка» и
@@ -188,7 +188,7 @@ export function JournalDocumentShell({
           <MobileViewToggle
             mobileView={mobileView!}
             onChange={onMobileView!}
-            dataTour={viewToggleTour}
+            dataTour={viewToggleTour ?? TOUR.viewToggle}
           />
         </div>
       ) : null}

@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -308,16 +310,11 @@ export function IntensiveCoolingDocumentsClient({
           {INTENSIVE_COOLING_DOCUMENT_TITLE}
         </h1>
         <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-          <Button
-            variant="outline"
-            className="h-12 w-full rounded-2xl border-[#edf0fb] bg-[#fafbff] px-6 text-[15px] text-[#5566f6] shadow-none sm:w-auto"
-            asChild
-          >
-            <Link href="/sanpin">
-              <BookOpenText className="size-5" />
-              Инструкция
-            </Link>
-          </Button>
+          <FillGuideLauncher
+            code="intensive_cooling"
+            page="list"
+            variant="button"
+          />
           {activeTab === "active" ? (
             <Button
               className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee] sm:w-auto"

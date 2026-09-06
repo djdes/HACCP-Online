@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -103,16 +105,11 @@ export function ScanJournalDocumentsClient({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className={JOURNAL_LIST_HEADING_CLASS}>{templateName}</h1>
         <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-          <Button
-            variant="outline"
-            className="h-10 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
-            asChild
-          >
-            <Link href="/sanpin">
-              <BookOpenText className="size-4" />
-              Инструкция
-            </Link>
-          </Button>
+          <FillGuideLauncher
+            code={templateCode}
+            page="list"
+            variant="button"
+          />
           {activeTab === "active" && (
             <Button
               onClick={handleCreate}

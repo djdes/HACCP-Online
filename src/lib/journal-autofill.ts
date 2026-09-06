@@ -22,6 +22,10 @@
 import type { PrismaClient } from "@prisma/client";
 import { toDateKey, isWeekend } from "@/lib/hygiene-document";
 import { isAutoSeededEntry, NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
+import {
+  recordAutoFillUndo,
+  snapshotBeforeAutoFill,
+} from "@/lib/journal-autofill-undo";
 import { getAutofillCapability } from "@/lib/journal-autofill-capability";
 import { applyStaffJournalAutoFill } from "@/lib/staff-journal-autofill";
 import {
@@ -379,6 +383,12 @@ export async function applyJournalAutoFill(
      * нормы, а не генерируются заново. Cron по умолчанию не включает.
      */
     copyForward?: boolean;
+    /**
+     * Записать журнал отката (`config.autoFillUndo`), чтобы выключение
+     * тумблера могло вернуть журнал как было. Включают автоматические
+     * пути: ночной крон и догон при включении тумблера.
+     */
+    recordUndo?: boolean;
   }
 ): Promise<AutoFillResult> {
   const capability = getAutofillCapability(params.document.templateCode);
@@ -393,16 +403,42 @@ export async function applyJournalAutoFill(
   }
   if (dateKeys.length === 0) return emptyResult();
 
-  if (capability === "staff") {
-    return applyStaffCapability(db, { ...params, dateKeys });
-  }
-  if (capability === "config-matrix") {
-    return applyCleaningConfigAutoFill(db, {
-      document: params.document,
-      dateKeys,
-    });
-  }
-  return applyPerDayJournalAutoFill(db, { ...params, dateKeys });
+  const run = async (): Promise<AutoFillResult> => {
+    if (capability === "staff") {
+      return applyStaffCapability(db, { ...params, dateKeys });
+    }
+    if (capability === "config-matrix") {
+      return applyCleaningConfigAutoFill(db, {
+        document: params.document,
+        dateKeys,
+      });
+    }
+    return applyPerDayJournalAutoFill(db, { ...params, dateKeys });
+  };
+
+  // Без журнала отката — ручные сценарии («Закрыть день»): человек сам
+  // нажал кнопку и ждёт, что запись останется.
+  if (!params.recordUndo) return run();
+
+  const before = await snapshotBeforeAutoFill(db, {
+    documentId: params.document.id,
+    dateKeys,
+    config: params.document.config,
+  });
+  const result = await run();
+  // Конфиг мог измениться прямо в прогоне (журнал уборки пишет матрицу),
+  // поэтому перечитываем его, а не берём из входных параметров.
+  const fresh = await db.journalDocument.findUnique({
+    where: { id: params.document.id },
+    select: { config: true },
+  });
+  await recordAutoFillUndo(db, {
+    documentId: params.document.id,
+    dateKeys,
+    before,
+    configAfter: fresh?.config ?? params.document.config,
+  }).catch(() => 0);
+  return result;
 }
 
 async function applyStaffCapability(

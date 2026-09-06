@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenText, Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
 import {
   JOURNAL_LIST_ACTIONS_CLASS,
@@ -9,7 +9,6 @@ import {
   JOURNAL_TAB_RAIL_CLASS,
   JOURNAL_TAB_VIEWPORT_CLASS,
 } from "@/components/journals/journal-responsive";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,21 +65,11 @@ export function JournalTopBar(props: {
         {props.heading}
       </h1>
       <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-        {/* «Инструкция» (правила) и «Как заполнить?» (куда нажимать) — одна
-            пара в общем ряду: на телефоне бок о бок, а не три этажа кнопок.
-            Вторая рендерится только у журналов с walkthrough
-            (journal-ui-walkthroughs.ts). */}
+        {/* Одна кнопка «Инструкция»: открывает окно с двумя вкладками —
+            «Куда нажимать» (шаги по интерфейсу) и «Правила» (что и как
+            проверять). Страница `/journals/<code>/guide` осталась —
+            ссылка на неё внизу окна. */}
         <div className="flex w-full gap-2 sm:w-auto">
-          <Button
-            variant="outline"
-            className="h-9 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
-            asChild
-          >
-            <Link href={`/journals/${props.routeCode ?? props.templateCode}/guide`}>
-              <BookOpenText className="size-4" />
-              Инструкция
-            </Link>
-          </Button>
           <FillGuideLauncher
             code={props.templateCode}
             journalName={props.templateName}

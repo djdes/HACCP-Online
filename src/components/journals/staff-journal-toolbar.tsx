@@ -4,7 +4,7 @@ import { TOUR } from "@/lib/tour-anchors";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, Copy, Plus, UserPlus, Users } from "lucide-react";
+import { Archive, ChevronDown, Copy, Plus, UserPlus, Users, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DocumentCloseButton,
   useDocumentCloseAction,
@@ -658,6 +659,10 @@ export function StaffJournalToolbar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [checked, setChecked] = useState(autoFill);
   const [isSwitching, setIsSwitching] = useState(false);
+  // Тумблер спрашивает всегда: включение — что заполним за прошедшие дни,
+  // выключение — убирать ли заполненное.
+  const [autoFillDialog, setAutoFillDialog] = useState<"on" | "off" | null>(null);
+  const [revertOnDisable, setRevertOnDisable] = useState(true);
   const copyYesterday = useCopyYesterdayAction(documentId);
   const closeAction = useDocumentCloseAction({ documentId, title });
 
@@ -665,7 +670,7 @@ export function StaffJournalToolbar({
     setChecked(autoFill);
   }, [autoFill]);
 
-  async function handleAutoFill(value: boolean) {
+  async function handleAutoFill(value: boolean, revert = false) {
     const previous = checked;
     setChecked(value);
     setIsSwitching(true);
@@ -683,8 +688,29 @@ export function StaffJournalToolbar({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "apply_auto_fill" }),
         });
+        toast.success("Журнал заполнен по сотрудникам до сегодня");
+      } else if (revert) {
+        // «Вернуть как было»: убираем ровно то, что проставил сайт.
+        const result = (await requestJson(
+          `/api/journal-documents/${documentId}/staff`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "revert_auto_fill" }),
+          },
+        )) as { removed?: number; restored?: number } | null;
+        const touched =
+          Number(result?.removed ?? 0) + Number(result?.restored ?? 0);
+        toast.success(
+          touched > 0
+            ? `Автозаполнение выключено · убрано записей: ${touched}`
+            : "Автозаполнение выключено",
+        );
+      } else {
+        toast.success("Автозаполнение выключено");
       }
 
+      setAutoFillDialog(null);
       router.refresh();
     } catch (error) {
       setChecked(previous);
@@ -793,7 +819,10 @@ export function StaffJournalToolbar({
           <div className={DOC_AUTOFILL_STRIP_CLASS} data-tour={TOUR.autofill}>
             <Switch
               checked={checked}
-              onCheckedChange={handleAutoFill}
+              onCheckedChange={(value) => {
+                setRevertOnDisable(true);
+                setAutoFillDialog(value ? "on" : "off");
+              }}
               disabled={isSwitching}
               className="data-[state=unchecked]:bg-[#d6d9ee]"
             />
@@ -803,6 +832,52 @@ export function StaffJournalToolbar({
           </div>
         ) : null}
       </div>
+
+      {/* Включение: коротко о том, что произойдёт, и ответ «да / нет».
+          Выключение: спрашиваем, убирать ли то, что заполнил сайт. */}
+      <ConfirmDialog
+        open={autoFillDialog === "on"}
+        onClose={() => setAutoFillDialog(null)}
+        onConfirm={() => handleAutoFill(true)}
+        icon={Wand2}
+        title="Заполнять журнал за вас?"
+        description="Сайт проставит отметки по сотрудникам сам. Вам останется проверить."
+        bullets={[
+          { label: "Заполним с начала периода по сегодня", tone: "info" },
+          { label: "Дальше — каждый день сам, ночью" },
+          { label: "Пустые клетки заполнятся, ваши записи останутся" },
+        ]}
+        confirmLabel="Да, заполнить"
+        cancelLabel="Нет"
+      />
+
+      <ConfirmDialog
+        open={autoFillDialog === "off"}
+        onClose={() => setAutoFillDialog(null)}
+        onConfirm={() => handleAutoFill(false, revertOnDisable)}
+        variant="warn"
+        title="Выключить автозаполнение?"
+        description="Дальше журнал заполняете вы."
+        confirmLabel="Да, выключить"
+        cancelLabel="Нет"
+      >
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-[#dcdfed] bg-white p-3.5 transition-colors hover:border-[#5566f6]/40">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-[#5566f6]"
+            checked={revertOnDisable}
+            onChange={(event) => setRevertOnDisable(event.target.checked)}
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13.5px] font-medium text-[#0b1024]">
+              Убрать то, что заполнилось само
+            </span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-[#6f7282]">
+              Ваши записи останутся на месте
+            </span>
+          </span>
+        </label>
+      </ConfirmDialog>
 
       <JournalSettingsDialog
         open={settingsOpen}

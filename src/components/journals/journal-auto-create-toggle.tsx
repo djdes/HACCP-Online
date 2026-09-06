@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarPlus, Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -46,11 +47,17 @@ export function JournalAutoCreateToggle({
   autofillSupported: boolean;
   disabled?: boolean;
 }) {
+  const router = useRouter();
   const [autoCreate, setAutoCreate] = useState(initialAutoCreate);
   const [autoFill, setAutoFill] = useState(initialAutoFill);
   const [busy, setBusy] = useState<"create" | "fill" | null>(null);
   const [dialog, setDialog] = useState<"auto-create" | "auto-fill" | null>(null);
   const [disableConfirm, setDisableConfirm] = useState(false);
+  // Выключение автозаполнения: спрашиваем, убирать ли то, что сайт
+  // заполнил сам. По умолчанию убираем — человек выключает тумблер
+  // именно потому, что автоматические отметки ему не нужны.
+  const [fillOffConfirm, setFillOffConfirm] = useState(false);
+  const [revertOnDisable, setRevertOnDisable] = useState(true);
 
   async function save(body: Record<string, unknown>): Promise<void> {
     // Эндпоинт СЛИВАЕТ переданные пункты с сохранённой картой, а не
@@ -161,13 +168,39 @@ export function JournalAutoCreateToggle({
     }
   }
 
-  async function disableAutoFill() {
+  async function disableAutoFill(revert: boolean) {
     setBusy("fill");
     const previous = autoFill;
     setAutoFill(false);
     try {
       await save({ autoCreate, autoFill: false });
-      toast.success("Автозаполнение выключено");
+      setFillOffConfirm(false);
+
+      if (!revert) {
+        toast.success("Автозаполнение выключено");
+        return;
+      }
+
+      // Откат: удаляем строки, которые завёл сайт, и возвращаем прежние
+      // значения в клетки, которые он заполнил. Ручные отметки не в счёт.
+      try {
+        const res = await fetch("/api/organizations/auto-journals/revert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: templateCode }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.error ?? "revert failed");
+        const touched = Number(data?.removed ?? 0) + Number(data?.restored ?? 0);
+        toast.success(
+          touched > 0
+            ? `Автозаполнение выключено · убрано записей: ${touched}`
+            : "Автозаполнение выключено",
+        );
+        router.refresh();
+      } catch {
+        toast.warning("Автозаполнение выключено, но убрать записи не вышло");
+      }
     } catch (error) {
       setAutoFill(previous);
       toast.error(
@@ -197,7 +230,8 @@ export function JournalAutoCreateToggle({
       setDialog("auto-fill");
       return;
     }
-    void disableAutoFill();
+    setRevertOnDisable(true);
+    setFillOffConfirm(true);
   }
 
   return (
@@ -212,12 +246,10 @@ export function JournalAutoCreateToggle({
             )}
           </span>
           <span className="min-w-0 flex-1">
+            {/* Пояснение убрано: подробности показывает всплывашка
+                включения, а в полосе остаётся короткая подпись. */}
             <span className="block text-[13.5px] font-medium text-[#0b1024]">
-              Создавать журнал на новый период автоматически
-            </span>
-            <span className="block text-[12px] leading-snug text-[#6f7282]">
-              В начале периода заведётся новый документ со строками и
-              ответственными — как продолжение последнего.
+              Создавать журнал автоматически
             </span>
           </span>
           <Switch
@@ -238,12 +270,7 @@ export function JournalAutoCreateToggle({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[13.5px] font-medium text-[#0b1024]">
-                Заполнять журнал ежедневно автоматически
-              </span>
-              <span className="block text-[12px] leading-snug text-[#6f7282]">
-                Отметки, показатели и подписи проставятся сами — на основе
-                последнего журнала, с использованием ИИ, чтобы данные были
-                реалистичными. За вами — проверка и корректировка.
+                Заполнять журнал автоматически
               </span>
             </span>
             <Switch
@@ -265,21 +292,46 @@ export function JournalAutoCreateToggle({
       />
 
       <ConfirmDialog
+        open={fillOffConfirm}
+        onClose={() => setFillOffConfirm(false)}
+        onConfirm={() => disableAutoFill(revertOnDisable)}
+        variant="warn"
+        title="Выключить автозаполнение?"
+        description="Дальше журнал заполняете вы."
+        confirmLabel="Да, выключить"
+        cancelLabel="Нет"
+      >
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-[#dcdfed] bg-white p-3.5 transition-colors hover:border-[#5566f6]/40">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-[#5566f6]"
+            checked={revertOnDisable}
+            onChange={(event) => setRevertOnDisable(event.target.checked)}
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13.5px] font-medium text-[#0b1024]">
+              Убрать то, что заполнилось само
+            </span>
+            <span className="mt-0.5 block text-[12px] leading-snug text-[#6f7282]">
+              Ваши записи останутся на месте
+            </span>
+          </span>
+        </label>
+      </ConfirmDialog>
+
+      <ConfirmDialog
         open={disableConfirm}
         onClose={() => setDisableConfirm(false)}
         onConfirm={() => disableAutoCreate(true)}
         variant="warn"
         title="Выключить автосоздание?"
-        description="Вместе с ним выключится и ежедневное автозаполнение: заполнять будет нечего, пока новый документ не заведут вручную."
+        description="Заодно выключится автозаполнение: заполнять будет нечего."
         bullets={[
-          { label: "Уже созданные документы останутся на месте", tone: "info" },
-          {
-            label: "Новый период придётся заводить кнопкой «Создать документ»",
-            tone: "warn",
-          },
+          { label: "Созданные документы останутся", tone: "info" },
+          { label: "Новый период заводите кнопкой «Создать документ»", tone: "warn" },
         ]}
-        confirmLabel="Выключить оба"
-        cancelLabel="Оставить как есть"
+        confirmLabel="Да, выключить"
+        cancelLabel="Нет"
       />
     </>
   );

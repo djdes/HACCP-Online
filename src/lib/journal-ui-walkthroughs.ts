@@ -194,8 +194,79 @@ const WALKTHROUGHS: Record<string, WalkthroughStep[]> = {
 
 export const WALKTHROUGH_CODES: ReadonlySet<string> = new Set(Object.keys(WALKTHROUGHS));
 
+/**
+ * Общие шаги — для журналов без своего разбора.
+ *
+ * Раскладка страницы документа теперь одна на все журналы
+ * (`journal-document-shell.tsx`), поэтому и путь один: создать документ,
+ * открыть, добавить строку, заполнить, закончить. Свои шаги пишем только
+ * там, где заполнение отличается по сути (гигиена, климат).
+ */
+const GENERIC_DOCUMENT_STEPS: WalkthroughStep[] = [
+  {
+    id: "create-document",
+    page: "list",
+    anchor: TOUR.createDocument,
+    title: "Создайте документ",
+    body: "Нажмите «Создать документ». Название и период подставятся сами — проверьте ответственного.",
+    forManager: true,
+    preview: "button-create",
+  },
+  {
+    id: "document-card",
+    page: "list",
+    title: "Откройте документ",
+    body: "Нажмите на карточку нужного периода — откроется бланк с таблицей.",
+  },
+  {
+    id: "view-toggle",
+    page: "document",
+    anchor: TOUR.viewToggle,
+    title: "На телефоне выберите вид",
+    body: "«Карточки» — читать и заполнять по одной записи, «Таблица» — весь бланк как на бумаге.",
+    mobileOnly: true,
+  },
+  {
+    id: "add-row",
+    page: "document",
+    title: "Добавьте запись",
+    body: "Кнопка «Добавить» над таблицей заводит новую строку: дата, кто делал, показатели.",
+    preview: "button-add-row",
+  },
+  {
+    id: "fill-cells",
+    page: "document",
+    title: "Заполняйте день в день",
+    body: "Каждое значение сохраняется сразу — отдельной кнопки «Сохранить» нет.",
+  },
+  {
+    id: "autofill",
+    page: "document",
+    anchor: TOUR.autofill,
+    title: "Можно включить автозаполнение",
+    body: "Тумблер «Автоматически заполнять журнал» проставит отметки за прошедшие дни и дальше будет вести журнал сам. Выключите — предложим убрать заполненное.",
+    forManager: true,
+  },
+  {
+    id: "more-actions",
+    page: "document",
+    anchor: TOUR.moreActions,
+    title: "Закончите период",
+    body: "Когда период закрыт: «⋯» → «Закончить журнал». Документ уйдёт во вкладку «Закрытые».",
+    forManager: true,
+  },
+];
+
 export function getJournalWalkthrough(code: string): WalkthroughStep[] | null {
   return WALKTHROUGHS[code] ?? null;
+}
+
+/**
+ * Шаги для окна «Инструкция»: свои, если есть, иначе общие. Пустым не
+ * бывает — окно с двумя вкладками открывается у любого журнала.
+ */
+export function getJournalWalkthroughOrGeneric(code: string): WalkthroughStep[] {
+  return WALKTHROUGHS[code] ?? GENERIC_DOCUMENT_STEPS;
 }
 
 export function hasJournalWalkthrough(code: string): boolean {

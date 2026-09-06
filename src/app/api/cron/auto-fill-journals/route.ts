@@ -118,6 +118,8 @@ async function handle(request: Request) {
       if (users.length === 0) continue;
 
       const result = await applyJournalAutoFill(db, {
+      // Пишем журнал отката: выключение тумблера сможет вернуть как было.
+      recordUndo: true,
         document: {
           id: document.id,
           organizationId: document.organizationId,

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { MousePointerClick } from "lucide-react";
+import { BookOpenText } from "lucide-react";
 import { toast } from "sonner";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { getJournalDocGuide } from "@/lib/journal-doc-guides";
 import {
-  getJournalWalkthrough,
+  getJournalWalkthroughOrGeneric,
+  hasJournalWalkthrough,
   visibleWalkthroughSteps,
   type WalkthroughPage,
   type WalkthroughStep,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/spotlight-tour";
 
 /**
- * Вход в «Как заполнить?»: кнопка (список журнала) или круглая кнопка
+ * Вход в «Инструкцию»: кнопка (список журнала) или круглая кнопка
  * (документ) + окно + спотлайт-тур. Один компонент на сайт и Mini App
  * (П-3), различаются только пути (`basePath`).
  *
@@ -36,7 +37,9 @@ import {
  * - Шаг другой страницы → переход: список → первый активный документ,
  *   документ → список.
  *
- * Рендерится только у журналов с walkthrough — иначе null.
+ * Рендерится у ВСЕХ журналов: у кого нет своих шагов — общие
+ * (`getJournalWalkthroughOrGeneric`), правила — из `journal-doc-guides`
+ * или из общего гайда журнала.
  */
 const GHOST_BUTTON_CLASS =
   "inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] transition-colors hover:bg-[#5566f6]/[0.09] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 sm:w-auto";
@@ -51,6 +54,7 @@ export function FillGuideLauncher({
   bottomOffset = 72,
   className,
   style,
+  label = "Инструкция",
 }: {
   code: string;
   /** Название журнала в шапке окна; по умолчанию — из каталога. */
@@ -64,10 +68,13 @@ export function FillGuideLauncher({
   bottomOffset?: number;
   className?: string;
   style?: CSSProperties;
+  /** Подпись кнопки: на списке журнала — «Инструкция». */
+  label?: string;
 }) {
   const router = useRouter();
   const narrow = useIsNarrowViewport();
-  const steps = getJournalWalkthrough(code);
+  // Окно открывается у ЛЮБОГО журнала: свои шаги, если есть, иначе общие.
+  const steps = getJournalWalkthroughOrGeneric(code);
   const guide = getJournalDocGuide(code);
   const name =
     journalName ??
@@ -78,10 +85,16 @@ export function FillGuideLauncher({
   useEffect(() => setMounted(true), []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tour, setTour] = useState<{ startId?: string } | null>(null);
-  const { seen, markSeen } = useSeenNotice(steps ? `fill-guide:${code}` : null);
+  // Само окно всплывает только у журналов со СВОИМ разбором: общие шаги
+  // одинаковы везде, и показывать их при первом заходе в каждый из
+  // сорока журналов — назойливо. Кнопка «Инструкция» есть всегда.
+  const autoOpenOnFirstVisit = hasJournalWalkthrough(code);
+  const { seen, markSeen } = useSeenNotice(
+    autoOpenOnFirstVisit ? `fill-guide:${code}` : null,
+  );
 
   const visible = useMemo(
-    () => (steps ? visibleWalkthroughSteps(steps, { isMobile: narrow }) : []),
+    () => visibleWalkthroughSteps(steps, { isMobile: narrow }),
     [steps, narrow]
   );
   const tourSteps = useMemo<SpotlightStep[]>(
@@ -124,7 +137,6 @@ export function FillGuideLauncher({
   // (router.replace на dynamic-страницах — лишний серверный round-trip;
   // `?tab=` и state роутера сохраняем).
   useEffect(() => {
-    if (!steps) return;
     const url = new URL(window.location.href);
     const requested = url.searchParams.get("tour");
     if (!requested) return;
@@ -148,8 +160,6 @@ export function FillGuideLauncher({
     markSeen();
     setDialogOpen(true);
   }, [seen, markSeen]);
-
-  if (!steps) return null;
 
   function showStepHint(step: WalkthroughStep): string | null {
     if (step.page === "document" && page === "list" && !firstDocumentId) {
@@ -176,7 +186,7 @@ export function FillGuideLauncher({
       mounted ? (
         <JournalGuideFab
           onClick={() => setDialogOpen(true)}
-          label="Как заполнить?"
+          label={label}
           ariaLabel="Как заполнить этот журнал"
           bottomOffset={bottomOffset}
         />
@@ -188,8 +198,8 @@ export function FillGuideLauncher({
         className={className ?? GHOST_BUTTON_CLASS}
         style={style}
       >
-        <MousePointerClick className="size-4" />
-        Как заполнить?
+        <BookOpenText className="size-4" />
+        {label}
       </button>
     );
 
@@ -204,6 +214,7 @@ export function FillGuideLauncher({
           steps={visible}
           page={page}
           guide={guide}
+          journalCode={code}
           guideHref={basePath === "site" ? `/journals/${code}/guide` : undefined}
           tourAvailable={tourSteps.length > 0}
           onShowStep={showStep}

@@ -2,6 +2,7 @@
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   Check,
@@ -141,7 +142,7 @@ export function ConfirmDialog({
     return () => unlockBodyScroll();
   }, [open]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
   const phraseOk =
     !typeToConfirm || phrase.trim().toUpperCase() === typeToConfirm.toUpperCase();
@@ -159,12 +160,22 @@ export function ConfirmDialog({
     }
   }
 
-  return (
+  /**
+   * Портал в `document.body` — ОБЯЗАТЕЛЕН.
+   *
+   * Полотно страницы дашборда обёрнуто в full-bleed-контейнер с
+   * `translate: -50%` (Tailwind v4 пишет отдельное свойство `translate`,
+   * а не `transform`). Любой `position: fixed` внутри считается от этой
+   * коробки, а не от экрана: на телефоне окно уезжало вниз и его нижняя
+   * часть вместе с кнопками оказывалась за краем, а внутренний скролл
+   * не помогал — прокручивать было нечего.
+   */
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:px-4"
     >
       {/* Backdrop */}
       <button
@@ -180,7 +191,7 @@ export function ConfirmDialog({
           экрана и кнопка «Подтвердить» уезжает за нижний край. */}
       <div
         ref={dialogRef}
-        className={`relative flex max-h-[90vh] w-full max-w-[480px] flex-col overflow-hidden rounded-3xl border border-[#ececf4] bg-white shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)]`}
+        className={`relative flex max-h-[90vh] w-full max-w-[480px] flex-col overflow-hidden rounded-t-3xl border border-[#ececf4] bg-white sm:rounded-3xl shadow-[0_30px_80px_-30px_rgba(11,16,36,0.55)]`}
       >
         {/* Header — gradient accent */}
         <div className={`relative shrink-0 overflow-hidden ${styles.accentBg} p-6`}>
@@ -297,6 +308,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

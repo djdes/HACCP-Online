@@ -16,6 +16,7 @@ import type {
   WalkthroughStep,
 } from "@/lib/journal-ui-walkthroughs";
 import { JournalDocGuideBody } from "@/components/journals/journal-doc-guide-body";
+import { JournalGuide } from "@/components/journals/journal-guide";
 import { WalkthroughPreview } from "@/components/journals/walkthrough-previews";
 import { PORTAL_FONT_FAMILY } from "@/components/ui/spotlight-tour";
 
@@ -42,6 +43,7 @@ export function FillGuideDialog({
   steps,
   page,
   guide,
+  journalCode,
   guideHref,
   tourAvailable,
   onShowStep,
@@ -55,6 +57,8 @@ export function FillGuideDialog({
   /** Страница, на которой открыто окно, — её шаги можно показать сразу. */
   page: WalkthroughPage;
   guide: JournalDocGuide | null;
+  /** Код журнала — для общего гайда, если своих правил ещё нет. */
+  journalCode: string;
   /** Ссылка на полную инструкцию (`/journals/<code>/guide`); в Mini App нет. */
   guideHref?: string;
   /** Есть ли на этой странице хоть один шаг с целью. */
@@ -88,8 +92,9 @@ export function FillGuideDialog({
 
   if (!open || typeof document === "undefined") return null;
 
-  const hasRules = Boolean(guide);
-  const showSteps = tab === "steps" || !hasRules;
+  // Вкладки показываем всегда: если своих правил у журнала нет, во
+  // вкладке «Правила» рендерим общий гайд (`journal-filling-guides`).
+  const showSteps = tab === "steps";
 
   return createPortal(
     <div
@@ -117,7 +122,7 @@ export function FillGuideDialog({
               </span>
               <div className="min-w-0">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-                  Как заполнить
+                  Инструкция
                 </div>
                 <h2
                   id="fill-guide-title"
@@ -137,7 +142,7 @@ export function FillGuideDialog({
             </button>
           </div>
 
-          {hasRules ? (
+          {(
             <div
               role="tablist"
               aria-label="Разделы"
@@ -145,14 +150,14 @@ export function FillGuideDialog({
             >
               <TabButton active={showSteps} onClick={() => setTab("steps")}>
                 <MousePointerClick className="size-4" />
-                Куда нажимать
+                Как заполнять
               </TabButton>
               <TabButton active={!showSteps} onClick={() => setTab("rules")}>
                 <BookOpenText className="size-4" />
                 Правила
               </TabButton>
             </div>
-          ) : null}
+          )}
         </div>
 
         {/* Body — scroll */}
@@ -212,7 +217,9 @@ export function FillGuideDialog({
             </ol>
           ) : guide ? (
             <JournalDocGuideBody guide={guide} />
-          ) : null}
+          ) : (
+            <JournalGuide journalCode={journalCode} expanded />
+          )}
         </div>
 
         {/* Footer — fixed */}

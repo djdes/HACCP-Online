@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -596,16 +598,11 @@ export function CleaningDocumentsClient(props: Props) {
             {CLEANING_PAGE_TITLE}
           </h1>
           <div className={JOURNAL_LIST_ACTIONS_CLASS}>
-            <Button
-              variant="outline"
-              className="h-9 w-full rounded-lg border-0 bg-[#5566f6]/[0.04] px-3.5 text-[14px] font-semibold text-[#5566f6] shadow-none hover:bg-[#5566f6]/[0.09] sm:w-auto"
-              asChild
-            >
-              <Link href={`/journals/${props.routeCode}/guide`}>
-                <BookOpenText className="size-5" />
-                Инструкция
-              </Link>
-            </Button>
+            <FillGuideLauncher
+              code="cleaning"
+              page="list"
+              variant="button"
+            />
             {/* Пока документов нет, единственная точка входа — кнопка
                 внутри карточки пустого состояния (эталон). */}
             {props.activeTab === "active" && props.documents.length > 0 ? (

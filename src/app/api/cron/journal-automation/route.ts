@@ -185,6 +185,8 @@ async function runForOrganization(
       }
 
       const filled = await applyJournalAutoFill(db, {
+      // Пишем журнал отката: выключение тумблера сможет вернуть как было.
+      recordUndo: true,
         document: {
           id: document.id,
           organizationId: org.id,

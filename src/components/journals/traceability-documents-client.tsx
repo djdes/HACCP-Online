@@ -1,5 +1,7 @@
 "use client";
 
+import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -425,6 +427,9 @@ export function TraceabilityDocumentsClient({
           <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
             {heading}
           </h1>
+          <div className="mt-4 flex w-full sm:w-auto">
+            <FillGuideLauncher code="traceability_test" page="list" variant="button" />
+          </div>
           <div className="mt-5 flex flex-wrap items-center gap-5 border-b border-[#d8dbe6] text-[15px] sm:gap-10 sm:text-[18px]">
             <Link
               href={`/journals/${routeCode}`}

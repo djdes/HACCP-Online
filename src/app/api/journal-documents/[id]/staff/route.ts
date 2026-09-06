@@ -14,11 +14,17 @@ import {
   isPerEmployeeJournal,
 } from "@/lib/journal-automation";
 import { resolveAutomationStaff } from "@/lib/journal-automation-staff";
+import {
+  recordAutoFillUndo,
+  revertAutoFill,
+  snapshotBeforeAutoFill,
+} from "@/lib/journal-autofill-undo";
 
 type StaffAction =
   | "add_employee"
   | "fill_from_list"
-  | "apply_auto_fill";
+  | "apply_auto_fill"
+  | "revert_auto_fill";
 
 export async function POST(
   request: Request,
@@ -105,10 +111,25 @@ export async function POST(
     return resolved.employeeIds.length > 0 ? resolved.employeeIds : allUserIds;
   }
 
+  if (action === "revert_auto_fill") {
+    // Тумблер автозаполнения в самом документе выключили с согласием
+    // «убрать заполненное»: проигрываем журнал отката назад.
+    const result = await revertAutoFill(db, {
+      documentId,
+      config: document.config,
+    });
+    return NextResponse.json(result);
+  }
+
   if (action === "apply_auto_fill") {
     // Общая логика с ежедневным cron'ом (/api/cron/auto-fill-journals):
     // тот же helper, разница только в наборе дат (здесь — весь период
     // документа, в cron — сегодняшний день).
+    const before = await snapshotBeforeAutoFill(db, {
+      documentId,
+      dateKeys,
+      config: document.config,
+    });
     const result = await applyStaffJournalAutoFill(db, {
       documentId,
       templateCode: document.template.code,
@@ -116,6 +137,13 @@ export async function POST(
       dateKeys,
       entries: document.entries,
     });
+    // Журнал отката: выключение тумблера сможет вернуть как было.
+    await recordAutoFillUndo(db, {
+      documentId,
+      dateKeys,
+      before,
+      configAfter: document.config,
+    }).catch(() => 0);
 
     return NextResponse.json({ updated: result.updated, created: result.created });
   }

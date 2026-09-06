@@ -191,44 +191,38 @@ export function JournalAutomationEnableDialog({
   const bullets = useMemo(() => {
     if (!preview) return undefined;
     const items: { label: string; tone?: "default" | "warn" | "info" }[] = [];
-    if (preview.hasActiveDocument) {
+
+    if (mode === "auto-fill") {
+      // Главное, что человек должен понять до включения: сайт сам
+      // проставит отметки за уже прошедшие дни периода — до сегодня.
       items.push({
-        label: `Сейчас: «${preview.currentPeriod.label}»`,
+        label: "Заполним по сотрудникам с начала периода по сегодня",
         tone: "info",
       });
-    } else {
+      items.push({ label: "Дальше — каждый день сам, ночью" });
       items.push({
-        label: `Активного документа нет — сегодня ночью появится «${preview.currentPeriod.label}»`,
-        tone: "warn",
+        label: "Пустые клетки заполнятся, ваши записи останутся как есть",
       });
+      if (!autoCreateEnabled) {
+        items.push({ label: "Заодно включится создание нового периода" });
+      }
+      return items;
     }
+
     items.push(
       preview.nextPeriod
         ? {
-            label: `${preview.nextPeriod.startsAtLabel} появится «${preview.nextPeriod.label}» со строками и ответственными`,
+            label: `${preview.nextPeriod.startsAtLabel} появится «${preview.nextPeriod.label}»`,
+            tone: "info",
           }
-        : {
-            label: "Журнал бессрочный: документ один, новые периоды не создаются",
-          },
+        : { label: "Журнал бессрочный: документ один" },
     );
-    items.push({ label: "Создание происходит ночью, дубликаты исключены" });
-    if (mode === "auto-fill") {
-      if (!autoCreateEnabled) {
-        items.push({
-          label: "Вместе с автозаполнением включится и автосоздание",
-          tone: "info",
-        });
-      }
+    if (!preview.hasActiveDocument) {
       items.push({
-        label:
-          "Прошлые дни закрываются от правок — изменения вносятся день в день",
-        tone: "warn",
-      });
-      items.push({
-        label:
-          "Уже начатый период заполнится сразу — пустые ячейки с начала периода до сегодня",
+        label: `Сегодня ночью появится «${preview.currentPeriod.label}»`,
       });
     }
+    items.push({ label: "Строки и ответственные — из прошлого журнала" });
     return items;
   }, [preview, mode, autoCreateEnabled]);
 
@@ -282,20 +276,16 @@ export function JournalAutomationEnableDialog({
       variant="default"
       icon={mode === "auto-fill" ? Wand2 : CalendarPlus}
       title={
-        mode === "auto-fill" ? "Автозаполнение журнала" : "Автосоздание журнала"
+        mode === "auto-fill" ? "Заполнять журнал за вас?" : "Создавать журнал сам?"
       }
       description={
         mode === "auto-fill"
-          ? "Каждый день отметки, показатели и подписи проставляются автоматически — на основе последнего журнала, с использованием ИИ, чтобы данные были реалистичными. За людьми остаются проверка и корректировка."
-          : "Новый документ создаётся из последнего — со строками, помещениями и ответственными."
+          ? "Сайт заполнит журнал за вас: отметки и показатели проставятся сами. Вам останется проверить."
+          : "Новый период журнала заведётся сам — как продолжение прошлого."
       }
       bullets={bullets}
-      confirmLabel={
-        mode === "auto-fill"
-          ? "Включить автозаполнение"
-          : "Включить автосоздание"
-      }
-      cancelLabel="Отмена"
+      confirmLabel="Да, включить"
+      cancelLabel="Нет"
     >
       {loading && !preview ? (
         <div className="space-y-2.5" aria-busy="true">
