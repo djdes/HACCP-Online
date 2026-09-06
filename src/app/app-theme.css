@@ -137,6 +137,26 @@ body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) {
   color-scheme: dark;
   background-color: var(--app-bg);
   color: var(--app-text);
+
+  /* Токены shadcn (`bg-background`, `bg-popover`, `text-muted-foreground`
+     и т.д.). Их не ловят точечные правила ниже — те ищут arbitrary-хексы
+     вроде `bg-[#ffffff]`. Диалог Radix красится именно `bg-background`:
+     без этой перекраски карточка оставалась белой, а текст на ней
+     наследовал светлый `--app-text` с body — белым по белому. */
+  --background: var(--app-surface);
+  --foreground: var(--app-text);
+  --card: var(--app-surface);
+  --card-foreground: var(--app-text);
+  --popover: var(--app-surface-elevated);
+  --popover-foreground: var(--app-text);
+  --secondary: var(--app-surface-muted);
+  --secondary-foreground: var(--app-text);
+  --muted: var(--app-surface-muted);
+  --muted-foreground: var(--app-text-muted);
+  --accent: var(--app-tint-indigo);
+  --accent-foreground: var(--app-text);
+  --border: var(--app-border);
+  --input: var(--app-border-strong);
 }
 
 /* Body background follows the shell so sticky header blur doesn't show
@@ -187,6 +207,7 @@ body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f1f2f8\],
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f0f2f7\],
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#eef0f6\],
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f1f2f6\],
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f3f4f6\],
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f4f5fb\],
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f2f2f2\],
@@ -569,6 +590,22 @@ body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"]))
 body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"]))
   .data-\[state\=unchecked\]\:bg-\[\#dcdfed\][data-state="unchecked"] {
   background-color: var(--app-border-strong);
+}
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"]))
+  .data-\[state\=unchecked\]\:bg-\[\#d6d9ee\][data-state="unchecked"] {
+  background-color: var(--app-border-strong);
+}
+
+/* --- КАЛЕНДАРНЫЕ ДНИ В СЕТКЕ ----------------------------------------
+   Выходной/праздник и сокращённый день красятся в бланке своими
+   пастельными хексами (`journal-grid.ts`). В тёмной они оставались
+   светло-розовыми полосами через всю таблицу, а отметки на них
+   читались еле-еле. Держим тот же смысл приглушённой заливкой. */
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#f8d7d4\] {
+  background-color: rgba(255, 144, 130, 0.16);
+}
+body:is([data-app-theme="dark"], :has(.app-shell[data-app-theme="dark"])) .bg-\[\#fdeeda\] {
+  background-color: rgba(255, 190, 110, 0.14);
 }
 
 /* --- BORDERS ------------------------------------------------------- */
