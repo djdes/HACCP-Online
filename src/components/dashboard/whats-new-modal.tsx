@@ -92,6 +92,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Документы и конфиденциальность": ShieldCheck,
   "Интерфейс на телефоне": Smartphone,
   "Скорость и отклик": Zap,
+  "Замеры и приборы": Thermometer,
 };
 
 function iconForCategory(name: string): LucideIcon {
