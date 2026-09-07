@@ -12,6 +12,10 @@ import {
 } from "@/components/cleaning/room-editor-dialog";
 import { toast } from "sonner";
 import {
+  TableContextMenu,
+  type TableContextMenuItem,
+} from "@/components/journals/table-context-menu";
+import {
   applyRoomResponsiblesToConfig,
   countRoomsPerUser,
   type RoomResponsibles,
@@ -33,6 +37,7 @@ import {
   applyRoomScheduleToMatrix,
   type RoomScheduleFromDb,
   CLEANING_DOCUMENT_TITLE,
+  CLEANING_MARK_OPTIONS,
   CLEANING_PAGE_TITLE,
   createCleaningResponsibleRow,
   createCleaningRoomRow,
@@ -319,6 +324,12 @@ export function CleaningDocumentClient(props: Props) {
   // выделяет диапазон (как в Excel).
   const [cellSelectMode, setCellSelectMode] = useState(false);
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+  // Меню выбора отметки для клетки карточного режима. Раньше тап
+  // перебирал Т → Г → «/» → пусто вслепую: промахнулся — поехал дальше
+  // по кругу, и на телефоне список вариантов взять было негде.
+  const [cellMenu, setCellMenu] = useState<
+    { x: number; y: number; rowId: string; dateKey: string } | null
+  >(null);
   // История отмены: только правки ячеек, сделанные этим человеком в
   // этой вкладке. Настройки журнала и состав помещений в неё не идут —
   // это не «ой, не туда нажал».
@@ -1577,6 +1588,40 @@ export function CleaningDocumentClient(props: Props) {
     await patchDocument(nextConfig);
   }
 
+  /** Прямая запись отметки — выбор из списка, без перебора. */
+  async function applyCellValue(
+    rowId: string,
+    dateKey: string,
+    value: CleaningMatrixValue
+  ) {
+    if (props.status !== "active") return;
+    const nextConfig = setCleaningMatrixValue({
+      config,
+      rowId,
+      dateKey,
+      value,
+    });
+    await patchCellsWithUndo(applyAutoSignatures(nextConfig, [dateKey]));
+  }
+
+  /** Пункты меню клетки: Т / Г / «/» / пусто с отметкой текущего. */
+  function buildCellMenuItems(menu: {
+    rowId: string;
+    dateKey: string;
+  }): TableContextMenuItem[] {
+    const row = rows.find((item) => item.id === menu.rowId);
+    const current = row ? cellValue(row, menu.dateKey) : "";
+    return CLEANING_MARK_OPTIONS.map((option) => ({
+      key: option.value || "empty",
+      code: option.code || undefined,
+      label: option.label,
+      active: (current || "") === option.value,
+      onSelect: () => {
+        applyCellValue(menu.rowId, menu.dateKey, option.value).catch(() => {});
+      },
+    }));
+  }
+
   async function updateCell(row: RowDescriptor, dateKey: string) {
     if (props.status !== "active") return;
     // В режиме выделения клик игнорируется — drag-handlers (mousedown +
@@ -2206,7 +2251,20 @@ export function CleaningDocumentClient(props: Props) {
                               key={dateKey}
                               type="button"
                               title={dayKind.name ?? undefined}
-                              onClick={() => { updateCell(row, dateKey).catch(() => {}); }}
+                              onClick={(event) => {
+                                if (props.status !== "active") return;
+                                // В режиме выделения клик отдан drag-логике.
+                                if (cellSelectMode) return;
+                                if (row.kind !== "room") return;
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setCellMenu({
+                                  x: event.clientX,
+                                  y: event.clientY,
+                                  rowId: row.id,
+                                  dateKey,
+                                });
+                              }}
                               onTouchStart={() => {
                                 if (cellSelectMode) startDragOnCell(row.id, dateKey);
                               }}
@@ -2233,7 +2291,7 @@ export function CleaningDocumentClient(props: Props) {
                       </div>
                       {props.status === "active" ? (
                         <div className="mt-3 text-[11px] text-[#6f7282]">
-                          {row.kind === "room" ? "Тап по дню перебирает Т / Г / пусто." : "Тап по дню переключает отметку ответственного."}
+                          {row.kind === "room" ? "Нажмите на день, чтобы выбрать Т / Г / «/»." : "Тап по дню переключает отметку ответственного."}
                         </div>
                       ) : null}
                       {row.kind === "room" ? (
@@ -3113,6 +3171,17 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Выбор отметки клетки. На телефоне приходит листом снизу. */}
+      {cellMenu ? (
+        <TableContextMenu
+          x={cellMenu.x}
+          y={cellMenu.y}
+          onClose={() => setCellMenu(null)}
+          ariaLabel="Отметка об уборке"
+          items={buildCellMenuItems(cellMenu)}
+        />
+      ) : null}
     </>
   );
 }

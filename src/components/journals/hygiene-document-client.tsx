@@ -1189,13 +1189,20 @@ export function HygieneDocumentClient({
                             ) : null}
                             <button
                               type="button"
-                              onClick={() => {
-                                if (!isActive) return;
-                                handleStatusClick(
+                              // Карточка открывает тот же список вариантов,
+                              // что и ПКМ в таблице (на телефоне он приходит
+                              // листом снизу). Слепой перебор по тапу
+                              // оставался единственным способом попасть в
+                              // нужный статус и промах уводил по кругу.
+                              onClick={(event) =>
+                                openCellMenu(
+                                  event,
                                   employee.id,
-                                  dateKey
-                                ).catch(() => {});
-                              }}
+                                  dateKey,
+                                  "status",
+                                  true
+                                )
+                              }
                               disabled={!isActive || locked}
                               title={lockReason ?? undefined}
                               data-tour={
@@ -1220,13 +1227,15 @@ export function HygieneDocumentClient({
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                if (!isActive) return;
-                                handleTemperatureClick(
+                              onClick={(event) =>
+                                openCellMenu(
+                                  event,
                                   employee.id,
-                                  dateKey
-                                ).catch(() => {});
-                              }}
+                                  dateKey,
+                                  "temperature",
+                                  true
+                                )
+                              }
                               disabled={!isActive || locked}
                               title={lockReason ?? "Температура >37°C"}
                               data-tour={
@@ -1243,11 +1252,8 @@ export function HygieneDocumentClient({
                       })}
                       {isActive ? (
                         <div className="pt-1 text-[11px] text-[#6f7282]">
-                          Тап по статусу перебирает{" "}
-                          {HYGIENE_STATUS_OPTIONS.map((item) => item.code).join(
-                            " / "
-                          )}
-                          . T° — между «нет» и «да».
+                          Нажмите на статус или T°, чтобы выбрать значение из
+                          списка.
                         </div>
                       ) : null}
                     </div>
