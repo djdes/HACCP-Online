@@ -11,7 +11,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { loadGuideNodesForUI } from "@/lib/journal-guide-tree";
-import { isDocumentTemplate } from "@/lib/journal-document-helpers";
+import { hasDocumentFillUi } from "@/lib/journal-document-helpers";
 import { isScanOnlyDocumentTemplate } from "@/lib/scan-journal-config";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +55,7 @@ export default async function JournalGuidePage({
   // «К заполнению» у document-журналов ведёт в список документов: у них
   // нет формы /new (new/page.tsx отдаёт 404), заполнение идёт в таблице.
   const fillHref =
-    isDocumentTemplate(resolvedCode) || isScanOnlyDocumentTemplate(resolvedCode)
+    hasDocumentFillUi(resolvedCode) || isScanOnlyDocumentTemplate(resolvedCode)
       ? `/journals/${resolvedCode}`
       : `/journals/${resolvedCode}/new`;
 

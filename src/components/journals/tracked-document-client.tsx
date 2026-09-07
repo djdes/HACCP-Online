@@ -26,6 +26,11 @@ import {
 } from "@/components/ui/dialog";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { RecordCardsView, type RecordCardItem } from "@/components/journals/record-cards-view";
+import {
+  CardEditSheet,
+  type CardEditFieldDef,
+  type CardEditValues,
+} from "@/components/journals/card-edit-sheet";
 import { useMobileView } from "@/lib/use-mobile-view";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -163,6 +168,10 @@ function TrackedDocumentClientImpl({
   }, [addRowOpen, employees]);
 
   const { mobileView, switchMobileView } = useMobileView(templateCode);
+  // Generic-клиент обслуживает все документные журналы без своей
+  // реализации; его карточки не имели ни одного обработчика, то есть на
+  // телефоне такие журналы не заполнялись вовсе.
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   const employeeMap = useMemo(
     () => Object.fromEntries(employees.map((item) => [item.id, item])),
@@ -174,6 +183,7 @@ function TrackedDocumentClientImpl({
     id: entry.id,
     title: formatDateLabel(entry.date),
     subtitle: employeeMap[entry.employeeId]?.name || "",
+    onClick: status === "active" ? () => setEditingEntryId(entry.id) : undefined,
     fields: fields.map((field) => {
       const value = entry.data[field.key];
       return {
@@ -195,6 +205,86 @@ function TrackedDocumentClientImpl({
    *
    * `silent` — вызов из истории: нового шага не кладём.
    */
+  /**
+   * `template.fields[]` → схема листа правки. Типы совпадают один в один,
+   * кроме `equipment`/`employee` — они приходят уже развёрнутыми в
+   * `options` на сервере (`documents/[docId]/page.tsx`), поэтому здесь это
+   * обычный select.
+   */
+  function buildEntryEditFields(): CardEditFieldDef[] {
+    return [
+      { type: "date", key: "__date", label: "Дата" } as CardEditFieldDef,
+      ...fields.map((field): CardEditFieldDef => {
+        if (field.type === "number") {
+          return {
+            type: "number",
+            key: field.key,
+            label: field.label,
+            step: 0.1,
+          };
+        }
+        if (field.type === "boolean") {
+          return { type: "boolean", key: field.key, label: field.label };
+        }
+        if (field.type === "date") {
+          return { type: "date", key: field.key, label: field.label };
+        }
+        if (field.options.length > 0) {
+          return {
+            type: "select",
+            key: field.key,
+            label: field.label,
+            options: field.options,
+          };
+        }
+        return { type: "text", key: field.key, label: field.label };
+      }),
+    ];
+  }
+
+  function buildEntryEditValues(entryId: string): CardEditValues {
+    const entry = entries.find((item) => item.id === entryId);
+    if (!entry) return {};
+    const values: CardEditValues = { __date: entry.date };
+    for (const field of fields) {
+      const value = entry.data[field.key];
+      values[field.key] =
+        typeof value === "boolean" ? value : value == null ? "" : String(value);
+    }
+    return values;
+  }
+
+  async function saveEntryFromSheet(entryId: string, values: CardEditValues) {
+    const entry = entries.find((item) => item.id === entryId);
+    if (!entry) return;
+
+    const nextData: Record<string, unknown> = { ...entry.data };
+    for (const field of fields) {
+      const raw = values[field.key];
+      if (field.type === "boolean") {
+        nextData[field.key] = raw === true;
+      } else if (field.type === "number") {
+        const text = String(raw ?? "").trim().replace(",", ".");
+        nextData[field.key] = text === "" ? null : Number(text);
+      } else {
+        nextData[field.key] = raw == null ? "" : String(raw);
+      }
+    }
+
+    setEditingEntryId(null);
+    try {
+      await saveEntry({
+        ...entry,
+        date: String(values.__date ?? entry.date),
+        data: nextData,
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Ошибка сохранения"
+      );
+    }
+  }
+
   async function saveEntry(nextEntry: EntryItem, options?: { silent?: boolean }) {
     const previousEntry = entries.find((item) => item.id === nextEntry.id);
     const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
@@ -878,6 +968,27 @@ function TrackedDocumentClientImpl({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Правка строки из карточного режима — схема собирается из
+          template.fields, тех же, по которым построена таблица. */}
+      <CardEditSheet
+        open={editingEntryId !== null}
+        title="Запись журнала"
+        subtitle={
+          editingEntryId
+            ? formatDateLabel(
+                entries.find((entry) => entry.id === editingEntryId)?.date ?? ""
+              )
+            : undefined
+        }
+        fields={editingEntryId ? buildEntryEditFields() : []}
+        values={editingEntryId ? buildEntryEditValues(editingEntryId) : {}}
+        onClose={() => setEditingEntryId(null)}
+        onSubmit={(values) => {
+          if (!editingEntryId) return;
+          void saveEntryFromSheet(editingEntryId, values);
+        }}
+      />
     </div>
   );
 }

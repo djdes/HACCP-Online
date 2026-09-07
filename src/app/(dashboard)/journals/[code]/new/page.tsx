@@ -9,7 +9,7 @@ import { loadGuideNodesForUI } from "@/lib/journal-guide-tree";
 import { db } from "@/lib/db";
 import { DynamicForm } from "@/components/journals/dynamic-form";
 import { FinishedProductPipeline } from "@/components/journals/finished-product-pipeline";
-import { isDocumentTemplate } from "@/lib/journal-document-helpers";
+import { hasDocumentFillUi } from "@/lib/journal-document-helpers";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { isScanOnlyDocumentTemplate } from "@/lib/scan-journal-config";
 import { getEffectiveTaskMode } from "@/lib/journal-task-modes";
@@ -33,7 +33,7 @@ export default async function NewJournalEntryPage({
     notFound();
   }
 
-  if (isDocumentTemplate(resolvedCode) || isScanOnlyDocumentTemplate(resolvedCode)) {
+  if (hasDocumentFillUi(resolvedCode) || isScanOnlyDocumentTemplate(resolvedCode)) {
     notFound();
   }
 

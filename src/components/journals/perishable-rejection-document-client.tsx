@@ -221,6 +221,7 @@ export function PerishableRejectionDocumentClient({
     title: `№${index + 1} · ${row.productName || "—"}`,
     subtitle:
       [row.arrivalDate, row.arrivalTime].filter(Boolean).join(" ") || undefined,
+    onClick: readOnly ? undefined : () => openEditRow(row),
     leading: !readOnly ? (
       <Checkbox
         checked={selectedRows.includes(row.id)}
@@ -249,6 +250,10 @@ export function PerishableRejectionDocumentClient({
     ],
   }));
   const [addModalOpen, setAddModalOpen] = useState(false);
+  // Правка существующей строки идёт через ту же модалку, что и добавление:
+  // журнал rolling (до 30 записей за смену), и на телефоне карточка была
+  // единственным доступным входом — но не открывала ничего.
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [listModalOpen, setListModalOpen] = useState(false);
   const [activeListSection, setActiveListSection] = useState<
     "products" | "manufacturers" | "suppliers"
@@ -491,20 +496,55 @@ export function PerishableRejectionDocumentClient({
     setDraftUserId("");
   }
 
+  function openAddRow() {
+    setEditingRowId(null);
+    resetDraftRow();
+    setAddModalOpen(true);
+  }
+
+  /** Правка строки — модалка добавления, засеянная её значениями. */
+  function openEditRow(row: PerishableRejectionRow) {
+    if (readOnly) return;
+    setEditingRowId(row.id);
+    setDraftRow({ ...row });
+    // Ответственный в строке хранится склеенной строкой «Имя, должность»:
+    // разбираем обратно, чтобы селекты модалки встали на свои значения.
+    const [namePart, positionPart] = String(row.responsiblePerson || "")
+      .split(",")
+      .map((part) => part.trim());
+    const matchedUser = users.find((user) => user.name === namePart);
+    setDraftUserId(matchedUser?.id ?? "");
+    setDraftPosition(
+      RESPONSIBLE_POSITIONS.find((position) => position === positionPart) ??
+        RESPONSIBLE_POSITIONS[0]
+    );
+    setAddModalOpen(true);
+  }
+
+  function closeRowModal() {
+    setAddModalOpen(false);
+    setEditingRowId(null);
+  }
+
   async function saveDraftRow() {
     if (readOnly) return;
     const user = users.find((u) => u.id === draftUserId);
     const responsible = user
       ? `${user.name}, ${draftPosition}`
       : draftPosition;
+    const nextRow = { ...draftRow, responsiblePerson: responsible };
+    const rowId = editingRowId;
     applyConfig(
       (prev) => ({
         ...prev,
-        rows: [...prev.rows, { ...draftRow, responsiblePerson: responsible }],
+        rows: rowId
+          ? prev.rows.map((row) => (row.id === rowId ? nextRow : row))
+          : [...prev.rows, nextRow],
       }),
       true
     );
     resetDraftRow();
+    setEditingRowId(null);
     setAddModalOpen(false);
   }
 
@@ -655,7 +695,7 @@ export function PerishableRejectionDocumentClient({
   return (
     <div className="text-black">
       <FocusTodayScroller
-        onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
+        onCreate={!readOnly ? () => openAddRow() : undefined}
       />
       {/* Q3: `space-y-6` на корне снят — вертикальный ритм задают токены
           DOC_* (иначе зазор H1 → шапка «плавал» между 24 и 28px). */}
@@ -725,7 +765,7 @@ export function PerishableRejectionDocumentClient({
                   key: "add-product",
                   label: "Добавить изделие",
                   icon: <Plus className="size-4 text-[#6f7282]" />,
-                  onSelect: () => setAddModalOpen(true),
+                  onSelect: () => openAddRow(),
                 },
                 {
                   key: "add-several",
@@ -769,7 +809,7 @@ export function PerishableRejectionDocumentClient({
             <Button
               type="button"
               className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors hover:bg-[#4a5bf0]"
-              onClick={() => setAddModalOpen(true)}
+              onClick={() => openAddRow()}
             >
               <Plus className="size-5" strokeWidth={2.5} />
               Добавить запись
@@ -1083,7 +1123,7 @@ export function PerishableRejectionDocumentClient({
                   labelSpan={2}
                   trailing={config.showNote ? 9 : 8}
                   label="Добавить запись"
-                  onClick={() => setAddModalOpen(true)}
+                  onClick={() => openAddRow()}
                 />
               ) : null}
             </tbody>
@@ -1093,11 +1133,14 @@ export function PerishableRejectionDocumentClient({
 
       {/* Add Row Dialog — design-system shape: padded header, body
        * sections, bottom-stuck footer with secondary + primary buttons. */}
-      <Dialog open={readOnly ? false : addModalOpen} onOpenChange={setAddModalOpen}>
+      <Dialog
+        open={readOnly ? false : addModalOpen}
+        onOpenChange={(next) => (next ? setAddModalOpen(true) : closeRowModal())}
+      >
         <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
           <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
-              Добавление новой строки
+              {editingRowId ? "Изменение записи" : "Добавление новой строки"}
             </DialogTitle>
           </DialogHeader>
 
@@ -1594,7 +1637,7 @@ export function PerishableRejectionDocumentClient({
               type="button"
               variant="outline"
               className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto"
-              onClick={() => setAddModalOpen(false)}
+              onClick={closeRowModal}
             >
               Отмена
             </Button>
@@ -1606,7 +1649,11 @@ export function PerishableRejectionDocumentClient({
               }}
               disabled={isSaving}
             >
-              {isSaving ? "Сохранение…" : "Добавить запись"}
+              {isSaving
+                ? "Сохранение…"
+                : editingRowId
+                  ? "Сохранить"
+                  : "Добавить запись"}
             </Button>
           </div>
         </DialogContent>

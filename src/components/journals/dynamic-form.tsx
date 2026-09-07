@@ -33,7 +33,18 @@ type ShowIfCondition = { field: string; equals: unknown };
 type FieldDef = {
   key: string;
   label: string;
-  type: "text" | "number" | "date" | "boolean" | "select" | "equipment" | "employee";
+  type:
+    | "text"
+    // `textarea` приходит из seed'а (`complaint_register`: applicantDetails,
+    // complaintContent, decisionSummary). Своей ветки рендера у него не было,
+    // и три обязательных поля жалобы молча рисовались пустотой.
+    | "textarea"
+    | "number"
+    | "date"
+    | "boolean"
+    | "select"
+    | "equipment"
+    | "employee";
   required?: boolean;
   options?: FieldOption[];
   step?: number;
@@ -593,12 +604,15 @@ export function DynamicForm({
                 <FieldHint templateCode={templateCode} fieldKey={field.key} />
               </div>
 
-              {field.type === "text" && (
+              {(field.type === "text" || field.type === "textarea") && (
                 <VoiceInput
                   id={field.key}
                   value={(formData[field.key] as string) ?? ""}
                   onChange={(v) => updateField(field.key, v)}
                   required={field.required}
+                  // Длинные поля жалоб и решений — выше по умолчанию: три
+                  // строки на «Содержание жалобы» заставляют печатать в щель.
+                  rows={field.type === "textarea" ? 5 : 3}
                 />
               )}
 

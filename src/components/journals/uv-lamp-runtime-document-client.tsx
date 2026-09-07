@@ -81,6 +81,10 @@ import {
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
 import {
+  CardEditSheet,
+  type CardEditValues,
+} from "@/components/journals/card-edit-sheet";
+import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
@@ -1087,6 +1091,9 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   const [specEditOpen, setSpecEditOpen] = useState(false);
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  // Строка, которую правим из карточки. До этого карточки УФ-журнала были
+  // только для чтения: время ВКЛ/ВЫКЛ вводилось лишь в таблице.
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [autoFill, setAutoFill] = useState(props.autoFill === true);
 
   const [config, setConfig] = useState(() => normalizeUvRuntimeDocumentConfig(props.config));
@@ -1285,6 +1292,30 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
     try {
       await saveRow(newRow);
+    } catch {
+      toast.error("Не удалось сохранить строку");
+    }
+  }
+
+  /** Сохранение времени ВКЛ/ВЫКЛ из карточного листа правки. */
+  async function saveRowFromSheet(rowId: string, values: CardEditValues) {
+    const startTime = String(values.startTime ?? "");
+    const endTime = String(values.endTime ?? "");
+    let updated: GridRow | null = null;
+
+    setRows((current) =>
+      current.map((item) => {
+        if (item.id !== rowId) return item;
+        updated = { ...item, data: { ...item.data, startTime, endTime } };
+        return updated;
+      })
+    );
+
+    setEditingRowId(null);
+    if (!updated) return;
+
+    try {
+      await saveRow(updated);
     } catch {
       toast.error("Не удалось сохранить строку");
     }
@@ -1523,6 +1554,11 @@ export function UvLampRuntimeDocumentClient(props: Props) {
               id: row.id,
               title: `№${index + 1} · ${formatRuDateDash(row.date)}`,
               subtitle: userMap[row.employeeId || fallbackEmployeeId] || undefined,
+              // Тап по карточке открывает лист с двумя полями времени.
+              onClick:
+                props.status === "active"
+                  ? () => setEditingRowId(row.id)
+                  : undefined,
               badge: duration !== null ? (
                 <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#5566f6]">
                   {duration} мин
@@ -1809,6 +1845,36 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           }}
         />
       )}
+
+      {/* Правка строки из карточки — только время ВКЛ/ВЫКЛ, остальное
+          в этом журнале считается (продолжительность) или живёт в
+          спецификации установки. */}
+      <CardEditSheet
+        open={editingRowId !== null}
+        title="Работа УФ-установки"
+        subtitle={
+          editingRowId
+            ? formatRuDateDash(
+                rows.find((row) => row.id === editingRowId)?.date ?? ""
+              )
+            : undefined
+        }
+        fields={[
+          { type: "time", key: "startTime", label: "Время включения" },
+          { type: "time", key: "endTime", label: "Время выключения" },
+        ]}
+        values={{
+          startTime:
+            rows.find((row) => row.id === editingRowId)?.data.startTime ?? "",
+          endTime:
+            rows.find((row) => row.id === editingRowId)?.data.endTime ?? "",
+        }}
+        onClose={() => setEditingRowId(null)}
+        onSubmit={(values) => {
+          if (!editingRowId) return;
+          void saveRowFromSheet(editingRowId, values);
+        }}
+      />
     </div>
   );
 }

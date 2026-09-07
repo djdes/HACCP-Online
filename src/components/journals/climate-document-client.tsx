@@ -84,6 +84,11 @@ import {
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
 import {
+  CardEditSheet,
+  type CardEditFieldDef,
+  type CardEditValues,
+} from "@/components/journals/card-edit-sheet";
+import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
@@ -1020,6 +1025,13 @@ export function ClimateDocumentClient({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
   const [rows, setRows] = useState(getSortedRows(initialEntries));
+  // Какое помещение какой строки правим из карточки. Раньше карточки
+  // климата были подписаны «Редактирование — во вкладке Таблица»:
+  // единственный журнал, который прямо отправлял пользователя в сетку
+  // на 1280px.
+  const [editingCell, setEditingCell] = useState<
+    { rowId: string; roomId: string } | null
+  >(null);
   // Анкор спотлайт-тура «Впишите показания»: инпуты строки «сегодня»,
   // если её нет в документе — первой строки. Тур берёт первый видимый.
   const tourRowId = rows.find((row) => row.date === todayKey)?.id ?? rows[0]?.id;
@@ -1509,6 +1521,107 @@ export function ClimateDocumentClient({
     setRows((currentRows) =>
       currentRows.map((item) => (item.id === rowId ? nextRow : item))
     );
+
+    try {
+      await saveRow(nextRow);
+      undoStack.push({
+        undo: () => applyRowSilent(previousRow, nextRow),
+        redo: () => applyRowSilent(nextRow, previousRow),
+      });
+    } catch (error) {
+      setRows((currentRows) =>
+        currentRows.map((item) => (item.id === rowId ? previousRow : item))
+      );
+      toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
+    }
+  }
+
+  /**
+   * Поля листа правки помещения: на каждое время контроля — температура
+   * и влажность, но только те метрики, что включены у помещения.
+   * Нормы берутся из конфига помещения и показываются под полем.
+   */
+  function buildRoomEditFields(roomId: string): CardEditFieldDef[] {
+    const room = config.rooms.find((item) => item.id === roomId);
+    if (!room) return [];
+    const many = config.controlTimes.length > 1;
+
+    return config.controlTimes.flatMap((time) => {
+      const fields: CardEditFieldDef[] = [];
+      if (room.temperature.enabled) {
+        fields.push({
+          type: "number",
+          key: `${time}::temperature`,
+          label: many ? `Температура, ${time}` : "Температура",
+          unit: "°C",
+          step: 0.1,
+          min: -40,
+          max: 60,
+          norm: { min: room.temperature.min, max: room.temperature.max },
+        });
+      }
+      if (room.humidity.enabled) {
+        fields.push({
+          type: "number",
+          key: `${time}::humidity`,
+          label: many ? `Влажность, ${time}` : "Влажность",
+          unit: "%",
+          step: 1,
+          min: 0,
+          max: 100,
+          norm: { min: room.humidity.min, max: room.humidity.max },
+        });
+      }
+      return fields;
+    });
+  }
+
+  function buildRoomEditValues(rowId: string, roomId: string): CardEditValues {
+    const row = rows.find((item) => item.id === rowId);
+    const measurements = row?.data.measurements[roomId] ?? {};
+    const values: CardEditValues = {};
+    for (const time of config.controlTimes) {
+      const measurement = measurements[time] ?? {};
+      values[`${time}::temperature`] =
+        measurement.temperature == null ? "" : String(measurement.temperature);
+      values[`${time}::humidity`] =
+        measurement.humidity == null ? "" : String(measurement.humidity);
+    }
+    return values;
+  }
+
+  /** Записывает все замеры помещения одним PATCH'ем, а не по полю. */
+  async function saveRoomFromSheet(
+    rowId: string,
+    roomId: string,
+    values: CardEditValues
+  ) {
+    const row = rows.find((item) => item.id === rowId);
+    if (!row) return;
+    const previousRow = row;
+
+    const nextMeasurements = { ...row.data.measurements[roomId] };
+    for (const time of config.controlTimes) {
+      nextMeasurements[time] = {
+        temperature: parseMetricInput(
+          String(values[`${time}::temperature`] ?? "")
+        ),
+        humidity: parseMetricInput(String(values[`${time}::humidity`] ?? "")),
+      };
+    }
+
+    const nextRow: RowItem = {
+      ...row,
+      data: {
+        ...row.data,
+        measurements: { ...row.data.measurements, [roomId]: nextMeasurements },
+      },
+    };
+
+    setRows((currentRows) =>
+      currentRows.map((item) => (item.id === rowId ? nextRow : item))
+    );
+    setEditingCell(null);
 
     try {
       await saveRow(nextRow);
@@ -2095,9 +2208,18 @@ export function ClimateDocumentClient({
                     label: room.name,
                     value: lines.length > 0 ? lines.join(" · ") : "",
                     hideIfEmpty: false,
-                    hint: status === "active"
-                      ? "Редактирование — во вкладке Таблица"
-                      : undefined,
+                    warnIfEmpty: status === "active",
+                    // Тап по помещению открывает лист со всеми замерами
+                    // этого помещения за день.
+                    onClick:
+                      status === "active"
+                        ? () =>
+                            setEditingCell({ rowId: row.id, roomId: room.id })
+                        : undefined,
+                    hint:
+                      status === "active" && lines.length === 0
+                        ? "нажмите, чтобы внести замеры"
+                        : undefined,
                   };
                 }),
               };
@@ -2446,6 +2568,33 @@ export function ClimateDocumentClient({
         defaultResponsibleTitle={defaultResponsibleTitle}
         defaultResponsibleUserId={defaultResponsibleUserId}
         onSave={handleSaveResponsible}
+      />
+
+      {/* Лист правки замеров помещения — вход из карточного режима. */}
+      <CardEditSheet
+        open={editingCell !== null}
+        title={
+          config.rooms.find((room) => room.id === editingCell?.roomId)?.name ??
+          "Замеры"
+        }
+        subtitle={
+          editingCell
+            ? getClimateDateLabel(
+                rows.find((row) => row.id === editingCell.rowId)?.date ?? ""
+              )
+            : undefined
+        }
+        fields={editingCell ? buildRoomEditFields(editingCell.roomId) : []}
+        values={
+          editingCell
+            ? buildRoomEditValues(editingCell.rowId, editingCell.roomId)
+            : {}
+        }
+        onClose={() => setEditingCell(null)}
+        onSubmit={(values) => {
+          if (!editingCell) return;
+          void saveRoomFromSheet(editingCell.rowId, editingCell.roomId, values);
+        }}
       />
     </div>
   );

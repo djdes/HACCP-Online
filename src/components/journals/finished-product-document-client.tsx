@@ -188,6 +188,10 @@ export function FinishedProductDocumentClient({
   const [config, setConfig] = useState(() => normalizeFinishedProductDocumentConfig(initialConfig));
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  // id строки, которую правим. null — режим добавления. Одна модалка на
+  // оба сценария: на телефоне карточка открывает её же, иначе бракераж
+  // (до 50 записей за смену) правился только в таблице на 1100px.
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const closeAction = useDocumentCloseAction({ documentId, title });
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -254,6 +258,8 @@ export function FinishedProductDocumentClient({
     id: row.id,
     title: `№${index + 1} · ${row.productName || "—"}`,
     subtitle: row.productionDateTime || undefined,
+    // Тап по карточке открывает ту же модалку, что и строка таблицы.
+    onClick: readOnly ? undefined : () => openEditRow(row),
     leading: !readOnly ? (
       <Checkbox
         checked={selectedRows.includes(row.id)}
@@ -486,11 +492,36 @@ export function FinishedProductDocumentClient({
     toast.success(`Добавлено строк: ${items.length}`);
   }
 
+  function openAddRow() {
+    setEditingRowId(null);
+    setDraftRow(createDraft(users));
+    setAddModalOpen(true);
+  }
+
+  /** Правка существующей строки — та же модалка, засеянная её значениями. */
+  function openEditRow(row: FinishedProductDocumentRow) {
+    if (readOnly) return;
+    setEditingRowId(row.id);
+    setDraftRow({ ...row });
+    setAddModalOpen(true);
+  }
+
+  function closeRowModal() {
+    setAddModalOpen(false);
+    setEditingRowId(null);
+  }
+
   async function saveDraftRow() {
-    const nextConfig = { ...config, rows: [...config.rows, draftRow] };
+    const nextConfig = {
+      ...config,
+      rows: editingRowId
+        ? config.rows.map((row) => (row.id === editingRowId ? draftRow : row))
+        : [...config.rows, draftRow],
+    };
     setConfig(nextConfig);
     await saveConfig(nextConfig);
     setDraftRow(createDraft(users));
+    setEditingRowId(null);
     setAddModalOpen(false);
   }
 
@@ -502,7 +533,7 @@ export function FinishedProductDocumentClient({
   return (
     <div className="text-black">
       <FocusTodayScroller
-        onCreate={!readOnly ? () => setAddModalOpen(true) : undefined}
+        onCreate={!readOnly ? () => openAddRow() : undefined}
       />
       {/* Q3: белая карточка-призрак (`rounded-[28px] shadow-sm py-5 sm:py-7`)
           вокруг шапки убрана — она давала под H1 пустой бордюр ~99px,
@@ -576,7 +607,7 @@ export function FinishedProductDocumentClient({
                 key: "add-product",
                 label: "Добавить изделие",
                 icon: <Plus className="size-4 text-[#6f7282]" />,
-                onSelect: () => setAddModalOpen(true),
+                onSelect: () => openAddRow(),
               },
               {
                 key: "add-several",
@@ -600,7 +631,7 @@ export function FinishedProductDocumentClient({
           />
           {/* Тот же обработчик, что у пункта «Добавить изделие» в дропдауне —
               на эталоне это отдельная кнопка рядом. */}
-          <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => setAddModalOpen(true)}><Plus className="size-5" strokeWidth={2.5} />Добавить изделие</Button>
+          <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => openAddRow()}><Plus className="size-5" strokeWidth={2.5} />Добавить изделие</Button>
           <Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setCatalogOpen(true)}>Редактировать список изделий</Button>
           {/* Кнопки «Сохранить» нет: правки уезжают сами (см. commitConfig). */}
           {isAutoSaving || isSaving || isPending ? (
@@ -730,7 +761,7 @@ export function FinishedProductDocumentClient({
                 labelSpan={1}
                 trailing={columns.length - 3}
                 label="Добавить изделие"
-                onClick={() => setAddModalOpen(true)}
+                onClick={() => openAddRow()}
               />
             ) : null}</tbody>
           </table>
@@ -775,11 +806,14 @@ export function FinishedProductDocumentClient({
         </div>
       </div>
 
-      <Dialog open={readOnly ? false : addModalOpen} onOpenChange={setAddModalOpen}>
+      <Dialog
+        open={readOnly ? false : addModalOpen}
+        onOpenChange={(next) => (next ? setAddModalOpen(true) : closeRowModal())}
+      >
         <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
           <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
-              Добавление новой строки
+              {editingRowId ? "Изменение записи" : "Добавление новой строки"}
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
@@ -873,9 +907,13 @@ export function FinishedProductDocumentClient({
             </div>
           </div>
           <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto" onClick={() => setAddModalOpen(false)}>Отмена</Button>
+            <Button type="button" variant="outline" className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto" onClick={closeRowModal}>Отмена</Button>
             <Button type="button" className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto" onClick={() => { void saveDraftRow(); }} disabled={isSaving}>
-              {isSaving ? "Сохранение…" : "Добавить запись"}
+              {isSaving
+                ? "Сохранение…"
+                : editingRowId
+                  ? "Сохранить"
+                  : "Добавить запись"}
             </Button>
           </div>
         </DialogContent>

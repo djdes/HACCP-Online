@@ -32,6 +32,9 @@ import {
   getTrackedDocumentTitle,
   isTrackedDocumentTemplate,
 } from "@/lib/tracked-document";
+import { COMPLAINT_REGISTER_TEMPLATE_CODE } from "@/lib/complaint-document";
+import { AUDIT_PROTOCOL_TEMPLATE_CODE } from "@/lib/audit-protocol-document";
+import { AUDIT_REPORT_TEMPLATE_CODE } from "@/lib/audit-report-document";
 import {
   SANITATION_DAY_TEMPLATE_CODE,
   SANITATION_DAY_DOCUMENT_TITLE,
@@ -184,6 +187,38 @@ export function isDocumentTemplate(templateCode: string) {
     templateCode === DISINFECTANT_TEMPLATE_CODE ||
     isScanOnlyJournalTemplate(templateCode) ||
     isTrackedDocumentTemplate(templateCode)
+  );
+}
+
+/**
+ * Журналы, у которых есть свой документный экран, но которые НЕ проходят
+ * через generic-ветку `isDocumentTemplate` — они разбираются ниже по
+ * `/journals/[code]/page.tsx` собственными блоками.
+ *
+ * Существует ровно ради `/journals/<code>/new`: без этого списка форма
+ * `DynamicForm` открывалась для журналов, чьи данные живут в
+ * `JournalDocument.config`. Для `audit_protocol` и `audit_report`
+ * `template.fields` пуст, и пользователь видел форму на ноль полей;
+ * для `complaint_register` — три поля `textarea`, которые до этой правки
+ * вообще не рендерились.
+ *
+ * Добавлять сюда, а НЕ в `isDocumentTemplate`: там эти коды перехватила бы
+ * generic-ветка и их собственные экраны стали бы недостижимы.
+ */
+const DOCUMENT_UI_ONLY_TEMPLATE_CODES = new Set([
+  COMPLAINT_REGISTER_TEMPLATE_CODE,
+  AUDIT_PROTOCOL_TEMPLATE_CODE,
+  AUDIT_REPORT_TEMPLATE_CODE,
+]);
+
+/**
+ * «У журнала заполнение идёт в документе, а не через `/new`».
+ * Шире, чем `isDocumentTemplate`: включает журналы с собственным экраном.
+ */
+export function hasDocumentFillUi(templateCode: string) {
+  return (
+    isDocumentTemplate(templateCode) ||
+    DOCUMENT_UI_ONLY_TEMPLATE_CODES.has(templateCode)
   );
 }
 
