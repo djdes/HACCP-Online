@@ -107,6 +107,8 @@ import {
   JournalLegendBlock,
 } from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { MobileAxisToggle } from "@/components/journals/mobile-axis-toggle";
+import { DayFirstCards } from "@/components/journals/day-first-cards";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   PositionSelectItems,
@@ -675,7 +677,8 @@ export function CleaningDocumentClient(props: Props) {
   // for the full rationale; the 920-px grid behind horizontal scroll is
   // unusable on a 320-px phone, so we collapse it into a per-row accordion
   // with tap-to-cycle day buttons. Desktop / print always use the table.
-  const { mobileView, switchMobileView } = useMobileView("cleaning");
+  const { mobileView, switchMobileView, mobileAxis, switchMobileAxis } =
+    useMobileView("cleaning");
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   // Миграция со старого ключа "cleaning-mobile-view" (до перехода на
   // общий useMobileView). Читаем один раз: если нового ключа ещё нет,
@@ -2203,9 +2206,53 @@ export function CleaningDocumentClient(props: Props) {
 
         <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
 
+        {mobileView === "cards" && dayKeys.includes(todayKey) ? (
+          <div className="mb-4 sm:hidden print:hidden">
+            <MobileAxisToggle
+              axis={mobileAxis}
+              onChange={switchMobileAxis}
+              entityLabel="По помещениям"
+            />
+          </div>
+        ) : null}
+
+        {/* Ось «Сегодня»: помещения за один день. Уборщица закрывает свою
+            смену одним экраном, не раскрывая каждое помещение. */}
+        {mobileView === "cards" &&
+        mobileAxis === "today" &&
+        dayKeys.includes(todayKey) ? (
+          <div className="mb-4 sm:hidden print:hidden">
+            <DayFirstCards
+              items={rows
+                .filter((row) => row.kind === "room")
+                .map((row) => ({
+                  id: row.id,
+                  title: row.kind === "room" ? row.room.name : row.id,
+                  subtitle:
+                    row.kind === "room" ? row.room.detergent || undefined : undefined,
+                  value: cellValue(row, todayKey) || undefined,
+                  disabledReason:
+                    props.status === "active" ? undefined : "журнал закрыт",
+                  onPress: (event: React.MouseEvent) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setCellMenu({
+                      x: event.clientX,
+                      y: event.clientY,
+                      rowId: row.id,
+                      dateKey: todayKey,
+                    });
+                  },
+                }))}
+              emptyLabel="Добавьте помещение через меню «Добавить»."
+            />
+          </div>
+        ) : null}
+
         {/* Mobile Cards view — hidden on sm+ and print. Each row (room or
             responsible) is an accordion with per-day tap-to-cycle cells. */}
-        {mobileView === "cards" ? (
+        {mobileView === "cards" &&
+        (mobileAxis === "entity" || !dayKeys.includes(todayKey)) ? (
           <div className="space-y-2 sm:hidden print:hidden">
             {rows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">

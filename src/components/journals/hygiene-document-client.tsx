@@ -35,6 +35,8 @@ import {
   JournalPaperHeaderRows,
 } from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { MobileAxisToggle } from "@/components/journals/mobile-axis-toggle";
+import { DayFirstCards } from "@/components/journals/day-first-cards";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   HYGIENE_REGISTER_LEGEND,
@@ -53,6 +55,7 @@ import {
 } from "@/lib/hygiene-document";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
 import {
   FOREIGN_ROW_MESSAGE,
@@ -316,7 +319,8 @@ export function HygieneDocumentClient({
   // scroll of the full sheet). Общий хук `useMobileView` — тот же, что в
   // cleaning / disinfectant, ключ `journal-mobile-view:hygiene`. Desktop и
   // печать всегда рендерят таблицу.
-  const { mobileView, switchMobileView } = useMobileView("hygiene");
+  const { mobileView, switchMobileView, mobileAxis, switchMobileAxis } =
+    useMobileView("hygiene");
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
     null
   );
@@ -540,6 +544,52 @@ export function HygieneDocumentClient({
    * наружу, чтобы хук выбросил протухший шаг (сервер мог ответить 403
    * «прошлые дни закрыты», если после правки наступила полночь).
    */
+  /**
+   * «Отметить всех Зд.» за сегодня — массовая простановка из оси
+   * «Сегодня». Подтверждение обязательно (правило UX-6), результат —
+   * тост со счётчиком: пропущенные строки видно сразу.
+   */
+  async function markEveryoneHealthyToday() {
+    const targets = printableEmployees.filter((employee) => {
+      if (!employee.name) return false;
+      if (cellLockReason(employee.id, todayKey)) return false;
+      const entry = normalizeHygieneEntryData(
+        entryMap[makeCellKey(employee.id, todayKey)]
+      );
+      return !entry.status;
+    });
+    if (targets.length === 0) return;
+
+    const confirmed = await confirmAsync({
+      title: "Отметить всех «Здоров»?",
+      description: `Незаполненных сотрудников на сегодня: ${targets.length}. Каждому будет проставлен статус «Зд.». Отдельные отметки потом можно поменять.`,
+      variant: "info",
+      confirmLabel: "Отметить",
+    });
+    if (!confirmed) return;
+
+    let done = 0;
+    for (const employee of targets) {
+      const current = normalizeHygieneEntryData(
+        entryMap[makeCellKey(employee.id, todayKey)]
+      );
+      try {
+        await persistEntry(employee.id, todayKey, {
+          ...current,
+          status: "healthy",
+        });
+        done += 1;
+      } catch {
+        /* строку пропускаем — счётчик покажет расхождение */
+      }
+    }
+    toast.success(
+      done === targets.length
+        ? `Отмечено: ${done}`
+        : `Отмечено: ${done} из ${targets.length}`
+    );
+  }
+
   async function persistEntry(
     employeeId: string,
     dateKey: string,
@@ -1092,12 +1142,69 @@ export function HygieneDocumentClient({
           onChange={switchMobileView}
           dataTour={TOUR.viewToggle}
         />
+
+        {/* Ось карточек: сегодняшний день по всем сотрудникам или один
+            сотрудник за весь период. */}
+        {mobileView === "cards" && todayInPeriod ? (
+          <div className="mt-2 sm:hidden print:hidden">
+            <MobileAxisToggle
+              axis={mobileAxis}
+              onChange={switchMobileAxis}
+              entityLabel="По сотрудникам"
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* Mobile cards view — rendered outside the scroll wrapper so it
           respects the viewport width naturally. Hidden on sm+ and in
           print (both always use the table). */}
-      {mobileView === "cards" ? (
+      {/* Ось «Сегодня»: плоский список сотрудников за один день. Раньше,
+          чтобы закрыть смену, каждого приходилось раскрывать и искать
+          сегодняшнюю строку среди пятнадцати дней. */}
+      {mobileView === "cards" && mobileAxis === "today" && todayInPeriod ? (
+        <div className="mb-6 sm:hidden print:hidden">
+          <DayFirstCards
+            items={printableEmployees
+              .filter((employee) => employee.name)
+              .map((employee) => {
+                const entry = normalizeHygieneEntryData(
+                  entryMap[makeCellKey(employee.id, todayKey)]
+                );
+                const statusMeta = getStatusMeta(entry.status);
+                const lockReason = cellLockReason(employee.id, todayKey);
+                return {
+                  id: employee.id,
+                  title: employee.name ?? "",
+                  subtitle: employee.position || undefined,
+                  value: statusMeta?.code
+                    ? `${statusMeta.code}${
+                        entry.temperatureAbove37 ? " · T°>37" : ""
+                      }`
+                    : undefined,
+                  disabledReason: !isActive
+                    ? "журнал закрыт"
+                    : lockReason ?? undefined,
+                  onPress: (event: React.MouseEvent) =>
+                    openCellMenu(event, employee.id, todayKey, "status", true),
+                };
+              })}
+            emptyLabel="В документе пока нет сотрудников."
+            bulkAction={
+              isActive
+                ? {
+                    label: "Отметить всех «Зд.»",
+                    onRun: () => {
+                      void markEveryoneHealthyToday();
+                    },
+                  }
+                : undefined
+            }
+          />
+        </div>
+      ) : null}
+
+      {mobileView === "cards" && (mobileAxis === "entity" || !todayInPeriod) ? (
         <div className="mb-6 space-y-2 sm:hidden print:hidden">
           {printableEmployees
             .filter((employee) => employee.name)

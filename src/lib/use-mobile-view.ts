@@ -15,13 +15,33 @@ import { useEffect, useState } from "react";
  */
 export type MobileView = "cards" | "table";
 
+/**
+ * Ось карточного режима.
+ *
+ *  - `today`  — плоский список сущностей за сегодня (одно касание на
+ *               сотрудника / холодильник / помещение). Ежедневный сценарий.
+ *  - `entity` — прежний аккордеон «сущность → все дни периода». Нужен,
+ *               когда догоняют пропущенные дни.
+ *
+ * По умолчанию `today`: закрыть смену просят каждый день, а догонять
+ * период — изредка.
+ */
+export type MobileAxis = "today" | "entity";
+
 export function useMobileView(journalCode: string, defaultView: MobileView = "cards") {
   const [mobileView, setMobileView] = useState<MobileView>(defaultView);
+  const [mobileAxis, setMobileAxis] = useState<MobileAxis>("today");
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(`journal-mobile-view:${journalCode}`);
       if (saved === "table" || saved === "cards") setMobileView(saved);
+      const savedAxis = window.localStorage.getItem(
+        `journal-mobile-axis:${journalCode}`
+      );
+      if (savedAxis === "today" || savedAxis === "entity") {
+        setMobileAxis(savedAxis);
+      }
     } catch {
       /* localStorage blocked — keep the default */
     }
@@ -36,5 +56,14 @@ export function useMobileView(journalCode: string, defaultView: MobileView = "ca
     }
   }
 
-  return { mobileView, switchMobileView } as const;
+  function switchMobileAxis(next: MobileAxis) {
+    setMobileAxis(next);
+    try {
+      window.localStorage.setItem(`journal-mobile-axis:${journalCode}`, next);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return { mobileView, switchMobileView, mobileAxis, switchMobileAxis } as const;
 }

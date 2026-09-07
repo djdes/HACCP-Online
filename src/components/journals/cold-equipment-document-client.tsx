@@ -86,6 +86,8 @@ import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-but
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { MobileAxisToggle } from "@/components/journals/mobile-axis-toggle";
+import { DayFirstCards } from "@/components/journals/day-first-cards";
 import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
 import { useMobileView } from "@/lib/use-mobile-view";
 
@@ -840,7 +842,8 @@ export function ColdEquipmentDocumentClient({
   // per equipment with a per-day temperature input accordion. See
   // hygiene-document-client.tsx for the original pattern. Общий хук,
   // ключ `journal-mobile-view:cold_equipment_control`.
-  const { mobileView, switchMobileView } = useMobileView("cold_equipment_control");
+  const { mobileView, switchMobileView, mobileAxis, switchMobileAxis } =
+    useMobileView("cold_equipment_control");
   const [expandedEquipmentId, setExpandedEquipmentId] = useState<string | null>(
     null
   );
@@ -1439,10 +1442,59 @@ export function ColdEquipmentDocumentClient({
             a 1900-px grid. Hidden on sm+ and in print. */}
         <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
 
+        {mobileView === "cards" && todayInPeriod ? (
+          <div className="mb-4 sm:hidden print:hidden">
+            <MobileAxisToggle
+              axis={mobileAxis}
+              onChange={switchMobileAxis}
+              entityLabel="По оборудованию"
+            />
+          </div>
+        ) : null}
+
         {/* Mobile Cards view — accordion per equipment with per-day
             temperature inputs. `handleTemperatureBlur` is the same save
             path as the table, so the two views stay in lockstep. */}
-        {mobileView === "cards" ? (
+        {/* Ось «Сегодня»: все холодильники за один день, по одному полю
+            на строку. Раньше восемь единиц оборудования требовали восьми
+            раскрытий аккордеона с пятнадцатью днями внутри каждого. */}
+        {mobileView === "cards" && mobileAxis === "today" && todayInPeriod ? (
+          <div className="mb-4 sm:hidden print:hidden">
+            <DayFirstCards
+              items={config.equipment.map((item) => {
+                const value = rowByDate[todayKey]?.data.temperatures[item.id];
+                return {
+                  id: item.id,
+                  title: item.name,
+                  subtitle: formatRange(item.min, item.max),
+                  disabledReason:
+                    status === "active" ? undefined : "журнал закрыт",
+                  trailing:
+                    status === "active" ? (
+                      <div className="w-[190px]">
+                        <ColdTemperatureCell
+                          inputId={`today-temp-${item.id}`}
+                          value={value ?? ""}
+                          norm={{ min: item.min, max: item.max }}
+                          onCommit={(next) =>
+                            handleTemperatureBlur(todayKey, item.id, next)
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-[14px] text-[#0b1024]">
+                        {value ?? "—"}
+                      </span>
+                    ),
+                };
+              })}
+              emptyLabel="Добавьте единицу холодильного оборудования."
+            />
+          </div>
+        ) : null}
+
+        {mobileView === "cards" &&
+        (mobileAxis === "entity" || !todayInPeriod) ? (
           <div className="space-y-2 sm:hidden print:hidden">
             {config.equipment.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">
