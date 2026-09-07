@@ -62,6 +62,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { useTodayKey } from "@/lib/use-today-key";
 import { localDayKey } from "@/lib/entry-defaults";
@@ -699,7 +700,18 @@ export function FinishedProductDocumentClient({
                   />
                 </td>
               ))}
-            </tr>)}</tbody>
+            </tr>)}
+            {/* Последняя строка — кликабельная «пустая»: открывает то же
+                окно, что и «Добавить изделие» над таблицей. Хвостовых
+                заготовок здесь не было (строки только реальные), поэтому
+                добавлять больше нечего скрывать. */}
+            {!readOnly ? (
+              <JournalAddRow
+                colSpan={columns.length + 1}
+                label="Добавить изделие"
+                onClick={() => setAddModalOpen(true)}
+              />
+            ) : null}</tbody>
           </table>
           <datalist id="finished-product-items">{productOptions.map((item) => <option key={item} value={item} />)}</datalist>
           <datalist id="finished-product-users">{personOptions.map((item) => <option key={item} value={item} />)}</datalist>

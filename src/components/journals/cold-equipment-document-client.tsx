@@ -26,6 +26,7 @@ import {
   DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import {
   JournalDocumentHeader,
@@ -1710,6 +1711,21 @@ export function ColdEquipmentDocumentClient({
                   })}
                 </tr>
               ))}
+
+              {/* Кликабельная пустая строка — то же окно «Добавить оборудование»,
+                  что и кнопка над таблицей. Стоит ПЕРЕД служебной строкой
+                  «Ответственный за снятие показателей»: та строка — часть
+                  бланка и должна оставаться самой нижней, как на бумаге. */}
+              {status === "active" ? (
+                <JournalAddRow
+                  colSpan={dateKeys.length + 2}
+                  label="Добавить оборудование"
+                  onClick={() => {
+                    setEditingEquipment(null);
+                    setEquipmentDialogOpen(true);
+                  }}
+                />
+              ) : null}
 
               <tr>
                 {/* R5-2: та же заглушка колонки чекбоксов — тоже print:hidden. */}

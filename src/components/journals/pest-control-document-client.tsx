@@ -35,6 +35,7 @@ import {
 } from "@/lib/pest-control-document";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -749,7 +750,17 @@ export function PestControlDocumentClient(props: Props) {
               return (
                 <tr
                   key={entry.id}
-                  className={!readOnly && !isPlaceholder ? "cursor-pointer hover:bg-[#f5f6ff]" : ""}
+                  // Строка-заготовка (нет ни одной записи) раньше висела на
+                  // экране как единственная пустая строка, но не открывала
+                  // добавление. Теперь эту роль играет кликабельная
+                  // JournalAddRow ниже, а заготовка остаётся только в печати.
+                  className={
+                    isPlaceholder
+                      ? "hidden print:table-row"
+                      : !readOnly
+                        ? "cursor-pointer hover:bg-[#f5f6ff]"
+                        : ""
+                  }
                   onClick={() => {
                     if (readOnly || isPlaceholder) return;
                     setEditing({ id: entry.id, data: entry.data });
@@ -790,6 +801,13 @@ export function PestControlDocumentClient(props: Props) {
                 </tr>
               );
             })}
+            {!readOnly ? (
+              <JournalAddRow
+                colSpan={8}
+                label="Добавить"
+                onClick={() => setCreateOpen(true)}
+              />
+            ) : null}
           </tbody>
         </table>
       </JournalDocumentShell>

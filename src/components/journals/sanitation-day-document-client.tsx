@@ -88,6 +88,7 @@ import {
   GRID_SERVICE_LABEL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { localDayKey } from "@/lib/entry-defaults";
 
@@ -1230,6 +1231,13 @@ export function SanitationDayDocumentClient({
                   </tr>
                 </Fragment>
               ))}
+              {!readOnly ? (
+                <JournalAddRow
+                  colSpan={3 + SANITATION_MONTHS.length}
+                  label="Добавить помещение"
+                  onClick={() => setPickerOpen(true)}
+                />
+              ) : null}
               <tr>
                 {/* A5 аудита: раньше здесь стоял один `colSpan={3}`,
                     перекрывавший ещё и колонку чекбоксов. Колонка

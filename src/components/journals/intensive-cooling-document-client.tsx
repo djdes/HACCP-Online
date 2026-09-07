@@ -5,6 +5,7 @@ import Link from "next/link";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import {
@@ -926,6 +927,18 @@ export function IntensiveCoolingDocumentClient(props: Props) {
                   Строк пока нет
                 </td>
               </tr>
+            ) : null}
+            {/* Последняя строка — кликабельная «пустая»: то же окно,
+                что и «Добавить» в toolbar над таблицей. */}
+            {isActive ? (
+              <JournalAddRow
+                colSpan={8}
+                label="Добавить"
+                onClick={() => {
+                  setEditingRow(null);
+                  setRowDialogOpen(true);
+                }}
+              />
             ) : null}
           </tbody>
         </table>

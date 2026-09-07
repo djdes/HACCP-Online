@@ -71,6 +71,7 @@ import {
   DOC_AUTOFILL_STRIP_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
@@ -2325,6 +2326,18 @@ export function ClimateDocumentClient({
                   </td>
                 </tr>
               )}
+
+              {/* Кликабельная пустая строка внизу таблицы — то же окно
+                  добавления, что и кнопка «Добавить строку» в StickyActionBar
+                  выше. colSpan повторяет формулу шапки: чекбокс+дата+колонки
+                  замеров+ответственный = 3 + totalMeasurementColumns. */}
+              {status === "active" ? (
+                <JournalAddRow
+                  colSpan={3 + totalMeasurementColumns}
+                  label="Добавить строку"
+                  onClick={() => setRowDialogOpen(true)}
+                />
+              ) : null}
             </tbody>
           </table>
         </MobileViewTableWrapper>

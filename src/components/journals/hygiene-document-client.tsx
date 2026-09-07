@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  AddEmployeeDialog,
   StaffJournalAddButton,
   StaffJournalToolbar,
 } from "@/components/journals/staff-journal-toolbar";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import {
   DOC_ADD_ROW_CLASS,
   DOC_CAPS_TITLE_CLASS,
@@ -358,9 +360,14 @@ export function HygieneDocumentClient({
     includedEmployeeIds.includes(employee.id)
   );
   const rosterUsers = matchedRosterUsers.length > 0 ? matchedRosterUsers : employees;
+  // Строк ровно столько, сколько сотрудников. Раньше бланк дорисовывал
+  // «пол» в семь строк, как на бумаге: на экране они ничего не значили,
+  // нажать на них было нельзя, а человек видел журнал с шестью пустыми
+  // строками и не понимал, откуда там берутся люди. Единственная пустая
+  // строка теперь одна и кликабельная — `JournalAddRow` в конце таблицы.
   const printableEmployees = buildHygieneExampleEmployees(
     rosterUsers,
-    Math.max(rosterUsers.length, 7)
+    rosterUsers.length
   );
   // Полоса «сколько осталось заполнить сегодня»: считаем ТОЛЬКО по
   // реальным строкам сотрудников (без пустых строк-заглушек бланка) и
@@ -410,6 +417,8 @@ export function HygieneDocumentClient({
   const selectedCount = selectedEmployeeIds.length;
   const allSelected = rosterUsers.length > 0 && selectedCount === rosterUsers.length;
   const isActive = status === "active";
+  // Последняя строка таблицы открывает то же окно, что и «Добавить».
+  const [addRowOpen, setAddRowOpen] = useState(false);
 
   // Покраска мышью: хук общий (`useCellPaint`), а вся семантика значений
   // остаётся здесь — только гигиенический журнал знает про «Зд.» и T°.
@@ -1484,6 +1493,13 @@ export function HygieneDocumentClient({
               ))}
 
               <tbody>
+                {isActive ? (
+                  <JournalAddRow
+                    colSpan={4 + dateKeys.length}
+                    label="Добавить сотрудника"
+                    onClick={() => setAddRowOpen(true)}
+                  />
+                ) : null}
                 <tr>
                   {/* Служебная строка бланка. Её саму удалить нельзя, но
                       галочка не декоративная: как на эталоне, она работает
@@ -1512,6 +1528,14 @@ export function HygieneDocumentClient({
                 </tr>
               </tbody>
             </table>
+
+            <AddEmployeeDialog
+              open={addRowOpen}
+              onOpenChange={setAddRowOpen}
+              users={employees}
+              includedEmployeeIds={includedEmployeeIds}
+              documentId={documentId}
+            />
 
             {/* Порядок блоков под таблицей — по эталону:
                 1) «В журнал регистрируются результаты…»,

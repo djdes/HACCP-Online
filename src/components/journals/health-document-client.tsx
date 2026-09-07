@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AddEmployeeDialog,
   StaffJournalAddButton,
   StaffJournalToolbar,
 } from "@/components/journals/staff-journal-toolbar";
@@ -68,6 +69,7 @@ import {
   getDayColumnBgClass,
   getDayColumnPrintKeepBg,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { useTodayKey } from "@/lib/use-today-key";
 type Props = {
   documentId: string;
@@ -244,6 +246,8 @@ export function HealthDocumentClient(props: Props) {
   const selectedCount = selectedEmployeeIds.length;
   const allSelected = rosterUsers.length > 0 && selectedCount === rosterUsers.length;
   const isActive = status === "active";
+  // Последняя строка таблицы открывает то же окно, что и «Добавить».
+  const [addRowOpen, setAddRowOpen] = useState(false);
 
   // Полоса «сколько осталось заполнить сегодня»: только реальные строки
   // сотрудников (без пустых строк-заглушек бланка под печать) и только
@@ -754,10 +758,18 @@ export function HealthDocumentClient(props: Props) {
                 );
               })}
 
-              <tr>
-                {/* Хвостовая пустая строка бланка (место для дозаписи от
-                    руки при печати). Данных за ней нет, выделять нечего —
-                    чекбокс только для симметрии сетки, всегда disabled. */}
+              {isActive ? (
+                <JournalAddRow
+                  colSpan={5 + dateKeys.length}
+                  label="Добавить сотрудника"
+                  onClick={() => setAddRowOpen(true)}
+                />
+              ) : null}
+
+              {/* Хвостовая пустая строка бланка — только на бумаге: там она
+                  место для дозаписи от руки. На экране вместо неё строка
+                  выше, по которой открывается добавление. */}
+              <tr className="hidden print:table-row">
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight print:hidden`}>
                   <HealthCheckbox checked={false} disabled />
                 </td>
@@ -775,6 +787,14 @@ export function HealthDocumentClient(props: Props) {
               </tr>
             </tbody>
           </table>
+
+          <AddEmployeeDialog
+            open={addRowOpen}
+            onOpenChange={setAddRowOpen}
+            users={employees}
+            includedEmployeeIds={includedEmployeeIds}
+            documentId={documentId}
+          />
 
           <div className={`health-notes ${DOC_EXTRA_BLOCK_CLASS} space-y-3 ${DOC_NOTE_TEXT_CLASS}`}>
             {HEALTH_REGISTER_NOTES.map((note) => (

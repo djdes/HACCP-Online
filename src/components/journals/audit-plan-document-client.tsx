@@ -41,6 +41,7 @@ import {
 } from "@/components/journals/record-cards-view";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 
 import { toast } from "sonner";
@@ -945,6 +946,13 @@ export function AuditPlanDocumentClient({
                 })}
               </Fragment>
             ))}
+            {!readOnly ? (
+              <JournalAddRow
+                colSpan={3 + normalized.columns.length}
+                label="Добавить"
+                onClick={() => setAddRowOpen(true)}
+              />
+            ) : null}
           </tbody>
         </table>
       </JournalDocumentShell>

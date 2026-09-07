@@ -88,6 +88,7 @@ import {
   GRID_VIEWPORT_CLASS,
   GRID_VIEWPORT_SCROLLBAR_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { localDayKey } from "@/lib/entry-defaults";
 
 type Employee = { id: string; name: string; role: string };
@@ -1048,9 +1049,11 @@ export function MedBookDocumentClient({
             </thead>
             <tbody>
               {/* Пустое состояние = пустая строка бланка (чекбокс + пустые
-                  ячейки), как на эталоне. Текстовой заглушки нет. */}
+                  ячейки), как на эталоне. На экране её больше не видно —
+                  кликабельная JournalAddRow ниже занимает эту роль, а тут
+                  остаётся только заготовка для печати. */}
               {rows.length === 0 ? (
-                <tr>
+                <tr className="hidden print:table-row">
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
                     <Checkbox checked={false} disabled className="size-4" />
                   </td>
@@ -1130,6 +1133,16 @@ export function MedBookDocumentClient({
                   })}
                 </tr>
               ))}
+              {!isClosed ? (
+                <JournalAddRow
+                  colSpan={examColumns.length + 4}
+                  label="Добавить сотрудника"
+                  onClick={() => {
+                    setDraft(emptyDraft());
+                    setAddOpen(true);
+                  }}
+                />
+              ) : null}
             </tbody>
           </table>
         </MobileViewTableWrapper>
@@ -1225,9 +1238,10 @@ export function MedBookDocumentClient({
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Та же пустая строка-бланк, что и в таблице осмотров. */}
+                  {/* Та же пустая строка-бланк, что и в таблице осмотров —
+                      и то же правило: на экране её нет, только в печати. */}
                   {rows.length === 0 ? (
-                    <tr>
+                    <tr className="hidden print:table-row">
                       <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
                         <Checkbox checked={false} disabled className="size-4" />
                       </td>
@@ -1313,6 +1327,16 @@ export function MedBookDocumentClient({
                       </td>
                     </tr>
                   ))}
+                  {!isClosed ? (
+                    <JournalAddRow
+                      colSpan={vaccColumns.length + 5}
+                      label="Добавить сотрудника"
+                      onClick={() => {
+                        setDraft(emptyDraft());
+                        setAddOpen(true);
+                      }}
+                    />
+                  ) : null}
                 </tbody>
               </table>
             </div>

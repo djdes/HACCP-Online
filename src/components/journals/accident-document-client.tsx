@@ -44,6 +44,7 @@ import {
 } from "@/components/journals/record-cards-view";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 
 import { toast } from "sonner";
@@ -786,7 +787,21 @@ export function AccidentDocumentClient(props: Props) {
                   </td>
                 </tr>
               ) : null}
-              <tr>
+              {isActive ? (
+                <JournalAddRow
+                  colSpan={9}
+                  label="Добавить"
+                  onClick={() => {
+                    setEditingRow(null);
+                    setRowDialogOpen(true);
+                  }}
+                />
+              ) : null}
+              {/* Пустая строка бланка — раньше висела на экране всегда и
+                  выглядела как ещё одна (нерабочая) строка таблицы. Теперь
+                  единственная пустая строка на экране — кликабельная
+                  JournalAddRow выше, а эта остаётся только для печати. */}
+              <tr className="hidden print:table-row">
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                   <Checkbox checked={false} disabled />
                 </td>

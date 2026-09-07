@@ -71,6 +71,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 
 import { useTodayKey } from "@/lib/use-today-key";
@@ -1072,6 +1073,18 @@ export function PerishableRejectionDocumentClient({
                   ) : null}
                 </tr>
               ))}
+              {/* Последняя строка — кликабельная «пустая»: то же окно,
+                  что и «Добавить запись» над таблицей. Строка пустого
+                  состояния выше (rows.length === 0) — это не «хвостовая
+                  заготовка», а замена таблицы бланком без строк, поэтому
+                  её не трогаем. */}
+              {!readOnly ? (
+                <JournalAddRow
+                  colSpan={config.showNote ? 12 : 11}
+                  label="Добавить запись"
+                  onClick={() => setAddModalOpen(true)}
+                />
+              ) : null}
             </tbody>
           </table>
         </MobileViewTableWrapper>

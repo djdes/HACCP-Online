@@ -2,6 +2,7 @@
 
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { DOC_SECONDARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -889,6 +890,16 @@ export function TraceabilityDocumentClient(props: Props) {
                 </tr>
               );
             }) : <tr><td colSpan={isClosed ? 8 : config.showShockTempField ? 9 : 8} className={`${GRID_CELL_CLASS} px-2 py-6 text-center text-[#6f7282]`}>Строк пока нет</td></tr>}
+            {!isClosed ? (
+              <JournalAddRow
+                colSpan={config.showShockTempField ? 9 : 8}
+                label="Добавить"
+                onClick={() => {
+                  setEditingRow(null);
+                  setRowOpen(true);
+                }}
+              />
+            ) : null}
           </tbody>
         </table>
       </JournalDocumentShell>

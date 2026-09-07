@@ -27,6 +27,7 @@ import {
 import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -525,6 +526,17 @@ export function EquipmentCleaningDocumentClient({
                     Записей пока нет
                   </td>
                 </tr>
+              ) : null}
+
+              {/* Кликабельная пустая строка — то же окно, что и кнопка
+                  «Добавить» в тулбаре шапки документа. colSpan=10: чекбокс
+                  + 9 колонок бланка (столько же, сколько в thead выше). */}
+              {status === "active" ? (
+                <JournalAddRow
+                  colSpan={10}
+                  label="Добавить запись"
+                  onClick={openCreateRow}
+                />
               ) : null}
             </tbody>
           </table>

@@ -60,6 +60,7 @@ import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { localDayKey } from "@/lib/entry-defaults";
 
 /**
@@ -1674,6 +1675,16 @@ export function DisinfectantDocumentClient({
                   </td>
                 </tr>
               ))}
+              {/* Кликабельная «пустая» строка — то же окно, что и «Добавить
+                  подразделение» над таблицей. Строка итогов ниже остаётся
+                  последней визуально: она футер расчёта, а не запись. */}
+              {!readOnly ? (
+                <JournalAddRow
+                  colSpan={12}
+                  label="Добавить подразделение"
+                  onClick={() => setAddSubOpen(true)}
+                />
+              ) : null}
               <tr className="font-semibold">
                 <td
                   colSpan={9}
@@ -1785,6 +1796,16 @@ export function DisinfectantDocumentClient({
                   </td>
                 </tr>
               ))}
+              {/* Кликабельная «пустая» строка — то же окно, что и «Добавить
+                  поступление» над таблицей. Строка «Итого» остаётся
+                  последней визуально: она футер, а не запись. */}
+              {!readOnly ? (
+                <JournalAddRow
+                  colSpan={6}
+                  label="Добавить поступление"
+                  onClick={() => setAddRecOpen(true)}
+                />
+              ) : null}
               <tr className="font-semibold">
                 <td
                   colSpan={3}
@@ -1910,6 +1931,16 @@ export function DisinfectantDocumentClient({
                   </td>
                 </tr>
               ))}
+              {/* Кликабельная «пустая» строка — то же окно, что и «Добавить
+                  расход» над таблицей. У этой таблицы нет строки итогов,
+                  поэтому она и есть последняя строка tbody. */}
+              {!readOnly ? (
+                <JournalAddRow
+                  colSpan={7}
+                  label="Добавить расход"
+                  onClick={() => setAddConOpen(true)}
+                />
+              ) : null}
             </tbody>
           </table>
       </JournalDocumentShell>

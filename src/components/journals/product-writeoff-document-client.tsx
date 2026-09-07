@@ -8,6 +8,7 @@ import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsi
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import * as XLSX from "xlsx";
@@ -424,7 +425,24 @@ export function ProductWriteoffDocumentClient({
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-top leading-tight`}>{row.action}</td>
               </tr>
             ))}
-            <tr>
+            {/* Последняя строка — кликабельная «пустая»: то же окно, что и
+                «Добавить» в toolbar над таблицей. colSpan 7 = чекбокс (виден,
+                когда !isClosed) + 6 колонок бланка. */}
+            {!isClosed ? (
+              <JournalAddRow
+                colSpan={7}
+                label="Добавить"
+                onClick={() => {
+                  setRowDialog({ open: true, index: null, row: emptyRow(), newProductName: "" });
+                  setRowDialogProductOptions(productOptions);
+                }}
+              />
+            ) : null}
+            {/* Пустая строка-заготовка бланка — только для печати: на
+                бумаге инспектор дописывает запись от руки. На экране она
+                была некликабельной заглушкой, теперь кликабельность даёт
+                JournalAddRow выше. */}
+            <tr className="hidden print:table-row">
               {!isClosed && <td className={`${GRID_CELL_CLASS} px-2 py-4 print:hidden`} />}
               <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
               <td className={`${GRID_CELL_CLASS} px-2 py-4`} />

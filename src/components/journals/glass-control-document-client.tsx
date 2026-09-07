@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -1048,7 +1049,27 @@ export function GlassControlDocumentClient(props: Props) {
                 </tr>
               );
             })}
-            <tr>
+            {/* Последняя строка — кликабельная «пустая»: то же окно, что и
+                «Добавить» в toolbar над таблицей. colSpan 8 = чекбокс
+                (виден, когда !isClosed) + 7 колонок бланка. */}
+            {!isClosed ? (
+              <JournalAddRow
+                colSpan={8}
+                label="Добавить"
+                onClick={() =>
+                  setRowDialog({
+                    open: true,
+                    row: createVirtualRow(toIsoDate(new Date()), fallbackEmployeeId),
+                    originalRow: null,
+                  })
+                }
+              />
+            ) : null}
+            {/* Пустая строка-заготовка бланка — только для печати: на
+                бумаге инспектор дописывает запись от руки. На экране она
+                была некликабельной заглушкой, теперь кликабельность даёт
+                JournalAddRow выше. */}
+            <tr className="hidden print:table-row">
               {!isClosed && <td className={`${GRID_CELL_CLASS} px-2 py-4 print:hidden`} />}
               <td className={`${GRID_CELL_CLASS} px-2 py-4`} />
               <td className={`${GRID_CELL_CLASS} px-2 py-4`} />

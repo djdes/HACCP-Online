@@ -38,6 +38,7 @@ import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -1038,8 +1039,19 @@ export function SanitaryDayChecklistDocumentClient({
                 />
               ))}
 
-              {/* Empty row for visual spacing */}
-              <tr>
+              {isActive ? (
+                <JournalAddRow
+                  colSpan={4}
+                  label="Добавить"
+                  onClick={() => setAddItemOpen(true)}
+                />
+              ) : null}
+
+              {/* Пустая строка для отступа — раньше висела на экране как
+                  ещё одна (нерабочая) строка таблицы. Теперь единственная
+                  пустая строка на экране — кликабельная JournalAddRow
+                  выше, а эта остаётся только для печати. */}
+              <tr className="hidden print:table-row">
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />
                 <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} />

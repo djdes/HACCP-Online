@@ -94,6 +94,7 @@ import {
   GRID_HEAD_CELL_CLASS,
   GRID_VIEWPORT_CLASS,
 } from "@/components/journals/journal-grid";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { localDayKey } from "@/lib/entry-defaults";
 
@@ -2570,12 +2571,22 @@ export function AcceptanceDocumentClient(props: Props) {
                     </td>
                   </tr>
                 )}
-                {/* R5-13: пустая строка-хвост с ОТКЛЮЧЁННЫМ чекбоксом
-                    удалена. Задумывалась как аффорданс «добавить», но
+                {/* R5-13: пустая строка-хвост с ОТКЛЮЧЁННЫМ чекбоксом была
+                    удалена — задумывалась как аффорданс «добавить», но
                     кликом ничего не добавляла (Checkbox disabled, у tr
-                    нет onClick) — читалась как оборванная запись под
-                    последней строкой журнала. Добавление уже живёт явной
-                    кнопкой «Добавить» в DOC_ADD_ROW_CLASS над таблицей. */}
+                    нет onClick). Теперь вместо неё настоящая кликабельная
+                    строка `JournalAddRow`: открывает то же окно, что и
+                    кнопка «Добавить» в DOC_ADD_ROW_CLASS над таблицей. */}
+                {!isClosed ? (
+                  <JournalAddRow
+                    colSpan={incomingControlColumns.length + 1}
+                    label="Добавить"
+                    onClick={() => {
+                      setEditingRow(null);
+                      setRowDialogOpen(true);
+                    }}
+                  />
+                ) : null}
               </tbody>
             </table>
           </MobileViewTableWrapper>
@@ -2648,8 +2659,22 @@ export function AcceptanceDocumentClient(props: Props) {
               {rows.length === 0 && (
                 <tr><td colSpan={11} className={`${GRID_CELL_CLASS} p-8 text-center text-[#80849a] leading-tight`}>Строк пока нет</td></tr>
               )}
-              {/* Empty row at bottom */}
-              <tr className="print:hidden"><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} /></tr>
+              {!isClosed ? (
+                <JournalAddRow
+                  colSpan={11}
+                  label="Добавить"
+                  onClick={() => {
+                    setEditingRow(null);
+                    setRowDialogOpen(true);
+                  }}
+                />
+              ) : null}
+              {/* Пустая строка только для печати: на бумаге инспектор
+                  дописывает запись от руки. На экране она была
+                  некликабельной заглушкой (Checkbox disabled, у tr нет
+                  onClick) — теперь кликабельность даёт JournalAddRow выше,
+                  а эта строка остаётся только в печатной вёрстке. */}
+              <tr className="hidden print:table-row"><td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}><Checkbox disabled /></td><td colSpan={10} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`} /></tr>
             </tbody>
           </table>
         </MobileViewTableWrapper>

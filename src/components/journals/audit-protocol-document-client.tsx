@@ -37,6 +37,7 @@ import {
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { DOC_EXTRA_BLOCK_CLASS } from "@/components/journals/journal-responsive";
 
@@ -419,6 +420,16 @@ export function AuditProtocolDocumentClient({
                   })}
                 </Fragment>
               ))}
+              {status === "active" ? (
+                <JournalAddRow
+                  colSpan={6}
+                  label="Добавить строку"
+                  onClick={() => {
+                    setEditingRow(null);
+                    setRowOpen(true);
+                  }}
+                />
+              ) : null}
             </tbody>
           </table>
         </JournalDocumentShell>

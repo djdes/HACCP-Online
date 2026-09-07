@@ -37,6 +37,7 @@ import {
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -591,6 +592,21 @@ export function EquipmentMaintenanceDocumentClient({
               </tr>
             )}
 
+            {/* Кликабельная пустая строка — то же окно, что и кнопка
+                «Добавить» в тулбаре шапки документа. Стоит ПЕРЕД строкой
+                «Ответственный»: та строка — часть бланка и остаётся снизу,
+                как на бумаге. */}
+            {!isClosed ? (
+              <JournalAddRow
+                colSpan={4 + MONTH_KEYS.length}
+                label="Добавить оборудование"
+                onClick={() => {
+                  resetDraft();
+                  setAddModalOpen(true);
+                }}
+              />
+            ) : null}
+
             {/* Responsible row */}
             <tr>
               <td
@@ -602,8 +618,11 @@ export function EquipmentMaintenanceDocumentClient({
               </td>
             </tr>
 
-            {/* Extra blank row */}
-            <tr>
+            {/* Extra blank row — раньше была единственной «пустой строкой»
+                бланка, но на экране была нежива (чекбокс задизейблен,
+                клика нет). Теперь эту роль играет JournalAddRow выше, а
+                эта строка остаётся только «полом» бланка при печати. */}
+            <tr className="hidden print:table-row">
               <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                 <Checkbox disabled />
               </td>

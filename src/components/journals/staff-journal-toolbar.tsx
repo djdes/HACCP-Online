@@ -42,6 +42,7 @@ import {
   getStaffJournalResponsibleTitleOptions,
 } from "@/lib/hygiene-document";
 import { getUserPositionLabel } from "@/lib/user-roles";
+import { QuickAddEmployee } from "@/components/journals/quick-add-employee";
 
 import { toast } from "sonner";
 import {
@@ -113,7 +114,12 @@ async function requestJson(url: string, init: RequestInit) {
   return result;
 }
 
-function AddEmployeeDialog({
+/**
+ * Окно «Добавление новой строки» для журналов по сотрудникам.
+ * Экспортируется, потому что открывать его должна не только кнопка
+ * «Добавить», но и последняя пустая строка таблицы.
+ */
+export function AddEmployeeDialog({
   open,
   onOpenChange,
   users,
@@ -162,9 +168,8 @@ function AddEmployeeDialog({
     setPick({ positionTitle: "", userId: "" });
   }, [open]);
 
-  async function handleSubmit() {
-    if (!pick.userId) return;
-
+  /** Ставит строку сотрудника в документ и закрывает окно. */
+  async function addEmployeeToDocument(employeeId: string) {
     setIsSubmitting(true);
     try {
       await requestJson(`/api/journal-documents/${documentId}/staff`, {
@@ -172,7 +177,7 @@ function AddEmployeeDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "add_employee",
-          employeeId: pick.userId,
+          employeeId,
         }),
       });
 
@@ -185,40 +190,22 @@ function AddEmployeeDialog({
     }
   }
 
+  async function handleSubmit() {
+    if (!pick.userId) return;
+    await addEmployeeToDocument(pick.userId);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[670px]">
         <DialogHeader className="border-b px-5 py-6 sm:px-10 sm:py-8">
-          <DialogTitle className="text-[30px] font-medium text-black">
+          {/* На телефоне 30px занимали две строки и съедали пол-окна. */}
+          <DialogTitle className="text-[20px] font-medium text-black sm:text-[30px]">
             Добавление новой строки
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6 px-5 py-6 sm:px-10 sm:py-8">
-          {allAlreadyAdded ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-5 py-4">
-                <div className="text-[15px] font-semibold text-[#0b1024]">
-                  Все сотрудники уже добавлены в журнал
-                </div>
-                <p className="mt-1.5 text-[13.5px] leading-[1.45] text-[#6f7282]">
-                  В документе уже {users.length}{" "}
-                  {users.length === 1 ? "строка" : "строк"} — по одной на каждого
-                  активного сотрудника организации. Чтобы добавить кого-то ещё,
-                  сначала заведите сотрудника в «Настройки → Сотрудники».
-                </p>
-              </div>
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
-                >
-                  Закрыть
-                </Button>
-              </div>
-            </div>
-          ) : (
+          {allAlreadyAdded ? null : (
             <>
               <p className="text-[15px] text-[#3c4053]">
                 Выберите соответствующую должность и сотрудника.
@@ -242,14 +229,36 @@ function AddEmployeeDialog({
                 <Button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !pick.userId}
+                  disabled={!pick.userId}
+                  loading={isSubmitting}
                   className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors duration-150 hover:bg-[#4b57ff]"
                 >
-                  {isSubmitting ? "Добавление..." : "Добавить"}
+                  Добавить
                 </Button>
               </div>
             </>
           )}
+
+          {/* Нужного человека ещё нет в организации — заводим здесь же.
+              Раньше окно упиралось в «сначала заведите сотрудника в
+              настройках»: заполнение журнала прерывалось походом в другой
+              раздел и возвратом обратно. */}
+          <div className={allAlreadyAdded ? "" : "border-t border-[#ececf4] pt-5"}>
+            <div className="text-[15px] font-semibold text-[#0b1024]">
+              {allAlreadyAdded
+                ? "Все сотрудники организации уже в журнале"
+                : "Нужного человека нет в списке?"}
+            </div>
+            <p className="mt-1 text-[13.5px] leading-[1.45] text-[#6f7282]">
+              {allAlreadyAdded
+                ? `В документе ${users.length} ${users.length === 1 ? "строка" : "строк"}, по одной на каждого. Заведите нового сотрудника, и его строка появится сразу.`
+                : "Заведите его прямо здесь, строка появится в журнале сразу."}
+            </p>
+            <QuickAddEmployee
+              className="mt-4"
+              onCreated={(user) => addEmployeeToDocument(user.id)}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

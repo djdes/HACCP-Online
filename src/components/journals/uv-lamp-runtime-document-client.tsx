@@ -71,6 +71,7 @@ import {
   DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { toDateKey } from "@/lib/hygiene-document";
@@ -1750,6 +1751,18 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                 </tr>
               );
             })}
+
+            {/* Кликабельная пустая строка — открывает то же окно «Добавить
+                строку», что и кнопка над таблицей. colSpan=6: чекбокс
+                (виден, пока это условие тоже активно) + 5 колонок бланка
+                (Дата, Время ВКЛ, Время ВЫКЛ, Итого, ФИО). */}
+            {props.status === "active" ? (
+              <JournalAddRow
+                colSpan={6}
+                label="Добавить строку"
+                onClick={() => setAddRowOpen(true)}
+              />
+            ) : null}
           </tbody>
         </table>
       </MobileViewTableWrapper>

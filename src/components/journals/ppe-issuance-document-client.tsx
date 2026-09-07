@@ -7,6 +7,7 @@ import { getUsersForRoleLabel } from "@/lib/user-roles";
 import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -929,7 +930,20 @@ export function PpeIssuanceDocumentClient(props: Props) {
                 </td>
               </tr>
             ))}
-            <tr>
+            {!isClosed ? (
+              <JournalAddRow
+                colSpan={columns.length + 4}
+                label="Добавить"
+                onClick={() => {
+                  setEditingRow(null);
+                  setRowDialogOpen(true);
+                }}
+              />
+            ) : null}
+            {/* Пустая строка бланка — раньше показывалась на экране всегда.
+                Теперь единственная пустая строка на экране — кликабельная
+                JournalAddRow выше, а эта остаётся только для печати. */}
+            <tr className="hidden print:table-row">
               <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                 <Checkbox disabled />
               </td>

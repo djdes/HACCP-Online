@@ -30,6 +30,7 @@ import {
 } from "@/components/journals/record-cards-view";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
+import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 
 import { toast } from "sonner";
@@ -744,6 +745,19 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                   </td>
                 </tr>
               )}
+
+              {/* Кликабельная пустая строка — то же окно, что и кнопка
+                  «Добавить» в StickyActionBar над таблицей. */}
+              {isActive ? (
+                <JournalAddRow
+                  colSpan={9}
+                  label="Добавить запись о поломке"
+                  onClick={() => {
+                    setEditingRow(null);
+                    setRowDialogOpen(true);
+                  }}
+                />
+              ) : null}
             </tbody>
           </table>
         </JournalDocumentShell>
