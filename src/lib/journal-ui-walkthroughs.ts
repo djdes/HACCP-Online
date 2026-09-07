@@ -1,4 +1,5 @@
 import { TOUR, type TourAnchor } from "@/lib/tour-anchors";
+import { FILLING_GUIDES } from "@/lib/journal-filling-guides";
 
 /**
  * «Как заполнить?» — шаги по ИНТЕРФЕЙСУ журнала: куда нажать, что
@@ -192,7 +193,10 @@ const WALKTHROUGHS: Record<string, WalkthroughStep[]> = {
   ],
 };
 
-export const WALKTHROUGH_CODES: ReadonlySet<string> = new Set(Object.keys(WALKTHROUGHS));
+export const WALKTHROUGH_CODES: ReadonlySet<string> = new Set([
+  ...Object.keys(WALKTHROUGHS),
+  ...Object.keys(FILLING_GUIDES),
+]);
 
 /**
  * Общие шаги — для журналов без своего разбора.
@@ -257,8 +261,49 @@ const GENERIC_DOCUMENT_STEPS: WalkthroughStep[] = [
   },
 ];
 
+/**
+ * Шаги, собранные из подробной инструкции журнала.
+ *
+ * Ручных разборов было два на тридцать пять журналов (гигиена и климат),
+ * остальные получали общий скелет «создайте документ → откройте →
+ * добавьте строку». При этом содержательные шаги «что именно делать»
+ * уже написаны для тридцати пяти журналов в `journal-filling-guides.ts` —
+ * они просто нигде не встречались с интерфейсными.
+ *
+ * Здесь общий скелет дополняется шагами из инструкции: интерфейсная
+ * часть остаётся одна на всех (раскладка документа единая), а «что
+ * заполнять» приходит из журнала. Ручной разбор, если он есть, всегда
+ * в приоритете.
+ */
+function buildStepsFromFillingGuide(code: string): WalkthroughStep[] | null {
+  const guide = FILLING_GUIDES[code];
+  if (!guide || guide.steps.length === 0) return null;
+
+  const guideSteps: WalkthroughStep[] = guide.steps
+    // Больше четырёх шагов подряд на телефоне никто не дочитывает;
+    // полная инструкция открывается ссылкой из того же окна.
+    .slice(0, 4)
+    .map((step, index) => ({
+      id: `guide-${index + 1}`,
+      page: "document" as const,
+      title: step.title,
+      body: step.detail,
+    }));
+
+  // Интерфейсные шаги «как открыть и куда нажать» + содержательные из
+  // инструкции + завершение периода.
+  const opening = GENERIC_DOCUMENT_STEPS.filter((step) =>
+    ["create-document", "document-card", "view-toggle"].includes(step.id)
+  );
+  const closing = GENERIC_DOCUMENT_STEPS.filter((step) =>
+    ["autofill", "more-actions"].includes(step.id)
+  );
+
+  return [...opening, ...guideSteps, ...closing];
+}
+
 export function getJournalWalkthrough(code: string): WalkthroughStep[] | null {
-  return WALKTHROUGHS[code] ?? null;
+  return WALKTHROUGHS[code] ?? buildStepsFromFillingGuide(code) ?? null;
 }
 
 /**
@@ -266,11 +311,13 @@ export function getJournalWalkthrough(code: string): WalkthroughStep[] | null {
  * бывает — окно с двумя вкладками открывается у любого журнала.
  */
 export function getJournalWalkthroughOrGeneric(code: string): WalkthroughStep[] {
-  return WALKTHROUGHS[code] ?? GENERIC_DOCUMENT_STEPS;
+  return (
+    WALKTHROUGHS[code] ?? buildStepsFromFillingGuide(code) ?? GENERIC_DOCUMENT_STEPS
+  );
 }
 
 export function hasJournalWalkthrough(code: string): boolean {
-  return code in WALKTHROUGHS;
+  return code in WALKTHROUGHS || buildStepsFromFillingGuide(code) !== null;
 }
 
 /** Шаги, которые имеет смысл показывать на этом устройстве. */

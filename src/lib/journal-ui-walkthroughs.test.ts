@@ -9,11 +9,30 @@ import {
 } from "./journal-ui-walkthroughs";
 import { TOUR_ANCHOR_VALUES } from "./tour-anchors";
 
-test("walkthroughs exist for hygiene and climate_control only (v1)", () => {
-  assert.deepEqual([...WALKTHROUGH_CODES].sort(), ["climate_control", "hygiene"]);
-  assert.equal(hasJournalWalkthrough("hygiene"), true);
-  assert.equal(hasJournalWalkthrough("cleaning"), false);
-  assert.equal(getJournalWalkthrough("cleaning"), null);
+test("walkthrough есть у каждого журнала с инструкцией (v2)", () => {
+  // v1 фиксировал прежний контракт: ручной разбор был только у hygiene и
+  // climate_control, остальные журналы отдавали null и получали общий
+  // скелет. Теперь шаги достраиваются из `journal-filling-guides`, и
+  // подсказка есть у всех журналов, для которых инструкция написана.
+  assert.ok(
+    WALKTHROUGH_CODES.size >= 35,
+    `ожидали минимум 35 журналов с подсказкой, получили ${WALKTHROUGH_CODES.size}`
+  );
+
+  // Ручные разборы никуда не делись и по-прежнему в приоритете.
+  for (const code of ["hygiene", "climate_control"]) {
+    assert.equal(hasJournalWalkthrough(code), true, code);
+    assert.ok(WALKTHROUGH_CODES.has(code), code);
+  }
+
+  // Журнал без ручного разбора теперь тоже отдаёт шаги, а не null.
+  assert.equal(hasJournalWalkthrough("cleaning"), true);
+  const cleaning = getJournalWalkthrough("cleaning");
+  assert.ok(cleaning && cleaning.length >= 3, "cleaning: шагов нет");
+
+  // Код, которого нет ни в разборах, ни в инструкциях — по-прежнему null.
+  assert.equal(hasJournalWalkthrough("__no_such_journal__"), false);
+  assert.equal(getJournalWalkthrough("__no_such_journal__"), null);
 });
 
 test("every step is well-formed", () => {

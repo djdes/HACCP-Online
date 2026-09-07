@@ -88,6 +88,7 @@ import { JournalClosedBanner } from "@/components/journals/journal-closed-banner
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
 import { MobileAxisToggle } from "@/components/journals/mobile-axis-toggle";
 import { DayFirstCards } from "@/components/journals/day-first-cards";
+import { FillRunner } from "@/components/journals/fill-runner";
 import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
 import { useMobileView } from "@/lib/use-mobile-view";
 
@@ -844,6 +845,8 @@ export function ColdEquipmentDocumentClient({
   // ключ `journal-mobile-view:cold_equipment_control`.
   const { mobileView, switchMobileView, mobileAxis, switchMobileAxis } =
     useMobileView("cold_equipment_control");
+  // Конвейер «Заполнить подряд»: один холодильник — один экран.
+  const [runnerOpen, setRunnerOpen] = useState(false);
   const [expandedEquipmentId, setExpandedEquipmentId] = useState<string | null>(
     null
   );
@@ -1490,6 +1493,15 @@ export function ColdEquipmentDocumentClient({
               })}
               emptyLabel="Добавьте единицу холодильного оборудования."
             />
+            {status === "active" && config.equipment.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => setRunnerOpen(true)}
+                className="mt-2 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-150 hover:bg-[#4a5bf0]"
+              >
+                Заполнить подряд
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -1967,6 +1979,33 @@ export function ColdEquipmentDocumentClient({
         canDelete={config.equipment.length > 1}
         onSave={handleSaveEquipment}
         onDelete={handleDeleteEquipment}
+      />
+
+      {/* Конвейер: один холодильник — один экран, крупное поле,
+          автопереход к следующему незаполненному. */}
+      <FillRunner
+        open={runnerOpen}
+        title={`Замеры за ${getDayNumber(todayKey)} ${getWeekdayShort(todayKey)}.`}
+        onClose={() => setRunnerOpen(false)}
+        steps={config.equipment.map((item) => {
+          const value = rowByDate[todayKey]?.data.temperatures[item.id];
+          return {
+            id: item.id,
+            title: item.name,
+            subtitle: formatRange(item.min, item.max),
+            done: value != null,
+            render: () => (
+              <ColdTemperatureCell
+                inputId={`runner-temp-${item.id}`}
+                value={value ?? ""}
+                norm={{ min: item.min, max: item.max }}
+                onCommit={(next) =>
+                  handleTemperatureBlur(todayKey, item.id, next)
+                }
+              />
+            ),
+          };
+        })}
       />
     </div>
   );
