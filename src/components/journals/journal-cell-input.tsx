@@ -106,25 +106,27 @@ export function JournalCellInput({
   }, [resize]);
 
   if (list && editingWithList) {
-    const { className: _cls, multiline: _ml, ...inputProps } =
-      props as Record<string, unknown>;
-    void _cls;
-    void _ml;
+    // Правка ячейки со справочником: настоящий <input list>, потому что
+    // подсказки из <datalist> textarea не поддерживает. Читается
+    // значение всё равно в textarea ниже — целиком, с переносом.
     return (
       <input
-        {...(inputProps as React.ComponentProps<"input">)}
+        {...(props as React.ComponentProps<"input">)}
         list={list}
         value={value as string | undefined}
         autoFocus
         spellCheck={false}
-        onBlur={(event) => {
-          setEditingWithList(false);
-          (onBlur as ((e: React.FocusEvent<HTMLInputElement>) => void) | undefined)?.(
+        onInput={onInput as React.FormEventHandler<HTMLInputElement> | undefined}
+        onKeyDown={(event) => {
+          (onKeyDown as React.KeyboardEventHandler<HTMLInputElement> | undefined)?.(
             event,
           );
-        }}
-        onKeyDown={(event) => {
+          if (event.defaultPrevented) return;
           if (event.key === "Enter") event.currentTarget.blur();
+        }}
+        onBlur={(event) => {
+          setEditingWithList(false);
+          (onBlur as React.FocusEventHandler<HTMLInputElement> | undefined)?.(event);
         }}
         className={cn(
           JOURNAL_CELL_INPUT_CLASS,
