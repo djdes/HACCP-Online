@@ -54,6 +54,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VoiceNumberInput } from "@/components/ui/voice-number-input";
 import { NumberField } from "@/components/journals/number-field";
+import {
+  BluetoothProbeButton,
+  DisplayOcrButton,
+} from "@/components/journals/probe-capture-buttons";
 import { submitWithOfflineFallback } from "@/lib/use-offline-submit";
 import {
   Select,
@@ -707,7 +711,25 @@ function ColdTemperatureCell({
         max={30}
         norm={norm}
         trailing={
-          <VoiceNumberInput
+          <div className="flex items-center gap-1.5">
+            {/* Быстрее всего — не набирать: щуп по Bluetooth и снимок
+                дисплея. Кнопка щупа появляется только там, где Web
+                Bluetooth реально есть. */}
+            <BluetoothProbeButton
+              onReading={(celsius) => {
+                const text = String(celsius);
+                setDraft(text);
+                onCommit(text);
+              }}
+            />
+            <DisplayOcrButton
+              onReading={(value) => {
+                const text = String(value);
+                setDraft(text);
+                onCommit(text);
+              }}
+            />
+            <VoiceNumberInput
             // `VoiceNumberInput` ждёт число, а черновик — строка (в ней
             // может стоять русская запятая и незаконченный ввод).
             value={draft === "" ? "" : Number(draft.replace(",", ".")) || ""}
@@ -717,7 +739,8 @@ function ColdTemperatureCell({
               setDraft(String(n));
               onCommit(String(n));
             }}
-          />
+            />
+          </div>
         }
       />
     </div>
