@@ -72,6 +72,11 @@ import {
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
 import {
+  CardEditSheet,
+  type CardEditFieldDef,
+  type CardEditValues,
+} from "@/components/journals/card-edit-sheet";
+import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
@@ -741,6 +746,12 @@ export function SanitationDayDocumentClient({
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  // Какую половину строки правим из карточки: план или факт по месяцам.
+  // Двенадцать месяцев в одном листе, а не двадцать четыре: план и факт
+  // заполняют в разное время и разные люди.
+  const [editingMonths, setEditingMonths] = useState<
+    { rowId: string; mode: "plan" | "fact" } | null
+  >(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
   // Справочник помещений: название строк с roomId — из Room.
@@ -822,6 +833,45 @@ export function SanitationDayDocumentClient({
         },
       };
     });
+    await patchConfig({ ...normalized, rows: nextRows });
+  }
+
+  /** Двенадцать полей «день месяца» — по одному на месяц. */
+  function buildMonthsEditFields(): CardEditFieldDef[] {
+    return SANITATION_MONTHS.map((month) => ({
+      type: "text",
+      key: month.key,
+      label: MONTH_FIELD_LABELS[month.key],
+      placeholder: "день",
+    }));
+  }
+
+  function buildMonthsEditValues(
+    rowId: string,
+    mode: "plan" | "fact"
+  ): CardEditValues {
+    const row = normalized.rows.find((item) => item.id === rowId);
+    const values: CardEditValues = {};
+    for (const month of SANITATION_MONTHS) {
+      values[month.key] = row?.[mode][month.key] || "";
+    }
+    return values;
+  }
+
+  async function saveMonthsFromSheet(
+    rowId: string,
+    mode: "plan" | "fact",
+    values: CardEditValues
+  ) {
+    const nextRows = normalized.rows.map((row) => {
+      if (row.id !== rowId) return row;
+      const nextMonths = { ...row[mode] };
+      for (const month of SANITATION_MONTHS) {
+        nextMonths[month.key] = String(values[month.key] ?? "");
+      }
+      return { ...row, [mode]: nextMonths };
+    });
+    setEditingMonths(null);
     await patchConfig({ ...normalized, rows: nextRows });
   }
 
@@ -1053,8 +1103,26 @@ export function SanitationDayDocumentClient({
                   fields: [
                     { label: "Убирает", value: roomPeople(row).cleaners.join(", "), hideIfEmpty: true },
                     { label: "Проверяет", value: roomPeople(row).verifiers.join(", "), hideIfEmpty: true },
-                    { label: "План по месяцам", value: planSummary, hideIfEmpty: true },
-                    { label: "Факт по месяцам", value: factSummary, hideIfEmpty: true },
+                    {
+                      label: "План по месяцам",
+                      value: planSummary,
+                      hideIfEmpty: false,
+                      onClick: readOnly
+                        ? undefined
+                        : () =>
+                            setEditingMonths({ rowId: row.id, mode: "plan" }),
+                      hint: readOnly ? undefined : "нажмите, чтобы заполнить",
+                    },
+                    {
+                      label: "Факт по месяцам",
+                      value: factSummary,
+                      hideIfEmpty: false,
+                      onClick: readOnly
+                        ? undefined
+                        : () =>
+                            setEditingMonths({ rowId: row.id, mode: "fact" }),
+                      hint: readOnly ? undefined : "нажмите, чтобы заполнить",
+                    },
                   ],
                 };
               })}
@@ -1353,6 +1421,31 @@ export function SanitationDayDocumentClient({
           await patchConfig(next, value.title.trim() || title);
         }}
         useV2={useV2}
+      />
+
+      {/* План или факт по месяцам для одного помещения — из карточки. */}
+      <CardEditSheet
+        open={editingMonths !== null}
+        title={editingMonths?.mode === "fact" ? "Факт по месяцам" : "План по месяцам"}
+        subtitle={
+          normalized.rows.find((row) => row.id === editingMonths?.rowId)
+            ?.roomName || undefined
+        }
+        fields={editingMonths ? buildMonthsEditFields() : []}
+        values={
+          editingMonths
+            ? buildMonthsEditValues(editingMonths.rowId, editingMonths.mode)
+            : {}
+        }
+        onClose={() => setEditingMonths(null)}
+        onSubmit={(values) => {
+          if (!editingMonths) return;
+          void saveMonthsFromSheet(
+            editingMonths.rowId,
+            editingMonths.mode,
+            values
+          );
+        }}
       />
     </div>
   );

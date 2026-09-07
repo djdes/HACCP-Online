@@ -72,6 +72,11 @@ import {
   MobileViewTableWrapper,
 } from "@/components/journals/mobile-view-toggle";
 import {
+  CardEditSheet,
+  type CardEditFieldDef,
+  type CardEditValues,
+} from "@/components/journals/card-edit-sheet";
+import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
@@ -707,6 +712,11 @@ export function CleaningVentilationChecklistDocumentClient({
   // раскрытая панель занимала больше, чем сам чек-лист.
   const [panelOpen, setPanelOpen] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
+  // Процедура, время которой правим из карточки. Раньше карточки этого
+  // журнала отправляли во вкладку «Таблица».
+  const [editingProcedure, setEditingProcedure] = useState<
+    { dateKey: string; procedureId: string } | null
+  >(null);
   const isActive = status === "active";
   // История отмены (Ctrl+Z) — только правки этого человека в этой вкладке.
   const undoStack = useJournalUndo({ enabled: status === "active" });
@@ -849,6 +859,29 @@ export function CleaningVentilationChecklistDocumentClient({
         redo: () => persistEntry(dateKey, nextData, { silent: true }),
       });
     }
+  };
+
+  /** Какую процедуру какого дня правим из карточки. */
+  const editProcedure = async (
+    dateKey: string,
+    procedure: RowProcedure,
+    values: CardEditValues
+  ) => {
+    const existing = entryMap[dateKey]?.data || { procedures: {} };
+    const nextTimes = procedure.times
+      .map((_, index) => String(values[`time${index}`] ?? ""))
+      .filter(Boolean);
+    setEditingProcedure(null);
+    await persistEntry(dateKey, {
+      procedures: {
+        ...existing.procedures,
+        [procedure.id]: nextTimes,
+      },
+      responsibleUserId:
+        existing.responsibleUserId ||
+        procedure.responsibleUserId ||
+        config.mainResponsibleUserId,
+    });
   };
 
   const updateProcedureTime = async (
@@ -1302,6 +1335,7 @@ export function CleaningVentilationChecklistDocumentClient({
               fields: row.procedures.map((procedure) => {
                 const responsibleName = userMap[procedure.responsibleUserId]?.name || "";
                 const times = procedure.times.filter(Boolean).join(" · ") || "—";
+                const editable = isActive && config.autoFillEnabled;
                 return {
                   label: procedure.label,
                   value: (
@@ -1312,9 +1346,14 @@ export function CleaningVentilationChecklistDocumentClient({
                       ) : null}
                     </div>
                   ),
-                  hint: isActive && config.autoFillEnabled
-                    ? "Для редактирования откройте вкладку Таблица"
+                  onClick: editable
+                    ? () =>
+                        setEditingProcedure({
+                          dateKey: row.dateKey,
+                          procedureId: procedure.id,
+                        })
                     : undefined,
+                  hint: editable ? "нажмите, чтобы изменить время" : undefined,
                 };
               }),
             }))}
@@ -1541,6 +1580,52 @@ export function CleaningVentilationChecklistDocumentClient({
           });
         }}
       />
+
+      {/* Времена одной процедуры за день — вход из карточки. */}
+      {(() => {
+        const editingRow = editingProcedure
+          ? rows.find((row) => row.dateKey === editingProcedure.dateKey)
+          : undefined;
+        const procedure = editingRow?.procedures.find(
+          (item) => item.id === editingProcedure?.procedureId
+        );
+        const fields: CardEditFieldDef[] = procedure
+          ? procedure.times.map((_, index) => ({
+              type: "time",
+              key: `time${index}`,
+              label:
+                procedure.times.length > 1 ? `Время ${index + 1}` : "Время",
+            }))
+          : [];
+        const values: CardEditValues = {};
+        procedure?.times.forEach((time, index) => {
+          values[`time${index}`] = time || "";
+        });
+
+        return (
+          <CardEditSheet
+            open={Boolean(procedure)}
+            title={procedure?.label ?? "Процедура"}
+            subtitle={
+              editingRow ? formatRuDate(editingRow.dateKey) : undefined
+            }
+            fields={fields}
+            values={values}
+            onClose={() => setEditingProcedure(null)}
+            onSubmit={(next) => {
+              if (!editingProcedure || !procedure) return;
+              editProcedure(editingProcedure.dateKey, procedure, next).catch(
+                (error) =>
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : "Не удалось сохранить время"
+                  )
+              );
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -37,6 +37,11 @@ import {
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
+  CardEditSheet,
+  type CardEditFieldDef,
+  type CardEditValues,
+} from "@/components/journals/card-edit-sheet";
+import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
@@ -510,6 +515,10 @@ export function TrainingPlanDocumentClient({
   const [addTopicOpen, setAddTopicOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  // Какую клетку «должность × тема» правим из карточки.
+  const [editingCell, setEditingCell] = useState<
+    { rowId: string; topicId: string } | null
+  >(null);
   const normalized = normalizeTrainingPlanConfig(config);
   const readOnly = status === "closed";
 
@@ -590,6 +599,58 @@ export function TrainingPlanDocumentClient({
     await patchConfig({ ...normalized, rows: nextRows });
   }
 
+  /** Поля листа: нужна ли тема и в каком месяце года её планируют. */
+  function buildCellEditFields(): CardEditFieldDef[] {
+    const yy = String(normalized.year).slice(-2);
+    return [
+      { type: "boolean", key: "required", label: "Тема нужна этой должности" },
+      {
+        type: "select",
+        key: "month",
+        label: "Месяц обучения",
+        options: MONTH_OPTIONS.map((label, monthIndex) => ({
+          value: `${String(monthIndex + 1).padStart(2, "0")}.${yy}`,
+          label,
+        })),
+      },
+    ];
+  }
+
+  function buildCellEditValues(rowId: string, topicId: string): CardEditValues {
+    const row = normalized.rows.find((item) => item.id === rowId);
+    const cell = row?.cells[topicId] || { required: false, date: "" };
+    return { required: cell.required === true, month: cell.date || "" };
+  }
+
+  async function saveCellFromSheet(
+    rowId: string,
+    topicId: string,
+    values: CardEditValues
+  ) {
+    const required = values.required === true;
+    const month = String(values.month ?? "");
+    const nextRows = normalized.rows.map((row) => {
+      if (row.id !== rowId) return row;
+      return {
+        ...row,
+        cells: {
+          ...row.cells,
+          [topicId]: {
+            ...row.cells[topicId],
+            required,
+            // Сняли галочку — месяц тоже уходит: в бланке «дата без
+            // требования» читается как ошибка.
+            date: required
+              ? month || `01.${String(normalized.year).slice(-2)}`
+              : "",
+          },
+        },
+      };
+    });
+    setEditingCell(null);
+    await patchConfig({ ...normalized, rows: nextRows });
+  }
+
   async function deleteSelectedRows() {
     if (selectedRowIds.length === 0) return;
     const count = selectedRowIds.length;
@@ -651,13 +712,21 @@ export function TrainingPlanDocumentClient({
           className="size-5"
         />
       ) : null,
-      fields: [
-        {
-          label: "Темы обучения",
-          value: required.length > 0 ? required.join(" · ") : "",
-          hideIfEmpty: true,
-        },
-      ],
+      // Каждая тема — своё поле: тап по теме открывает лист «нужна ли она
+      // этой должности и в каком месяце». Раньше карточка показывала одну
+      // склеенную строку и не открывала ничего.
+      fields: normalized.topics.map((topic) => {
+        const cell = row.cells[topic.id] || { required: false, date: "" };
+        return {
+          label: topic.name,
+          value: cell.required ? cell.date || "нужна" : "",
+          hideIfEmpty: false,
+          onClick: readOnly
+            ? undefined
+            : () => setEditingCell({ rowId: row.id, topicId: topic.id }),
+          hint: readOnly ? undefined : "нажмите, чтобы изменить",
+        };
+      }),
     };
   });
 
@@ -869,6 +938,34 @@ export function TrainingPlanDocumentClient({
             approveEmployee: value.approveEmployee,
           });
           await patchConfig(nextConfig, value.title.trim() || title);
+        }}
+      />
+
+      {/* Правка клетки «должность × тема» из карточного режима. */}
+      <CardEditSheet
+        open={editingCell !== null}
+        title={
+          normalized.topics.find((topic) => topic.id === editingCell?.topicId)
+            ?.name ?? "Тема обучения"
+        }
+        subtitle={
+          normalized.rows.find((row) => row.id === editingCell?.rowId)
+            ?.positionName
+        }
+        fields={editingCell ? buildCellEditFields() : []}
+        values={
+          editingCell
+            ? buildCellEditValues(editingCell.rowId, editingCell.topicId)
+            : {}
+        }
+        onClose={() => setEditingCell(null)}
+        onSubmit={(values) => {
+          if (!editingCell) return;
+          void saveCellFromSheet(
+            editingCell.rowId,
+            editingCell.topicId,
+            values
+          );
         }}
       />
     </div>
