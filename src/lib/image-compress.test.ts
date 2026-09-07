@@ -12,7 +12,7 @@ import test from "node:test";
 import {
   computeCompressedDimensions,
   shouldAttemptCompression,
-} from "@/app/mini/_lib/image-compress";
+} from "@/lib/image-compress";
 
 test("shouldAttemptCompression: не сжимаем не-image", () => {
   assert.equal(

@@ -84,6 +84,27 @@ export type TaskFormField =
       label: string;
       required?: boolean;
       defaultValue?: string;
+    }
+  | {
+      /**
+       * Фото-доказательство. Значение — URL'ы через перевод строки
+       * (см. `components/journals/photo-field.tsx`). До этого типа
+       * `photoRequired` из `journal-specs.ts` был декларацией без
+       * единого места, где фото реально спрашивают.
+       */
+      type: "photo";
+      key: string;
+      label: string;
+      required?: boolean;
+      defaultValue?: string;
+    }
+  | {
+      /** Подпись — ФИО текстом, как в бумажном бланке. */
+      type: "signature";
+      key: string;
+      label: string;
+      required?: boolean;
+      defaultValue?: string;
     };
 
 /**
@@ -242,6 +263,18 @@ export function buildCompletionValidator(
           allowed as unknown as [string, ...string[]]
         );
         if (!field.required) s = s.optional().nullable();
+        shape[field.key] = s;
+        break;
+      }
+      case "photo":
+      case "signature": {
+        // Обе — строки. У фото это склейка URL'ов, у подписи — ФИО.
+        let s: z.ZodTypeAny = z.string().trim();
+        if (field.required) {
+          s = (s as z.ZodString).min(1, `${field.label}: обязательное поле`);
+        } else {
+          s = s.optional().nullable();
+        }
         shape[field.key] = s;
         break;
       }

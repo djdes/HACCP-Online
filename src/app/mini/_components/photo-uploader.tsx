@@ -4,7 +4,7 @@ import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useCallback, useRef, useState } from "react";
 import { Camera, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { haptic } from "./use-haptic";
-import { compressImageIfWorthwhile } from "../_lib/image-compress";
+import { compressImageIfWorthwhile } from "@/lib/image-compress";
 
 export type PhotoFile = {
   url: string;

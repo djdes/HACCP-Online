@@ -11,6 +11,7 @@ import {
   SkipForward,
   Thermometer,
 } from "lucide-react";
+import { PhotoField, parsePhotoValue } from "@/components/journals/photo-field";
 
 type Claim = {
   id: string;
@@ -342,6 +343,9 @@ export default function ClaimPage({
       requirePhoto?: boolean;
     }>;
   } | null>(null);
+  // Снимки по шагам pipeline'а. Бейдж «Требуется фото» существовал и
+  // раньше, но был чисто декоративным — загрузчика за ним не стояло.
+  const [stepPhotos, setStepPhotos] = useState<Record<string, string>>({});
   const [pipelineProgress, setPipelineProgress] = useState<Record<string, boolean>>(
     {}
   );
@@ -412,6 +416,7 @@ export default function ClaimPage({
                 id: s.id,
                 title: s.title,
                 done: Boolean(pipelineProgress[s.id]),
+                photos: parsePhotoValue(stepPhotos[s.id]),
                 checklist: (s.checklist ?? []).map((item, i) => ({
                   item,
                   done: Boolean(pipelineProgress[`${s.id}::cl::${i}`]),
@@ -486,6 +491,14 @@ export default function ClaimPage({
       </div>
     );
   }
+
+  // Шаг с requirePhoto не даёт закрыть задачу, пока снимка нет — до этой
+  // правки требование было надписью без последствий.
+  const missingStepPhoto = Boolean(
+    pipeline?.steps.some(
+      (step) => step.requirePhoto && parsePhotoValue(stepPhotos[step.id]).length === 0
+    )
+  );
 
   return (
     <div className="space-y-4 pb-24">
@@ -592,8 +605,15 @@ export default function ClaimPage({
                     </ul>
                   ) : null}
                   {step.requirePhoto ? (
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#fff8eb] px-2.5 py-1 text-[11px] text-[#a13a32]">
-                      📷 Требуется фото
+                    <div className="mt-2">
+                      <PhotoField
+                        label="Фото шага"
+                        value={stepPhotos[step.id] ?? ""}
+                        onChange={(next) =>
+                          setStepPhotos((prev) => ({ ...prev, [step.id]: next }))
+                        }
+                        required
+                      />
                     </div>
                   ) : null}
                 </div>
@@ -672,11 +692,13 @@ export default function ClaimPage({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting}
+            disabled={submitting || missingStepPhoto}
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] disabled:opacity-60"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-            {form?.submitLabel || "Завершить"}
+            {missingStepPhoto
+              ? "Нужно фото шага"
+              : form?.submitLabel || "Завершить"}
           </button>
           <button
             type="button"

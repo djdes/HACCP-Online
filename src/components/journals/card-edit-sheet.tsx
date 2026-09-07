@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { NumberField } from "@/components/journals/number-field";
+import { PhotoField, parsePhotoValue } from "@/components/journals/photo-field";
 import { TimeField } from "@/components/journals/time-field";
 import { useKeyboardInset } from "@/lib/use-keyboard-inset";
 
@@ -50,7 +51,9 @@ export type CardEditFieldDef =
       label: string;
       options: Array<{ value: string; label: string; code?: string }>;
     }
-  | { type: "boolean"; key: string; label: string };
+  | { type: "boolean"; key: string; label: string }
+  | { type: "photo"; key: string; label: string; required?: boolean }
+  | { type: "signature"; key: string; label: string };
 
 export type CardEditValues = Record<string, string | boolean | null>;
 
@@ -93,6 +96,15 @@ export function CardEditSheet({
     setDraft((prev) => ({ ...prev, [key]: next }));
   }
 
+  // Фото, объявленное обязательным, блокирует сохранение — иначе
+  // требование из `journal-specs.ts` остаётся декларацией.
+  const missingPhoto = fields.some(
+    (field) =>
+      field.type === "photo" &&
+      field.required &&
+      parsePhotoValue(draft[field.key]).length === 0
+  );
+
   function textOf(key: string): string {
     const value = draft[key];
     if (value == null || value === false) return "";
@@ -120,13 +132,17 @@ export function CardEditSheet({
             </button>
             <button
               type="button"
-              disabled={saving}
+              disabled={saving || missingPhoto}
               onClick={() => {
                 void onSubmit(draft);
               }}
               className="h-12 flex-[1.4] rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-150 hover:bg-[#4a5bf0] disabled:opacity-60"
             >
-              {saving ? "Сохранение…" : submitLabel}
+              {saving
+                ? "Сохранение…"
+                : missingPhoto
+                  ? "Нужно фото"
+                  : submitLabel}
             </button>
           </div>
         </div>
@@ -149,6 +165,36 @@ export function CardEditSheet({
                 />
                 <span className="text-[15px] text-[#0b1024]">{field.label}</span>
               </label>
+            );
+          }
+
+          if (field.type === "photo") {
+            return (
+              <PhotoField
+                key={field.key}
+                label={field.label}
+                value={textOf(field.key)}
+                onChange={(next) => setValue(field.key, next)}
+                required={field.required}
+              />
+            );
+          }
+
+          if (field.type === "signature") {
+            return (
+              <div key={field.key} className="min-w-0">
+                <label className="mb-1 block text-[12px] font-medium text-[#6f7282]">
+                  {field.label}
+                </label>
+                <input
+                  type="text"
+                  value={textOf(field.key)}
+                  placeholder="Фамилия и инициалы"
+                  autoComplete="name"
+                  onChange={(event) => setValue(field.key, event.target.value)}
+                  className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-3.5 text-[16px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+              </div>
             );
           }
 

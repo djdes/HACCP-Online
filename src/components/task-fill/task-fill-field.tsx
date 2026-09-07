@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { TaskFormField } from "@/lib/tasksflow-adapters/task-form";
 import { fieldIcon, fieldIconTone } from "./field-icons";
+import { PhotoField } from "@/components/journals/photo-field";
 
 /**
  * Live-валидация числовых полей: возвращает статус и текст подсказки.
@@ -277,6 +278,28 @@ function renderInput(
           type="date"
           value={(value as string) ?? ""}
           onChange={(e) => onChange(e.target.value)}
+          className={baseInputClass}
+        />
+      );
+
+    case "photo":
+      return (
+        <PhotoField
+          label={field.label}
+          value={(value as string) ?? ""}
+          onChange={(next) => onChange(next)}
+          required={field.required}
+        />
+      );
+
+    case "signature":
+      return (
+        <Input
+          id={id}
+          value={(value as string) ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Фамилия и инициалы"
+          autoComplete="name"
           className={baseInputClass}
         />
       );

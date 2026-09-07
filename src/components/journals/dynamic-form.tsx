@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { PhotoCapture, type OcrResult } from "./photo-capture";
 import { VoiceInput } from "./voice-input";
+import { PhotoField, parsePhotoValue } from "@/components/journals/photo-field";
 import { localDayKey } from "@/lib/entry-defaults";
 
 type FieldOption = { value: string; label: string };
@@ -44,7 +45,9 @@ type FieldDef = {
     | "boolean"
     | "select"
     | "equipment"
-    | "employee";
+    | "employee"
+    | "photo"
+    | "signature";
   required?: boolean;
   options?: FieldOption[];
   step?: number;
@@ -323,6 +326,17 @@ export function DynamicForm({
         );
         return;
       }
+    }
+
+    // Журналы с photoRequired в journal-specs (дезинфекция, акт забраковки,
+    // поверка СИ, аварии) до этого требовали фото только на словах: типа
+    // поля не существовало, и запись сохранялась без снимка.
+    if (
+      journalSpec.photoRequired &&
+      parsePhotoValue(formData.photoUrls).length === 0
+    ) {
+      setError("Для этого журнала нужно приложить фото.");
+      return;
     }
 
     setIsSubmitting(true);
@@ -604,6 +618,25 @@ export function DynamicForm({
                 <FieldHint templateCode={templateCode} fieldKey={field.key} />
               </div>
 
+              {field.type === "photo" && (
+                <PhotoField
+                  label={field.label}
+                  value={(formData[field.key] as string) ?? ""}
+                  onChange={(next) => updateField(field.key, next)}
+                  required={field.required}
+                />
+              )}
+
+              {field.type === "signature" && (
+                <Input
+                  id={field.key}
+                  value={(formData[field.key] as string) ?? ""}
+                  onChange={(e) => updateField(field.key, e.target.value)}
+                  placeholder="Фамилия и инициалы"
+                  autoComplete="name"
+                />
+              )}
+
               {(field.type === "text" || field.type === "textarea") && (
                 <VoiceInput
                   id={field.key}
@@ -760,6 +793,22 @@ export function DynamicForm({
           )}
         </div>
       ))}
+
+      {/* Журналы, где фото обязательно по journal-specs, но своего поля в
+          `template.fields` не имеют: рисуем его сами, иначе требование
+          неисполнимо. Ключ `photoUrls` уезжает в `JournalEntry.data`. */}
+      {journalSpec.photoRequired &&
+      !fields.some((field) => field.type === "photo") ? (
+        <div className="space-y-2">
+          <PhotoField
+            label="Фото-подтверждение"
+            value={(formData.photoUrls as string) ?? ""}
+            onChange={(next) => updateField("photoUrls", next)}
+            required
+            hint="Без снимка запись не сохранится — этого требует журнал."
+          />
+        </div>
+      ) : null}
 
       {rollingMode ? (
         <div className="rounded-2xl border border-[#5566f6]/20 bg-gradient-to-br from-[#f5f6ff] to-white p-4">
