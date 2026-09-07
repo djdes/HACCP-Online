@@ -159,6 +159,7 @@ function AddSubdivisionDialog(props: {
             </Label>
             <Input
               type="number"
+              inputMode="decimal"
               value={row.byCapacity ? "" : row.area ?? ""}
               onChange={(e) =>
                 setRow({
@@ -215,6 +216,7 @@ function AddSubdivisionDialog(props: {
             </Label>
             <Input
               type="number"
+              inputMode="decimal"
               value={row.frequencyPerMonth || ""}
               onChange={(e) =>
                 setRow({
@@ -304,6 +306,7 @@ function EditSubdivisionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 value={active.byCapacity ? "" : active.area ?? ""}
                 onChange={(e) =>
                   setRow({
@@ -365,6 +368,7 @@ function EditSubdivisionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 value={active.frequencyPerMonth || ""}
                 onChange={(e) =>
                   setRow({
@@ -396,6 +400,7 @@ function EditSubdivisionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 value={active.concentration || ""}
                 onChange={(e) =>
@@ -413,6 +418,7 @@ function EditSubdivisionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 value={active.solutionConsumptionPerSqm || ""}
                 onChange={(e) =>
@@ -430,6 +436,7 @@ function EditSubdivisionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 value={active.solutionPerTreatment || ""}
                 onChange={(e) =>
@@ -591,6 +598,7 @@ function ReceiptDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 value={active.quantity || ""}
                 onChange={(e) =>
                   setRow({
@@ -785,6 +793,7 @@ function ConsumptionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 value={active.totalReceived || ""}
                 onChange={(e) =>
                   setRow({
@@ -820,6 +829,7 @@ function ConsumptionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 value={active.totalConsumed || ""}
                 onChange={(e) =>
                   setRow({
@@ -855,6 +865,7 @@ function ConsumptionDialog(props: {
               </Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 value={active.remainder || ""}
                 onChange={(e) =>
                   setRow({

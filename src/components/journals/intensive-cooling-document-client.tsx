@@ -26,6 +26,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  TimeField,
+  joinTimeValue,
+  splitTimeValue,
+} from "@/components/journals/time-field";
 import { Label } from "@/components/ui/label";
 import { USER_ROLE_LABEL_VALUES } from "@/lib/user-roles";
 import {
@@ -194,38 +199,17 @@ function RowDialog(props: {
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select
-                value={row.productionHour}
-                onValueChange={(value) => setValue("productionHour", value)}
-              >
-                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
-                  <SelectValue placeholder="Часы" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hourOptions().map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={row.productionMinute}
-                onValueChange={(value) => setValue("productionMinute", value)}
-              >
-                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
-                  <SelectValue placeholder="Минуты" />
-                </SelectTrigger>
-                <SelectContent>
-                  {minuteOptions().map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Журнал время-критичный (+65 → +5 °C за два часа), и время
+                производства фиксируют по факту — одно поле плюс «Сейчас»
+                вместо двух списков. */}
+            <TimeField
+              value={joinTimeValue(row.productionHour, row.productionMinute)}
+              onChange={(next) => {
+                const { hour, minute } = splitTimeValue(next);
+                setValue("productionHour", hour);
+                setValue("productionMinute", minute);
+              }}
+            />
           </fieldset>
 
           <Input

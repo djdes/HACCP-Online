@@ -53,6 +53,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VoiceNumberInput } from "@/components/ui/voice-number-input";
+import { NumberField } from "@/components/journals/number-field";
 import { submitWithOfflineFallback } from "@/lib/use-offline-submit";
 import {
   Select,
@@ -656,6 +657,67 @@ function JournalSettingsDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Ячейка температуры в карточном режиме.
+ *
+ * Своё состояние нужно, потому что `NumberField` управляемый, а значение
+ * приходит из строки документа и обновляется асинхронно после PATCH'а.
+ * Локальный черновик даёт печатать без дёрганья и коммитится на blur или
+ * степпере — ровно как раньше делал `onBlur` у голого инпута.
+ *
+ * Норма холодильника подписывается прямо под полем и подсвечивает выход
+ * за диапазон в момент ввода: раньше «2…6 °C» было только в подзаголовке
+ * карточки, а промах становился виден лишь после сохранения.
+ */
+function ColdTemperatureCell({
+  inputId,
+  value,
+  norm,
+  onCommit,
+}: {
+  inputId: string;
+  value: number | string;
+  norm: { min: number | null; max: number | null };
+  onCommit: (next: string) => void;
+}) {
+  const stored = value === "" || value == null ? "" : String(value);
+  const [draft, setDraft] = useState(stored);
+
+  // Значение поменялось снаружи (автозаполнение, отмена, синк) — подхватываем.
+  useEffect(() => {
+    setDraft(stored);
+  }, [stored]);
+
+  return (
+    <div className="min-w-0 flex-1">
+      <NumberField
+        id={inputId}
+        value={draft}
+        onChange={setDraft}
+        onCommit={onCommit}
+        unit="°C"
+        step={0.1}
+        min={-40}
+        max={30}
+        norm={norm}
+        trailing={
+          <VoiceNumberInput
+            // `VoiceNumberInput` ждёт число, а черновик — строка (в ней
+            // может стоять русская запятая и незаконченный ввод).
+            value={draft === "" ? "" : Number(draft.replace(",", ".")) || ""}
+            inputId={inputId}
+            onChange={(n) => {
+              if (n === null) return;
+              setDraft(String(n));
+              onCommit(String(n));
+            }}
+          />
+        }
+      />
+    </div>
   );
 }
 
@@ -1461,40 +1523,14 @@ export function ColdEquipmentDocumentClient({
                               {getWeekdayShort(dateKey)}.
                             </span>
                             {status === "active" ? (
-                              <>
-                                <Input
-                                  id={`temp-${item.id}-${dateKey}`}
-                                  type="number"
-                                  inputMode="decimal"
-                                  step="0.1"
-                                  defaultValue={value ?? ""}
-                                  onBlur={(event) =>
-                                    handleTemperatureBlur(
-                                      dateKey,
-                                      item.id,
-                                      event.target.value
-                                    )
-                                  }
-                                  placeholder="°C"
-                                  className="h-10 min-w-0 flex-1 rounded-lg border-[#dcdfed] px-3 text-[14px]"
-                                />
-                                <VoiceNumberInput
-                                  value={value ?? ""}
-                                  inputId={`temp-${item.id}-${dateKey}`}
-                                  onChange={(n) => {
-                                    if (n === null) return;
-                                    const input = document.getElementById(
-                                      `temp-${item.id}-${dateKey}`
-                                    ) as HTMLInputElement | null;
-                                    if (input) input.value = String(n);
-                                    handleTemperatureBlur(
-                                      dateKey,
-                                      item.id,
-                                      String(n)
-                                    );
-                                  }}
-                                />
-                              </>
+                              <ColdTemperatureCell
+                                inputId={`temp-${item.id}-${dateKey}`}
+                                value={value ?? ""}
+                                norm={{ min: item.min, max: item.max }}
+                                onCommit={(next) =>
+                                  handleTemperatureBlur(dateKey, item.id, next)
+                                }
+                              />
                             ) : (
                               <span className="flex-1 rounded-lg bg-[#fafbff] px-3 py-2 text-[14px] text-[#0b1024]">
                                 {value ?? "—"}

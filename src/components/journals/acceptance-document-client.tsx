@@ -1905,6 +1905,7 @@ function AddMultipleRowsDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Количество строк</Label>
             <Input
               type="number"
+              inputMode="decimal"
               min={1}
               max={100}
               value={count}

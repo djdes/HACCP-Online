@@ -622,6 +622,7 @@ export function DynamicForm({
                     <Input
                       id={field.key}
                       type="number"
+                      inputMode="decimal"
                       step={field.step ?? 1}
                       value={(formData[field.key] as string) ?? ""}
                       onChange={(e) =>

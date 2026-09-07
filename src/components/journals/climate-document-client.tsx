@@ -337,6 +337,7 @@ function RoomDialog({
                 <div className="text-[15px] text-black">Температура (T)</div>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   value={temperatureMin}
                   onChange={(event) => setTemperatureMin(event.target.value)}
                   className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
@@ -345,6 +346,7 @@ function RoomDialog({
                 <span className="text-[15px] text-[#6d7285]">°C</span>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   value={temperatureMax}
                   onChange={(event) => setTemperatureMax(event.target.value)}
                   className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
@@ -362,6 +364,7 @@ function RoomDialog({
                 <div className="text-[15px] text-black">Влажность воздуха (ВВ)</div>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   value={humidityMin}
                   onChange={(event) => setHumidityMin(event.target.value)}
                   className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
@@ -370,6 +373,7 @@ function RoomDialog({
                 <span className="text-[15px] text-[#6d7285]">%</span>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   value={humidityMax}
                   onChange={(event) => setHumidityMax(event.target.value)}
                   className="h-9 w-[96px] rounded-xl border-[#dcdfed] px-3 text-[13.5px]"
@@ -2341,6 +2345,7 @@ export function ClimateDocumentClient({
                             {status === "active" ? (
                               <Input
                                 type="number"
+                                inputMode="decimal"
                                 step="0.1"
                                 data-tour={row.id === tourRowId ? TOUR.measureInput : undefined}
                                 value={row.data.measurements[room.id]?.[time]?.temperature ?? ""}
@@ -2383,6 +2388,7 @@ export function ClimateDocumentClient({
                             {status === "active" ? (
                               <Input
                                 type="number"
+                                inputMode="decimal"
                                 step="0.1"
                                 data-tour={row.id === tourRowId ? TOUR.measureInput : undefined}
                                 value={row.data.measurements[room.id]?.[time]?.humidity ?? ""}

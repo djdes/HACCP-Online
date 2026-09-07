@@ -8,6 +8,11 @@ import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import {
+  TimeField,
+  joinTimeValue,
+  splitTimeValue,
+} from "@/components/journals/time-field";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -108,31 +113,24 @@ function RowDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">
               Дата и время начала работ
             </Label>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1.6fr]">
               <Input
                 type="date"
                 className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={row.startDate}
                 onChange={(e) => setValue("startDate", e.target.value)}
               />
-              <select
-                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
-                value={row.startHour}
-                onChange={(e) => setValue("startHour", e.target.value)}
-              >
-                {hourOptions().map((h) => (
-                  <option key={h} value={h}>{h} ч</option>
-                ))}
-              </select>
-              <select
-                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
-                value={row.startMinute}
-                onChange={(e) => setValue("startMinute", e.target.value)}
-              >
-                {minuteOptions().map((m) => (
-                  <option key={m} value={m}>{m} мин</option>
-                ))}
-              </select>
+              {/* Одно поле времени вместо пары селектов «часы» и «минуты»:
+                  на телефоне это было два раскрытия списка там, где нужно
+                  одно значение. В конфиге части по-прежнему хранятся врозь. */}
+              <TimeField
+                value={joinTimeValue(row.startHour, row.startMinute)}
+                onChange={(next) => {
+                  const { hour, minute } = splitTimeValue(next);
+                  setValue("startHour", hour);
+                  setValue("startMinute", minute);
+                }}
+              />
             </div>
           </div>
 
@@ -180,31 +178,24 @@ function RowDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">
               Дата и время окончания работ
             </Label>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1.6fr]">
               <Input
                 type="date"
                 className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                 value={row.endDate}
                 onChange={(e) => setValue("endDate", e.target.value)}
               />
-              <select
-                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
-                value={row.endHour}
-                onChange={(e) => setValue("endHour", e.target.value)}
-              >
-                {hourOptions().map((h) => (
-                  <option key={h} value={h}>{h} ч</option>
-                ))}
-              </select>
-              <select
-                className="h-9 w-full rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] text-[#0b1024]"
-                value={row.endMinute}
-                onChange={(e) => setValue("endMinute", e.target.value)}
-              >
-                {minuteOptions().map((m) => (
-                  <option key={m} value={m}>{m} мин</option>
-                ))}
-              </select>
+              {/* Одно поле времени вместо пары селектов «часы» и «минуты»:
+                  на телефоне это было два раскрытия списка там, где нужно
+                  одно значение. В конфиге части по-прежнему хранятся врозь. */}
+              <TimeField
+                value={joinTimeValue(row.endHour, row.endMinute)}
+                onChange={(next) => {
+                  const { hour, minute } = splitTimeValue(next);
+                  setValue("endHour", hour);
+                  setValue("endMinute", minute);
+                }}
+              />
             </div>
           </div>
 

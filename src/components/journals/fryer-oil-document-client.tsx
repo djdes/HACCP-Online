@@ -16,6 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  TimeField,
+  joinTimeValue,
+  splitTimeValue,
+} from "@/components/journals/time-field";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -504,16 +509,19 @@ function EntryDialog(props: {
                 </span>
               ) : null}
             </Label>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1.6fr]">
               <Input type="date" value={data.startDate} onChange={(e) => setStartDateForAll(e.target.value)} className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" />
-              <Select value={data.startHour === null ? "" : String(data.startHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startHour: Number(value) }))}>
-                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Час" /></SelectTrigger>
-                <SelectContent>{HOURS.map((v) => <SelectItem key={v} value={v}>{v} ч</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={data.startMinute === null ? "" : String(data.startMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, startMinute: Number(value) }))}>
-                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Мин" /></SelectTrigger>
-                <SelectContent>{MINUTES.map((v) => <SelectItem key={v} value={v}>{v} мин</SelectItem>)}</SelectContent>
-              </Select>
+              <TimeField
+                value={joinTimeValue(data.startHour, data.startMinute)}
+                onChange={(next) => {
+                  const { hour, minute } = splitTimeValue(next);
+                  setData((d) => ({
+                    ...d,
+                    startHour: hour === "" ? null : Number(hour),
+                    startMinute: minute === "" ? null : Number(minute),
+                  }));
+                }}
+              />
             </div>
           </div>
 
@@ -623,14 +631,17 @@ function EntryDialog(props: {
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Время окончания</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Select value={data.endHour === null ? "" : String(data.endHour).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endHour: Number(value) }))}>
-                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Час" /></SelectTrigger>
-                <SelectContent>{HOURS.map((v) => <SelectItem key={v} value={v}>{v} ч</SelectItem>)}</SelectContent>
-              </Select>
-              <Select value={data.endMinute === null ? "" : String(data.endMinute).padStart(2, "0")} onValueChange={(value) => setData((d) => ({ ...d, endMinute: Number(value) }))}>
-                <SelectTrigger className={SELECT_TRIGGER_CLASS}><SelectValue placeholder="Мин" /></SelectTrigger>
-                <SelectContent>{MINUTES.map((v) => <SelectItem key={v} value={v}>{v} мин</SelectItem>)}</SelectContent>
-              </Select>
+              <TimeField
+                value={joinTimeValue(data.endHour, data.endMinute)}
+                onChange={(next) => {
+                  const { hour, minute } = splitTimeValue(next);
+                  setData((d) => ({
+                    ...d,
+                    endHour: hour === "" ? null : Number(hour),
+                    endMinute: minute === "" ? null : Number(minute),
+                  }));
+                }}
+              />
             </div>
           </div>
 

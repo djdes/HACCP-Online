@@ -304,6 +304,7 @@ function UvSpecEditDialog(props: {
             <Label className="text-[13px] font-medium text-[#3c4053]">Ресурс рабочего времени лампы, часов</Label>
             <Input
               type="number"
+              inputMode="decimal"
               value={lampHours}
               onChange={(e) => setLampHours(e.target.value)}
               className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[16px]"
@@ -364,6 +365,7 @@ function UvSpecEditDialog(props: {
               <Label className="text-[13px] font-medium text-[#3c4053]">Типовая длительность сеанса, минут</Label>
               <Input
                 type="number"
+                inputMode="decimal"
                 min={1}
                 max={1440}
                 value={autoDuration}

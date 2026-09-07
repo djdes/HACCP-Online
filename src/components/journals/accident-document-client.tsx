@@ -20,6 +20,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  TimeField,
+  joinTimeValue,
+  splitTimeValue,
+} from "@/components/journals/time-field";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -136,38 +141,17 @@ function RowDialog(props: {
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select
-                value={row.accidentHour}
-                onValueChange={(value) => setValue("accidentHour", value)}
-              >
-                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
-                  <SelectValue placeholder="Часы" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hourOptions().map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={row.accidentMinute}
-                onValueChange={(value) => setValue("accidentMinute", value)}
-              >
-                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
-                  <SelectValue placeholder="Минуты" />
-                </SelectTrigger>
-                <SelectContent>
-                  {minuteOptions().map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Одно поле времени вместо двух выпадающих списков «часы» и
+                «минуты» — четыре касания на аварию превращались в два
+                открытия списка на каждое время. */}
+            <TimeField
+              value={joinTimeValue(row.accidentHour, row.accidentMinute)}
+              onChange={(next) => {
+                const { hour, minute } = splitTimeValue(next);
+                setValue("accidentHour", hour);
+                setValue("accidentMinute", minute);
+              }}
+            />
           </fieldset>
 
           <Input
@@ -214,38 +198,17 @@ function RowDialog(props: {
               />
               <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-5 -translate-y-1/2 text-[#6e7387]" />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select
-                value={row.resolvedHour}
-                onValueChange={(value) => setValue("resolvedHour", value)}
-              >
-                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
-                  <SelectValue placeholder="Часы" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hourOptions().map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={row.resolvedMinute}
-                onValueChange={(value) => setValue("resolvedMinute", value)}
-              >
-                <SelectTrigger className="h-10 rounded-xl border-[#d7dbea]">
-                  <SelectValue placeholder="Минуты" />
-                </SelectTrigger>
-                <SelectContent>
-                  {minuteOptions().map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Одно поле времени вместо двух выпадающих списков «часы» и
+                «минуты» — четыре касания на аварию превращались в два
+                открытия списка на каждое время. */}
+            <TimeField
+              value={joinTimeValue(row.resolvedHour, row.resolvedMinute)}
+              onChange={(next) => {
+                const { hour, minute } = splitTimeValue(next);
+                setValue("resolvedHour", hour);
+                setValue("resolvedMinute", minute);
+              }}
+            />
           </fieldset>
 
           <div className="space-y-2">
