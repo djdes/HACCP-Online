@@ -1680,7 +1680,14 @@ export function DisinfectantDocumentClient({
                   последней визуально: она футер расчёта, а не запись. */}
               {!readOnly ? (
                 <JournalAddRow
-                  colSpan={12}
+                  // Галочка — leading. Подпись растянута на «Наименование
+                  // подразделения» + «Площадь объекта», чтобы плюс с
+                  // текстом не жался в узкую колонку. Остальные 9 колонок
+                  // расчёта (вид обработки … потребность на год) — пустые
+                  // ячейки.
+                  leading={1}
+                  labelSpan={2}
+                  trailing={9}
                   label="Добавить подразделение"
                   onClick={() => setAddSubOpen(true)}
                 />
@@ -1801,7 +1808,13 @@ export function DisinfectantDocumentClient({
                   последней визуально: она футер, а не запись. */}
               {!readOnly ? (
                 <JournalAddRow
-                  colSpan={6}
+                  // Галочка — leading. Подпись растянута на «Дата
+                  // получения» + «Наименование дез. средства», остальные
+                  // 3 колонки (количество, срок годности, ответственный) —
+                  // пустые ячейки.
+                  leading={1}
+                  labelSpan={2}
+                  trailing={3}
                   label="Добавить поступление"
                   onClick={() => setAddRecOpen(true)}
                 />
@@ -1936,7 +1949,12 @@ export function DisinfectantDocumentClient({
                   поэтому она и есть последняя строка tbody. */}
               {!readOnly ? (
                 <JournalAddRow
-                  colSpan={7}
+                  // Галочка — leading. Подпись растянута на «За период» +
+                  // «Наименование дез. средства», остальные 4 колонки
+                  // расхода — пустые ячейки.
+                  leading={1}
+                  labelSpan={2}
+                  trailing={4}
                   label="Добавить расход"
                   onClick={() => setAddConOpen(true)}
                 />

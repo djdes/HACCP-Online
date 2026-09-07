@@ -2329,11 +2329,19 @@ export function ClimateDocumentClient({
 
               {/* Кликабельная пустая строка внизу таблицы — то же окно
                   добавления, что и кнопка «Добавить строку» в StickyActionBar
-                  выше. colSpan повторяет формулу шапки: чекбокс+дата+колонки
-                  замеров+ответственный = 3 + totalMeasurementColumns. */}
+                  выше. Сетка как у строк с данными: чекбокс — leading (1),
+                  «Дата» — под неё встаёт подпись (labelSpan=1, это
+                  единственная колонка-идентификатор строки — дальше
+                  начинается динамическая сетка замеров, туда подпись
+                  залезать не должна), пустыми остаются все колонки замеров
+                  и «Фамилия ответственного» — итого
+                  1 + 1 + (totalMeasurementColumns + 1) = 3 +
+                  totalMeasurementColumns, как и было в colSpan. */}
               {status === "active" ? (
                 <JournalAddRow
-                  colSpan={3 + totalMeasurementColumns}
+                  leading={1}
+                  labelSpan={1}
+                  trailing={totalMeasurementColumns + 1}
                   label="Добавить строку"
                   onClick={() => setRowDialogOpen(true)}
                 />

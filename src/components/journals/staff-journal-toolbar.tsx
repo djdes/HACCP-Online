@@ -102,6 +102,15 @@ type Props = {
   useV2?: boolean;
 };
 
+/** «1 строка», «2 строки», «5 строк» — иначе выходило «2 строк». */
+function pluralRows(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "строка";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "строки";
+  return "строк";
+}
+
 async function requestJson(url: string, init: RequestInit) {
   const response = await fetch(url, init);
   const result = await response.json().catch(() => null);
@@ -251,7 +260,7 @@ export function AddEmployeeDialog({
             </div>
             <p className="mt-1 text-[13.5px] leading-[1.45] text-[#6f7282]">
               {allAlreadyAdded
-                ? `В документе ${users.length} ${users.length === 1 ? "строка" : "строк"}, по одной на каждого. Заведите нового сотрудника, и его строка появится сразу.`
+                ? `В документе ${users.length} ${pluralRows(users.length)}, по одной на каждого. Заведите нового сотрудника, и его строка появится сразу.`
                 : "Заведите его прямо здесь, строка появится в журнале сразу."}
             </p>
             <QuickAddEmployee

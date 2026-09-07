@@ -595,10 +595,18 @@ export function EquipmentMaintenanceDocumentClient({
             {/* Кликабельная пустая строка — то же окно, что и кнопка
                 «Добавить» в тулбаре шапки документа. Стоит ПЕРЕД строкой
                 «Ответственный»: та строка — часть бланка и остаётся снизу,
-                как на бумаге. */}
+                как на бумаге. leading=2 (чекбокс + № п/п), labelSpan=1 —
+                подпись под колонкой «Название оборудования / Вид работ»,
+                единственным содержательным столбцом записи. Всё остальное
+                пустое: колонка-метка Тип/План/Факт (не содержит данных
+                самой записи) + месяцы — trailing = 1 + MONTH_KEYS.length.
+                Сумма 2+1+(1+MONTH_KEYS.length) = 4+MONTH_KEYS.length — тот
+                же colSpan, что был раньше. */}
             {!isClosed ? (
               <JournalAddRow
-                colSpan={4 + MONTH_KEYS.length}
+                leading={2}
+                labelSpan={1}
+                trailing={1 + MONTH_KEYS.length}
                 label="Добавить оборудование"
                 onClick={() => {
                   resetDraft();

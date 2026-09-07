@@ -789,7 +789,12 @@ export function AccidentDocumentClient(props: Props) {
               ) : null}
               {isActive ? (
                 <JournalAddRow
-                  colSpan={9}
+                  // Галочка + № п/п — leading, подпись растянута на «Дата и
+                  // время аварии» + «Наименование помещения», остальные
+                  // 5 колонок остаются пустыми ячейками.
+                  leading={2}
+                  labelSpan={2}
+                  trailing={5}
                   label="Добавить"
                   onClick={() => {
                     setEditingRow(null);

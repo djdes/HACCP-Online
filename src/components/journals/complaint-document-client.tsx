@@ -680,7 +680,12 @@ export function ComplaintDocumentClient({
               )}
               {status === "active" ? (
                 <JournalAddRow
-                  colSpan={8}
+                  // Галочка + «Рег. № п/п» — leading, подпись растянута на
+                  // «Дата поступления» + «ФИО заявителя», остальные
+                  // 4 колонки жалобы остаются пустыми ячейками.
+                  leading={2}
+                  labelSpan={2}
+                  trailing={4}
                   label="Добавить"
                   onClick={() => {
                     setEditingRow(null);

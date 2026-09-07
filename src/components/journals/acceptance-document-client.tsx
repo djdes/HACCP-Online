@@ -2576,10 +2576,20 @@ export function AcceptanceDocumentClient(props: Props) {
                     кликом ничего не добавляла (Checkbox disabled, у tr
                     нет onClick). Теперь вместо неё настоящая кликабельная
                     строка `JournalAddRow`: открывает то же окно, что и
-                    кнопка «Добавить» в DOC_ADD_ROW_CLASS над таблицей. */}
+                    кнопка «Добавить» в DOC_ADD_ROW_CLASS над таблицей.
+                    leading=1 (чекбокс), labelSpan=2 — подпись растянута на
+                    «Дата поставки» + «Наименование продукции» (первые две
+                    колонки INCOMING_CONTROL_COLUMNS): вместе они опознают
+                    поставку. Остальные колонки бланка (годен до,
+                    производитель/поставщик, документы, партия, температура
+                    и т.д.) остаются пустыми — trailing = длина массива
+                    колонок минус эти 2. Сумма 1+2+(N-2)=N+1 — тот же
+                    colSpan, что был раньше. */}
                 {!isClosed ? (
                   <JournalAddRow
-                    colSpan={incomingControlColumns.length + 1}
+                    leading={1}
+                    labelSpan={2}
+                    trailing={incomingControlColumns.length - 2}
                     label="Добавить"
                     onClick={() => {
                       setEditingRow(null);
@@ -2659,9 +2669,19 @@ export function AcceptanceDocumentClient(props: Props) {
               {rows.length === 0 && (
                 <tr><td colSpan={11} className={`${GRID_CELL_CLASS} p-8 text-center text-[#80849a] leading-tight`}>Строк пока нет</td></tr>
               )}
+              {/* leading=1 (чекбокс), labelSpan=2 — подпись растянута на
+                  «Дата, время поступления» + «Наименование продукции»:
+                  вместе они опознают запись (когда и что поступило).
+                  Остальные 8 колонок бланка (производитель, поставщик,
+                  условия транспортировки, соответствие упаковки,
+                  органолептика, срок годности, примечания, ответственный)
+                  остаются пустыми — trailing=8. Сумма 1+2+8=11 — тот же
+                  colSpan, что был раньше. */}
               {!isClosed ? (
                 <JournalAddRow
-                  colSpan={11}
+                  leading={1}
+                  labelSpan={2}
+                  trailing={8}
                   label="Добавить"
                   onClick={() => {
                     setEditingRow(null);

@@ -1715,10 +1715,17 @@ export function ColdEquipmentDocumentClient({
               {/* Кликабельная пустая строка — то же окно «Добавить оборудование»,
                   что и кнопка над таблицей. Стоит ПЕРЕД служебной строкой
                   «Ответственный за снятие показателей»: та строка — часть
-                  бланка и должна оставаться самой нижней, как на бумаге. */}
+                  бланка и должна оставаться самой нижней, как на бумаге.
+                  Сетка: leading=1 (чекбокс), labelSpan=1 (широкая колонка
+                  «Наименование или номер ХК» — единственный содержательный
+                  столбец записи), trailing=dateKeys.length (пустые клетки
+                  дней) — сумма 1+1+dateKeys.length та же, что и прежний
+                  colSpan (dateKeys.length + 2). */}
               {status === "active" ? (
                 <JournalAddRow
-                  colSpan={dateKeys.length + 2}
+                  leading={1}
+                  labelSpan={1}
+                  trailing={dateKeys.length}
                   label="Добавить оборудование"
                   onClick={() => {
                     setEditingEquipment(null);

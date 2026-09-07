@@ -760,7 +760,12 @@ export function HealthDocumentClient(props: Props) {
 
               {isActive ? (
                 <JournalAddRow
-                  colSpan={5 + dateKeys.length}
+                  // Сетка как у строки данных: галочка + № п/п — leading,
+                  // ФИО + Должность — под подпись, дальше дни месяца и
+                  // «Принятые меры» остаются пустыми ячейками.
+                  leading={2}
+                  labelSpan={2}
+                  trailing={dateKeys.length + 1}
                   label="Добавить сотрудника"
                   onClick={() => setAddRowOpen(true)}
                 />

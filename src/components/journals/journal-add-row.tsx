@@ -2,45 +2,92 @@
 
 import { Plus } from "lucide-react";
 
+import { GRID_CELL_CLASS } from "@/components/journals/journal-grid";
+
 /**
- * Последняя строка таблицы журнала — она же кнопка «добавить».
+ * Последняя строка таблицы журнала — пустая строка, по которой
+ * добавляют запись.
  *
  * Зачем: в бланке снизу оставляли несколько пустых строк-заготовок,
- * как на бумаге. На экране они ничего не значили: нажать на них было
- * нельзя, а человек видел «журнал с семью пустыми строками» и не
- * понимал, откуда берутся сотрудники. Теперь пустая строка ровно одна
- * и она кликабельная — открывает то же окно, что и «Добавить» сверху.
+ * как на бумаге. На экране они ничего не значили — нажать на них было
+ * нельзя, — а человек видел журнал с шестью пустыми строками и не
+ * понимал, откуда там берутся люди. Пустая строка теперь ровно одна и
+ * она кликабельная: открывает то же окно, что и «Добавить» сверху.
  *
- * На печать не идёт: на бумаге пустые строки задаются настройкой
+ * Строка настоящая, с ячейками по сетке журнала: у неё те же рамки и
+ * те же колонки, что у строк с данными. Так видно, что запись встанет
+ * именно сюда. Сплошная полоса на всю ширину читалась как ещё одна
+ * панель инструментов, а не как строка бланка.
+ *
+ * Колонки дат остаются пустыми: заполнять их нечем, пока нет самой
+ * записи (сотрудника, помещения, оборудования).
+ *
+ * На печать не идёт — на бумаге пустые строки задаются настройкой
  * «Добавлять пустых строк при печати».
  */
 export function JournalAddRow({
-  colSpan,
   label = "Добавить строку",
   onClick,
   disabled = false,
+  /** Пустых ячеек слева от подписи — обычно колонка с галочкой. */
+  leading = 0,
+  /** На сколько колонок растянута подпись. */
+  labelSpan = 2,
+  /** Пустых ячеек справа: даты, метрики и прочие колонки записи. */
+  trailing = 0,
   /**
-   * Ширина листа больше экрана — подпись прилипает к левому краю,
-   * иначе на широкой сетке её не видно без прокрутки вбок.
+   * Ширина таблицы в колонках. Из неё считается число пустых ячеек
+   * справа, если они не заданы через `trailing`.
    */
-  sticky = true,
+  colSpan,
+  /** Класс ячеек — по умолчанию рамка журнальной сетки. */
+  cellClassName = GRID_CELL_CLASS,
 }: {
-  colSpan: number;
   label?: string;
   onClick: () => void;
   disabled?: boolean;
-  sticky?: boolean;
+  leading?: number;
+  labelSpan?: number;
+  trailing?: number;
+  colSpan?: number;
+  cellClassName?: string;
 }) {
+  const trailingCount =
+    trailing > 0
+      ? trailing
+      : colSpan
+        ? Math.max(0, colSpan - leading - labelSpan)
+        : 0;
+
   return (
-    <tr className="print:hidden" data-journal-add-row>
-      <td colSpan={colSpan} className="border border-[#333] p-0 print:hidden">
+    <tr
+      data-journal-add-row
+      // Нажатие ловит вся строка — так задумано. Роль строки при этом не
+      // подменяем: таблица должна остаться таблицей для скринридера, а
+      // настоящая кнопка живёт в ячейке с подписью, ей и достаётся фокус.
+      onClick={disabled ? undefined : onClick}
+      className={`group/add-row print:hidden ${
+        disabled ? "opacity-50" : "cursor-pointer transition-colors duration-150 hover:bg-[#f5f6ff]"
+      }`}
+    >
+      {Array.from({ length: leading }).map((_, index) => (
+        <td key={`lead-${index}`} className={`${cellClassName} px-2 py-0.5`} />
+      ))}
+
+      <td
+        colSpan={labelSpan}
+        className={`${cellClassName} p-0 text-left align-middle leading-tight`}
+      >
         <button
           type="button"
-          onClick={onClick}
           disabled={disabled}
-          className={`flex h-11 w-full items-center gap-2 px-3 text-left text-[13.5px] font-medium text-[#6f7282] transition-colors duration-150 hover:bg-[#f5f6ff] hover:text-[#3848c7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[#5566f6]/15 disabled:pointer-events-none disabled:opacity-50 ${
-            sticky ? "sticky left-0 w-fit min-w-full" : ""
-          }`}
+          onClick={(event) => {
+            // Клик по кнопке не должен сработать дважды: строка выше
+            // слушает то же событие.
+            event.stopPropagation();
+            onClick();
+          }}
+          className="flex w-full items-center gap-2 px-2 py-2 text-left text-[13.5px] font-medium text-[#6f7282] transition-colors duration-150 group-hover/add-row:text-[#3848c7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[#5566f6]/15 disabled:pointer-events-none"
         >
           <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5566f6]">
             <Plus className="size-4" strokeWidth={2.5} />
@@ -48,6 +95,13 @@ export function JournalAddRow({
           {label}
         </button>
       </td>
+
+      {/* Правые колонки — поштучно, а не одной широкой ячейкой: иначе
+          вертикальные линии сетки обрываются и строка перестаёт читаться
+          как строка бланка. */}
+      {Array.from({ length: trailingCount }).map((_, index) => (
+        <td key={`trail-${index}`} className={`${cellClassName} px-2 py-0.5`} />
+      ))}
     </tr>
   );
 }

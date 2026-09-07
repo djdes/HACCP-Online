@@ -1495,7 +1495,11 @@ export function HygieneDocumentClient({
               <tbody>
                 {isActive ? (
                   <JournalAddRow
-                    colSpan={4 + dateKeys.length}
+                    // Сетка как у строк с данными: галочка, № , ФИО +
+                    // должность под подпись, дальше пустые клетки дней.
+                    leading={2}
+                    labelSpan={2}
+                    trailing={dateKeys.length}
                     label="Добавить сотрудника"
                     onClick={() => setAddRowOpen(true)}
                   />

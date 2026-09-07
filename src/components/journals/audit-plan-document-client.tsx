@@ -948,7 +948,11 @@ export function AuditPlanDocumentClient({
             ))}
             {!readOnly ? (
               <JournalAddRow
-                colSpan={3 + normalized.columns.length}
+                // Галочка + № п/п — leading, «Требования» (широкая колонка)
+                // — под подпись, колонки подразделений остаются пустыми.
+                leading={2}
+                labelSpan={1}
+                trailing={normalized.columns.length}
                 label="Добавить"
                 onClick={() => setAddRowOpen(true)}
               />

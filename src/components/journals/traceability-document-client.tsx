@@ -892,7 +892,13 @@ export function TraceabilityDocumentClient(props: Props) {
             }) : <tr><td colSpan={isClosed ? 8 : config.showShockTempField ? 9 : 8} className={`${GRID_CELL_CLASS} px-2 py-6 text-center text-[#6f7282]`}>Строк пока нет</td></tr>}
             {!isClosed ? (
               <JournalAddRow
-                colSpan={config.showShockTempField ? 9 : 8}
+                // Галочка — leading, подпись растянута на «Дата» +
+                // «Наименование сырья», остальные колонки (партия, кол-во,
+                // выпуск, при необходимости T° шоковой заморозки, ФИО
+                // ответственного) остаются пустыми ячейками.
+                leading={1}
+                labelSpan={2}
+                trailing={config.showShockTempField ? 6 : 5}
                 label="Добавить"
                 onClick={() => {
                   setEditingRow(null);

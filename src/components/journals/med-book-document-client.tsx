@@ -1135,7 +1135,12 @@ export function MedBookDocumentClient({
               ))}
               {!isClosed ? (
                 <JournalAddRow
-                  colSpan={examColumns.length + 4}
+                  // Сетка как у строки данных: галочка + № п/п — leading,
+                  // ФИО + Должность — под подпись, колонки осмотров
+                  // остаются пустыми ячейками.
+                  leading={2}
+                  labelSpan={2}
+                  trailing={examColumns.length}
                   label="Добавить сотрудника"
                   onClick={() => {
                     setDraft(emptyDraft());
@@ -1329,7 +1334,12 @@ export function MedBookDocumentClient({
                   ))}
                   {!isClosed ? (
                     <JournalAddRow
-                      colSpan={vaccColumns.length + 5}
+                      // Сетка как у строки данных: галочка + № п/п —
+                      // leading, ФИО + Должность — под подпись, колонки
+                      // прививок + «Примечание» остаются пустыми ячейками.
+                      leading={2}
+                      labelSpan={2}
+                      trailing={vaccColumns.length + 1}
                       label="Добавить сотрудника"
                       onClick={() => {
                         setDraft(emptyDraft());

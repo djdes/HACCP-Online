@@ -1233,7 +1233,12 @@ export function SanitationDayDocumentClient({
               ))}
               {!readOnly ? (
                 <JournalAddRow
-                  colSpan={3 + SANITATION_MONTHS.length}
+                  // Галочка — leading, «Помещение» — под подпись (совпадает
+                  // с текстом), «Вид» (План/Факт) + все месяцы графика
+                  // остаются пустыми ячейками.
+                  leading={1}
+                  labelSpan={1}
+                  trailing={1 + SANITATION_MONTHS.length}
                   label="Добавить помещение"
                   onClick={() => setPickerOpen(true)}
                 />

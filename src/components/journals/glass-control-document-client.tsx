@@ -1050,11 +1050,14 @@ export function GlassControlDocumentClient(props: Props) {
               );
             })}
             {/* Последняя строка — кликабельная «пустая»: то же окно, что и
-                «Добавить» в toolbar над таблицей. colSpan 8 = чекбокс
-                (виден, когда !isClosed) + 7 колонок бланка. */}
+                «Добавить» в toolbar над таблицей. Галочка — leading, «Дата»
+                — под подпись (виден, когда !isClosed), остальные 6 колонок
+                бланка — пустые ячейки. */}
             {!isClosed ? (
               <JournalAddRow
-                colSpan={8}
+                leading={1}
+                labelSpan={1}
+                trailing={6}
                 label="Добавить"
                 onClick={() =>
                   setRowDialog({

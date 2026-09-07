@@ -1041,7 +1041,12 @@ export function SanitaryDayChecklistDocumentClient({
 
               {isActive ? (
                 <JournalAddRow
-                  colSpan={4}
+                  // Галочка + № п/п — leading, «Действия» (широкая колонка)
+                  // — под подпись, «Отметка времени» остаётся пустой
+                  // ячейкой справа.
+                  leading={2}
+                  labelSpan={1}
+                  trailing={1}
                   label="Добавить"
                   onClick={() => setAddItemOpen(true)}
                 />

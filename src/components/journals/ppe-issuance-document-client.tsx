@@ -932,7 +932,12 @@ export function PpeIssuanceDocumentClient(props: Props) {
             ))}
             {!isClosed ? (
               <JournalAddRow
-                colSpan={columns.length + 4}
+                // Галочка — leading, «Дата выдачи СИЗ» — под подпись,
+                // динамические колонки СИЗ + получатель/выдавший остаются
+                // пустыми ячейками.
+                leading={1}
+                labelSpan={1}
+                trailing={columns.length + 2}
                 label="Добавить"
                 onClick={() => {
                   setEditingRow(null);

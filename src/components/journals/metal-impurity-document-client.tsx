@@ -1358,7 +1358,12 @@ export function MetalImpurityDocumentClient({
               )}
               {status === "active" ? (
                 <JournalAddRow
-                  colSpan={9}
+                  // Галочка — leading, подпись растянута на «Дата» +
+                  // «Поставщик», остальные 6 колонок расчёта остаются
+                  // пустыми ячейками.
+                  leading={1}
+                  labelSpan={2}
+                  trailing={6}
                   label="Добавить"
                   onClick={() => {
                     setEditingRow(null);

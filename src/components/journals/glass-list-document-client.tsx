@@ -310,7 +310,12 @@ export function GlassListDocumentClient({
                 «Добавить» в toolbar над таблицей. */}
             {!isClosed ? (
               <JournalAddRow
-                colSpan={4}
+                // Галочка — leading. Подпись растянута на «Место
+                // расположения» + «Наименование объекта», «Кол-во»
+                // остаётся пустой ячейкой справа.
+                leading={1}
+                labelSpan={2}
+                trailing={1}
                 label="Добавить"
                 onClick={() =>
                   setRowDialog({

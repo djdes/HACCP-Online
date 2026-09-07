@@ -803,7 +803,12 @@ export function PestControlDocumentClient(props: Props) {
             })}
             {!readOnly ? (
               <JournalAddRow
-                colSpan={8}
+                // Галочка — leading, подпись растянута на «Дата и время
+                // проведения» + «Мероприятие», остальные 5 колонок остаются
+                // пустыми ячейками.
+                leading={1}
+                labelSpan={2}
+                trailing={5}
                 label="Добавить"
                 onClick={() => setCreateOpen(true)}
               />

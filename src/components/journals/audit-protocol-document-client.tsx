@@ -422,7 +422,12 @@ export function AuditProtocolDocumentClient({
               ))}
               {status === "active" ? (
                 <JournalAddRow
-                  colSpan={6}
+                  // Галочка + № п/п — leading, «Требования» (широкая
+                  // колонка) — под подпись, «Да/Нет/Примечания» остаются
+                  // пустыми ячейками.
+                  leading={2}
+                  labelSpan={1}
+                  trailing={3}
                   label="Добавить строку"
                   onClick={() => {
                     setEditingRow(null);
