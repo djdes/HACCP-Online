@@ -136,9 +136,23 @@ export async function fetchCleaningRooms(
  * для догоняющего создания (документ создан не 1-го числа): дни с
  * начала периода до вчера не остаются пустыми.
  *
+ * 2026-09-07: разметка идёт ТОЛЬКО ПО СЕГОДНЯ ВКЛЮЧИТЕЛЬНО. Раньше
+ * план раскладывался на весь период, и свежесозданный журнал выглядел
+ * заполненным на две недели вперёд («Т» до 15-го числа при сегодняшнем
+ * 7-м) — для инспектора РПН это заполнение задним... вернее, передним
+ * числом, а не график. Будущие дни доезжают сами:
+ *   • ночной автозаполнитель (`applyJournalAutoFill`, dateKeys=[сегодня])
+ *     каждый день кладёт в матрицу плановую отметку на этот день;
+ *   • создание задач в TF пустую ячейку трактует как «уборка нужна»
+ *     (`buildRoomsModeRows`), поэтому отсутствие плана вперёд ничего
+ *     не ломает — пропускается только явное «/»;
+ *   • менеджеру, которому нужен график на месяц, остаются кнопка
+ *     «Заполнить по плану» и правка расписания помещения.
+ *
  * Возвращает config как-есть для других журналов (no-op).
  */
-function preplanCleaningConfig(
+/** Экспортируется ради регрессионного теста «план не уезжает в будущее». */
+export function preplanCleaningConfig(
   templateCode: string,
   config: unknown,
   dateFrom: Date,
@@ -149,13 +163,13 @@ function preplanCleaningConfig(
 ): unknown {
   if (templateCode !== CLEANING_DOCUMENT_TEMPLATE_CODE) return config;
   if (!config || typeof config !== "object") return config;
+  const todayKey = toDateKey(now ?? new Date());
   const dateKeys = buildDateKeys(dateFrom, dateTo);
+  const upToToday = dateKeys.filter((key) => key <= todayKey);
   // Нормализуем чтобы гарантировать структуру (rooms[], matrix etc.).
   const normalized = normalizeCleaningDocumentConfig(config) as CleaningDocumentConfig;
-  const planned = applyRoomScheduleToMatrix(normalized, dateKeys, "fill-empty", dbRooms);
-  return fillPastDaysNotPerformed(planned, dateKeys, {
-    todayKey: toDateKey(now ?? new Date()),
-  });
+  const planned = applyRoomScheduleToMatrix(normalized, upToToday, "fill-empty", dbRooms);
+  return fillPastDaysNotPerformed(planned, upToToday, { todayKey });
 }
 
 /**

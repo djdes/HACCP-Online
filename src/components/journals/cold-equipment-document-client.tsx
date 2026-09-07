@@ -25,6 +25,7 @@ import {
   JOURNAL_DIALOG_TITLE_CLASS,
   DOC_AUTOFILL_LABEL_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalCellInput } from "@/components/journals/journal-cell-input";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -1833,7 +1834,7 @@ export function ColdEquipmentDocumentClient({
                           </span>
                         </td>
                         <td className={`${GRID_CELL_CLASS} p-0`}>
-                          <Input
+                          <JournalCellInput
                             defaultValue={d.comment}
                             placeholder="Что сделали: переставили продукт, вызвали мастера…"
                             disabled={status !== "active"}
@@ -1844,7 +1845,7 @@ export function ColdEquipmentDocumentClient({
                                 event.target.value
                               )
                             }
-                            className="h-10 w-full border-0 bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-1"
+                            className="w-full px-2 text-[13px] focus-visible:ring-1"
                           />
                         </td>
                       </tr>

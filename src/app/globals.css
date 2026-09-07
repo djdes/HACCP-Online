@@ -700,6 +700,23 @@ html, body {
     font-size: max(16px, 1rem);
   }
 
+  /* ── Ячейка «бумажной» сетки журнала — исключение ───────────────
+     Колонки бланка рассчитаны на 12.5px (см. `journal-grid.ts` и
+     colgroup в клиентах): 11 колонок на полотне ~1040px дают ~90px на
+     колонку. Раздутый до 16px текст помещал в такую колонку 5-6 букв,
+     из-за чего «2026-09-09 18:00» и «Соответствует» либо обрезались,
+     либо рвались посреди слова.
+
+     Поэтому в покое ячейка живёт своим размером, а 16px возвращаются
+     на время правки — ровно тогда, когда iOS решает, зумить ли поле.
+     Правило узкое (`[data-journal-cell]`), обычные формы не трогает. */
+  .app-shell textarea[data-journal-cell] {
+    font-size: 12.5px;
+  }
+  .app-shell textarea[data-journal-cell]:focus {
+    font-size: max(16px, 1rem);
+  }
+
   /* ── Settings list / settings menu — full-width, без cramped ─── */
   .app-shell main .grid.lg\:grid-cols-2,
   .app-shell main .grid.md\:grid-cols-2 {

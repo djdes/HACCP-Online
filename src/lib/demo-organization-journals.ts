@@ -104,6 +104,17 @@ export type DemoJournalContext = {
   todayKey: string;
   /** Ключ дня «k дней назад» (0 = сегодня); undefined если окно короче. */
   ago: (k: number) => string | undefined;
+  /**
+   * Наступил ли уже момент `dateKey HH:MM`. Прошлые дни — всегда `true`,
+   * будущие — всегда `false`, сегодня — сравнение с текущим временем.
+   *
+   * Демо не имеет права записывать факт будущим числом: журнал,
+   * созданный в 13:00, не может содержать вечернюю мойку в 17:10 или
+   * «фактическую реализацию» послезавтра. Всё, что ещё не произошло,
+   * в демо просто не заполняется — ровно как в жизни, когда смена
+   * ещё идёт (см. фритюр: `endHour` сегодняшнего дня пуст).
+   */
+  happened: (dateKey: string, timeHm?: string) => boolean;
   people: DemoStaff[];
   manager: DemoStaff;
   technologist: DemoStaff;
@@ -184,10 +195,14 @@ function buildAcceptanceConfig(ctx: DemoJournalContext) {
     const picks = [deliveries[dayIndex % deliveries.length], deliveries[(dayIndex + 2) % deliveries.length]];
     return picks.map((item, i) => {
       const reject = dateKey === rejectDay && i === 0;
+      const hour = String(item.hour + i).padStart(2, "0");
+      const minute = i === 0 ? "15" : "40";
+      // Приёмка, которой ещё не было, — запись будущим числом.
+      if (!ctx.happened(dateKey, `${hour}:${minute}`)) return null;
       return createAcceptanceRow({
         deliveryDate: dateKey,
-        deliveryHour: String(item.hour + i).padStart(2, "0"),
-        deliveryMinute: i === 0 ? "15" : "40",
+        deliveryHour: hour,
+        deliveryMinute: minute,
         productName: item.product,
         manufacturer: item.supplier.manufacturer,
         supplier: item.supplier.name,
@@ -209,7 +224,7 @@ function buildAcceptanceConfig(ctx: DemoJournalContext) {
         responsibleTitle: ctx.storekeeper.position,
         responsibleUserId: ctx.storekeeper.id,
       });
-    });
+    }).filter((row) => row !== null);
   });
   return { ...config, rows };
 }
@@ -224,6 +239,10 @@ function buildFinishedProductConfig(ctx: DemoJournalContext) {
       const dish = dishes[(dayIndex * 2 + i) % dishes.length];
       const hour = 11 + i * 2;
       const bad = dateKey === badDay && i === 1;
+      // Бракераж партии, которую ещё не готовили, — запись будущим
+      // числом. Сегодняшняя раздача (11:30 / 13:30 / 15:30) попадает в
+      // журнал только после того, как её час наступил.
+      if (!ctx.happened(dateKey, `${String(hour).padStart(2, "0")}:45`)) return null;
       return createFinishedProductRow({
         productionDateTime: `${dateKey} ${String(hour).padStart(2, "0")}:30`,
         rejectionTime: `${String(hour).padStart(2, "0")}:45`,
@@ -244,7 +263,7 @@ function buildFinishedProductConfig(ctx: DemoJournalContext) {
         inspectorName: ctx.technologist.name,
         releaseAllowed: bad ? "no" : "yes",
       });
-    });
+    }).filter((row) => row !== null);
   });
   return { ...config, rows };
 }
@@ -264,6 +283,14 @@ function buildPerishableConfig(ctx: DemoJournalContext) {
     return Array.from({ length: count }, (_, i) => {
       const item = items[(dayIndex + i * 2) % items.length];
       const bad = dateKey === badDay && i === 0;
+      // «Фактическая реализация» — ФАКТ, а не срок годности: она не
+      // может стоять будущим числом. Раньше здесь было безусловное
+      // `dateKey + min(2, shelf-1)`, и у поступления за сегодня в
+      // журнале стояла реализация послезавтра. Теперь дата упирается
+      // в сегодня, а если её момент ещё не наступил — ячейка пустая
+      // (продукт на остатке, реализация впереди).
+      const saleDate = shiftKey(dateKey, Math.min(2, item.shelf - 1));
+      const sold = !bad && ctx.happened(saleDate, "18:00");
       return createPerishableRejectionRow({
         arrivalDate: dateKey,
         arrivalTime: i === 0 ? "08:40" : "10:20",
@@ -277,8 +304,8 @@ function buildPerishableConfig(ctx: DemoJournalContext) {
         organolepticResult: bad ? "non_compliant" : "compliant",
         storageCondition: bad ? "2_6" : item.storage,
         expiryDate: shiftKey(dateKey, bad ? 12 : item.shelf),
-        actualSaleDate: bad ? "" : shiftKey(dateKey, Math.min(2, item.shelf - 1)),
-        actualSaleTime: bad ? "" : "18:00",
+        actualSaleDate: sold ? saleDate : "",
+        actualSaleTime: sold ? "18:00" : "",
         responsiblePerson: ctx.storekeeper.name,
         note: bad
           ? "Вздутая крышка на одном ведре, кисловатый запах. Не принято, оформлен акт забраковки."
@@ -426,6 +453,10 @@ function buildEquipmentCleaningRows(ctx: DemoJournalContext): EntryRow[] {
   const lowTempDay = ctx.ago(3);
   for (const dateKey of ctx.windowKeys) {
     for (const unit of units) {
+      // Вечерняя мойка (16:30/17:10) в сегодняшнем дне появляется,
+      // только когда это время уже прошло: демо, созданное в 13:00,
+      // не должно показывать запись, сделанную «в 17:10».
+      if (!ctx.happened(dateKey, unit.time)) continue;
       const low = dateKey === lowTempDay && unit.washer.id === ctx.dishwasher.id;
       const data: EquipmentCleaningRowData = emptyEquipmentCleaningRow({
         washDate: dateKey,

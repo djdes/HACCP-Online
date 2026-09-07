@@ -12,12 +12,16 @@ import { isJournalAutomationEnabled } from "@/lib/journal-automation";
 import {
   checkEntryScope,
   hasFullDocumentAccess,
+  FUTURE_DAY_LOCKED_MESSAGE,
 } from "@/lib/journal-entry-write";
 import { orgTodayKey } from "@/lib/timezone";
 import { COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE } from "@/lib/cold-equipment-document";
 import { processColdEquipmentEntryDeviations } from "@/lib/temperature-deviations";
 
 export const dynamic = "force-dynamic";
+
+/** Дата ячейки → `YYYY-MM-DD` (записи хранятся в UTC-полночь дня). */
+const toEntryDateKey = (date: Date) => date.toISOString().slice(0, 10);
 
 export async function GET(
   _req: Request,
@@ -196,8 +200,18 @@ export async function POST(
       shiftEndHour: true,
       journalAutomationJson: true,
       autoJournalCodes: true,
+      timezone: true,
     },
   });
+  // Заполнение вперёд запрещено и в Mini App — правило одно на сайт и
+  // на телефон (П-3), иначе журнал «лечится» через мобильную версию.
+  if (toEntryDateKey(date) > orgTodayKey(orgAutomation?.timezone ?? undefined)) {
+    return NextResponse.json(
+      { error: FUTURE_DAY_LOCKED_MESSAGE, code: "future_day_locked" },
+      { status: 403 }
+    );
+  }
+
   const lockDecision = canEditAutomationCell(
     date,
     { role: session.user.role, isRoot: session.user.isRoot === true },

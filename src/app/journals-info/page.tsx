@@ -122,7 +122,7 @@ export default function JournalsInfoListPage() {
                   {SAMPLE_CODES.has(j.code) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={`/journal-samples/${j.code}.png`}
+                      src={`/journal-samples/${j.code}.webp`}
                       alt=""
                       loading="lazy"
                       className="mb-4 aspect-[1228/862] w-full rounded-xl border border-[#ececf4] bg-white object-cover object-top"

@@ -3,14 +3,36 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createCanvas } from "@napi-rs/canvas";
 
-/** Геометрия образцов в public/journal-samples — карточки ждут её же. */
-export const PREVIEW_WIDTH = 1228;
-export const PREVIEW_HEIGHT = 862;
+/**
+ * Геометрия превью журнала.
+ *
+ * 2026-09-07: было 1228×862 PNG — ровно как образцы в
+ * `public/journal-samples`. На /journals таких карточек 30-40 штук, и
+ * средний снимок весил 145 КБ (замер по продовой `JournalPreview`:
+ * 645 строк, 89 МБ) — то есть страница тянула ~5 МБ картинок. На
+ * телефоне они забивали HTTP/2-соединение, и переход в сам журнал
+ * ждал своей очереди за ними: отсюда «картинки грузятся долго, а
+ * потом и журнал долго открывается».
+ *
+ * Карточка рисует превью шириной ~180-280 CSS-px, поэтому 768 хватает
+ * с запасом даже на 2×-экране, а WebP вместо PNG даёт ещё ~3×. Итог:
+ * 145 КБ → 25-40 КБ, то есть страница легче примерно в 4-5 раз.
+ *
+ * Пропорция сохранена (768/539 ≈ 1228/862), чтобы `aspect-[1228/862]`
+ * в карточках не пришлось трогать.
+ */
+export const PREVIEW_WIDTH = 768;
+export const PREVIEW_HEIGHT = 539;
+
+/** Качество WebP: 82 — предел, за которым текст таблицы начинает мылить. */
+const WEBP_QUALITY = 82;
 
 export type RenderedPreview = {
+  /** Кодированная картинка (WebP; поле названо по колонке `JournalPreview.png`). */
   png: Buffer;
   width: number;
   height: number;
+  contentType: string;
 };
 
 /**
@@ -40,12 +62,16 @@ function standardFontsDir(): string {
 }
 
 /**
- * Первая страница PDF → PNG в пропорции образцов (1228×862), кадр сверху.
+ * Первая страница PDF → WebP в пропорции образцов (768×539), кадр сверху.
  *
  * Без браузера: pdfjs (legacy-сборка для Node) рисует в canvas от
  * `@napi-rs/canvas` — prebuilt-бинарник без системных зависимостей.
  * Шрифты берутся из самого PDF (jsPDF их встраивает), поэтому кириллица
  * выходит такой же, как при печати.
+ *
+ * Страница растеризуется в ДВОЙНОМ разрешении и уменьшается в целевое:
+ * downsampling сглаживает тонкие линии таблицы, иначе рамки бланка на
+ * 768px рвутся в пунктир.
  */
 export async function renderPdfFirstPageToPng(
   pdf: Uint8Array | ArrayBuffer,
@@ -78,7 +104,8 @@ export async function renderPdfFirstPageToPng(
   try {
     const page = await doc.getPage(1);
     const base = page.getViewport({ scale: 1 });
-    const scale = width / base.width;
+    const renderWidth = width * 2;
+    const scale = renderWidth / base.width;
     const viewport = page.getViewport({ scale });
 
     const pageCanvas = createCanvas(
@@ -99,9 +126,14 @@ export async function renderPdfFirstPageToPng(
     const outCtx = out.getContext("2d");
     outCtx.fillStyle = "#ffffff";
     outCtx.fillRect(0, 0, width, height);
-    outCtx.drawImage(pageCanvas, 0, 0);
+    outCtx.drawImage(pageCanvas, 0, 0, width * 2, height * 2, 0, 0, width, height);
 
-    return { png: out.toBuffer("image/png"), width, height };
+    return {
+      png: out.toBuffer("image/webp", WEBP_QUALITY),
+      width,
+      height,
+      contentType: "image/webp",
+    };
   } finally {
     // Закрывается loading task, а не документ: у PDFDocumentProxy в
     // v6 нет `destroy()`, а task освобождает и документ, и worker-порт.

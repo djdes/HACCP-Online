@@ -374,9 +374,13 @@ export default async function DashboardPage() {
                     {item.previewUrl || SAMPLE_CODES.has(item.code) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={item.previewUrl ?? `/journal-samples/${item.code}.png`}
+                        src={item.previewUrl ?? `/journal-samples/${item.code}.webp`}
                         alt=""
                         loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
+                        width={768}
+                        height={539}
                         className="aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top"
                       />
                     ) : null}
@@ -448,7 +452,7 @@ export default async function DashboardPage() {
                         не давала понять, что за форма распечатается. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/journal-samples/paper_${paper.id}.png`}
+                      src={`/journal-samples/paper_${paper.id}.webp`}
                       alt=""
                       loading="lazy"
                       className="aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top"

@@ -70,6 +70,7 @@ import {
   DOC_AUTOFILL_LABEL_CLASS,
   DOC_AUTOFILL_STRIP_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalCellInput } from "@/components/journals/journal-cell-input";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -2005,7 +2006,7 @@ export function ClimateDocumentClient({
                         </span>
                       </td>
                       <td className={`${GRID_CELL_CLASS} p-0`}>
-                        <Input
+                        <JournalCellInput
                           defaultValue={d.comment}
                           placeholder="Что сделали: проветрили, вызвали мастера…"
                           disabled={status !== "active"}
@@ -2018,7 +2019,7 @@ export function ClimateDocumentClient({
                               event.target.value,
                             )
                           }
-                          className="h-10 w-full border-0 bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-1"
+                          className="w-full px-2 text-[13px] focus-visible:ring-1"
                         />
                       </td>
                     </tr>

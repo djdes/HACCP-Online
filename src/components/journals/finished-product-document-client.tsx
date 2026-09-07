@@ -26,6 +26,7 @@ import {
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalCellInput } from "@/components/journals/journal-cell-input";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -686,7 +687,14 @@ export function FinishedProductDocumentClient({
               <td className={`${GRID_CELL_CLASS} px-1 py-1 text-center align-middle leading-tight print:hidden`}><Checkbox checked={selectedRows.includes(row.id)} onCheckedChange={(value) => !readOnly && setSelectedRows((prev) => value === true ? [...new Set([...prev, row.id])] : prev.filter((item) => item !== row.id))} disabled={readOnly} /></td>
               {columns.map((column) => (
                 <td key={column.key} className={`${GRID_CELL_CLASS} p-0.5 align-middle leading-tight`}>
-                  <Input
+                  {/* Ячейка с переносом: органолептика и корректирующее
+                      действие — предложения на 40-80 знаков, а колонка
+                      бланка ~127px, и в однострочном input они были
+                      видны на четверть. Колонки со справочником
+                      (`column.list`) на время правки подменяются
+                      настоящим <input list>, поэтому подсказки из
+                      каталога остаются на месте. */}
+                  <JournalCellInput
                     value={row[column.field]}
                     onChange={(event) =>
                       updateRow(row.id, {
@@ -694,7 +702,7 @@ export function FinishedProductDocumentClient({
                       } as Partial<FinishedProductDocumentRow>)
                     }
                     onBlur={flushConfigSave}
-                    className={`h-7 rounded-none border-0 px-1.5 py-0 text-[12.5px] shadow-none md:text-[12.5px] ${column.align === "center" ? "text-center" : ""}`}
+                    className={`rounded-none ${column.align === "center" ? "text-center" : ""}`}
                     disabled={readOnly}
                     list={column.list}
                   />

@@ -13,6 +13,7 @@
  */
 import fs from "fs";
 import path from "path";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { chromium } from "playwright-core";
 import { SAMPLE_JOURNAL_CODES } from "../src/lib/journal-sample-fixtures";
 import { PAPER_JOURNALS } from "../src/lib/sphere-journal-rules";
@@ -30,6 +31,30 @@ function chromiumPath(): string {
     .pop();
   if (!dir) throw new Error("Chromium от Playwright не найден");
   return path.join(root, dir, "chrome-win64", "chrome.exe");
+}
+
+/**
+ * Карточкам журналов (`/journals`, `/dashboard`, `/settings/journals`)
+ * отдаётся WebP: сетка из 35-40 образцов в PNG весила 2,7 МБ и на
+ * телефоне грузилась дольше самой страницы. 768px хватает карточке
+ * шириной 180-280 CSS-px даже на 2×-экране, WebP-82 даёт ещё ~3×.
+ * PNG остаётся: он источник и открывается «в полный размер».
+ */
+const THUMB_WIDTH = 768;
+const THUMB_HEIGHT = 539;
+
+async function writeWebp(name: string) {
+  const png = path.join(OUT, `${name}.png`);
+  const image = await loadImage(fs.readFileSync(png));
+  const canvas = createCanvas(THUMB_WIDTH, THUMB_HEIGHT);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, THUMB_WIDTH, THUMB_HEIGHT);
+  ctx.drawImage(image, 0, 0, THUMB_WIDTH, THUMB_HEIGHT);
+  fs.writeFileSync(
+    path.join(OUT, `${name}.webp`),
+    canvas.toBuffer("image/webp", 82),
+  );
 }
 
 async function main() {
@@ -66,6 +91,7 @@ async function main() {
       clip: { x: 6, y: 6, width: 1228, height: 862 },
     });
     await page.close();
+    await writeWebp(name);
     console.log(`OK   ${name}`);
   }
 

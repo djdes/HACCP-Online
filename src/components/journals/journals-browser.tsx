@@ -448,7 +448,7 @@ function TemplateCard({
     !template.disabled && isMandatory && isDaily && template.filledToday;
   const hasSample = SAMPLE_CODES.has(template.code);
   const previewSrc =
-    template.previewUrl ?? (hasSample ? `/journal-samples/${template.code}.png` : null);
+    template.previewUrl ?? (hasSample ? `/journal-samples/${template.code}.webp` : null);
 
   // Превью: снимок своего документа (cron journal-previews), а пока его
   // нет — образец бланка. По названию вроде «Чек-лист (памятка)
@@ -460,6 +460,14 @@ function TemplateCard({
       src={previewSrc}
       alt=""
       loading="lazy"
+      decoding="async"
+      // Превью — украшение карточки, а не содержимое страницы. Низкий
+      // приоритет не даёт трём десяткам картинок занять HTTP/2-канал
+      // раньше, чем переход в сам журнал: на телефоне именно из-за
+      // этого журнал открывался «через полминуты после превью».
+      fetchPriority="low"
+      width={768}
+      height={539}
       className={cn(
         "aspect-[1228/862] w-full border-b bg-white object-cover object-top transition-transform duration-200",
         template.disabled

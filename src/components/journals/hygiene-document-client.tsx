@@ -56,6 +56,7 @@ import { toast } from "sonner";
 import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
 import {
   FOREIGN_ROW_MESSAGE,
+  FUTURE_DAY_LOCKED_MESSAGE,
   NOT_TODAY_MESSAGE,
   hasFullDocumentAccess,
 } from "@/lib/journal-entry-scope";
@@ -694,6 +695,11 @@ export function HygieneDocumentClient({
 
   /** Причина, по которой ячейка закрыта, или null. */
   function cellLockReason(employeeId: string, dateKey: string): string | null {
+    // Будущее закрыто для всех, включая управляющую: раньше сетка
+    // пускала руководство в любой день периода, и в журнале появлялись
+    // отметки на послезавтра (см. FUTURE_DAY_LOCKED_MESSAGE). Сервер
+    // отвечает на такую запись 403 — сетка не должна её предлагать.
+    if (todayKey !== "" && dateKey > todayKey) return FUTURE_DAY_LOCKED_MESSAGE;
     if (isDayLocked(dateKey)) return PAST_DAY_LOCKED_MESSAGE;
     if (viewerHasFullAccess || !viewer) return null;
     if (employeeId !== viewer.id) return FOREIGN_ROW_MESSAGE;

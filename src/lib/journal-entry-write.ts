@@ -9,6 +9,8 @@ import {
 } from "@/lib/closed-day";
 import { isJournalAutomationEnabled } from "@/lib/journal-automation";
 import { isManagementRole } from "@/lib/user-roles";
+import { orgTodayKey } from "@/lib/timezone";
+import { FUTURE_DAY_LOCKED_MESSAGE } from "@/lib/journal-entry-scope";
 
 /**
  * Общие проверки записи в сетку журнала (`JournalDocumentEntry`).
@@ -38,7 +40,11 @@ export type EntryWriteDoc = {
 export type EntryWriteContext = {
   automation: AutomationLockContext;
   org: { lockPastDayEdits: boolean; shiftEndHour: number } | null;
+  /** Сегодня в часовом поясе организации, `YYYY-MM-DD`. */
+  todayKey: string;
 };
+
+
 
 /**
  * Контекст правила «изменения день в день» для документа.
@@ -59,10 +65,12 @@ export async function loadEntryWriteContext(
       journalAutomationJson: true,
       autoJournalCodes: true,
       lockPastDayEdits: true,
+      timezone: true,
     },
   });
 
   return {
+    todayKey: orgTodayKey(org?.timezone ?? undefined),
     automation: {
       documentAutoFill: doc.autoFill === true,
       automationEnabled: Boolean(
@@ -85,12 +93,18 @@ export async function loadEntryWriteContext(
 export {
   hasFullDocumentAccess,
   checkEntryScope,
+  FUTURE_DAY_LOCKED_MESSAGE,
   type EntryScopeDecision,
 } from "@/lib/journal-entry-scope";
 
+/** Дата ячейки → `YYYY-MM-DD`. Записи хранятся в UTC-полночь дня. */
+function toEntryDateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 export type EntryWriteDecision =
   | { allowed: true; isOverride: boolean }
-  | { allowed: false; error: string; code: "past_day_locked" };
+  | { allowed: false; error: string; code: "past_day_locked" | "future_day_locked" };
 
 /**
  * Можно ли писать в ячейку с этой датой. Два независимых запрета:
@@ -104,6 +118,16 @@ export function checkEntryWrite(
   entryDate: Date
 ): EntryWriteDecision {
   const closedActor = { role: actor.role, isRoot: actor.isRoot };
+
+  // Будущее не заполняется никем. Проверка идёт ПЕРВОЙ: она не про
+  // права, а про смысл записи, поэтому override'ов у неё нет.
+  if (ctx.todayKey && toEntryDateKey(entryDate) > ctx.todayKey) {
+    return {
+      allowed: false,
+      error: FUTURE_DAY_LOCKED_MESSAGE,
+      code: "future_day_locked",
+    };
+  }
 
   const automationDecision = canEditAutomationCell(
     entryDate,

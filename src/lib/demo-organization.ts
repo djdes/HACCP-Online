@@ -186,6 +186,21 @@ export async function seedDemoOrganizationData(input: {
   /** Ключ дня «k дней назад» (0 = сегодня); undefined если окно короче. */
   const ago = (k: number): string | undefined => windowKeys[windowKeys.length - 1 - k];
   const pastKeys = windowKeys.slice(0, -1);
+  /**
+   * Наступил ли момент `dateKey HH:MM` (см. `DemoJournalContext.happened`).
+   * Демо не пишет факт вперёд: сегодняшняя строка появляется, только
+   * если её время уже прошло.
+   */
+  const happened = (dateKey: string, timeHm?: string): boolean => {
+    if (!dateKey) return false;
+    if (dateKey < todayKey) return true;
+    if (dateKey > todayKey) return false;
+    if (!timeHm) return true;
+    const [h, m] = timeHm.split(":").map(Number);
+    if (!Number.isFinite(h)) return true;
+    const minutes = h * 60 + (Number.isFinite(m) ? m : 0);
+    return minutes <= now.getHours() * 60 + now.getMinutes();
+  };
 
   // 1. Должности — только те, что заняты в ростере. Пустые должности в
   // демо лишь шумят в /settings/users и в выборе ответственных.
@@ -403,6 +418,7 @@ export async function seedDemoOrganizationData(input: {
           windowKeys,
           todayKey,
           ago,
+          happened,
           people,
           manager,
           technologist,

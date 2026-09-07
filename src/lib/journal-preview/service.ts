@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { parseDisabledCodes } from "@/lib/disabled-journals";
 import { generateJournalDocumentPdf } from "@/lib/document-pdf";
 import { platformOrgId } from "@/lib/partners/partner-hint";
-import { renderPdfFirstPageToPng } from "./render";
+import { PREVIEW_WIDTH, renderPdfFirstPageToPng } from "./render";
 
 /** Превью без активного документа держим столько, потом чистим. */
 const STALE_KEEP_DAYS = 30;
@@ -39,6 +39,8 @@ type ExistingPreview = {
   documentId: string;
   sourceUpdatedAt: Date;
   renderedAt: Date;
+  /** Ширина снимка: по ней видно, что он снят прежней геометрией. */
+  width?: number;
 };
 
 const KEY_SEPARATOR = "::";
@@ -100,7 +102,13 @@ export function planPreviewRun(input: {
       renderedAt: existing?.renderedAt ?? new Date(0),
     };
     if (!existing) missing.push(candidate);
-    else if (existing.documentId !== doc.id || doc.updatedAt > existing.sourceUpdatedAt)
+    else if (
+      existing.documentId !== doc.id ||
+      doc.updatedAt > existing.sourceUpdatedAt ||
+      // Снимок прежней геометрии/формата (1228px PNG) — перерисовываем,
+      // иначе тяжёлые картинки жили бы до следующей правки документа.
+      (existing.width !== undefined && existing.width !== PREVIEW_WIDTH)
+    )
       stale.push(candidate);
   }
   stale.sort((a, b) => a.renderedAt.getTime() - b.renderedAt.getTime());
@@ -145,6 +153,7 @@ export async function loadPreviewPlan(now = new Date()): Promise<PreviewPlan> {
         documentId: true,
         sourceUpdatedAt: true,
         renderedAt: true,
+        width: true,
       },
     }),
   ]);

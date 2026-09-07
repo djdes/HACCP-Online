@@ -2542,22 +2542,26 @@ export function AcceptanceDocumentClient(props: Props) {
                           («17-04-» / «2026») — колонки дат узкие (6.5%),
                           и перенос срабатывал на каждом разделителе.
                           Дата обязана читаться одной строкой. */}
-                      <td className={`${GRID_CELL_CLASS} whitespace-nowrap px-1.5 py-1 text-center leading-tight`}>{values.deliveryDate}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.productName}</td>
-                      <td className={`${GRID_CELL_CLASS} whitespace-nowrap px-1.5 py-1 text-center leading-tight`}>{values.shelfLifeDate}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.manufacturerSupplier}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.accompanyingDocs}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.batchInfo}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>{values.productTemperature}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.documentCompliance}</td>
+                      {/* Даты без `whitespace-nowrap`: на телефоне колонка
+                          ~70px, а «06-09-2026» просит 77px — дата просто
+                          не влезала и обрезалась. Перенос по дефису
+                          показывает её целиком в две строки. */}
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight break-words`}>{values.deliveryDate}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight break-words`}>{values.productName}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight break-words`}>{values.shelfLifeDate}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight break-words`}>{values.manufacturerSupplier}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight break-words`}>{values.accompanyingDocs}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight break-words`}>{values.batchInfo}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight break-words`}>{values.productTemperature}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight break-words`}>{values.documentCompliance}</td>
                       {config.showPackagingCompliance ? (
-                        <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight`}>
+                        <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center leading-tight break-words`}>
                           {COMPLIANCE_LABELS[row.packagingCompliance]}
                         </td>
                       ) : null}
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center font-semibold leading-tight`}>{values.acceptanceDecision}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{values.correctiveActions}</td>
-                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight`}>{getResponsibleLabel(row, props.users)}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1 text-center font-semibold leading-tight break-words`}>{values.acceptanceDecision}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight break-words`}>{values.correctiveActions}</td>
+                      <td className={`${GRID_CELL_CLASS} px-1.5 py-1.5 leading-tight break-words`}>{getResponsibleLabel(row, props.users)}</td>
                     </tr>
                   );
                 })}

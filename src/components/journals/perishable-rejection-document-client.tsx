@@ -19,6 +19,7 @@ import {
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
+import { JournalCellInput } from "@/components/journals/journal-cell-input";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { Button } from "@/components/ui/button";
@@ -918,7 +919,7 @@ export function PerishableRejectionDocumentClient({
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={`${row.arrivalDate} ${row.arrivalTime}`}
                       onChange={(e) => {
                         const [date = "", time = ""] =
@@ -929,34 +930,31 @@ export function PerishableRejectionDocumentClient({
                         });
                       }}
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={row.productName}
                       onChange={(e) =>
                         updateRow(row.id, { productName: e.target.value })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={row.productionDate}
                       onChange={(e) =>
                         updateRow(row.id, { productionDate: e.target.value })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={
                         [row.manufacturer, row.supplier]
                           .filter(Boolean)
@@ -966,12 +964,11 @@ export function PerishableRejectionDocumentClient({
                         updateRow(row.id, { manufacturer: e.target.value })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={
                         [row.packaging, row.quantity]
                           .filter(Boolean)
@@ -981,12 +978,11 @@ export function PerishableRejectionDocumentClient({
                         updateRow(row.id, { packaging: e.target.value })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={row.documentNumber}
                       onChange={(e) =>
                         updateRow(row.id, {
@@ -994,12 +990,11 @@ export function PerishableRejectionDocumentClient({
                         })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={
                         ORGANOLEPTIC_LABELS[row.organolepticResult] ||
                         row.organolepticResult
@@ -1014,23 +1009,21 @@ export function PerishableRejectionDocumentClient({
                         })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={`${STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition}, ${row.expiryDate}`}
                       onChange={(e) =>
                         updateRow(row.id, { expiryDate: e.target.value })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={`${row.actualSaleDate} ${row.actualSaleTime}`}
                       onChange={(e) => {
                         const [date = "", time = ""] =
@@ -1041,12 +1034,11 @@ export function PerishableRejectionDocumentClient({
                         });
                       }}
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <Input
+                    <JournalCellInput
                       value={row.responsiblePerson}
                       onChange={(e) =>
                         updateRow(row.id, {
@@ -1054,19 +1046,17 @@ export function PerishableRejectionDocumentClient({
                         })
                       }
                       onBlur={flushConfigSave}
-                      className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                       disabled={readOnly}
                     />
                   </td>
                   {config.showNote ? (
                     <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                      <Input
+                      <JournalCellInput
                         value={row.note}
                         onChange={(e) =>
                           updateRow(row.id, { note: e.target.value })
                         }
                         onBlur={flushConfigSave}
-                        className="h-7 border-0 px-1.5 text-[12.5px] shadow-none"
                         disabled={readOnly}
                       />
                     </td>

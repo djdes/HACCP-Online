@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { planPreviewRun } from "./service";
+import { PREVIEW_WIDTH } from "./render";
 
 const NOW = new Date("2026-09-04T10:00:00.000Z");
 const D = (iso: string) => new Date(iso);
@@ -56,6 +57,33 @@ describe("planPreviewRun", () => {
       disabledByOrg: new Map(),
     });
     assert.deepEqual(plan.toRender.map((c) => c.documentId), ["d9"]);
+  });
+
+  it("re-renders previews snapped in the old geometry", () => {
+    const upToDate = {
+      ...preview("p1", "org1", "hygiene", "d1", "2026-09-04T09:00:00Z", "2026-09-04T09:30:00Z"),
+      width: 1228,
+    };
+    const plan = planPreviewRun({
+      now: NOW,
+      activeDocs: [doc("d1", "org1", "hygiene", "2026-09-04T09:00:00Z")],
+      previews: [upToDate],
+      disabledByOrg: new Map(),
+    });
+    assert.deepEqual(
+      plan.toRender.map((c) => c.code),
+      ["hygiene"],
+      "снимок 1228px перерисовывается, даже если документ не менялся",
+    );
+
+    const current = { ...upToDate, width: PREVIEW_WIDTH };
+    const plan2 = planPreviewRun({
+      now: NOW,
+      activeDocs: [doc("d1", "org1", "hygiene", "2026-09-04T09:00:00Z")],
+      previews: [current],
+      disabledByOrg: new Map(),
+    });
+    assert.deepEqual(plan2.toRender, [], "снимок текущей геометрии не трогаем");
   });
 
   it("uses the newest active document when several periods overlap", () => {

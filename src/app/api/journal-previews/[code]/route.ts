@@ -7,10 +7,28 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/journal-previews/<code>?v=<renderedAt> — PNG-снимок журнала
- * текущей организации. Только своя организация: снимок — это реальные
- * записи с фамилиями сотрудников. Кэш браузера навсегда: версия в URL
- * меняется вместе с перерисовкой.
+ * Content-Type по сигнатуре файла: с 2026-09-07 крон пишет WebP
+ * (`journal-preview/render.ts`), но в колонке `png` ещё лежат снимки
+ * прежнего формата — они доживают до ближайшей перерисовки, и отдавать
+ * их как `image/webp` нельзя.
+ */
+function sniffImageType(bytes: Uint8Array): string {
+  // RIFF....WEBP
+  if (
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return "image/png";
+}
+
+/**
+ * GET /api/journal-previews/<code>?v=<renderedAt> — снимок журнала
+ * текущей организации (WebP; у старых строк ещё PNG). Только своя
+ * организация: снимок — это реальные записи с фамилиями сотрудников.
+ * Кэш браузера навсегда: версия в URL меняется вместе с перерисовкой.
  */
 export async function GET(
   request: Request,
@@ -40,10 +58,11 @@ export async function GET(
     return new Response(null, { status: 404 });
   }
 
-  return new Response(new Uint8Array(preview.png), {
+  const bytes = new Uint8Array(preview.png);
+  return new Response(bytes, {
     status: 200,
     headers: {
-      "Content-Type": "image/png",
+      "Content-Type": sniffImageType(bytes),
       "Content-Length": String(preview.png.length),
       "Cache-Control": "private, max-age=31536000, immutable",
       "Last-Modified": preview.renderedAt.toUTCString(),

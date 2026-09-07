@@ -3,12 +3,8 @@ import assert from "node:assert/strict";
 import { jsPDF } from "jspdf";
 import { PREVIEW_HEIGHT, PREVIEW_WIDTH, renderPdfFirstPageToPng } from "./render";
 
-function readUInt32BE(buf: Buffer, offset: number) {
-  return buf.readUInt32BE(offset);
-}
-
 describe("renderPdfFirstPageToPng", () => {
-  it("renders the first page into a PNG of the sample geometry", async () => {
+  it("renders the first page into a WebP of the card geometry", async () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     doc.setFontSize(18);
     doc.text("Journal preview probe", 20, 20);
@@ -17,16 +13,19 @@ describe("renderPdfFirstPageToPng", () => {
 
     const result = await renderPdfFirstPageToPng(pdf);
 
-    // PNG signature
-    assert.deepEqual(
-      Array.from(result.png.subarray(0, 8)),
-      [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
-    );
-    // IHDR width/height at bytes 16..24
-    assert.equal(readUInt32BE(result.png, 16), PREVIEW_WIDTH);
-    assert.equal(readUInt32BE(result.png, 20), PREVIEW_HEIGHT);
+    // RIFF....WEBP — контейнер WebP. Роут `/api/journal-previews/[code]`
+    // определяет Content-Type по этой же сигнатуре.
+    assert.equal(result.png.subarray(0, 4).toString("latin1"), "RIFF");
+    assert.equal(result.png.subarray(8, 12).toString("latin1"), "WEBP");
+    assert.equal(result.contentType, "image/webp");
     assert.equal(result.width, PREVIEW_WIDTH);
     assert.equal(result.height, PREVIEW_HEIGHT);
-    assert.ok(result.png.length > 1000, "png should not be empty");
+    assert.ok(result.png.length > 1000, "preview should not be empty");
+    // Ради этого всё и затевалось: карточка журнала должна весить
+    // десятки килобайт, а не полторы сотни.
+    assert.ok(
+      result.png.length < 120_000,
+      `preview too heavy: ${result.png.length} bytes`
+    );
   });
 });

@@ -351,6 +351,10 @@ export function JournalsSettingsClient({
           src={src}
           alt=""
           loading="lazy"
+          decoding="async"
+          fetchPriority="low"
+          width={768}
+          height={539}
           className="aspect-[1228/862] w-full object-cover object-top transition-transform duration-200 group-hover/preview:scale-[1.03]"
         />
         <span className="absolute inset-0 flex items-center justify-center bg-[#0b1024]/0 opacity-0 transition-all duration-200 group-hover/preview:bg-[#0b1024]/35 group-hover/preview:opacity-100 focus-visible:opacity-100">
@@ -400,7 +404,7 @@ export function JournalsSettingsClient({
         {item.previewUrl
           ? renderPreview(item.previewUrl, item.name, "green")
           : sampleSet.has(item.code)
-            ? renderPreview(`/journal-samples/${item.code}.png`, item.name, "green")
+            ? renderPreview(`/journal-samples/${item.code}.webp`, item.name, "green")
             : null}
 
         <div className="flex min-w-0 flex-1 flex-col gap-2 p-3">
@@ -508,7 +512,7 @@ export function JournalsSettingsClient({
           }`}
         />
         {renderPreview(
-          `/journal-samples/paper_${journal.id}.png`,
+          `/journal-samples/paper_${journal.id}.webp`,
           journal.name,
           "amber"
         )}

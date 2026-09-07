@@ -145,7 +145,7 @@ export function SampleGallery({ items }: { items: SampleGalleryItem[] }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={active.code}
-          src={`/journal-samples/${active.code}.png`}
+          src={`/journal-samples/${active.code}.webp`}
           alt={`Образец: ${active.name}`}
           loading="lazy"
           className="aspect-[1228/862] w-full rounded-2xl border border-[#dcdfed] bg-white object-cover object-top shadow-[0_20px_50px_-30px_rgba(11,16,36,0.35)]"
