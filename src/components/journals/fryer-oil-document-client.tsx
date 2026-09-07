@@ -83,6 +83,7 @@ import {
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 
 import { useTodayKey } from "@/lib/use-today-key";
+import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 /**
  * ЭКРАН = WeSetup (мягкие серые рамки `#ececf4`, шапка `#f8f9fc`),
  * ПЕЧАТЬ (Ctrl+P) = «бумага» для инспектора РПН/СЭС (чёрные рамки,
@@ -1267,7 +1268,18 @@ export function FryerOilDocumentClient(props: Props) {
           <div className="mb-5">
             <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи об использовании фритюрных жиров." />
           </div>
-        ) : null}
+        ) : (
+          <div className="mb-4 print:hidden">
+            <TodayStripForJournal
+              journalCode="fryer_oil"
+              todayCount={
+                entries.filter((entry) => entry.data.startDate === todayKey)
+                  .length
+              }
+              label="запись о фритюре за сегодня"
+            />
+          </div>
+        )}
 
         {/* R1: бумажное полотно — во всю ширину контентной колонки. */}
 

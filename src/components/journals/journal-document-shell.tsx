@@ -10,6 +10,7 @@ import {
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { JournalDocumentTitle } from "@/components/journals/journal-document-header";
 import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
+import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
 import type { MobileView } from "@/lib/use-mobile-view";
 import {
   DOC_ADD_ROW_CLASS,
@@ -81,6 +82,21 @@ export type JournalDocumentShellProps = {
     label?: string;
   };
 
+  /**
+   * Полоса «Сегодня осталось: N из M».
+   *
+   * Жила в четырёх журналах из тридцати пяти, хотя понятие «сегодня»
+   * есть почти у всех. Слот в оболочке снимает необходимость копировать
+   * её вёрстку в каждый клиент: журнал считает свои filled/total и
+   * отдаёт сюда.
+   */
+  todayProgress?: {
+    filled: number;
+    total: number;
+    label?: string;
+    onJumpToToday?: () => void;
+  };
+
   /** Блоки между шапкой и переключателем вида: фильтры, подсказки. */
   beforeToggle?: ReactNode;
 
@@ -124,6 +140,7 @@ export function JournalDocumentShell({
   closed = false,
   closedHint,
   autoFill,
+  todayProgress,
   beforeToggle,
   mobileView,
   onMobileView,
@@ -179,6 +196,17 @@ export function JournalDocumentShell({
             {autoFill.label ?? "Автоматически заполнять журнал"}
           </span>
         </section>
+      ) : null}
+
+      {todayProgress ? (
+        <div className="mb-4 print:hidden">
+          <TodayProgressStrip
+            filled={todayProgress.filled}
+            total={todayProgress.total}
+            label={todayProgress.label}
+            onJumpToToday={todayProgress.onJumpToToday}
+          />
+        </div>
       ) : null}
 
       {beforeToggle}

@@ -66,6 +66,7 @@ import {
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { useTodayKey } from "@/lib/use-today-key";
+import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
@@ -558,6 +559,20 @@ export function FinishedProductDocumentClient({
               : []
           }
         />
+
+      {!readOnly ? (
+        <div className="mb-4 print:hidden">
+          <TodayStripForJournal
+            journalCode="finished_product"
+            todayCount={
+              config.rows.filter(
+                (row) => row.productionDateTime.slice(0, 10) === todayKey
+              ).length
+            }
+            label="запись бракеража за сегодня"
+          />
+        </div>
+      ) : null}
 
       {readOnly ? (
         <div className="mb-6">

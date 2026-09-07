@@ -93,6 +93,7 @@ import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useTodayKey } from "@/lib/use-today-key";
+import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 type UserItem = {
   id: string;
   name: string;
@@ -1448,7 +1449,21 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         <div className="mb-5">
           <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки времени." />
         </div>
-      ) : null}
+      ) : (
+        <div className="mb-4 print:hidden">
+          <TodayStripForJournal
+            journalCode="uv_lamp_runtime"
+            todayCount={
+              rows.filter(
+                (row) =>
+                  row.date === todayKey &&
+                  Boolean(row.data.startTime && row.data.endTime)
+              ).length
+            }
+            label="отметка о работе установки за сегодня"
+          />
+        </div>
+      )}
 
       {/* Полоса автозаполнения — сразу под строкой заголовка (эталон). */}
       {props.status === "active" && (

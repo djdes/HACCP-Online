@@ -125,6 +125,7 @@ import {
 } from "@/components/journals/journal-grid";
 
 import { useTodayKey } from "@/lib/use-today-key";
+import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 import { localDayKey } from "@/lib/entry-defaults";
 type UserItem = {
   id: string;
@@ -2149,7 +2150,26 @@ export function CleaningDocumentClient(props: Props) {
 
         {props.status !== "active" ? (
           <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки, помещения и ответственных." />
-        ) : null}
+        ) : (
+          (() => {
+            // Считаем только строки-помещения: строки ответственных
+            // (С1/С2) подписываются автоматически по закрытым задачам.
+            const roomRows = rows.filter((row) => row.kind === "room");
+            const filled = roomRows.filter((row) =>
+              Boolean(cellValue(row, todayKey))
+            ).length;
+            return (
+              <div className="mb-4 print:hidden">
+                <TodayStripForJournal
+                  journalCode="cleaning"
+                  total={roomRows.length}
+                  filled={filled}
+                  label="помещений"
+                />
+              </div>
+            );
+          })()
+        )}
 
         {/* Полоса автозаполнения — как на эталоне (cleaning-04-grid.png,
             cleaning-12-autofill-on.png): в полосе ТОЛЬКО тумблер. Селекты

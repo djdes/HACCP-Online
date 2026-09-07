@@ -102,6 +102,7 @@ import {
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
 import { useTodayKey } from "@/lib/use-today-key";
+import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 type UserItem = {
   id: string;
   name: string;
@@ -996,7 +997,28 @@ export function CleaningVentilationChecklistDocumentClient({
 
         {!isActive ? (
           <JournalClosedBanner hint="Откройте журнал заново, чтобы редактировать отметки." />
-        ) : null}
+        ) : (
+          (() => {
+            // Сегодня закрыто, когда у каждой процедуры дня проставлено
+            // хотя бы одно время.
+            const todayRow = rows.find((row) => row.dateKey === todayKey);
+            const total = todayRow?.procedures.length ?? 0;
+            const filled =
+              todayRow?.procedures.filter((procedure) =>
+                procedure.times.some(Boolean)
+              ).length ?? 0;
+            return (
+              <div className="mb-4 print:hidden">
+                <TodayStripForJournal
+                  journalCode="cleaning_ventilation_checklist"
+                  total={total}
+                  filled={filled}
+                  label="процедур"
+                />
+              </div>
+            );
+          })()
+        )}
 
         {/* Полоса автозаполнения — ОДНА строка, как на эталоне
             (cleaning_ventilation_checklist-grid.png): тумблер слева,

@@ -76,6 +76,7 @@ import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 
 import { useTodayKey } from "@/lib/use-today-key";
+import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 import { localDayKey } from "@/lib/entry-defaults";
 type Props = {
   documentId: string;
@@ -723,7 +724,17 @@ export function PerishableRejectionDocumentClient({
         <div className="mb-6">
           <JournalClosedBanner hint="Верните журнал в активные, чтобы снова вносить записи бракеража скоропортящейся продукции." />
         </div>
-      ) : null}
+      ) : (
+        <div className="mb-4 print:hidden">
+          <TodayStripForJournal
+            journalCode="perishable_rejection"
+            todayCount={
+              config.rows.filter((row) => row.arrivalDate === todayKey).length
+            }
+            label="запись бракеража за сегодня"
+          />
+        </div>
+      )}
 
       {/* Обёртка — как у finished_product: без карточной рамки и без
           `overflow-hidden`. Именно `overflow-hidden` на карточке резал
