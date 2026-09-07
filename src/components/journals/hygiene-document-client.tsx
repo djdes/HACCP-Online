@@ -56,6 +56,7 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { submitWithOfflineFallback } from "@/lib/use-offline-submit";
 import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
 import {
   FOREIGN_ROW_MESSAGE,
@@ -603,15 +604,25 @@ export function HygieneDocumentClient({
     setSavingCellKey(key);
 
     try {
-      await requestJson(`/api/journal-documents/${documentId}/entries`, {
+      // Осмотр проводят перед сменой, часто в подсобке без связи. Запись
+      // уходит в офлайн-очередь и доедет сама; PUT — upsert по
+      // (документ, сотрудник, дата), так что повтор безопасен.
+      const submit = await submitWithOfflineFallback({
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId,
-          date: dateKey,
-          data: nextData,
-        }),
+        url: `/api/journal-documents/${documentId}/entries`,
+        body: { employeeId, date: dateKey, data: nextData },
+        label: `Гигиена · ${dateKey}`,
+        group: "hygiene",
       });
+      if (submit.status === "online") {
+        const result = await submit.response.json().catch(() => null);
+        if (!submit.response.ok) {
+          throw new Error(
+            (result && typeof result.error === "string" && result.error) ||
+              "Операция не выполнена"
+          );
+        }
+      }
 
       if (!options?.silent) {
         // Шаг кладём ТОЛЬКО после успешного PUT: при ошибке значение уже

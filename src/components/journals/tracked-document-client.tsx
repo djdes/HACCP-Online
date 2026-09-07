@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { RecordCardsView, type RecordCardItem } from "@/components/journals/record-cards-view";
+import { submitWithOfflineFallback } from "@/lib/use-offline-submit";
 import {
   CardEditSheet,
   type CardEditFieldDef,
@@ -287,16 +288,27 @@ function TrackedDocumentClientImpl({
 
   async function saveEntry(nextEntry: EntryItem, options?: { silent?: boolean }) {
     const previousEntry = entries.find((item) => item.id === nextEntry.id);
-    const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
+    // Generic-клиент обслуживает большинство документных журналов, и
+    // заполняют их там же, где и работают — в цеху, на складе, у линии.
+    // Без связи запись раньше просто терялась.
+    const submit = await submitWithOfflineFallback({
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      url: `/api/journal-documents/${documentId}/entries`,
+      body: {
         employeeId: nextEntry.employeeId,
         date: nextEntry.date,
         data: nextEntry.data,
-      }),
+      },
+      label: `${templateCode} · ${nextEntry.date}`,
+      group: templateCode,
     });
 
+    if (submit.status === "queued") {
+      toast.info("Нет связи — запись сохранится, когда она появится");
+      return;
+    }
+
+    const response = submit.response;
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.entry) {
       throw new Error(result?.error || "Не удалось сохранить строку");

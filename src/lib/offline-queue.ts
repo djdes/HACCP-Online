@@ -143,10 +143,18 @@ export async function flushQueue(): Promise<{
     try {
       const res = await fetch(item.url, {
         method: item.method,
+        // `Idempotency-Key` — id записи в очереди: он не меняется между
+        // попытками, поэтому повторная доставка после сетевого обрыва не
+        // создаёт дубль (П-19). Для entries-эндпоинтов это страховка
+        // поверх upsert'а по (документ, сотрудник, дата), для остальных —
+        // единственная защита.
         headers:
           item.body !== undefined
-            ? { "Content-Type": "application/json" }
-            : undefined,
+            ? {
+                "Content-Type": "application/json",
+                "Idempotency-Key": item.id,
+              }
+            : { "Idempotency-Key": item.id },
         body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
       });
       if (res.ok) {

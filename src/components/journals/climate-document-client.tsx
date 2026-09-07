@@ -112,6 +112,7 @@ import {
 } from "@/components/journals/journal-document-header";
 
 import { useTodayKey } from "@/lib/use-today-key";
+import { submitWithOfflineFallback } from "@/lib/use-offline-submit";
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
@@ -1463,18 +1464,31 @@ export function ClimateDocumentClient({
   }
 
   async function saveRow(nextRow: RowItem) {
-    const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
+    // Замеры климата делают в складских помещениях и камерах, где связь
+    // пропадает. Раньше запись просто падала с сетевой ошибкой; теперь
+    // уходит в очередь и доедет сама. PUT здесь — upsert по
+    // (документ, сотрудник, дата), поэтому повтор безопасен.
+    const submit = await submitWithOfflineFallback({
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      url: `/api/journal-documents/${documentId}/entries`,
+      body: {
         employeeId: nextRow.employeeId,
         date: nextRow.date,
         data: nextRow.data,
-      }),
+      },
+      label: `Замеры климата · ${getClimateDateLabel(nextRow.date)}`,
+      group: "climate_control",
     });
 
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result?.entry) {
+    if (submit.status === "queued") {
+      // Строка уже обновлена в состоянии вызывающим кодом — просто
+      // сообщаем, что отправка отложена.
+      toast.info("Нет связи — замер сохранится, когда она появится");
+      return;
+    }
+
+    const result = await submit.response.json().catch(() => null);
+    if (!submit.response.ok || !result?.entry) {
       throw new Error(result?.error || "Не удалось сохранить строку");
     }
 
