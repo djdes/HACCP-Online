@@ -47,6 +47,8 @@ export type TaskFormField =
       key: string;
       label: string;
       required?: boolean;
+      /** Подсказка в пустом поле («18–25», «кг»). */
+      placeholder?: string;
       unit?: string;
       min?: number;
       max?: number;

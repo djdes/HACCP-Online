@@ -12,6 +12,8 @@ import {
   Thermometer,
 } from "lucide-react";
 import { PhotoField, parsePhotoValue } from "@/components/journals/photo-field";
+import { TaskFillField } from "@/components/task-fill/task-fill-field";
+import type { TaskFormSchema } from "@/lib/tasksflow-adapters/task-form";
 
 type Claim = {
   id: string;
@@ -37,10 +39,7 @@ type Claim = {
  * journal-документы (которые остаются для подробного режима).
  */
 
-const JOURNAL_FORMS: Record<
-  string,
-  { fields: Field[]; submitLabel: string }
-> = {
+const JOURNAL_FORMS: Record<string, TaskFormSchema> = {
   cold_equipment_control: {
     submitLabel: "Завершить",
     fields: [
@@ -60,8 +59,8 @@ const JOURNAL_FORMS: Record<
     fields: [
       { key: "temperatureC", label: "Температура жира (°C)", type: "number", required: true },
       { key: "polarCompoundsPercent", label: "Полярные соединения (%)", type: "number", placeholder: "если есть прибор" },
-      { key: "colorAcceptable", label: "Цвет приемлемый", type: "checkbox" },
-      { key: "replaced", label: "Заменил масло", type: "checkbox" },
+      { key: "colorAcceptable", label: "Цвет приемлемый", type: "boolean" },
+      { key: "replaced", label: "Заменил масло", type: "boolean" },
     ],
   },
   incoming_control: {
@@ -72,7 +71,7 @@ const JOURNAL_FORMS: Record<
       { key: "expirationDate", label: "Срок годности", type: "date" },
       { key: "temperature", label: "Температура (°C)", type: "number", placeholder: "для скоропорта" },
       { key: "quantity", label: "Количество", type: "text", placeholder: "напр. 5 кг / 12 шт" },
-      { key: "accepted", label: "Принято", type: "checkbox" },
+      { key: "accepted", label: "Принято", type: "boolean" },
       { key: "rejectionReason", label: "Причина отказа (если не принято)", type: "text" },
     ],
   },
@@ -80,8 +79,8 @@ const JOURNAL_FORMS: Record<
     submitLabel: "Записать бракераж",
     fields: [
       { key: "dish", label: "Блюдо / партия", type: "text", required: true },
-      { key: "appearanceOk", label: "Внешний вид соответствует", type: "checkbox" },
-      { key: "tasteOk", label: "Вкус соответствует", type: "checkbox" },
+      { key: "appearanceOk", label: "Внешний вид соответствует", type: "boolean" },
+      { key: "tasteOk", label: "Вкус соответствует", type: "boolean" },
       { key: "temperature", label: "Температура подачи (°C)", type: "number" },
       { key: "correctiveAction", label: "Замечания / корректирующее действие", type: "text" },
     ],
@@ -114,14 +113,14 @@ const JOURNAL_FORMS: Record<
   hygiene: {
     submitLabel: "Завершить осмотр",
     fields: [
-      { key: "allHealthy", label: "Все сотрудники допущены", type: "checkbox" },
+      { key: "allHealthy", label: "Все сотрудники допущены", type: "boolean" },
       { key: "notes", label: "Примечания", type: "text" },
     ],
   },
   health_check: {
     submitLabel: "Завершить",
     fields: [
-      { key: "allHealthy", label: "Все сотрудники в норме", type: "checkbox" },
+      { key: "allHealthy", label: "Все сотрудники в норме", type: "boolean" },
       { key: "notes", label: "Примечания", type: "text" },
     ],
   },
@@ -161,7 +160,7 @@ const JOURNAL_FORMS: Record<
     submitLabel: "Завершить контроль",
     fields: [
       { key: "checkedItems", label: "Что проверено", type: "text", required: true, placeholder: "стаканы, тарелки, посуда" },
-      { key: "damaged", label: "Найдены повреждения", type: "checkbox" },
+      { key: "damaged", label: "Найдены повреждения", type: "boolean" },
       { key: "actionTaken", label: "Действия (если повреждения)", type: "text" },
     ],
   },
@@ -170,7 +169,7 @@ const JOURNAL_FORMS: Record<
     fields: [
       { key: "productName", label: "Продукт", type: "text", required: true },
       { key: "batchNumber", label: "Номер партии", type: "text" },
-      { key: "metalDetected", label: "Металл обнаружен", type: "checkbox" },
+      { key: "metalDetected", label: "Металл обнаружен", type: "boolean" },
       { key: "actionTaken", label: "Действия", type: "text" },
     ],
   },
@@ -197,7 +196,7 @@ const JOURNAL_FORMS: Record<
     fields: [
       { key: "productBatch", label: "Партия / продукт", type: "text", required: true },
       { key: "supplier", label: "Поставщик", type: "text" },
-      { key: "destinationTraced", label: "Прослежен путь до потребителя", type: "checkbox" },
+      { key: "destinationTraced", label: "Прослежен путь до потребителя", type: "boolean" },
       { key: "notes", label: "Замечания", type: "text" },
     ],
   },
@@ -246,7 +245,7 @@ const JOURNAL_FORMS: Record<
     fields: [
       { key: "runtimeHours", label: "Наработка часов (с прошлой проверки)", type: "number", required: true },
       { key: "totalHours", label: "Общий ресурс, ч", type: "number" },
-      { key: "lampOk", label: "Лампа исправна", type: "checkbox" },
+      { key: "lampOk", label: "Лампа исправна", type: "boolean" },
       { key: "notes", label: "Замечания", type: "text" },
     ],
   },
@@ -311,13 +310,7 @@ const JOURNAL_FORMS: Record<
   },
 };
 
-type Field = {
-  key: string;
-  label: string;
-  type: "text" | "number" | "checkbox" | "date";
-  required?: boolean;
-  placeholder?: string;
-};
+
 
 export default function ClaimPage({
   params,
@@ -384,10 +377,12 @@ export default function ClaimPage({
     // поле названием на русском и сразу.
     if (form && (!pipeline || pipeline.steps.length === 0)) {
       const missing = form.fields
-        .filter((f) => f.required)
+        // `required` есть не у всех вариантов TaskFormField (у булева его
+        // нет по определению) — сужаем через `in`.
+        .filter((f) => "required" in f && f.required === true)
         .filter((f) => {
           const v = data[f.key];
-          if (f.type === "checkbox") return false; // checkbox required не используем
+          if (f.type === "boolean") return false; // булево required не используем
           return v === undefined || v === null || v === "";
         });
       if (missing.length > 0) {
@@ -627,7 +622,7 @@ export default function ClaimPage({
       ) : form ? (
         <div className="space-y-3">
           {form.fields.map((f) => (
-            <FieldInput
+            <TaskFillField
               key={f.key}
               field={f}
               value={data[f.key]}
@@ -715,49 +710,3 @@ export default function ClaimPage({
   );
 }
 
-function FieldInput({
-  field,
-  value,
-  onChange,
-}: {
-  field: Field;
-  value: unknown;
-  onChange: (v: unknown) => void;
-}) {
-  if (field.type === "checkbox") {
-    return (
-      <label className="flex items-center gap-3 rounded-2xl border border-[#dcdfed] bg-white px-4 py-3 text-[15px]">
-        <input
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(e) => onChange(e.target.checked)}
-          className="size-5 accent-[#5566f6]"
-        />
-        <span className="text-[#0b1024]">{field.label}</span>
-      </label>
-    );
-  }
-  return (
-    <div className="space-y-1.5">
-      <label className="text-[12px] font-medium text-[#6f7282]">
-        {field.label}
-        {field.required ? <span className="ml-1 text-[#a13a32]">*</span> : null}
-      </label>
-      <input
-        type={field.type}
-        value={value === undefined || value === null ? "" : String(value)}
-        onChange={(e) => {
-          if (field.type === "number") {
-            const v = e.target.value;
-            onChange(v === "" ? null : Number(v.replace(",", ".")));
-          } else {
-            onChange(e.target.value);
-          }
-        }}
-        placeholder={field.placeholder}
-        inputMode={field.type === "number" ? "decimal" : undefined}
-        className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white px-4 text-[15px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none"
-      />
-    </div>
-  );
-}
