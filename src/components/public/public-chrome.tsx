@@ -2,6 +2,9 @@ import Link from "next/link";
 import { PublicSupportWidget } from "@/components/public/public-support-widget";
 import { AppStoresTeaser } from "@/components/public/app-stores-teaser";
 import { BrandLogo } from "@/components/brand/logo";
+import { NICHES } from "@/content/niches";
+import { SEO_LANDINGS } from "@/content/seo-landings";
+import { FEATURES_INFO, FEATURES_ORDER } from "@/content/features";
 import { ArrowRight, LogIn } from "lucide-react";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
@@ -211,6 +214,7 @@ export function PublicFooter() {
           </div>
           <Link href="/blog" className="py-2.5 transition-colors hover:text-[#0b1024]">Блог</Link>
           <Link href="/journals-info" className="py-2.5 transition-colors hover:text-[#0b1024]">Журналы</Link>
+          <Link href="/pricing" className="py-2.5 transition-colors hover:text-[#0b1024]">Тарифы</Link>
           <Link href="/login" className="py-2.5 transition-colors hover:text-[#0b1024]">Войти</Link>
           <Link href="/register" className="py-2.5 transition-colors hover:text-[#0b1024]">Регистрация</Link>
           <Link href="/partners" className="py-2.5 transition-colors hover:text-[#0b1024]">Партнёрам</Link>
@@ -226,6 +230,69 @@ export function PublicFooter() {
           </a>
         </div>
       </div>
+
+      {/* Сквозная перелинковка посадочных страниц.
+          Раньше 19 лендингов (12 отраслевых и 7 под частотные запросы)
+          не имели ни одной ссылки из сквозного элемента и держались
+          только на ссылках внутри отдельных страниц — из-за этого
+          обходились редко и получали мало внутреннего веса. */}
+      <div className="border-t border-[#ececf4]">
+        <div className="mx-auto max-w-[1200px] space-y-4 px-4 py-7 sm:px-6">
+          <FooterLinkRow
+            title="По типу заведения"
+            links={Object.values(NICHES).map((n) => ({
+              href: `/${n.slug}`,
+              label: n.navLabel,
+            }))}
+          />
+          <FooterLinkRow
+            title="Частые журналы"
+            links={Object.values(SEO_LANDINGS).map((s) => ({
+              href: `/${s.slug}`,
+              label: s.navLabel,
+            }))}
+          />
+          <FooterLinkRow
+            title="Возможности"
+            links={FEATURES_ORDER.map((slug) => ({
+              href: `/features/${slug}`,
+              label: FEATURES_INFO[slug].title,
+            }))}
+          />
+        </div>
+      </div>
     </footer>
+  );
+}
+
+/**
+ * Ряд ссылок в подвале: подпись слева, ссылки в строку через мягкий
+ * разделитель. Строкой, а не колонкой, потому что позиций много
+ * (12 отраслей), и колонка растянула бы подвал на два экрана.
+ */
+function FooterLinkRow({
+  title,
+  links,
+}: {
+  title: string;
+  links: ReadonlyArray<{ href: string; label: string }>;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-4">
+      <div className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9b9fb3] sm:w-[168px] sm:pt-0.5">
+        {title}
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-[#6f7282]">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="transition-colors duration-150 hover:text-[#5566f6]"
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowRight,
   Bell,
   BellRing,
@@ -15,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
+import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
 import { ArticleRenderer } from "@/components/public/article-renderer";
 import { FEATURES_INFO, FEATURES_ORDER } from "@/content/features";
 import {
@@ -88,25 +88,12 @@ export default async function FeatureDetailPage({
     <div className="min-h-screen bg-white text-[#0b1024]">
       <PublicHeader activeSection="home" />
 
-      {/* BREADCRUMB */}
-      <nav
-        aria-label="breadcrumbs"
-        className="mx-auto flex max-w-[1200px] items-center gap-1 overflow-hidden px-4 pb-2 text-[12px] text-[#6f7282] sm:gap-1.5 sm:px-6 sm:text-[13px]"
-      >
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-3.5" />
-          Главная
-        </Link>
-        <span className="text-[#dcdfed]">/</span>
-        <span className="px-2 py-1 text-[#9b9fb3]">Возможности</span>
-        <span className="text-[#dcdfed]">/</span>
-        <span className="truncate px-2 py-1 font-medium text-[#0b1024]">
-          {info.title}
-        </span>
-      </nav>
+      {/* BREADCRUMB — разметка BreadcrumbList идёт из того же массива */}
+      <PublicBreadcrumbs
+        tone="light"
+        className="mx-auto max-w-[1200px] px-4 pb-2 sm:px-6"
+        items={[{ name: "Возможности", href: "/features" }, { name: info.title }]}
+      />
 
       {/* HERO */}
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6">

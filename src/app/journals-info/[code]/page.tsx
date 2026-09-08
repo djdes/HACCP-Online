@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpenCheck,
   CheckCircle2,
@@ -16,6 +15,8 @@ import {
 } from "@/content/journal-info";
 import { JOURNAL_SEO } from "@/content/journal-seo";
 import { JournalScreenshot } from "@/components/public/journal-screenshot";
+import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
 import { jsonLdSafeString } from "@/lib/json-ld";
 import {
   DOCX_SAMPLE_CODES,
@@ -127,13 +128,16 @@ export default async function JournalInfoDetailPage({
             <div className="absolute -bottom-32 -right-32 size-[420px] rounded-full bg-[#7a5cff] opacity-30 blur-[140px]" />
           </div>
           <div className="relative">
-            <Link
-              href="/journals-info"
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-white/70 transition-colors hover:text-white"
-            >
-              <ArrowLeft className="size-4" />
-              Ко всем журналам
-            </Link>
+            <PublicBreadcrumbs
+              items={[
+                { name: "Журналы", href: "/journals-info" },
+                {
+                  name:
+                    ACTIVE_JOURNAL_CATALOG.find((j) => j.code === code)?.name ??
+                    info.tagline,
+                },
+              ]}
+            />
             <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[12px] font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur">
               <BookOpenCheck className="size-3.5" />
               {JOURNAL_CATEGORY_LABEL[info.category]}

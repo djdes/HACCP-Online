@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { db } from "@/lib/db";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
+import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
 import { ArticleRenderer } from "@/components/public/article-renderer";
 import { isArticleBlockArray } from "@/lib/article-blocks";
 import { jsonLdSafeString } from "@/lib/json-ld";
@@ -124,7 +125,11 @@ export default async function BlogArticlePage({
     description: article.excerpt,
     image: ["https://wesetup.ru/og-default"],
     datePublished: article.publishedAt?.toISOString(),
-    dateModified: article.publishedAt?.toISOString(),
+    // dateModified берём из updatedAt, а не из даты публикации: иначе
+    // правка статьи не видна поисковику как обновление, и в карте сайта
+    // (sitemap.ts уже отдаёт updatedAt) стоит одна дата, а в разметке
+    // страницы — другая. Расхождение снижает доверие к обеим.
+    dateModified: (article.updatedAt ?? article.publishedAt)?.toISOString(),
     author: {
       "@type": "Organization",
       name: "WeSetup",
@@ -156,13 +161,10 @@ export default async function BlogArticlePage({
       <PublicHeader activeSection="blog" />
 
       <article className="mx-auto max-w-[760px] px-6 py-10 md:py-14">
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6f7282] transition-colors hover:text-[#0b1024]"
-        >
-          <ArrowLeft className="size-4" />
-          Все статьи
-        </Link>
+        <PublicBreadcrumbs
+          tone="light"
+          items={[{ name: "Блог", href: "/blog" }, { name: article.title }]}
+        />
 
         <div className="mt-6 flex flex-wrap items-center gap-2 text-[12px] text-[#6f7282]">
           {article.tags.slice(0, 4).map((t) => (

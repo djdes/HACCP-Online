@@ -527,6 +527,13 @@ export default async function LandingPage() {
               alt="В реестре отечественного ПО"
               width={340}
               height={73}
+              // Картинка стоит выше H1 и попадает в первый экран, поэтому
+              // грузим её с высоким приоритетом: браузер иначе ставит её в
+              // общую очередь и она успевает сдвинуть заголовок.
+              // next/image здесь не нужен — это SVG фиксированного размера,
+              // оптимизировать в нём нечего.
+              fetchPriority="high"
+              decoding="async"
               className="h-auto w-full"
             />
           </div>
@@ -538,7 +545,7 @@ export default async function LandingPage() {
               ради 320px. nowrap не ставим — при более широком системном
               шрифте перенос лучше обрезки. */}
           <h1 className="hero-title mx-auto mt-3 max-w-[920px] text-[clamp(1.375rem,7vw,4.5rem)] font-semibold leading-[1.05] tracking-[-0.02em] text-[#0b1024] sm:mt-8">
-            Журналы{" "}
+            Электронные журналы{" "}
             <span className="relative inline-block">
               <span className="relative z-10">СанПиН и ХАССП</span>
               <span

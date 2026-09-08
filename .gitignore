@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+# Параллельные сборки для проверки (NEXT_DIST_DIR=.next-<что-то>):
+# нужны, чтобы прогнать production-build, не затирая рабочий .next.
+/.next-*/
 /out/
 
 # production
