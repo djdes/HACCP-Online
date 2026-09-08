@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/journals/[code]/row-form?documentId=&rowKey=
+ * GET /api/journals/[id]/row-form?documentId=&rowKey=
  *
  * Отдаёт `TaskFormSchema` для конкретной строки журнала — тот же самый,
  * что видит работник TasksFlow на экране задачи.
@@ -25,17 +25,25 @@ export const dynamic = "force-dynamic";
  *
  * Это чтение схемы формы внутри Wesetup: в TasksFlow ничего не уходит,
  * запись по-прежнему идёт в journal-модель и через outbox (П-12, П-15).
+ *
+ * Почему сегмент называется `[id]`, хотя внутри лежит КОД журнала:
+ * рядом уже живёт `/api/journals/[id]/*`, а Next.js запрещает два разных
+ * имени динамического сегмента на одном уровне пути и валит ВСЁ
+ * приложение при старте (500 на каждой странице, не только на этом
+ * роуте). Ровно так прод уже падал 28 августа — см. коммит e7e0daa4.
+ * Ошибку не ловят ни типы, ни `npm run build`: она вылезает только при
+ * запуске сервера. URL снаружи не меняется, имя сегмента внутреннее.
  */
 export async function GET(
   request: Request,
-  ctx: { params: Promise<{ code: string }> }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
 
-  const { code } = await ctx.params;
+  const { id: code } = await ctx.params;
   const templateCode = resolveJournalCodeAlias(code);
   const { searchParams } = new URL(request.url);
   const documentId = searchParams.get("documentId");
