@@ -62,12 +62,34 @@ describe("pushState", () => {
       );
     });
 
+    it("во вкладке iOS Push API НЕТ — и это всё равно needs_install", () => {
+      // Главный случай, и его легко проглядеть: Safari не отдаёт
+      // window.PushManager в обычной вкладке, поэтому supported там
+      // всегда false. Если проверять поддержку раньше iOS, на айфоне
+      // раздел не отрисуется вовсе — то есть инструкция «добавьте на
+      // экран Домой» не покажется ровно тому, кому предназначена.
+      assert.deepEqual(
+        pushState(env({ isIos: true, isStandalone: false, supported: false })),
+        { kind: "needs_install" },
+      );
+    });
+
     it("проверка установки идёт раньше проверки разрешения", () => {
       // Во вкладке iOS отдаёт permission "default", и без порядка мы
       // предложили бы неработающую кнопку.
       assert.deepEqual(
         pushState(env({ isIos: true, isStandalone: false, permission: "default" })),
         { kind: "needs_install" },
+      );
+    });
+
+    it("установленное приложение на слишком старой iOS — честно unsupported", () => {
+      // До iOS 16.4 Push API нет и у установленного приложения.
+      // Инструкция по установке тут не поможет, значит не показываем
+      // ничего.
+      assert.deepEqual(
+        pushState(env({ isIos: true, isStandalone: true, supported: false })),
+        { kind: "unsupported" },
       );
     });
 
