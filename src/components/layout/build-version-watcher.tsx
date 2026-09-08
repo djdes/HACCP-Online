@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 
 const POLL_MS = 5 * 60 * 1000; // 5 минут — баланс «свежесть vs нагрузка на API»
@@ -17,12 +18,26 @@ const POLL_MS = 5 * 60 * 1000; // 5 минут — баланс «свежест
  * Дополняет ServiceWorkerRegister: тот делает hard reload только при
  * первом mount страницы. Этот вотчер реагирует на новые деплои внутри
  * уже открытой вкладки.
+ *
+ * В кабинете (`/mini`) НЕ работает. Компонент висит в корневом layout, а
+ * у кабинета есть свой сообщатель об обновлении
+ * (`app/mini/_components/mini-sw-register.tsx`), и вместе они показывали
+ * ДВА одинаковых несъезжающих тоста «Доступно обновление» вверху экрана
+ * телефона — один поверх другого.
+ *
+ * Побеждает тот, что в кабинете: он не только перезагружает страницу, но
+ * и применяет ожидающий service worker. Простая перезагрузка воркер не
+ * меняет, поэтому этот вотчер отрапортовал бы «обновлено», а приложение
+ * осталось бы на прежней версии.
  */
 export function BuildVersionWatcher() {
+  const pathname = usePathname();
   const initialBuildId = useRef<string | null>(null);
   const notified = useRef(false);
+  const inMiniApp = pathname === "/mini" || pathname.startsWith("/mini/");
 
   useEffect(() => {
+    if (inMiniApp) return;
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | null = null;
 
@@ -66,7 +81,7 @@ export function BuildVersionWatcher() {
       cancelled = true;
       if (timer) clearInterval(timer);
     };
-  }, []);
+  }, [inMiniApp]);
 
   return null;
 }

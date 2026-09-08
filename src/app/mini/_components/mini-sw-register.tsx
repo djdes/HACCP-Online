@@ -8,15 +8,34 @@ import { MINI_SW_SCOPE_PATH } from "@/lib/service-worker-scope";
 const MINI_SW_URL = "/mini-sw.js";
 
 /**
+ * Один раз за сессию вкладки разрешаем тихо применить обновление. Если
+ * после этого воркер всё ещё ждёт — значит тихо не вышло, и дальше
+ * спрашиваем человека, а не перезагружаем по кругу.
+ */
+const SILENT_RELOAD_GUARD = "wesetup.mini.sw-applied";
+
+/**
  * Регистрация service worker'а кабинета.
  *
- * Живёт только внутри `/mini` и только в этом scope: на сайте воркер не
- * нужен, а лишний scope означал бы перехват страниц дашборда.
+ * Обновление применяется по-разному в зависимости от того, чем занят
+ * человек, и это главное решение здесь:
  *
- * Обновление применяется ТОЛЬКО по нажатию. Новый воркер встаёт в
- * ожидание, человек видит тост и решает сам. Автоматический
- * `skipWaiting` перезагрузил бы страницу посреди заполнения журнала — а
- * там бывает десять полей и фото.
+ *   • обновление УЖЕ ждало, когда приложение открыли — применяем молча
+ *     и перезагружаемся. Терять нечего: работа ещё не начата, а тост
+ *     вверху свежезапущенного приложения только мешает смотреть на
+ *     задачи смены;
+ *   • обновление приехало, ПОКА человек внутри — показываем тост и ждём
+ *     нажатия. Здесь наоборот: перезагрузка посреди заполнения журнала
+ *     стоила бы десяти полей и фото.
+ *
+ * Автоматического `skipWaiting` в самом воркере нет ни в одном из
+ * случаев — команду всегда даёт страница.
+ *
+ * Живёт только внутри `/mini` и только в этом scope: на сайте воркер не
+ * нужен, а лишний scope означал бы перехват страниц дашборда. По той же
+ * причине `BuildVersionWatcher` из корневого layout в кабинете молчит —
+ * иначе вверху висело бы два одинаковых тоста, и тот, что от него, ещё
+ * и врал бы: простая перезагрузка ожидающий воркер не применяет.
  */
 export function MiniServiceWorkerRegister() {
   const promptedRef = useRef(false);
@@ -28,6 +47,33 @@ export function MiniServiceWorkerRegister() {
     if (!window.isSecureContext) return;
 
     let cancelled = false;
+
+    /** Перезагрузиться, когда новый воркер реально возьмёт управление. */
+    function reloadOnControllerChange() {
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        () => window.location.reload(),
+        { once: true },
+      );
+    }
+
+    /**
+     * Применить молча — но не больше одного раза за сессию вкладки.
+     * Возвращает false, если тихий путь недоступен и надо спросить.
+     */
+    function applySilently(worker: ServiceWorker): boolean {
+      try {
+        if (window.sessionStorage.getItem(SILENT_RELOAD_GUARD)) return false;
+        window.sessionStorage.setItem(SILENT_RELOAD_GUARD, "1");
+      } catch {
+        // Приватный режим или запрет на данные сайтов: без защёлки
+        // тихий путь мог бы зациклить перезагрузку. Спрашиваем.
+        return false;
+      }
+      reloadOnControllerChange();
+      worker.postMessage({ type: "SKIP_WAITING" });
+      return true;
+    }
 
     /** Показать «Доступно обновление» — один раз на загрузку страницы. */
     function offerUpdate(worker: ServiceWorker) {
@@ -42,11 +88,7 @@ export function MiniServiceWorkerRegister() {
             // Перезагружаем не сразу, а когда новый воркер реально взял
             // управление, иначе перезагрузка попадёт на старый и тост
             // вернётся при следующем заходе.
-            navigator.serviceWorker.addEventListener(
-              "controllerchange",
-              () => window.location.reload(),
-              { once: true },
-            );
+            reloadOnControllerChange();
             worker.postMessage({ type: "SKIP_WAITING" });
           },
         },
@@ -63,9 +105,12 @@ export function MiniServiceWorkerRegister() {
         );
         if (cancelled) return;
 
-        // Обновление уже ждало с прошлого раза.
+        // Обновление уже ждало, когда приложение открыли: человек ещё
+        // ничего не набрал, поэтому применяем молча, без баннера.
         if (registration.waiting && navigator.serviceWorker.controller) {
-          offerUpdate(registration.waiting);
+          if (!applySilently(registration.waiting)) {
+            offerUpdate(registration.waiting);
+          }
         }
 
         registration.addEventListener("updatefound", () => {

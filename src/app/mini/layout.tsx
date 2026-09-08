@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { getPartnerHintRates } from "@/lib/partners/partner-hint";
+import { ResumeHome } from "./_components/resume-home";
 import { MiniServiceWorkerRegister } from "./_components/mini-sw-register";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
@@ -141,6 +142,7 @@ export default async function MiniLayout({
         <MiniThemeProvider initialTheme={initialTheme}>
           <MiniTelegramRuntime />
           <MiniServiceWorkerRegister />
+          <ResumeHome />
           {/* `id="mini-root"` нужен для pre-hydration скрипта
               `<MiniThemeBootstrap />` и для `applyThemeToDOM`: они
               ищут этот контейнер по id, чтобы выставить `data-theme`
