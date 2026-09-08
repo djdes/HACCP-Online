@@ -1,17 +1,30 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+
+/**
+ * Полотно графика грузится по требованию: `recharts` весит 359 КБ
+ * (107 КБ gzip) и при статическом импорте попадал в общий чанк карточек
+ * дашборда — его качали и те организации, у которых нет ни одного
+ * IoT-датчика и график никогда не рисуется.
+ *
+ * `ssr: false` — график всё равно рисуется только после загрузки точек
+ * с `/api/charts/temperature`. Высота заглушки совпадает с высотой
+ * графика (300px), чтобы карточка не прыгала.
+ */
+const TemperatureChartGraph = dynamic(
+  () => import("./temperature-chart-graph").then((m) => m.TemperatureChartGraph),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[300px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  },
+);
 import {
   Card,
   CardHeader,
@@ -206,87 +219,12 @@ export function TemperatureChart({ equipmentList }: TemperatureChartProps) {
                 </p>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={chartPoints}
-                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fontSize: 12 }}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    domain={["auto", "auto"]}
-                    unit="\u00B0C"
-                  />
-                  <Tooltip
-                    formatter={(value: any, name: any) => {
-                      const v = Number(value ?? 0);
-                      if (name === "temperature") return [`${v}°C`, "Температура"];
-                      if (name === "humidity") return [`${v}%`, "Влажность"];
-                      return [v, String(name)];
-                    }}
-                  />
-
-                  {/* Temperature line */}
-                  <Line
-                    type="monotone"
-                    dataKey="temperature"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                    name="temperature"
-                  />
-
-                  {/* Humidity line (optional) */}
-                  {hasHumidity && (
-                    <Line
-                      type="monotone"
-                      dataKey="humidity"
-                      stroke="#22c55e"
-                      strokeWidth={1.5}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      activeDot={{ r: 3 }}
-                      name="humidity"
-                    />
-                  )}
-
-                  {/* Min temperature reference line */}
-                  {data.equipment.tempMin != null && (
-                    <ReferenceLine
-                      y={data.equipment.tempMin}
-                      stroke="#ef4444"
-                      strokeDasharray="6 4"
-                      label={{
-                        value: `min ${data.equipment.tempMin}\u00B0C`,
-                        position: "insideTopLeft",
-                        fill: "#ef4444",
-                        fontSize: 11,
-                      }}
-                    />
-                  )}
-
-                  {/* Max temperature reference line */}
-                  {data.equipment.tempMax != null && (
-                    <ReferenceLine
-                      y={data.equipment.tempMax}
-                      stroke="#ef4444"
-                      strokeDasharray="6 4"
-                      label={{
-                        value: `max ${data.equipment.tempMax}\u00B0C`,
-                        position: "insideBottomLeft",
-                        fill: "#ef4444",
-                        fontSize: 11,
-                      }}
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
+              <TemperatureChartGraph
+                points={chartPoints}
+                hasHumidity={hasHumidity}
+                tempMin={data.equipment.tempMin}
+                tempMax={data.equipment.tempMax}
+              />
             )}
           </>
         )}
