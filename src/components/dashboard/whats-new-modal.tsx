@@ -3,6 +3,7 @@ import { lockBodyScroll, unlockBodyScroll } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
 import {
+  BellRing,
   ChevronDown,
   Coins,
   FileText,
@@ -98,6 +99,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Замеры и приборы": Thermometer,
   "Вход и установка на телефон": KeyRound,
   "Работа без интернета": WifiOff,
+  "Уведомления": BellRing,
   "Голосовой ввод": MicVocal,
 };
 
