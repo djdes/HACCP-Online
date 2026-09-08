@@ -2,18 +2,39 @@
 
 import { useEffect } from "react";
 
+import {
+  isMiniCacheName,
+  isMiniServiceWorkerScope,
+} from "@/lib/service-worker-scope";
+
 const BUILD_ID_STORAGE_KEY = "wesetup-build-id";
 const BUILD_RELOAD_FLAG = "wesetup-build-reloaded";
 
+/**
+ * Снос исторических воркеров.
+ *
+ * Воркер кабинета (`/mini-sw.js`, scope `/mini`) — НЕ исторический, его
+ * трогать нельзя. Компонент висит в корневом layout, то есть работает и
+ * на страницах `/mini`: без этой проверки он снимал бы регистрацию
+ * кабинета при каждом заходе, и приложение не устанавливалось бы. Хуже
+ * того — невоспроизводимо: у того, кто заходит только в кабинет, всё
+ * работало бы. Условие проверено тестом (`service-worker-scope.test.ts`).
+ */
 async function disableLegacyServiceWorkers() {
   if (!("serviceWorker" in navigator)) return;
 
   const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(registrations.map((registration) => registration.unregister()));
+  await Promise.all(
+    registrations
+      .filter((registration) => !isMiniServiceWorkerScope(registration.scope))
+      .map((registration) => registration.unregister()),
+  );
 
   if ("caches" in window) {
     const cacheKeys = await caches.keys();
-    await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+    await Promise.all(
+      cacheKeys.filter((key) => !isMiniCacheName(key)).map((key) => caches.delete(key)),
+    );
   }
 }
 
@@ -35,6 +56,10 @@ export function ServiceWorkerRegister() {
       const reloadFlag = window.sessionStorage.getItem(BUILD_RELOAD_FLAG);
 
       if (previousBuildId && previousBuildId !== nextBuildId && reloadFlag !== nextBuildId) {
+        // Здесь кеши кабинета чистятся НАМЕРЕННО, в отличие от
+        // `disableLegacyServiceWorkers`: воркер держит статику по
+        // хешированным именам, и без уборки на смене сборки она копилась
+        // бы бесконечно. Сама регистрация при этом остаётся.
         if ("caches" in window) {
           const cacheKeys = await caches.keys();
           await Promise.all(cacheKeys.map((key) => caches.delete(key)));

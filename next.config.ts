@@ -90,25 +90,33 @@ const nextConfig: NextConfig = {
         key: "Strict-Transport-Security",
         value: "max-age=31536000",
       },
-      {
-        // Restrict browser APIs которые мы не используем.
-        // - camera/microphone: WeSetup ни на одной странице не запрашивает
-        //   доступ к камере/микрофону (фото attachments через <input
-        //   type='file' capture> работают БЕЗ getUserMedia, открывают
-        //   нативный picker). → блокируем полностью.
-        // - geolocation: USED by mini/_components/geo-reminder.tsx
-        //   (watchPosition). Раньше стояло `geolocation=()` — это блокировало
-        //   geo-напоминания в Mini App. Меняем на `geolocation=(self)` —
-        //   разрешает gel API на нашем origin, но блокирует в третьесторонних
-        //   iframe'ах.
-        key: "Permissions-Policy",
-        value: "camera=(), microphone=(), geolocation=(self)",
-      },
     ];
+
+    // Permissions-Policy отличается у /mini и у остального сайта,
+    // поэтому собирается отдельно, а не лежит в общем списке: два
+    // заголовка с одним ключом в одном правиле Next.js отдаёт оба, и
+    // какой из них применит браузер — не определено.
+    //
+    // - geolocation=(self): нужен `mini/_components/geo-reminder.tsx`
+    //   (watchPosition). Когда-то стояло `geolocation=()`, и
+    //   geo-напоминания молча не работали.
+    // - microphone=(self): нужен ВЕЗДЕ, где рисуется `DynamicForm` —
+    //   в ней есть надиктовка (`components/journals/voice-input.tsx`),
+    //   а Web Speech API браузер гасит по этой политике. С `microphone=()`
+    //   кнопка надиктовки была мёртвой и на сайте, и в Mini App.
+    // - camera: `<input type="file" capture>` открывает нативный picker
+    //   и в разрешении НЕ нуждается — поэтому на сайте камера закрыта.
+    //   Внутри /mini она открыта под сканер QR прямо в браузере: вне
+    //   Telegram нативного `showScanQrPopup` нет, а сканировать нужно.
+    const permissionsPolicy = (camera: "()" | "(self)") => ({
+      key: "Permissions-Policy",
+      value: `camera=${camera}, microphone=(self), geolocation=(self)`,
+    });
 
     // Default frame policy: DENY всё.
     const denyFrameHeaders = [
       ...commonSecurityHeaders,
+      permissionsPolicy("()"),
       { key: "X-Frame-Options", value: "DENY" },
     ];
 
@@ -122,6 +130,7 @@ const nextConfig: NextConfig = {
     // overрайдит X-Frame-Options в современных browser'ах.
     const miniFrameHeaders = [
       ...commonSecurityHeaders,
+      permissionsPolicy("(self)"),
       {
         key: "Content-Security-Policy",
         value:

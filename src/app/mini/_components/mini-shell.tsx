@@ -6,8 +6,9 @@ import { PartnerHint } from "@/components/partner/partner-hint";
 import type { PartnerHintRates } from "@/lib/partners/partner-hint";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { UserRound, MapPin } from "lucide-react";
+import { ArrowLeft, UserRound, MapPin } from "lucide-react";
 import { getTelegramWebApp } from "./telegram-web-app";
+import { haptic } from "./use-haptic";
 import { useMiniTheme } from "./mini-theme";
 
 const SECTION_TITLES: Array<[string, string]> = [
@@ -144,6 +145,37 @@ function formatClock(d: Date): string {
   return `${h}:${m}:${s}`;
 }
 
+/**
+ * Нужна ли собственная кнопка «назад».
+ *
+ * В Telegram её рисует сам клиент (`tg.BackButton` выше), в обычной
+ * вкладке есть кнопка браузера. А вот в установленном на домашний экран
+ * приложении нет ни того, ни другого: адресной строки нет, системного
+ * жеста на iOS в standalone тоже нет — и человек застревает на экране
+ * заполнения без единого выхода.
+ */
+function useNeedsOwnBackButton(pathname: string): boolean {
+  const [standalone, setStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (getTelegramWebApp()) return;
+
+    const query = window.matchMedia("(display-mode: standalone)");
+    // `navigator.standalone` — способ iOS: там media-query до сих пор
+    // срабатывает не во всех версиях.
+    const iosStandalone =
+      (navigator as unknown as { standalone?: boolean }).standalone === true;
+
+    const sync = () => setStandalone(query.matches || iosStandalone);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  return standalone && pathname !== "/mini";
+}
+
 export function MiniTopBar({
   partnerHint = null,
   locationName = null,
@@ -155,6 +187,8 @@ export function MiniTopBar({
 } = {}) {
   const pathname = usePathname();
   const title = titleForPath(pathname);
+  const router = useRouter();
+  const showBack = useNeedsOwnBackButton(pathname);
 
   return (
     <header
@@ -167,6 +201,23 @@ export function MiniTopBar({
       }}
     >
       <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
+        {showBack ? (
+          <button
+            type="button"
+            onClick={() => {
+              haptic("light");
+              // history.length === 1 означает «пришли сразу сюда»
+              // (ярлык, ссылка) — возвращать некуда, ведём на главную.
+              if (window.history.length > 1) router.back();
+              else router.push("/mini");
+            }}
+            aria-label="Назад"
+            className="mini-press -ml-1 flex size-10 shrink-0 items-center justify-center rounded-2xl"
+            style={{ border: "1px solid var(--mini-divider-strong)" }}
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+        ) : null}
         <Link
           href="/mini"
           className="flex min-w-0 items-center gap-3"

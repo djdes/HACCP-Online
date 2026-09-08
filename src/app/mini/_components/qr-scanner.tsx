@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { getTelegramWebApp } from "./telegram-web-app";
+import { QrCameraSheet } from "./qr-camera-sheet";
 
 /**
  * Расшифровка содержимого QR-кода → путь внутри Mini App.
@@ -75,11 +76,27 @@ export const __resolveQrDestinationForTests = resolveQrDestination;
 
 export function QrScannerButton() {
   const router = useRouter();
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  // Разбор кода общий для обоих сканеров. Возвращает true, когда код
+  // разобран, — по этому признаку сканер закрывается.
+  const consume = useCallback(
+    (text: string) => {
+      const dest = resolveQrDestination(text);
+      if (!dest) return false;
+      router.push(dest);
+      return true;
+    },
+    [router],
+  );
 
   const handleScan = useCallback(() => {
     const tg = getTelegramWebApp();
     if (!tg) {
-      toast.error("Сканер QR доступен только внутри Telegram");
+      // Вне Telegram раньше была только надпись «сканер доступен только
+      // внутри Telegram». В установленном на телефон приложении это
+      // тупик: Telegram там ни при чём, а наклейку сканировать надо.
+      setCameraOpen(true);
       return;
     }
 
@@ -106,13 +123,20 @@ export function QrScannerButton() {
   }, [router]);
 
   return (
-    <button
-      onClick={handleScan}
-      className="inline-flex items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3 py-2 text-[13px] font-medium text-[#0b1024] shadow-sm active:scale-[0.98] active:bg-[#f5f6ff]"
-      aria-label="Сканировать QR"
-    >
-      <QrCode className="size-4 text-[#5566f6]" />
-      Сканировать QR
-    </button>
+    <>
+      <button
+        onClick={handleScan}
+        className="inline-flex items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-3 py-2 text-[13px] font-medium text-[#0b1024] shadow-sm active:scale-[0.98] active:bg-[#f5f6ff]"
+        aria-label="Сканировать QR"
+      >
+        <QrCode className="size-4 text-[#5566f6]" />
+        Сканировать QR
+      </button>
+      <QrCameraSheet
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onResult={consume}
+      />
+    </>
   );
 }
