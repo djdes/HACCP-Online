@@ -95,6 +95,14 @@ export type AcceptanceRow = {
   acceptanceDecision: "" | "accept" | "reject";
   /** v2 · «Корректирующие действия для забракованного товара». Fallback — legacy `note`. */
   correctiveActions: string;
+  /**
+   * Меркурий (2026-09-08): UUID и номер погашенного ВСД, из которого
+   * выросла эта строка. Опциональные — миграция не нужна, ровно так же
+   * сюда завозили v2-поля. Нужны, чтобы из журнала было видно источник,
+   * а из ВСД — куда он попал.
+   */
+  mercuryVsdUuid?: string;
+  mercuryVsdNumber?: string;
 };
 
 export type AcceptanceDocumentConfig = {
@@ -264,6 +272,15 @@ export function createAcceptanceRow(
     documentCompliance,
     acceptanceDecision,
     correctiveActions,
+    // Меркурий: ключи пробрасываем ТОЛЬКО когда они есть, иначе у всех
+    // строк появились бы `mercuryVsdUuid: ""`, и по нему нельзя было бы
+    // отличить строку из ВСД от заведённой руками.
+    ...(has("mercuryVsdUuid")
+      ? { mercuryVsdUuid: normalizeText(raw.mercuryVsdUuid) }
+      : {}),
+    ...(has("mercuryVsdNumber")
+      ? { mercuryVsdNumber: normalizeText(raw.mercuryVsdNumber) }
+      : {}),
   };
 }
 

@@ -1,0 +1,165 @@
+import Link from "next/link";
+
+import { PageGuide } from "@/components/ui/page-guide";
+import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
+import { getActiveBuildingId } from "@/lib/active-building";
+import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
+import { buildingWhere } from "@/lib/building-scope";
+import { db } from "@/lib/db";
+import { canUseMercury } from "@/lib/mercury/access";
+import { describeDeadline } from "@/lib/mercury/deadline";
+import { resolveTransportMode } from "@/lib/mercury/transport";
+
+import { IncomingVsdClient } from "./incoming-vsd-client";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+/**
+ * «Входящие ВСД» — рабочий экран менеджера.
+ *
+ * Смысл страницы в одном действии: увидеть, что приехало, ввести
+ * физический контроль и одной кнопкой получить строку журнала приёмки
+ * плюс погашенный в Меркурии документ.
+ */
+export default async function MercuryPage() {
+  const session = await requireAuth();
+  const organizationId = getActiveOrgId(session);
+  const buildingId = await getActiveBuildingId(session);
+
+  const [org, integration, rows] = await Promise.all([
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { subscriptionPlan: true, isDemo: true },
+    }),
+    db.mercuryIntegration.findUnique({
+      where: { organizationId },
+      select: { enabled: true, autoProcessMode: true },
+    }),
+    db.mercuryVetDocument.findMany({
+      where: {
+        organizationId,
+        ...buildingWhere(buildingId),
+        NOT: { localStatus: "irrelevant" },
+      },
+      orderBy: [{ processingDueAt: "asc" }, { firstSeenAt: "desc" }],
+      take: 200,
+      select: {
+        id: true,
+        uuid: true,
+        number: true,
+        remoteStatus: true,
+        localStatus: true,
+        deliveryDate: true,
+        processingDueAt: true,
+        productName: true,
+        volume: true,
+        unit: true,
+        batchNumber: true,
+        expiryDate: true,
+        consignorName: true,
+        manufacturerName: true,
+        accompanyingDocs: true,
+        transportInfo: true,
+        processError: true,
+        journalDocumentId: true,
+      },
+    }),
+  ]);
+
+  const available = canUseMercury({
+    plan: org?.subscriptionPlan,
+    isDemo: org?.isDemo,
+  });
+  const now = new Date();
+  const documents = rows.map((row) => ({
+    ...row,
+    deliveryDate: row.deliveryDate?.toISOString() ?? null,
+    processingDueAt: row.processingDueAt?.toISOString() ?? null,
+    expiryDate: row.expiryDate?.toISOString() ?? null,
+    deadline: describeDeadline(row.processingDueAt, now),
+  }));
+
+  const pending = documents.filter((d) =>
+    ["new", "acknowledged"].includes(d.localStatus),
+  );
+  const overdue = pending.filter((d) => d.deadline.tone === "overdue");
+
+  if (!available) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Входящие ВСД" eyebrow="ФГИС «Меркурий»" />
+        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
+          <div className="text-[15px] font-medium text-[#0b1024]">
+            Интеграция доступна на тарифе «Про»
+          </div>
+          <p className="mx-auto mt-1.5 max-w-[420px] text-[13px] leading-[1.6] text-[#6f7282]">
+            Входящие ветеринарные документы, гашение в один тап и
+            автозаполнение журнала приёмки.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="ФГИС «Меркурий»"
+        title="Входящие ВСД"
+        description="Приняли товар — здесь же вносите контроль и гасите документ."
+        actions={
+          <>
+            {overdue.length > 0 ? (
+              <PageHeaderStat tone="warn">
+                Просрочено {overdue.length}
+              </PageHeaderStat>
+            ) : null}
+            <PageHeaderStat>Ждут гашения {pending.length}</PageHeaderStat>
+            <Link
+              href="/settings/integrations/mercury"
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Настройки
+            </Link>
+          </>
+        }
+      />
+
+      <PageGuide
+        title="Как это работает"
+        storageKey="mercury-incoming-v1"
+        bullets={[
+          {
+            title: "Документы приходят сами",
+            body: "Раз в 10 минут мы спрашиваем Меркурий, что нового приехало на ваши площадки.",
+          },
+          {
+            title: "Срок — один рабочий день",
+            body: "Столько закон даёт на гашение входящего ВСД. Считаем по производственному календарю, просроченные подсвечиваем.",
+          },
+          {
+            title: "Приёмка и гашение — одно окно",
+            body: "Вводите температуру, состояние транспорта и упаковки, решение — получаете строку журнала входного контроля и погашенный ВСД.",
+          },
+        ]}
+        qa={[
+          {
+            q: "Почему нельзя просто «погасить всё»?",
+            a: "Гашение подтверждает, что партию физически приняли и проверили. Без осмотра это подпись под тем, чего не было, — и журнал входного контроля перестаёт быть доказательством для проверки.",
+          },
+          {
+            q: "Меркурий не отвечает — что с приёмкой?",
+            a: "Строка журнала сохраняется сразу и от Меркурия не зависит. Гашение встанет в очередь и уйдёт, когда шлюз ответит.",
+          },
+        ]}
+      />
+
+      <IncomingVsdClient
+        documents={documents}
+        enabled={integration?.enabled ?? false}
+        demoMode={resolveTransportMode({}) === "mock"}
+      />
+    </div>
+  );
+}

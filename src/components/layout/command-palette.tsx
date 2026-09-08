@@ -114,6 +114,8 @@ const ROUTE_ITEMS: StaticItem[] = [
   { kind: "route", label: "Настройки — Compliance", href: "/settings/compliance", icon: Cog, keywords: ["closed day", "закрытый день"] },
   { kind: "route", label: "Настройки — Аудит", href: "/settings/audit", icon: Cog, keywords: ["audit"] },
   { kind: "route", label: "Настройки — TasksFlow", href: "/settings/integrations/tasksflow", icon: Cog, keywords: ["tasksflow", "tf"] },
+  { kind: "route", label: "Входящие ВСД (Меркурий)", href: "/mercury", icon: Cog, keywords: ["меркурий", "всд", "mercury", "ветис", "гашение"] },
+  { kind: "route", label: "Настройки — ФГИС «Меркурий»", href: "/settings/integrations/mercury", icon: Cog, keywords: ["меркурий", "ветис", "vetis"] },
   { kind: "route", label: "Настройки — Портал инспектора", href: "/settings/inspector-portal", icon: Cog, keywords: ["inspector", "сэс"] },
   { kind: "route", label: "Справочник СанПиН", href: "/sanpin", icon: FileSpreadsheet, keywords: ["санпин", "нормы"] },
 ];

@@ -360,6 +360,10 @@ model Organization {
   journalTaskClaims              JournalTaskClaim[]
   tasksFlowIntegration           TasksFlowIntegration?
   tasksFlowOutbox                TasksFlowOutbox[]
+  mercuryIntegration             MercuryIntegration?
+  mercuryEnterprises             MercuryEnterprise[]
+  mercuryVetDocuments            MercuryVetDocument[]
+  mercuryOutbox                  MercuryOutbox[]
   paperJournalDocuments          PaperJournalDocument[]
   printAgents                    PrintAgent[]
   printJobs                      PrintJob[]
@@ -392,6 +396,8 @@ model Building {
   /// документы остаются в организации и становятся общими.
   journalDocuments   JournalDocument[]
   journalObligations JournalObligation[]
+  /// Площадки этой точки в ФГИС «Меркурий».
+  mercuryEnterprises MercuryEnterprise[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -2844,4 +2850,204 @@ model JournalPreview {
 
   @@unique([organizationId, code, buildingKey])
   @@index([renderedAt])
+}
+
+// ────────────────────────────────────────────────────────────────────
+// ФГИС «Меркурий» (ВетИС)
+//
+// Работа идёт через Ветис.API — SOAP-шлюз с ПСЕВДОАСИНХРОННЫМ
+// протоколом: `submitApplicationRequest` возвращает id заявки, результат
+// забирается отдельным `receiveApplicationResultRequest`. Поэтому здесь
+// не «очередь мутаций», как у TasksFlow, а очередь ЗАЯВОК: и команды, и
+// чтения проходят через один конечный автомат.
+//
+// Разделение учётных данных (отличается от TasksFlow):
+//   • APIKey выдаётся ОДИН на информационную систему, то есть на весь
+//     WeSetup — живёт в env, не в БД и не в UI;
+//   • issuerGuid (ГУИД хозяйствующего субъекта) и логин уполномоченного
+//     лица свои у каждой организации: это идентификаторы, не секреты.
+// ────────────────────────────────────────────────────────────────────
+
+enum MercuryOutboxStatus {
+  pending
+  submitted
+  delivered
+  failed
+}
+
+model MercuryIntegration {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// "test" | "prod" — по нему выбирается baseUrl из env. Сам URL в БД не
+  /// храним: иначе его можно подменить и увести запросы наружу.
+  environment    String       @default("test")
+  /// ГУИД хозяйствующего субъекта в Ветис (issuerId в запросах).
+  issuerGuid     String
+  /// Логин уполномоченного лица в Меркурии — от его имени гасятся ВСД.
+  initiatorLogin String
+  /// Escape hatch для крупного клиента со СВОЕЙ зарегистрированной ИС.
+  /// null — используется системный MERCURY_API_KEY. AES-256-GCM.
+  apiKeyEncrypted  String?
+  apiKeyPrefix     String?
+  enabled          Boolean   @default(false)
+  /// "off" | "assisted" | "auto_after_journal". По умолчанию assisted:
+  /// система находит и заполняет, но гасит человек. См. docs/MERCURY.md.
+  autoProcessMode  String    @default("assisted")
+  /// Белый список поставщиков для auto_after_journal: массив ИНН.
+  autoSupplierInns Json?
+  /// Кому слать уведомления о новых и просроченных ВСД.
+  notifyUserId     String?
+  /// Верхняя граница уже вычитанного окна GetVetDocumentChangesList.
+  changesCursorAt  DateTime?
+  lastSyncAt       DateTime?
+  lastSyncError    String?
+  label            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  enterprises MercuryEnterprise[]
+  documents   MercuryVetDocument[]
+  outbox      MercuryOutbox[]
+
+  @@index([enabled])
+}
+
+/// Площадка в Ветис ↔ точка WeSetup.
+///
+/// Отдельной таблицей, а не полем на Building: у сети одна точка может
+/// иметь несколько площадок в Меркурии (склад и производство), а у
+/// организации без точек Building может не быть вовсе.
+model MercuryEnterprise {
+  id                   String             @id @default(cuid())
+  integrationId        String
+  integration          MercuryIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  organizationId       String
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Точка WeSetup. null — организация ведёт журналы общим списком.
+  buildingId           String?
+  building             Building?          @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  /// В Ветис предприятие и площадка — разные сущности с разными ГУИДами.
+  enterpriseGuid       String
+  activityLocationGuid String?
+  name                 String
+  address              String?
+  enabled              Boolean            @default(true)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  documents MercuryVetDocument[]
+
+  @@unique([integrationId, enterpriseGuid, activityLocationGuid])
+  @@index([organizationId, enabled])
+}
+
+/// Входящий ветеринарный сопроводительный документ.
+model MercuryVetDocument {
+  id             String             @id @default(cuid())
+  integrationId  String
+  integration    MercuryIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  enterpriseId   String?
+  enterprise     MercuryEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: SetNull)
+  /// Денормализация ради buildingWhere() — фильтра по точке.
+  buildingId     String?
+  /// UUID ВСД в Ветис — натуральный ключ. Пара (организация, uuid) и есть
+  /// единственная настоящая защита от двойного гашения.
+  uuid           String
+  number         String?
+  /// TRANSPORT | PRODUCTIVE | RETURNABLE
+  docType        String?
+  /// Статус в Ветис: CONFIRMED | UTILIZED | WITHDRAWN | ...
+  remoteStatus   String
+  /// Наш: new | acknowledged | processing | processed | process_failed | irrelevant
+  localStatus    String             @default("new")
+  issueDate      DateTime?
+  deliveryDate   DateTime?
+  /// Дедлайн гашения — один рабочий день, считается по производственному
+  /// календарю РФ и таймзоне организации (src/lib/mercury/deadline.ts).
+  processingDueAt DateTime?
+
+  // Извлечённые поля для списка и маппинга в журнал приёмки.
+  productName      String?
+  productType      String?
+  volume           Float?
+  unit             String?
+  batchNumber      String?
+  productionDate   DateTime?
+  expiryDate       DateTime?
+  consignorName    String?
+  consignorInn     String?
+  manufacturerName String?
+  transportInfo    String?
+  accompanyingDocs String?
+  /// Полный распарсенный документ: при смене маппинга можно перемолоть
+  /// заново, не ходя в Меркурий.
+  raw              Json
+
+  // Результат гашения.
+  processedAt     DateTime?
+  processedById   String?
+  processDecision String?
+  processError    String?
+  stockEntryGuid  String?
+
+  // Связь с журналом приёмки и прослеживаемостью.
+  journalDocumentId String?
+  journalRowId      String?
+  journalEntryId    String?
+  batchKey          String?
+  batchId           String?
+
+  firstSeenAt  DateTime @default(now())
+  lastSyncedAt DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  outbox MercuryOutbox[]
+
+  @@unique([organizationId, uuid])
+  @@index([organizationId, localStatus, processingDueAt])
+  @@index([organizationId, buildingId, localStatus])
+  @@index([organizationId, batchKey])
+}
+
+/// Очередь заявок в Ветис.API.
+model MercuryOutbox {
+  id             String              @id @default(cuid())
+  integrationId  String
+  integration    MercuryIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// UUID-v4, наш ключ идемпотентности.
+  idempotencyKey String              @unique
+  /// getVetDocumentList | getVetDocumentChangesList | getVetDocumentByUuid |
+  /// processIncomingConsignment | getActivityLocationList
+  action         String
+  /// false для чтений — health-алерт смотрит только на команды, иначе он
+  /// орал бы на застрявшем опросе справочников.
+  isCommand      Boolean             @default(false)
+  payload        Json
+  status         MercuryOutboxStatus @default(pending)
+  /// applicationId, выданный submitApplicationRequest.
+  applicationId  String?
+  /// Статус заявки в Ветис: ACCEPTED | IN_PROCESS | COMPLETED | REJECTED
+  remoteStatus   String?
+  submittedAt    DateTime?
+  pollAttempts   Int                 @default(0)
+  attempts       Int                 @default(0)
+  lastAttemptAt  DateTime?
+  lastError      String?
+  deliveredAt    DateTime?
+  resultSummary  Json?
+  vetDocumentId  String?
+  vetDocument    MercuryVetDocument? @relation(fields: [vetDocumentId], references: [id], onDelete: SetNull)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([integrationId, status])
+  @@index([organizationId, status, createdAt])
+  @@index([applicationId])
 }

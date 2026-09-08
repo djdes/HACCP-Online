@@ -49,6 +49,8 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/settings/experimental": "Бета-функции",
   "/settings/inspector-portal": "Портал инспектора",
   "/settings/integrations/tasksflow": "TasksFlow",
+  "/settings/integrations/mercury": "ФГИС «Меркурий»",
+  "/mercury": "Входящие ВСД",
   "/settings/journal-access": "Журналы для сотрудников",
   "/settings/journal-bonuses": "Премии за журналы",
   "/settings/journal-checklists": "Чек-листы для журналов",

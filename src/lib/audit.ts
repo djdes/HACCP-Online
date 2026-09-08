@@ -12,7 +12,10 @@ export type AuditAction =
   | "journal_document.approve_all"
   | "journal_document.reject_document"
   | "journal_document.approve_cells"
-  | "journal_document.reject_cells";
+  | "journal_document.reject_cells"
+  /** Меркурий: приёмка с гашением ВСД и приёмка без гашения. */
+  | "mercury.process"
+  | "mercury.acknowledge";
 
 export async function logAudit(args: {
   organizationId: string;
