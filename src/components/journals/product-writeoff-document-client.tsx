@@ -11,7 +11,6 @@ import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/jou
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -229,6 +228,10 @@ export function ProductWriteoffDocumentClient({
   async function importItemsFromFile(file: File) {
     setImporting(true);
     try {
+      // См. metal-impurity-document-client: статический импорт xlsx тянул
+      // 135 КБ gzip в общий чанк всех редакторов журналов. Внутри try —
+      // сбой загрузки чанка попадёт в тот же toast, что и битый файл.
+      const XLSX = await import("xlsx");
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, { header: 1 });

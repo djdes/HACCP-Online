@@ -11,7 +11,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -825,6 +824,11 @@ function ListsDialog({
 
   async function importItems(file: File, target: "materials" | "suppliers") {
     try {
+      // xlsx (SheetJS) — 402 КБ / 135 КБ gzip. При статическом импорте она
+      // попадала в общий чанк ВСЕХ 35 редакторов журналов: открываешь
+      // гигиенический журнал — качаешь парсер Excel. Грузим по требованию,
+      // ровно как в acceptance-document-client и fryer-oil-document-client.
+      const XLSX = await import("xlsx");
       const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, { header: 1 });
