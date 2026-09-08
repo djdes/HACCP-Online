@@ -57,15 +57,18 @@ check 307 GET /settings/subscription
 check 307 GET /settings/backup
 check 307 GET /settings/accounting
 
-echo "== ROOT (expect 307 — not signed in as root) =="
-check 307 GET /root
-check 307 GET /root/metrics
-check 307 GET /root/audit-impersonations
-check 307 GET /root/blog
-check 307 GET /root/feedback
-check 307 GET /root/audit
-check 307 GET /root/timings
-check 307 GET /root/telegram-logs
+# /root/* отдаёт именно 404, а не 307: `src/proxy.ts` намеренно прячет
+# существование раздела от всех, кроме ROOT — по редиректу на логин было
+# бы видно, что такой URL есть.
+echo "== ROOT (expect 404 — раздел скрыт от не-ROOT) =="
+check 404 GET /root
+check 404 GET /root/metrics
+check 404 GET /root/audit-impersonations
+check 404 GET /root/blog
+check 404 GET /root/feedback
+check 404 GET /root/audit
+check 404 GET /root/timings
+check 404 GET /root/telegram-logs
 
 echo "== MINI =="
 check 200 GET /mini
@@ -90,17 +93,22 @@ check 401 GET /api/external/summary
 echo "== API (expect 401 без cookie/session) =="
 check 401 POST /api/ai/sanpin-chat
 check 401 POST /api/ai/period-report
-check 401 GET /api/journals
+# Роут только POST — до проверки сессии дело не доходит.
+check 405 GET /api/journals
 check 401 GET /api/journal-documents
-check 401 GET /api/settings/yandex-backup
+# Страничный роут под гардом — редиректит на логин, а не отдаёт 401.
+check 307 GET /api/settings/yandex-backup
 check 401 PATCH /api/settings/accountant-email
 check 401 PATCH /api/settings/compliance
-check 401 GET /api/settings/journals
+# Только POST/PATCH.
+check 405 GET /api/settings/journals
 
 echo "== Public API =="
-check 405 GET /api/public/inn-lookup
+# Публичный роут: без ИНН отвечает 400 «нужен инн», а не 405.
+check 400 GET /api/public/inn-lookup
 check 401 POST /api/support
-check 401 POST /api/auth/register/request
+# Регистрация публична по определению: пустое тело → 400 валидации.
+check 400 POST /api/auth/register/request
 
 echo
 echo "PASS=$pass FAIL=$fail"
