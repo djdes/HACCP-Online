@@ -15,7 +15,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FieldHint, FieldWarning } from "./field-hint";
+import { toast } from "sonner";
 import { retryFetch } from "@/lib/retry-fetch";
+// Импорт статический, а не динамический: чанк очереди понадобится ровно
+// тогда, когда связи нет, и подгрузить его в этот момент уже нельзя.
+// Модуль маленький и состоит из обёрток над IndexedDB.
+import {
+  enqueueJournalEntry,
+  isQueueAvailable,
+} from "@/app/mini/_lib/journal-queue";
+import {
+  PhotoRejectedError,
+  collectQueuedPhotos,
+  hasQueuedPhotos,
+  releaseQueuedPhoto,
+  uploadAndSubstitutePhotos,
+} from "@/components/journals/queued-photos";
+import { newIdempotencyKey } from "@/lib/idempotency";
 import {
   Select,
   SelectContent,
@@ -126,7 +142,7 @@ interface DynamicFormProps {
 
 export function DynamicForm({
   templateCode,
-  templateName: _templateName,
+  templateName,
   fields,
   areas,
   equipment,
@@ -140,7 +156,6 @@ export function DynamicForm({
   rollingContinueLabel = "Сохранить и продолжить",
   rollingDoneLabel = "Готово на сегодня",
 }: DynamicFormProps) {
-  void _templateName;
   const router = useRouter();
   // Phase B: Conditional required fields. Используем journal-spec для
   // поиска полей которые становятся обязательными при отклонении +
@@ -306,6 +321,11 @@ export function DynamicForm({
     updateMultipleFields(updates);
   }
 
+  // Очередь живёт только в кабинете: на дашборде её нет, и метка
+  // снимка вместо адреса уехала бы в журнал строкой.
+  const offlineCapable = journalsBasePath.startsWith("/mini");
+  const [queuedNotice, setQueuedNotice] = useState<string | null>(null);
+
   async function submitForm(continueRolling: boolean | null) {
     // Phase B: блокируем submit если форма в отклонении и
     // обязательные поля пустые. Это server-side тоже валидируется,
@@ -350,21 +370,64 @@ export function DynamicForm({
     setError(null);
     setRollingNotice(null);
 
+    // Один ключ на одну отправку и НА ВСЕ её повторы — и на повторы
+    // `retryFetch`, и на отправку из офлайн-очереди. `retryFetch`
+    // повторяет запрос, когда промис fetch отклонён, а отклоняется он и
+    // после того, как сервер запрос уже принял. Без общего ключа повтор
+    // писал бы вторую запись о температуре, измеренной один раз; на
+    // проверке это читается как подделка журнала.
+    //
+    // Новая отправка (в том числе следующая запись в rolling-режиме)
+    // приходит сюда заново и получает свой ключ.
+    const idempotencyKey = newIdempotencyKey();
+
+    // Ответил ли сервер вообще. Разница принципиальная: молчание —
+    // это «нет связи», и запись надо сохранить; а 400 «не заполнено
+    // поле» — это отказ по существу, и класть такую запись в очередь
+    // значит обречь её на вечные повторы.
+    let serverAnswered = false;
+
+    const requestBody = {
+      templateCode,
+      areaId: areaId || undefined,
+      equipmentId: equipmentId || undefined,
+      data: formData,
+      ...(continueRolling !== null
+        ? { rolling: { continue: continueRolling } }
+        : {}),
+    };
+
     try {
+      // Снимки, не загрузившиеся раньше из-за обрыва, догружаем сейчас.
+      // Без этого метка `queued-photo:…` уехала бы в журнал строкой:
+      // связь могла вернуться между съёмкой и нажатием «Сохранить».
+      // Не вышло — падаем в catch, и запись целиком уедет в очередь.
+      let body: Record<string, unknown> = requestBody;
+      if (hasQueuedPhotos(requestBody)) {
+        try {
+          body = await uploadAndSubstitutePhotos(
+            requestBody,
+            collectQueuedPhotos(requestBody),
+          );
+        } catch (photoError) {
+          // Сервер снимок отверг — очередь не поможет, отказ повторится.
+          if (photoError instanceof PhotoRejectedError) serverAnswered = true;
+          throw photoError instanceof PhotoRejectedError
+            ? new Error("Фото не принято сервером — снимите другое")
+            : photoError;
+        }
+      }
+
       const response = await retryFetch("/api/journals", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateCode,
-          areaId: areaId || undefined,
-          equipmentId: equipmentId || undefined,
-          data: formData,
-          // Rolling-флаг — если null, body.rolling вообще не уйдёт.
-          ...(continueRolling !== null
-            ? { rolling: { continue: continueRolling } }
-            : {}),
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify(body),
       });
+
+      serverAnswered = true;
 
       if (!response.ok) {
         const result = await response.json();
@@ -422,10 +485,64 @@ export function DynamicForm({
       router.push(`${journalsBasePath}/${templateCode}`);
       router.refresh();
     } catch (err) {
+      // Сюда попадаем и когда все попытки `retryFetch` отклонены (связи
+      // нет), и когда сервер ответил отказом. В очередь кладём только
+      // первое: смена на кухне не должна ждать сеть, а заново набирать
+      // десять полей и фото — худшее, что можно предложить.
+      if (
+        offlineCapable &&
+        !serverAnswered &&
+        (await queueOffline(idempotencyKey, requestBody))
+      ) {
+        return;
+      }
       setError(err instanceof Error ? err.message : "Ошибка при сохранении");
     } finally {
       setIsSubmitting(false);
       setSubmittingMode("default");
+    }
+  }
+
+  /**
+   * Ставит запись в очередь. Возвращает false, если очередь недоступна
+   * (приватный режим, запрет на данные сайтов) — тогда честно показываем
+   * ошибку, а не делаем вид, что сохранили.
+   */
+  async function queueOffline(
+    idempotencyKey: string,
+    requestBody: Record<string, unknown>,
+  ): Promise<boolean> {
+    try {
+      if (!isQueueAvailable()) return false;
+
+      const photos = collectQueuedPhotos(requestBody);
+      await enqueueJournalEntry({
+        id: idempotencyKey,
+        createdAt: Date.now(),
+        journalName: templateName || templateCode,
+        payload: requestBody,
+        photos,
+      });
+      // Снимки уехали в базу — из памяти страницы их можно отпустить
+      // вместе с их object URL'ами.
+      for (const mark of Object.keys(photos)) releaseQueuedPhoto(mark);
+
+      // Никаких переходов: без связи `router.push` сорвётся на полную
+      // перезагрузку, а её перехватит service worker и покажет экран
+      // «Нет связи» — сразу после того, как мы сказали «сохранено».
+      // Остаёмся здесь, чистим форму и объясняем, что произошло.
+      setFormData({});
+      setError(null);
+      setQueuedNotice(
+        "Записано на телефоне. Отправится само, когда появится связь — приложение можно закрыть.",
+      );
+      toast.success("Записано. Отправится, когда появится связь");
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -498,6 +615,12 @@ export function DynamicForm({
           {error}
         </div>
       )}
+
+      {queuedNotice ? (
+        <div className="rounded-2xl border border-[#5566f6]/25 bg-[#f5f6ff] p-4 text-[14px] leading-[1.55] text-[#3848c7]">
+          {queuedNotice}
+        </div>
+      ) : null}
 
       {/* Deviation banner — желтое предупреждение когда форма
           сигнализирует об отклонении нормы. Показывает требуемые
@@ -624,6 +747,7 @@ export function DynamicForm({
                   value={(formData[field.key] as string) ?? ""}
                   onChange={(next) => updateField(field.key, next)}
                   required={field.required}
+                  offlineFallback={offlineCapable}
                 />
               )}
 
@@ -806,6 +930,7 @@ export function DynamicForm({
             onChange={(next) => updateField("photoUrls", next)}
             required
             hint="Без снимка запись не сохранится — этого требует журнал."
+            offlineFallback={offlineCapable}
           />
         </div>
       ) : null}

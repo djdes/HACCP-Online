@@ -16,9 +16,20 @@ export const dynamic = "force-dynamic";
  * Сохраняем особо ценные действия (impersonate, override, deletion)
  * дольше — те держим 365 дней.
  *
+ * Заодно убирает ключи идемпотентности (`JournalExternalIdempotency`):
+ * они нужны ровно на время, пока клиент может повторить ту же отправку,
+ * и без уборки копятся вечно. Отдельный крон под это не заводим — в
+ * репозитории и так 33 крон-роута, и каждый новый надо руками прописать
+ * в crontab на сервере.
+ *
  * INFRA NEXT: cron 03:30 MSK ежедневно.
  */
 const RETENTION_DAYS = 90;
+/**
+ * Сутки с запасом: `retryFetch` повторяет секунды, офлайн-очередь (когда
+ * появится) — часы. Держать дольше незачем, дублей уже не будет.
+ */
+const IDEMPOTENCY_RETENTION_HOURS = 48;
 const CRITICAL_RETENTION_DAYS = 365;
 const CRITICAL_ACTIONS = [
   "impersonate.start",
@@ -57,10 +68,23 @@ async function handle(request: Request) {
     },
   });
 
+  const idempotencyCutoff = new Date(
+    Date.now() - IDEMPOTENCY_RETENTION_HOURS * 60 * 60 * 1000,
+  );
+  // `createdAt` у завершённых ключей переставляется на момент
+  // завершения, поэтому долгий запрос свою бронь не потеряет.
+  const idempotencyDeleted = await db.journalExternalIdempotency
+    .deleteMany({ where: { createdAt: { lt: idempotencyCutoff } } })
+    .catch((error) => {
+      console.error("[purge-audit-log] idempotency purge failed", error);
+      return { count: 0 };
+    });
+
   return NextResponse.json({
     ok: true,
     normalDeleted: normalDeleted.count,
     criticalDeleted: criticalDeleted.count,
+    idempotencyDeleted: idempotencyDeleted.count,
     cutoffNormal: cutoffNormal.toISOString(),
     cutoffCritical: cutoffCritical.toISOString(),
   });

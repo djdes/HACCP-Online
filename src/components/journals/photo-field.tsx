@@ -4,6 +4,12 @@ import { Camera, Loader2, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { compressImageIfWorthwhile } from "@/lib/image-compress";
+import {
+  holdQueuedPhoto,
+  isQueuedPhotoMark,
+  queuedPhotoPreview,
+  releaseQueuedPhoto,
+} from "@/components/journals/queued-photos";
 
 /**
  * Поле «фото» для журналов.
@@ -37,6 +43,7 @@ export function PhotoField({
   required = false,
   disabled = false,
   hint,
+  offlineFallback = false,
 }: {
   label: string;
   value: string;
@@ -44,6 +51,13 @@ export function PhotoField({
   required?: boolean;
   disabled?: boolean;
   hint?: string;
+  /**
+   * Разрешить оставить снимок на устройстве, когда связи нет, и
+   * догрузить его вместе с записью из очереди. Включается только в
+   * кабинете (`/mini`): на дашборде очереди нет, и метка вместо адреса
+   * уехала бы в журнал как строка «queued-photo:…».
+   */
+  offlineFallback?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -53,8 +67,12 @@ export function PhotoField({
   async function upload(file: File) {
     setUploading(true);
     setError(null);
+    // Объявлено снаружи try: если отправка упадёт, в офлайн-очередь
+    // должен уехать тот же сжатый файл, а не исходник на 8 мегабайт.
+    let compressedOrOriginal: Blob | null = null;
     try {
       const compressed = await compressImageIfWorthwhile(file);
+      compressedOrOriginal = compressed ?? file;
       const form = new FormData();
       form.append("file", compressed ?? file);
 
@@ -69,6 +87,17 @@ export function PhotoField({
       }
       onChange([...urls, String(data.url)].join(PHOTO_VALUE_SEPARATOR));
     } catch {
+      // Сюда попадаем, когда промис fetch отклонён, то есть связи нет.
+      // Раньше снимок на этом просто пропадал, а в журналах с
+      // обязательным фото пропадала и вся запись: без снимка форма не
+      // отправляется. Теперь держим снимок на устройстве и грузим его
+      // вместе с записью, когда связь вернётся.
+      if (offlineFallback) {
+        const mark = holdQueuedPhoto(compressedOrOriginal ?? file);
+        onChange([...urls, mark].join(PHOTO_VALUE_SEPARATOR));
+        setError(null);
+        return;
+      }
       setError("Нет связи — попробуйте ещё раз");
     } finally {
       setUploading(false);
@@ -76,6 +105,10 @@ export function PhotoField({
   }
 
   function removeAt(index: number) {
+    const removed = urls[index];
+    // Удерживаемый снимок отпускаем сразу: иначе он останется в памяти
+    // страницы до перезагрузки, хотя человек его уже убрал.
+    if (removed && isQueuedPhotoMark(removed)) releaseQueuedPhoto(removed);
     onChange(
       urls.filter((_, i) => i !== index).join(PHOTO_VALUE_SEPARATOR)
     );
@@ -102,19 +135,32 @@ export function PhotoField({
 
       {urls.length > 0 ? (
         <div className="mb-2 flex flex-wrap gap-2">
-          {urls.map((url, index) => (
+          {urls.map((url, index) => {
+            // Снимок, снятый без связи: сервер его ещё не видел, но
+            // показать человеку нужно — иначе кажется, что фото
+            // пропало, и он снимает второе.
+            const pending = isQueuedPhotoMark(url);
+            const src = pending ? queuedPhotoPreview(url) : url;
+            return (
             <div
               key={`${url}-${index}`}
               className="relative size-20 overflow-hidden rounded-2xl border border-[#ececf4] bg-[#fafbff]"
             >
               {/* Обычный <img>: файлы лежат в /uploads и не проходят через
                   оптимизатор Next, а размер тут фиксированный. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt={`Фото ${index + 1}`}
-                className="size-full object-cover"
-              />
+              {src ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={src}
+                  alt={`Фото ${index + 1}`}
+                  className="size-full object-cover"
+                />
+              ) : null}
+              {pending ? (
+                <span className="absolute inset-x-0 bottom-0 bg-[#0b1024]/70 px-1 py-0.5 text-center text-[9px] font-medium text-white">
+                  уйдёт со связью
+                </span>
+              ) : null}
               {!disabled ? (
                 <button
                   type="button"
@@ -126,7 +172,8 @@ export function PhotoField({
                 </button>
               ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
 

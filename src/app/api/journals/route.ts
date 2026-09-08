@@ -22,6 +22,11 @@ import {
   isTraceabilitySource,
   extractBatchKeyFromData,
 } from "@/lib/journal-traceability";
+import {
+  claimIdempotency,
+  journalIdempotencyKey,
+  prismaIdempotencyStore,
+} from "@/lib/idempotency";
 
 // Universal deviation rules for all journal types
 type DeviationRule = {
@@ -160,6 +165,15 @@ function checkDeviations(
 }
 
 export async function POST(request: Request) {
+  // Ключ объявлен снаружи try: при падении бронь надо снять в catch,
+  // иначе повтор той же записи будет вечно получать «уже выполняется».
+  let idempotencyKey: string | null = null;
+  // Была ли запись уже создана к моменту падения. Если да — бронь НЕ
+  // снимаем: повтор получит 409 «уже сохраняется», что правда, вместо
+  // того чтобы создать дубль.
+  let entryCreated = false;
+  const idempotencyStore = prismaIdempotencyStore(db);
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -246,6 +260,49 @@ export async function POST(request: Request) {
       (data as Record<string, unknown>).batchKey = batchKey;
     }
 
+    // Бронь берём здесь, а не в начале обработчика: всё, что выше, —
+    // проверки, которые не создают ничего. Если бы бронь бралась раньше,
+    // отказ по правам оставлял бы висеть строку «выполняется», и человек
+    // после исправления упирался бы в 409.
+    //
+    // `retryFetch` в `DynamicForm` повторяет отправку, когда промис
+    // fetch отклонён, — а он отклоняется и после того, как сервер
+    // запрос принял. Без брони повтор писал бы вторую запись о
+    // температуре, измеренной один раз.
+    const rawIdempotencyKey = request.headers.get("idempotency-key") ?? "";
+    idempotencyKey = rawIdempotencyKey
+      ? journalIdempotencyKey(session.user.id, rawIdempotencyKey)
+      : null;
+
+    if (idempotencyKey) {
+      const claim = await claimIdempotency(idempotencyStore, {
+        key: idempotencyKey,
+        organizationId,
+        journalCode: templateCode,
+      });
+      if (claim.kind === "replay") {
+        // Тот же ответ, что и в первый раз: клиент получит id уже
+        // созданной записи и не станет отправлять её снова.
+        return NextResponse.json(
+          claim.stored.response as Record<string, unknown>,
+          {
+            status: claim.stored.httpStatus,
+            headers: { "idempotent-replayed": "true" },
+          },
+        );
+      }
+      if (claim.kind === "in_flight") {
+        // Первая попытка ещё идёт. Отвечаем 409, а не создаём дубль;
+        // 409 `retryFetch` не повторяет — и правильно, запись уже
+        // сохраняется.
+        idempotencyKey = null; // бронь не наша — в catch её не снимать
+        return NextResponse.json(
+          { error: "Запись уже сохраняется, подождите пару секунд" },
+          { status: 409 },
+        );
+      }
+    }
+
     const entry = await db.journalEntry.create({
       data: {
         templateId: template.id,
@@ -258,6 +315,8 @@ export async function POST(request: Request) {
         batchKey: batchKey ?? null,
       },
     });
+
+    entryCreated = true;
 
     const filledByName = session.user.name || session.user.email || "";
 
@@ -493,8 +552,23 @@ export async function POST(request: Request) {
       console.warn("[journals POST] rolling spawn failed", err);
     }
 
-    return NextResponse.json({ entry, rolling }, { status: 201 });
+    const payload = { entry, rolling };
+    if (idempotencyKey) {
+      // Дописываем ответ в бронь. Если не получилось — отдаём результат
+      // всё равно: запись создана, и молчать об этом нельзя.
+      await idempotencyStore
+        .complete(idempotencyKey, { httpStatus: 201, response: payload })
+        .catch((err) =>
+          console.error("[journals POST] idempotency complete failed", err),
+        );
+    }
+    return NextResponse.json(payload, { status: 201 });
   } catch (error) {
+    // Запись создать не успели — снимаем бронь, иначе человек с
+    // заполненной формой останется заперт до уборки старых ключей.
+    if (idempotencyKey && !entryCreated) {
+      await idempotencyStore.release(idempotencyKey).catch(() => {});
+    }
     if (error instanceof ZodError) {
       return NextResponse.json(
         { error: "Некорректные данные", details: error.issues },
