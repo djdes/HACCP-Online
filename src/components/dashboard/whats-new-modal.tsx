@@ -9,6 +9,7 @@ import {
   Gauge,
   Gift,
   Handshake,
+  KeyRound,
   ListChecks,
   MessageCircle,
   MessageCircleMore,
@@ -93,6 +94,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Интерфейс на телефоне": Smartphone,
   "Скорость и отклик": Zap,
   "Замеры и приборы": Thermometer,
+  "Вход и установка на телефон": KeyRound,
 };
 
 function iconForCategory(name: string): LucideIcon {
