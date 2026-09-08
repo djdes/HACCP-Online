@@ -23,6 +23,7 @@ const SECTION_TITLES: Array<[string, string]> = [
 
 function titleForPath(pathname: string): string {
   if (pathname === "/mini") return "Кабинет";
+  if (pathname === "/mini/login") return "Вход";
   if (pathname.startsWith("/mini/journals")) return "Журналы";
   if (pathname.startsWith("/mini/documents")) return "Документ";
   if (pathname.startsWith("/mini/o/")) return "Задача";

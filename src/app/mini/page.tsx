@@ -24,7 +24,6 @@ import { MyShiftButton } from "./_components/my-shift-button";
 
 type LocalState =
   | { kind: "init" }
-  | { kind: "no-telegram" }
   | { kind: "error"; message: string };
 
 type HomeUser = {
@@ -120,8 +119,14 @@ export default function MiniHomePage() {
 
     const webApp = getTelegramWebApp();
     if (!webApp || !webApp.initData) {
+      // Вне Telegram раньше был глухой экран «Откройте внутри
+      // Telegram». Теперь ведём на вход по телефону и паролю: кабинет
+      // должен открываться обычной вкладкой браузера и, дальше, как
+      // установленное приложение. Telegram-вход остаётся основным для
+      // тех, кто уже привязан, — эта ветка его не трогает.
       signInStarted.current = true;
-      setLocalState({ kind: "no-telegram" });
+      const back = window.location.pathname + window.location.search;
+      router.replace(`/mini/login?next=${encodeURIComponent(back)}`);
       return;
     }
     try {
@@ -161,7 +166,7 @@ export default function MiniHomePage() {
         });
       }
     })();
-  }, [status]);
+  }, [router, status]);
 
   useEffect(() => {
     if (
@@ -243,28 +248,6 @@ export default function MiniHomePage() {
     })();
   }, [fetchHome, nextPath, status]);
 
-  if (localState.kind === "no-telegram") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <section className="mini-card-solid w-full px-6 py-8 text-center">
-          <ShieldAlert
-            className="mx-auto size-9"
-            style={{ color: "var(--mini-lime)" }}
-          />
-          <h1 className="mini-display-bold mt-4" style={{ fontSize: 22 }}>
-            Откройте внутри Telegram
-          </h1>
-          <p
-            className="mt-2 text-[14px] leading-6"
-            style={{ color: "var(--mini-text-muted)" }}
-          >
-            Рабочий кабинет сотрудника доступен только как Mini App в Telegram.
-            Попросите у руководителя персональную ссылку-приглашение.
-          </p>
-        </section>
-      </div>
-    );
-  }
   if (localState.kind === "error") {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -304,6 +287,19 @@ export default function MiniHomePage() {
           >
             Повторить вход
           </button>
+          {/* Второй выход из этого экрана. Ошибка «аккаунт не связан с
+              Telegram» тоже была тупиком: повторять вход бессмысленно,
+              пока руководитель не привяжет аккаунт. Телефон и пароль
+              работают независимо от привязки. */}
+          <div className="mt-3">
+            <Link
+              href="/mini/login"
+              className="text-[14px] underline"
+              style={{ color: "var(--mini-text-muted)" }}
+            >
+              Войти по телефону
+            </Link>
+          </div>
         </section>
       </div>
     );

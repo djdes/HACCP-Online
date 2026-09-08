@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  KeyRound,
   Pencil,
   Plus,
   QrCode,
@@ -28,6 +29,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { StaffPairDialog } from "@/components/staff/staff-pair-dialog";
 import { StaffQrInviteDialog } from "@/components/staff/staff-qr-invite-dialog";
 import { StaffImportExport } from "@/components/staff/staff-import-export";
 import { StaffBulkAddDialog } from "@/components/staff/staff-bulk-add-dialog";
@@ -535,6 +537,11 @@ export function StaffPageClient(props: StaffPageProps) {
     }
   }
 
+  // Привязка входа без Telegram живёт отдельным состоянием: общий `dlg`
+  // и так несёт десяток вариантов, и вплетать туда одиннадцатый ради
+  // одной кнопки — лишний риск задеть существующие ветки.
+  const [pairEmployee, setPairEmployee] = useState<StaffEmployee | null>(null);
+
   async function openTelegramInvite(employee: StaffEmployee, mode: "invite" | "rebind") {
     setDlg({
       kind: "tg-invite",
@@ -727,6 +734,16 @@ export function StaffPageClient(props: StaffPageProps) {
                   Пригласить в TG
                 </button>
               )}
+              {/* Вход по телефону — для тех, у кого Telegram нет или кто
+                  работает через браузер и установленное приложение. */}
+              <button
+                type="button"
+                onClick={() => setPairEmployee(firstSelected)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                <KeyRound className="size-4 text-[#5566f6]" />
+                Вход без Telegram
+              </button>
               {firstSelected.telegramLinked ? (
                 <>
                   <button
@@ -987,6 +1004,13 @@ export function StaffPageClient(props: StaffPageProps) {
           }}
         />
       ) : null}
+      {/* Своё состояние — рендерим безусловно, рядом с остальными окнами. */}
+      <StaffPairDialog
+        open={Boolean(pairEmployee)}
+        employeeId={pairEmployee?.id ?? null}
+        employeeName={pairEmployee?.name ?? null}
+        onClose={() => setPairEmployee(null)}
+      />
       {dlg?.kind === "qr-invite" ? (
         <StaffQrInviteDialog
           positions={props.positions}

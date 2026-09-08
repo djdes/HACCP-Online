@@ -42,6 +42,16 @@ export const metadata: Metadata = {
   // absolute получали бы "WeSetup — Mini App — WeSetup" (бренд дублируется).
   title: { absolute: "WeSetup — Mini App" },
   robots: { index: false, follow: false },
+  // Манифест живёт здесь, а не в корневом layout: на домашний экран
+  // ставится рабочий кабинет, а не маркетинговый сайт.
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "WeSetup",
+    // Тёмная тема кабинета — статус-бар в тон, иначе на iOS сверху
+    // остаётся светлая полоса поверх почти чёрного экрана.
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {

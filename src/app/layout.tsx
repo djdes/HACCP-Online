@@ -114,17 +114,16 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <head>
-        <link rel="manifest" href="/manifest.json" />
         {/* Иконки вкладки и домашнего экрана берёт App Router из
             src/app/icon.png и src/app/apple-icon.png — ручные <link>
             здесь дублировали бы их и расходились при замене. */}
         <meta name="theme-color" content="#0b1024" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-          name="apple-mobile-web-app-status-bar-style"
-          content="default"
-        />
-        <meta name="apple-mobile-web-app-title" content="WeSetup" />
+        {/* Манифест и apple-mobile-web-app-* переехали в
+            src/app/mini/layout.tsx (2026-09-08). Устанавливается на
+            домашний экран рабочий кабинет сотрудника, а не витрина: с
+            манифестом в корне лендинг предлагал «установить приложение»,
+            которое открывается на /mini и постороннему посетителю
+            бесполезно. */}
       </head>
       {/* suppressHydrationWarning: на публичных страницах inline-скрипт
           темы вешает на body класс и data-атрибут до гидрации. */}

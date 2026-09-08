@@ -1,11 +1,17 @@
 {
-  "name": "WeSetup",
+  "id": "/mini",
+  "name": "WeSetup — рабочая смена",
   "short_name": "WeSetup",
-  "description": "Электронные журналы СанПиН и ХАССП для пищевых производств",
-  "start_url": "/mini",
+  "description": "Журналы СанПиН и ХАССП: задачи смены, заполнение и фото — с телефона",
+  "start_url": "/mini?src=pwa",
+  "scope": "/mini",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#5566f6",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "lang": "ru",
+  "dir": "ltr",
+  "background_color": "#0a0b0f",
+  "theme_color": "#0a0b0f",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -18,6 +24,26 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Сегодня",
+      "short_name": "Сегодня",
+      "description": "Задачи текущей смены",
+      "url": "/mini/today?src=pwa"
+    },
+    {
+      "name": "Журналы",
+      "short_name": "Журналы",
+      "description": "Список журналов",
+      "url": "/mini?src=pwa"
     }
   ]
 }

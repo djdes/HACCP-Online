@@ -15,7 +15,9 @@ export type AuditAction =
   | "journal_document.reject_cells"
   /** Меркурий: приёмка с гашением ВСД и приёмка без гашения. */
   | "mercury.process"
-  | "mercury.acknowledge";
+  | "mercury.acknowledge"
+  /** Сотрудник задал пароль по ссылке руководителя и вошёл без Telegram. */
+  | "employee.paired_device";
 
 export async function logAudit(args: {
   organizationId: string;

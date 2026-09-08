@@ -364,6 +364,7 @@ model Organization {
   mercuryEnterprises             MercuryEnterprise[]
   mercuryVetDocuments            MercuryVetDocument[]
   mercuryOutbox                  MercuryOutbox[]
+  staffPairTokens                StaffPairToken[]
   paperJournalDocuments          PaperJournalDocument[]
   printAgents                    PrintAgent[]
   printJobs                      PrintJob[]
@@ -597,6 +598,7 @@ model User {
   journalAccess               UserJournalAccess[]
   inviteToken                 InviteToken?
   botInviteToken              BotInviteToken?
+  staffPairToken              StaffPairToken?
   workOffDays                 StaffWorkOffDay[]
   vacations                   StaffVacation[]
   sickLeaves                  StaffSickLeave[]
@@ -3050,4 +3052,34 @@ model MercuryOutbox {
   @@index([integrationId, status])
   @@index([organizationId, status, createdAt])
   @@index([applicationId])
+}
+
+/// Привязка устройства сотрудника: одноразовая ссылка, по которой он
+/// задаёт себе пароль и сразу оказывается в кабинете.
+///
+/// Отличие от `EmployeeJoinToken`: тот СОЗДАЁТ нового сотрудника по
+/// самозаписи, а этот выдаёт пароль СУЩЕСТВУЮЩЕМУ. На 2026-09-08 у 194
+/// активных сотрудников пароля нет вовсе — их заводили импортом, через
+/// Mini App или бота, а `src/lib/staff-create.ts` ставит пустой хеш,
+/// то есть вход невозможен. Без этой модели они останутся заперты в
+/// Telegram навсегда.
+///
+/// Форма скопирована с `BotInviteToken`: хранится только хеш, ссылка
+/// одноразовая и с истечением.
+model StaffPairToken {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Один активный токен на сотрудника: выдал новый — старый перестал
+  /// действовать. Иначе по кухне гуляли бы несколько живых ссылок.
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdById    String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([expiresAt])
 }
