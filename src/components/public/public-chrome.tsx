@@ -214,6 +214,7 @@ export function PublicFooter() {
           </div>
           <Link href="/blog" className="py-2.5 transition-colors hover:text-[#0b1024]">Блог</Link>
           <Link href="/journals-info" className="py-2.5 transition-colors hover:text-[#0b1024]">Журналы</Link>
+          <Link href="/blanki" className="py-2.5 transition-colors hover:text-[#0b1024]">Бланки</Link>
           <Link href="/pricing" className="py-2.5 transition-colors hover:text-[#0b1024]">Тарифы</Link>
           <Link href="/login" className="py-2.5 transition-colors hover:text-[#0b1024]">Войти</Link>
           <Link href="/register" className="py-2.5 transition-colors hover:text-[#0b1024]">Регистрация</Link>

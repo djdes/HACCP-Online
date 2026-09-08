@@ -1,12 +1,6 @@
 import Link from "next/link";
 import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
-import {
-  ArrowRight,
-  BookOpenCheck,
-  Building2,
-  Layers,
-  Search,
-} from "lucide-react";
+import { ArrowRight, BookOpenCheck, Building2, FileDown, Layers, Search } from "lucide-react";
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import {
   JOURNAL_INFO,
@@ -90,6 +84,16 @@ export default function JournalsInfoListPage() {
               прослеживаемости. Кликните по любому, чтобы посмотреть, что
               заполняется и какая норма требует.
             </p>
+            {/* Отдельный вход для тех, кому нужен файл, а не описание
+                сервиса: этот каталог отвечает на «какие журналы нужны»,
+                хаб бланков — на «дайте бланк, я распечатаю». */}
+            <Link
+              href="/blanki"
+              className="mt-6 inline-flex h-11 items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 text-[15px] font-medium text-white backdrop-blur transition-colors duration-150 hover:bg-white/20"
+            >
+              <FileDown className="size-4" />
+              Скачать пустые бланки
+            </Link>
           </div>
         </div>
       </section>
