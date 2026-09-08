@@ -52,6 +52,64 @@ self.addEventListener("message", (event) => {
   }
 });
 
+/* ------------------------------------------------------------------
+ * Push-уведомления
+ * ---------------------------------------------------------------- */
+
+self.addEventListener("push", (event) => {
+  // Тело всегда шлём мы сами (`src/lib/web-push.ts`), но пуш-сервис
+  // может доставить и пустое событие — тогда показываем нейтральный
+  // текст: по спецификации на полученный push ОБЯЗАНО появиться
+  // уведомление, иначе браузер отзовёт разрешение.
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+
+  const title = data.title || "WeSetup";
+  const options = {
+    body: data.body || "Есть что заполнить",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    // Один тег — одно уведомление в шторке: десять напоминаний об одном
+    // журнале не должны выглядеть как десять разных дел.
+    tag: data.tag || "wesetup",
+    data: { url: typeof data.url === "string" ? data.url : "/mini" },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const target = (event.notification.data && event.notification.data.url) || "/mini";
+  // Только внутрь кабинета: адрес приходит с сервера, но проверить
+  // дешевле, чем однажды открыть по нему чужой сайт.
+  const url = target.startsWith("/mini") ? target : "/mini";
+
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      // Уже открытую вкладку переиспользуем, а не плодим новые: на
+      // телефоне десяток вкладок кабинета — это каша.
+      for (const client of clients) {
+        if (client.url.includes("/mini")) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(url).catch(() => {});
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
+});
+
 /**
  * Кешируем только то, чьё имя содержит хеш содержимого, — такой файл
  * не может «протухнуть», а значит cache-first безопасен.

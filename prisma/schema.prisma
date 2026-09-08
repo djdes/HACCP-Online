@@ -365,6 +365,7 @@ model Organization {
   mercuryVetDocuments            MercuryVetDocument[]
   mercuryOutbox                  MercuryOutbox[]
   staffPairTokens                StaffPairToken[]
+  webPushSubscriptions           WebPushSubscription[]
   paperJournalDocuments          PaperJournalDocument[]
   printAgents                    PrintAgent[]
   printJobs                      PrintJob[]
@@ -599,6 +600,7 @@ model User {
   inviteToken                 InviteToken?
   botInviteToken              BotInviteToken?
   staffPairToken              StaffPairToken?
+  webPushSubscriptions        WebPushSubscription[]
   workOffDays                 StaffWorkOffDay[]
   vacations                   StaffVacation[]
   sickLeaves                  StaffSickLeave[]
@@ -3082,4 +3084,36 @@ model StaffPairToken {
 
   @@index([organizationId])
   @@index([expiresAt])
+}
+
+/// Подписка браузера на push-уведомления кабинета.
+///
+/// Подписок у человека несколько намеренно: личный телефон и общий
+/// планшет кухни — разные устройства, и напоминание о незаполненном
+/// журнале должно прийти на оба.
+///
+/// `endpoint` уникален ГЛОБАЛЬНО, а не в паре с пользователем: это
+/// адрес, выданный пуш-сервисом конкретному браузеру. Если планшет
+/// передали другому сотруднику и тот подписался, подписка должна
+/// ПЕРЕЕХАТЬ на него, а не задвоиться — иначе прошлый владелец
+/// продолжал бы получать чужие уведомления.
+model WebPushSubscription {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint       String       @unique
+  p256dh         String
+  auth           String
+  /// Чтобы показать человеку список его устройств.
+  userAgent      String?
+  /// Подряд идущие сбои. Мёртвую подписку пуш-сервис отдаёт как 404/410
+  /// — такую удаляем сразу; счётчик нужен для остальных случаев.
+  failureCount   Int          @default(0)
+  lastSuccessAt  DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([userId])
+  @@index([organizationId])
 }

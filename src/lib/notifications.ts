@@ -49,6 +49,58 @@ export function asDismissedItemIds(raw: unknown): Set<string> {
  * already exists and is not dismissed, items are merged in (by id) and the
  * row is surfaced again by clearing readAt.
  */
+/**
+ * Дублирует уведомление пушем на телефон.
+ *
+ * Best-effort и намеренно без await в вызывающем коде: push — подсказка,
+ * а не бизнес-операция. Провалившаяся отправка не должна отменить то
+ * действие, из которого она вызвана.
+ *
+ * Push уходит только когда уведомление ПОЯВИЛОСЬ или было поднято
+ * заново. Слияние подзадач в уже открытое уведомление молчит: иначе
+ * ночной крон, дописывающий по одному журналу, будил бы человека
+ * десять раз подряд про одно и то же.
+ */
+function pushNotification(args: {
+  userId: string;
+  title: string;
+  dedupeKey: string;
+  linkHref?: string | null;
+  items: NotificationItem[];
+}): void {
+  void (async () => {
+    try {
+      const { sendPushToUser } = await import("@/lib/web-push");
+      const first = args.items[0]?.label;
+      await sendPushToUser(args.userId, {
+        title: args.title,
+        body:
+          args.items.length > 1
+            ? `${first} и ещё ${args.items.length - 1}`
+            : (first ?? "Откройте, чтобы посмотреть"),
+        url: toMiniUrl(args.linkHref),
+        // Тег — тот же ключ дедупликации: повторное уведомление о том же
+        // заменит прежнее в шторке, а не ляжет рядом.
+        tag: args.dedupeKey,
+      });
+    } catch (error) {
+      console.error("[notifications] push failed", error);
+    }
+  })();
+}
+
+/**
+ * Ссылки в уведомлениях ведут на дашборд (`/journals/...`), а push
+ * открывается в кабинете. Переписываем на его пространство, а незнакомое
+ * ведём на главную: чужой или битый адрес хуже, чем главный экран.
+ */
+export function toMiniUrl(href?: string | null): string {
+  if (!href || !href.startsWith("/")) return "/mini";
+  if (href.startsWith("/mini")) return href;
+  if (href.startsWith("/journals")) return `/mini${href}`;
+  return "/mini";
+}
+
 export async function upsertNotification(args: {
   organizationId: string;
   userId: string;
@@ -88,6 +140,7 @@ export async function upsertNotification(args: {
         dismissedAt: null,
       },
     });
+    pushNotification(args);
     return;
   }
   // Merge by id — если incoming item имеет тот же id, что и существующий,
