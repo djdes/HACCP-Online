@@ -200,6 +200,18 @@ export function EmptyDocumentsState({
 export const EMPTY_STATE_CREATE_BUTTON_CLASS =
   "h-12 gap-2 rounded-lg bg-[#5566f6] px-6 text-[15px] font-semibold text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-150 hover:bg-[#4a5bf0] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15";
 
+/**
+ * Меню действий с документом на карточке журнала.
+ *
+ * Кнопка подписана и обведена намеренно. Раньше это были голые три
+ * точки цветом акцента, по центру карточки, без рамки и подписи —
+ * ровно так же выглядит индикатор загрузки, и владелец так её и
+ * прочитал: «почему появляется загрузка?». Нажимать на неё при этом
+ * никто не пробовал, то есть половина журналов оставалась без печати и
+ * настроек.
+ *
+ * Заодно цель нажатия была 32 px при принятом в проекте минимуме 44.
+ */
 export function DocumentActionsMenu(props: {
   onEdit?: () => void;
   onPrint: () => void;
@@ -250,9 +262,18 @@ export function DocumentActionsMenu(props: {
         <button
           type="button"
           aria-label="Действия с документом"
-          className="flex size-8 items-center justify-center rounded-full hover:bg-[#f5f6ff]"
+          className={
+            // На телефоне — 44 px и подпись: наведения мыши там нет, и
+            // догадаться, что значок кликабельный, неоткуда. На
+            // компьютере хватает рамки и hover'а, а подпись в каждой из
+            // двадцати строк только шумит.
+            (props.size ?? "md") === "md"
+              ? "inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13.5px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:h-9 sm:gap-0 sm:px-2.5"
+              : "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[13px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:h-8 sm:gap-0 sm:px-2"
+          }
         >
-          <Ellipsis className="size-5 text-[#5566f6]" />
+          <Ellipsis className="size-4 text-[#5566f6]" />
+          <span className="sm:hidden">Действия</span>
         </button>
       }
     />
