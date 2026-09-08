@@ -99,7 +99,18 @@ export default async function MiniLayout({
         strategy="beforeInteractive"
       />
       {/* Distinctive font stack, loaded once. Display serif для editorial
-          заголовков, mono для температур/кодов, grotesque для body. */}
+          заголовков, mono для температур/кодов, grotesque для body.
+
+          `media="print"` + переключение на `all` после гидратации — этот
+          стиль КРОСС-ДОМЕННЫЙ и рендер-блокирующий: пока браузер ждал
+          ответа fonts.googleapis.com и три вариативных шрифта, /mini не
+          рисовался вовсе. Замер на проде: TTFB 32 мс, а load — 1038 мс,
+          самая медленная страница сайта.
+
+          Отрисовка теперь идёт сразу на фолбэках, которые уже прописаны
+          в `mini-theme.css` (Georgia / system-ui / ui-monospace), а
+          фирменные шрифты доезжают следом. `display=swap` в самой ссылке
+          гарантирует, что подмена не даст «невидимого текста». */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link
         rel="preconnect"
@@ -108,8 +119,13 @@ export default async function MiniLayout({
       />
       <link
         rel="stylesheet"
+        media="print"
+        data-mini-fonts=""
         href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,0..100;1,9..144,300..700,0..100&family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Geist+Mono:wght@400;500;600&display=swap"
       />
+      <Script id="mini-fonts-activate" strategy="afterInteractive">
+        {`document.querySelector('link[data-mini-fonts]')?.setAttribute('media','all')`}
+      </Script>
       <MiniSessionProvider>
         <MiniThemeProvider initialTheme={initialTheme}>
           <MiniTelegramRuntime />
