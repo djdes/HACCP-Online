@@ -4,7 +4,7 @@
   "short_name": "WeSetup",
   "description": "Журналы СанПиН и ХАССП: задачи смены, заполнение и фото — с телефона",
   "start_url": "/mini?src=pwa",
-  "scope": "/mini",
+  "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
