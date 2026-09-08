@@ -106,8 +106,7 @@ import {
   JournalDocumentTitle,
   JournalLegendBlock,
 } from "@/components/journals/journal-document-header";
-import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
-import { MobileAxisToggle } from "@/components/journals/mobile-axis-toggle";
+import { MobileViewAxisToggle } from "@/components/journals/mobile-view-axis-toggle";
 import { DayFirstCards } from "@/components/journals/day-first-cards";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -2204,17 +2203,22 @@ export function CleaningDocumentClient(props: Props) {
         ) : null}
 
 
-        <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-
-        {mobileView === "cards" && dayKeys.includes(todayKey) ? (
-          <div className="mb-4 sm:hidden print:hidden">
-            <MobileAxisToggle
-              axis={mobileAxis}
-              onChange={switchMobileAxis}
-              entityLabel="По помещениям"
-            />
-          </div>
-        ) : null}
+        {/* Один ряд вместо двух: таблица показывает весь период и
+            ось игнорирует, так что состояний три, а не четыре. */}
+        <MobileViewAxisToggle
+          view={mobileView}
+          axis={mobileAxis}
+          axisAvailable={dayKeys.includes(todayKey)}
+          entityLabel="По помещениям"
+          onChange={(next) => {
+            if (next.view === "table") {
+              switchMobileView("table");
+              return;
+            }
+            switchMobileView("cards");
+            switchMobileAxis(next.axis);
+          }}
+        />
 
         {/* Ось «Сегодня»: помещения за один день. Уборщица закрывает свою
             смену одним экраном, не раскрывая каждое помещение. */}

@@ -3,7 +3,7 @@
 import { getJournalDocumentPeriodLabel } from "@/lib/journal-document-helpers";
 import { TOUR } from "@/lib/tour-anchors";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,8 +34,7 @@ import {
   JournalLegendBlock,
   JournalPaperHeaderRows,
 } from "@/components/journals/journal-document-header";
-import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
-import { MobileAxisToggle } from "@/components/journals/mobile-axis-toggle";
+import { MobileViewAxisToggle } from "@/components/journals/mobile-view-axis-toggle";
 import { DayFirstCards } from "@/components/journals/day-first-cards";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
@@ -550,6 +549,37 @@ export function HygieneDocumentClient({
    * «Сегодня». Подтверждение обязательно (правило UX-6), результат —
    * тост со счётчиком: пропущенные строки видно сразу.
    */
+  /**
+   * Кого именно проставила последняя массовая отметка. Нужно для
+   * отмены: вернуть надо ровно этих, а не всех, у кого сейчас «Зд.» —
+   * иначе откат стёр бы отметки, поставленные руками до нажатия.
+   */
+  const lastBulkRef = useRef<string[]>([]);
+
+  async function undoBulkHealthyToday() {
+    const ids = lastBulkRef.current;
+    lastBulkRef.current = [];
+    if (ids.length === 0) return;
+
+    let reverted = 0;
+    for (const employeeId of ids) {
+      const current = normalizeHygieneEntryData(
+        entryMap[makeCellKey(employeeId, todayKey)]
+      );
+      try {
+        await persistEntry(employeeId, todayKey, { ...current, status: null });
+        reverted += 1;
+      } catch {
+        /* строку пропускаем — счётчик покажет расхождение */
+      }
+    }
+    toast.success(
+      reverted === ids.length
+        ? `Возвращено: ${reverted}`
+        : `Возвращено: ${reverted} из ${ids.length}`
+    );
+  }
+
   async function markEveryoneHealthyToday() {
     const targets = printableEmployees.filter((employee) => {
       if (!employee.name) return false;
@@ -570,6 +600,7 @@ export function HygieneDocumentClient({
     if (!confirmed) return;
 
     let done = 0;
+    const marked: string[] = [];
     for (const employee of targets) {
       const current = normalizeHygieneEntryData(
         entryMap[makeCellKey(employee.id, todayKey)]
@@ -580,10 +611,14 @@ export function HygieneDocumentClient({
           status: "healthy",
         });
         done += 1;
+        marked.push(employee.id);
       } catch {
         /* строку пропускаем — счётчик покажет расхождение */
       }
     }
+    // Запоминаем только реально проставленных: откат не должен трогать
+    // тех, у кого сохранение не прошло.
+    lastBulkRef.current = marked;
     toast.success(
       done === targets.length
         ? `Отмечено: ${done}`
@@ -1145,26 +1180,25 @@ export function HygieneDocumentClient({
           />
         ) : null}
 
-        {/* Mobile-only view toggle. Cards is the default — vertical list
-            of employees with day-by-day accordion — far more usable on a
-            phone than a 1100-px-wide table behind horizontal scroll. */}
-        <MobileViewToggle
-          mobileView={mobileView}
-          onChange={switchMobileView}
+        {/* Один ряд вместо двух. Раньше здесь стояли «Карточки /
+            Таблица» и под ним «Сегодня / По сотрудникам» — 112 px до
+            первой строки данных и вид матрицы 2×2, которой на самом
+            деле нет: таблица показывает весь период и ось игнорирует. */}
+        <MobileViewAxisToggle
+          view={mobileView}
+          axis={mobileAxis}
+          axisAvailable={todayInPeriod}
+          entityLabel="По сотрудникам"
           dataTour={TOUR.viewToggle}
+          onChange={(next) => {
+            if (next.view === "table") {
+              switchMobileView("table");
+              return;
+            }
+            switchMobileView("cards");
+            switchMobileAxis(next.axis);
+          }}
         />
-
-        {/* Ось карточек: сегодняшний день по всем сотрудникам или один
-            сотрудник за весь период. */}
-        {mobileView === "cards" && todayInPeriod ? (
-          <div className="mt-2 sm:hidden print:hidden">
-            <MobileAxisToggle
-              axis={mobileAxis}
-              onChange={switchMobileAxis}
-              entityLabel="По сотрудникам"
-            />
-          </div>
-        ) : null}
       </div>
 
       {/* Mobile cards view — rendered outside the scroll wrapper so it
@@ -1198,6 +1232,25 @@ export function HygieneDocumentClient({
                     : lockReason ?? undefined,
                   onPress: (event: React.MouseEvent) =>
                     openCellMenu(event, employee.id, todayKey, "status", true),
+                  // Смахнуть вправо — поставить «Зд.», не целясь в
+                  // кнопку. Отмена обязательна: журнал подписывается
+                  // именем сотрудника, и случайное движение не должно
+                  // остаться незамеченным.
+                  quickMark: {
+                    label: "Зд.",
+                    onApply: () => {
+                      void persistEntry(employee.id, todayKey, {
+                        ...entry,
+                        status: "healthy",
+                      });
+                    },
+                    onUndo: () => {
+                      void persistEntry(employee.id, todayKey, {
+                        ...entry,
+                        status: entry.status ?? null,
+                      });
+                    },
+                  },
                 };
               })}
             emptyLabel="В документе пока нет сотрудников."
@@ -1207,6 +1260,9 @@ export function HygieneDocumentClient({
                     label: "Отметить всех «Зд.»",
                     onRun: () => {
                       void markEveryoneHealthyToday();
+                    },
+                    onUndo: () => {
+                      void undoBulkHealthyToday();
                     },
                   }
                 : undefined

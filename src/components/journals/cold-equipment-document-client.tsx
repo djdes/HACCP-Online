@@ -89,8 +89,7 @@ import { useDocumentCloseAction } from "@/components/journals/document-close-but
 import { useCopyYesterdayAction } from "@/components/journals/copy-yesterday-button";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
-import { MobileViewToggle } from "@/components/journals/mobile-view-toggle";
-import { MobileAxisToggle } from "@/components/journals/mobile-axis-toggle";
+import { MobileViewAxisToggle } from "@/components/journals/mobile-view-axis-toggle";
 import { DayFirstCards } from "@/components/journals/day-first-cards";
 import { FillRunner } from "@/components/journals/fill-runner";
 import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
@@ -1466,17 +1465,22 @@ export function ColdEquipmentDocumentClient({
         {/* Mobile-only view toggle. Cards = accordion per equipment with
             per-day temperature inputs, vastly more usable on a phone than
             a 1900-px grid. Hidden on sm+ and in print. */}
-        <MobileViewToggle mobileView={mobileView} onChange={switchMobileView} />
-
-        {mobileView === "cards" && todayInPeriod ? (
-          <div className="mb-4 sm:hidden print:hidden">
-            <MobileAxisToggle
-              axis={mobileAxis}
-              onChange={switchMobileAxis}
-              entityLabel="По оборудованию"
-            />
-          </div>
-        ) : null}
+        {/* Один ряд вместо двух: таблица показывает весь период и
+            ось игнорирует, так что состояний три, а не четыре. */}
+        <MobileViewAxisToggle
+          view={mobileView}
+          axis={mobileAxis}
+          axisAvailable={todayInPeriod}
+          entityLabel="По оборудованию"
+          onChange={(next) => {
+            if (next.view === "table") {
+              switchMobileView("table");
+              return;
+            }
+            switchMobileView("cards");
+            switchMobileAxis(next.axis);
+          }}
+        />
 
         {/* Mobile Cards view — accordion per equipment with per-day
             temperature inputs. `handleTemperatureBlur` is the same save
