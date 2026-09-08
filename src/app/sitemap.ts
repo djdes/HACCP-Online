@@ -9,7 +9,7 @@ import { SEO_LANDINGS } from "@/components/landing/seo-journal-landing";
  * Dynamic sitemap for crawlers. Combines:
  * - Static public pages (landing, blog list, journals-info list)
  * - All 34 /journals-info/[code] entries
- * - 8 /features/[slug] entries
+ * - /features index + 8 /features/[slug] entries
  * - Every published blog article
  *
  * Rebuilt on each request because `dynamic = "force-dynamic"` is set
@@ -34,12 +34,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/`, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
     { url: `${SITE}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE}/journals-info`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    // Индекс возможностей: до 2026-09-08 страницы `/features` не
+    // существовало (были только детальные `/features/[slug]`), и ссылка
+    // с /pricing вела в 404.
+    { url: `${SITE}/features`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     // /pricing — высоко-конверсионная страница (ROI калькулятор + тарифы),
     // высокий приоритет для индексации. Раньше отсутствовала в sitemap'е.
     { url: `${SITE}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.85 },
     { url: `${SITE}/partners`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${SITE}/login`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE}/register`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
+    // /login и /register в sitemap не входят: это служебные экраны без
+    // контента под запрос. Их присутствие размывает краулинговый бюджет
+    // и тянет вниз среднее качество набора страниц. Индексации они не
+    // требуют — вход всегда происходит по прямой ссылке или из шапки.
     { url: `${SITE}/oferta`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
