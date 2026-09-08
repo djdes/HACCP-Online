@@ -11,6 +11,7 @@ import {
   Handshake,
   KeyRound,
   ListChecks,
+  MicVocal,
   MessageCircle,
   MessageCircleMore,
   Building2,
@@ -25,6 +26,7 @@ import {
   type LucideIcon,
   Users,
   Wand2,
+  WifiOff,
   X,
   MapPin,
   Smartphone,
@@ -95,6 +97,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Скорость и отклик": Zap,
   "Замеры и приборы": Thermometer,
   "Вход и установка на телефон": KeyRound,
+  "Работа без интернета": WifiOff,
+  "Голосовой ввод": MicVocal,
 };
 
 function iconForCategory(name: string): LucideIcon {
