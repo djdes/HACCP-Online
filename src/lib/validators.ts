@@ -85,6 +85,8 @@ export const notificationPrefsSchema = z.object({
   temperature: z.boolean(),
   deviations: z.boolean(),
   compliance: z.boolean(),
+  /// Еженедельная сводка на почту (понедельник 08:00). Старые записи без ключа = включено.
+  weeklyDigest: z.boolean().default(true),
 });
 
 export type NotificationPrefs = z.infer<typeof notificationPrefsSchema>;
@@ -93,6 +95,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   temperature: true,
   deviations: true,
   compliance: true,
+  weeklyDigest: true,
 };
 
 /**

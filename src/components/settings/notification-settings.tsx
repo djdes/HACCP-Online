@@ -14,6 +14,7 @@ import {
   Send,
   Thermometer,
   Unlink,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/ui/page-header";
@@ -29,6 +30,7 @@ interface NotificationPrefs {
   temperature: boolean;
   deviations: boolean;
   compliance: boolean;
+  weeklyDigest: boolean;
 }
 
 const PREF_ITEMS: Array<{
@@ -55,6 +57,13 @@ const PREF_ITEMS: Array<{
     description: "Ежедневный дайджест того, что надо заполнить",
     icon: ClipboardList,
   },
+  {
+    key: "weeklyDigest",
+    label: "Еженедельный отчёт на почту",
+    description:
+      "Понедельник, 08:00: заполнено и пропущено, отклонения, кто не отмечался, что истекает — письмом руководителю",
+    icon: Mail,
+  },
 ];
 
 export function NotificationSettings({
@@ -67,6 +76,7 @@ export function NotificationSettings({
     temperature: true,
     deviations: true,
     compliance: true,
+    weeklyDigest: true,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isUnlinking, setIsUnlinking] = useState(false);
