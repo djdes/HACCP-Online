@@ -122,7 +122,17 @@ export default async function MiniLayout({
           Отрисовка теперь идёт сразу на фолбэках, которые уже прописаны
           в `mini-theme.css` (Georgia / system-ui / ui-monospace), а
           фирменные шрифты доезжают следом. `display=swap` в самой ссылке
-          гарантирует, что подмена не даст «невидимого текста». */}
+          гарантирует, что подмена не даст «невидимого текста».
+
+          2026-09-09: остался ОДИН Geist Mono. Fraunces и Bricolage
+          Grotesque убраны — у них нет кириллического набора вовсе
+          (только latin, latin-ext, vietnamese), то есть в русском
+          интерфейсе они не рисовали почти ничего, а весили 263 и 75 КБ.
+          338 КБ на дешёвом андроиде ради одной буквы «W» в значке:
+          логотип «WeSetup» — картинка-маска, а не текст, и он не
+          изменился. Русские заголовки и текст как рисовались
+          системными, так и рисуются. У Geist Mono кириллица есть, и он
+          реально работает — цифры, часы, показания. */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link
         rel="preconnect"
@@ -133,7 +143,7 @@ export default async function MiniLayout({
         rel="stylesheet"
         media="print"
         data-mini-fonts=""
-        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,400..700,0..100;1,9..144,300..700,0..100&family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Geist+Mono:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap"
       />
       <Script id="mini-fonts-activate" strategy="afterInteractive">
         {`document.querySelector('link[data-mini-fonts]')?.setAttribute('media','all')`}

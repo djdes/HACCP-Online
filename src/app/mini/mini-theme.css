@@ -12,8 +12,12 @@
 
 .mini-root {
   /* Type scales — те же в обеих темах */
-  --mini-font-display: "Fraunces", Georgia, serif;
-  --mini-font-body: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* Fraunces и Bricolage Grotesque убраны 2026-09-09: у них нет
+     кириллицы, в русском интерфейсе они не рисовали почти ничего, а
+     весили 338 КБ на двоих. Здесь остались те шрифты, которые и так
+     применялись фактически. */
+  --mini-font-display: Georgia, "Times New Roman", serif;
+  --mini-font-body: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --mini-font-mono: "Geist Mono", "SF Mono", ui-monospace, Menlo, Monaco, monospace;
 
   font-family: var(--mini-font-body);
