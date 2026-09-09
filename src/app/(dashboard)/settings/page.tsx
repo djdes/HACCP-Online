@@ -32,6 +32,7 @@ import {
   Network,
   Handshake,
   Award,
+  CalendarDays,
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { PageGuide } from "@/components/ui/page-guide";
@@ -265,6 +266,13 @@ const settingsCards = [
     icon: Bell,
     iconClass: "text-[#10b981]",
     bgClass: "bg-[#ecfdf5]",
+  },
+  {
+    description: "Сроки медкнижек, поверок и подписки — в вашем календаре",
+    href: "/settings/calendar",
+    icon: CalendarDays,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
   },
   {
     description: "История входов, выход со всех устройств",
@@ -624,6 +632,7 @@ const GROUP_MONEY = new Set([
 const GROUP_INTEGRATIONS = new Set([
   "/settings/integrations/tasksflow",
   "/settings/notifications",
+  "/settings/calendar",
   "/settings/accounting",
   "/settings/consultant",
   "/settings/api",

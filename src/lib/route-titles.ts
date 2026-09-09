@@ -41,6 +41,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/settings/backup": "Авто-бэкап на Я.Диск",
   "/settings/appearance": "Внешний вид",
   "/settings/security": "Безопасность",
+  "/settings/calendar": "Календарь",
   "/settings/balance": "Баланс и бонусы",
   "/settings/buildings": "Точки и помещения",
   "/settings/compliance": "Compliance",

@@ -649,6 +649,8 @@ model User {
   sessionVersion              Int                      @default(0)
   /// Подтверждение входа кодом в Telegram (только при привязанном чате).
   twoFactorTelegram           Boolean                  @default(false)
+  /// Личный токен ленты iCalendar (/api/calendar/<token>.ics); null — ссылка не создана.
+  calendarToken               String?                  @unique
   /// Когда человек подтвердил почту кодом. null — не подтверждал.
   /// Ничего не блокирует: это отметка для настроек и быстрого старта.
   emailVerifiedAt             DateTime?
