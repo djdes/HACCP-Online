@@ -47,7 +47,10 @@ export async function POST(request: Request) {
 
     // Отметка о входе — до выдачи сессии, но не в блокирующем смысле:
     // recordLogin глотает свои ошибки, вход от неё не зависит.
-    await recordLogin(user.id, ip === "unknown" ? null : ip);
+    await recordLogin(user.id, ip === "unknown" ? null : ip, {
+      userAgent: request.headers.get("user-agent"),
+      method: "password",
+    });
 
     // Минт JWT и раскладка кук вынесены в lib/issue-session.ts —
     // мгновенная регистрация выдаёт сессию тем же кодом.

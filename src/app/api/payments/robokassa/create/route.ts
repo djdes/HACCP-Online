@@ -160,6 +160,10 @@ export async function POST(request: NextRequest) {
     promoCode = promo.code;
     discountRub = promo.discountRub;
   }
+  // Описание заказа с промокодом — оно же в чеке, УПД и ответе клиенту.
+  const orderDescription = promoCode
+    ? `${description} (промокод ${promoCode}: −${discountRub} ₽)`
+    : description;
 
   // Метка партнёра (cookie с /p/<slug>) едет в заказ: после оплаты
   // организация нового клиента привяжется к партнёру.
@@ -175,7 +179,7 @@ export async function POST(request: NextRequest) {
     userId: session?.user?.id ?? null,
     email,
     tariffKey: tariff.key,
-    description: promoCode ? `${description} (промокод ${promoCode}: −${discountRub} ₽)` : description,
+    description: orderDescription,
     grossRub: grossRub - discountRub,
     subscriptionRub: tariff.priceRub - discountRub,
     promoCode,
@@ -218,7 +222,7 @@ export async function POST(request: NextRequest) {
       email,
       amountRub: 0,
       pointsSpent: order.pointsSpent,
-      description,
+      description: orderDescription,
       isTest: false,
       needsCompletion: false,
     });
@@ -249,7 +253,7 @@ export async function POST(request: NextRequest) {
   const params = buildPaymentParams({
     id: order.id,
     amountRub: order.amountRub,
-    description,
+    description: orderDescription,
     email,
     isTest: order.isTest,
     receiptItems,
@@ -268,7 +272,7 @@ export async function POST(request: NextRequest) {
     invId: order.id,
     amountRub: order.amountRub,
     pointsSpent: order.pointsSpent,
-    description,
+    description: orderDescription,
     params: paymentParams,
     // Фолбэк на обычную форму оплаты, если iframe-скрипт не загрузился.
     paymentUrl: buildPaymentUrl(paymentParams),

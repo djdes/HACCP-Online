@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Coins,
   FileText,
+  ShieldCheck,
   LogOut,
   MessageCircleMore,
   Moon,
@@ -272,6 +273,28 @@ export function MiniMeClient({
           </a>
         </section>
       ) : null}
+
+      <section>
+        <a
+          href="/settings/security"
+          target="_blank"
+          rel="noreferrer"
+          className="mini-press flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-[14px] font-medium"
+          style={{
+            background: "var(--mini-card-solid-bg)",
+            color: "var(--mini-text)",
+            border: "1px solid var(--mini-divider)",
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <ShieldCheck className="size-4" style={{ color: "var(--mini-text-muted)" }} />
+            Безопасность
+          </span>
+          <span className="text-[11px]" style={{ color: "var(--mini-text-faint)" }}>
+            входы и сессии
+          </span>
+        </a>
+      </section>
 
       {/* Обратная связь — паритет с сайтом (П-3): на сайте форма живёт
           в шапке, в Mini App шапки нет, поэтому она стоит карточкой в

@@ -645,6 +645,8 @@ model User {
   /// ли город/провайдер.
   lastLoginIp                 String?
   lastLoginAt                 DateTime?
+  /// Версия сессий: растёт при «Завершить все сессии», см. lib/session-version.ts.
+  sessionVersion              Int                      @default(0)
   /// Когда человек подтвердил почту кодом. null — не подтверждал.
   /// Ничего не блокирует: это отметка для настроек и быстрого старта.
   emailVerifiedAt             DateTime?
@@ -3180,4 +3182,25 @@ model PromoCode {
   note           String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+/// Журнал входов: когда, откуда и с какого устройства. Пишется при каждом
+/// успешном входе (lib/login-trace.ts); «новое устройство» — новый ключ
+/// устройства у этого человека после первого входа.
+model LoginEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  at          DateTime @default(now())
+  ip          String?
+  userAgent   String?
+  /// Человекочитаемо: «Chrome · Windows».
+  device      String
+  /// Хеш семейства браузер+ОС — версии не плодят «новые устройства».
+  deviceKey   String
+  /// password | phone | telegram | pair | register
+  method      String
+  isNewDevice Boolean  @default(false)
+
+  @@index([userId, at])
+  @@index([userId, deviceKey])
 }

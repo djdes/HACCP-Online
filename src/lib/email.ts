@@ -439,6 +439,36 @@ export async function sendWelcomeEmail(params: {
  * Счёт по безналу — клиенту, с PDF во вложении. Здесь же говорим, что
  * будет после оплаты: подписка продлится сама, документы — в кабинете.
  */
+/**
+ * Вход с нового устройства. Коротко и без паники: что, когда, откуда, и
+ * что делать, если это не вы.
+ */
+export async function sendNewDeviceLoginEmail(params: {
+  to: string;
+  name: string | null;
+  when: string;
+  device: string;
+  ip: string;
+  method: string;
+  organizationId?: string | null;
+}) {
+  const brand = await emailBrandForOrganization(params.organizationId);
+  const subject = "Вход в WeSetup с нового устройства";
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">${params.name ? `${escapeHtml(params.name)}, здравствуйте!` : "Здравствуйте!"}</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">В ваш аккаунт только что вошли с устройства, которого мы раньше не видели.</p>
+    <div style="background:#f4f4f5;border-radius:8px;padding:20px;margin:0 0 24px">
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Устройство: <strong>${escapeHtml(params.device)}</strong></p>
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Когда: <strong>${escapeHtml(params.when)} МСК</strong></p>
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">IP: <strong>${escapeHtml(params.ip)}</strong></p>
+      <p style="margin:0;color:#3f3f46;font-size:14px">Способ: <strong>${escapeHtml(params.method)}</strong></p>
+    </div>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Если это были вы — ничего делать не нужно. Если нет — откройте «Настройки → Безопасность», нажмите «Завершить все сессии» и смените пароль.</p>
+    <a href="${APP_URL}/settings/security" style="display:inline-block;background:#18181b;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px">Открыть «Безопасность»</a>
+    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Вопросы — support@wesetup.ru.</p>`;
+  return sendEmail(params.to, subject, layout(subject, body, brand));
+}
+
 export async function sendInvoiceEmail(params: {
   to: string;
   number: string;

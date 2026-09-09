@@ -267,6 +267,13 @@ const settingsCards = [
     bgClass: "bg-[#ecfdf5]",
   },
   {
+    description: "История входов, выход со всех устройств",
+    href: "/settings/security",
+    icon: ShieldCheck,
+    iconClass: "text-[#a13a32]",
+    bgClass: "bg-[#fff4f2]",
+  },
+  {
     description: "Баллы за отзывы и рекомендации — скидка на подписку",
     href: "/settings/balance",
     icon: Coins,

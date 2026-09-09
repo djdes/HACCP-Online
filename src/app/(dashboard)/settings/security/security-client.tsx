@@ -1,0 +1,129 @@
+"use client";
+
+import { LogOut, ShieldCheck, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
+type LoginRow = {
+  id: string;
+  at: string;
+  ip: string;
+  device: string;
+  method: string;
+  isNewDevice: boolean;
+};
+
+const CARD = "rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]";
+
+export function SecurityClient({ logins }: { logins: LoginRow[] }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function logoutAll() {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/security/logout-all", { method: "POST" });
+      const data = (await response.json().catch(() => null)) as { redirect?: string; error?: string } | null;
+      if (!response.ok) throw new Error(data?.error ?? "Не удалось");
+      toast.success("Все сессии завершены — войдите заново");
+      // Полная перезагрузка: сессия отозвана на сервере, клиентское
+      // состояние про неё уже врёт.
+      window.location.assign(data?.redirect ?? "/login");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <section className={CARD}>
+        <div className="mb-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">История входов</div>
+        {logins.length === 0 ? (
+          <p className="text-[13.5px] text-[#9b9fb3]">Пока пусто: история ведётся с сентября 2026 года и пополняется с каждым входом.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-[13.5px]">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-[#9b9fb3]">
+                  <th className="pb-2 font-medium">Когда</th>
+                  <th className="pb-2 font-medium">Устройство</th>
+                  <th className="pb-2 font-medium">Способ</th>
+                  <th className="pb-2 font-medium">IP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logins.map((row) => (
+                  <tr key={row.id} className="border-t border-[#f2f3f8]">
+                    <td className="py-2.5 text-[#0b1024]">{new Date(row.at).toLocaleString("ru-RU")}</td>
+                    <td className="py-2.5 text-[#0b1024]">
+                      {row.device}
+                      {row.isNewDevice ? (
+                        <span className="ml-2 rounded-full bg-[#fff8eb] px-2 py-0.5 text-[11px] font-medium text-[#b25f00]">
+                          новое устройство
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="py-2.5 text-[#6f7282]">{row.method}</td>
+                    <td className="py-2.5 tabular-nums text-[#6f7282]">{row.ip}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-4 text-[12.5px] leading-relaxed text-[#9b9fb3]">
+          О входе с нового устройства мы пишем на почту и в Telegram. Не узнаёте вход — завершите все
+          сессии и смените пароль.
+        </p>
+      </section>
+
+      <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
+        <section className={CARD}>
+          <div className="flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]">
+            <ShieldCheck className="size-4 text-[#5566f6]" />
+            Выйти везде
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
+            Завершит сессии на всех устройствах: телефон, планшет на кухне, чужой компьютер, где вы
+            забыли выйти. Здесь тоже придётся войти заново.
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#ef4444] to-[#f43f5e] px-5 text-[14px] font-medium text-white shadow-[0_12px_30px_-12px_rgba(244,63,94,0.6)] transition-opacity hover:opacity-90"
+          >
+            <LogOut className="size-4" />
+            Завершить все сессии
+          </button>
+        </section>
+        <section className={CARD}>
+          <div className="flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]">
+            <Sparkles className="size-4 text-[#5566f6]" />
+            Скоро
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
+            Подтверждение входа кодом в Telegram — включается здесь же.
+          </p>
+        </section>
+      </aside>
+
+      <ConfirmDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        onConfirm={logoutAll}
+        variant="danger"
+        title="Завершить все сессии?"
+        description="Выйдете на всех устройствах, включая это. Пароль не меняется — если его знает кто-то ещё, смените и его."
+        bullets={[
+          { label: "Телефон, планшет, все браузеры — выйдут сразу", tone: "warn" },
+          { label: "Здесь откроется страница входа" },
+        ]}
+        confirmLabel={busy ? "Завершаем…" : "Завершить все сессии"}
+        confirmDisabled={busy}
+      />
+    </div>
+  );
+}

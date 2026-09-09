@@ -62,6 +62,8 @@ declare module "next-auth/jwt" {
     isRoot: boolean;
     actingAsOrganizationId: string | null;
     permissionPreset: string | null;
+    /** Версия сессий пользователя — «Завершить все сессии», см. lib/session-version.ts. */
+    sv?: number;
     /** Кабинет клиента, открытый партнёром: { partnerId, organizationId, level }. */
     partnerAccess?: { partnerId: string; organizationId: string; level: "view" | "edit" } | null;
   }

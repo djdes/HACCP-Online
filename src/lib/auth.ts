@@ -2,10 +2,18 @@ import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { clientIpFromHeaderBag } from "@/lib/client-ip";
 import { recordLogin } from "@/lib/login-trace";
+import { getSessionVersion, isSessionVersionCurrent } from "@/lib/session-version";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { getPermissionRole } from "@/lib/user-roles";
 import { verifyTelegramInitData } from "@/lib/telegram-init-data";
+
+/** User-Agent из мешка заголовков NextAuth (настоящего Request здесь нет). */
+function userAgentFromHeaderBag(headers: unknown): string | null {
+  if (!headers || typeof headers !== "object") return null;
+  const value = (headers as Record<string, unknown>)["user-agent"];
+  return typeof value === "string" ? value : null;
+}
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -106,7 +114,10 @@ export const authOptions: NextAuthOptions = {
 
         // Отметка о входе для /root/metrics. NextAuth не даёт сюда
         // настоящий Request — только мешок заголовков от адаптера.
-        await recordLogin(user.id, clientIpFromHeaderBag(req?.headers));
+        await recordLogin(user.id, clientIpFromHeaderBag(req?.headers), {
+          userAgent: userAgentFromHeaderBag(req?.headers),
+          method: "password",
+        });
 
         return {
           id: user.id,
@@ -150,7 +161,10 @@ export const authOptions: NextAuthOptions = {
             "Аккаунт не связан с Telegram. Получите приглашение у руководителя."
           );
         }
-        await recordLogin(user.id, clientIpFromHeaderBag(req?.headers));
+        await recordLogin(user.id, clientIpFromHeaderBag(req?.headers), {
+          userAgent: userAgentFromHeaderBag(req?.headers),
+          method: "telegram",
+        });
         return {
           id: user.id,
           email: user.email,
@@ -189,6 +203,7 @@ export const authOptions: NextAuthOptions = {
           u.id,
           u.organizationId,
         );
+        token.sv = await getSessionVersion(u.id);
       }
       // Переключение между своими организациями пишет claim напрямую в
       // cookie (см. lib/session-token.ts) — здесь только подхватываем.
@@ -218,6 +233,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      // «Завершить все сессии»: токен старой версии больше не сессия.
+      // null — клиент (useSession) считает себя разлогиненным.
+      if (!(await isSessionVersionCurrent(String(token.id ?? token.sub ?? ""), token.sv))) {
+        return null as unknown as typeof session;
+      }
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;

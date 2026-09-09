@@ -58,7 +58,10 @@ export async function POST(request: Request) {
       );
     }
 
-    await recordLogin(user.id, ip === "unknown" ? null : ip);
+    await recordLogin(user.id, ip === "unknown" ? null : ip, {
+      userAgent: request.headers.get("user-agent"),
+      method: "phone",
+    });
 
     return issueSession(
       NextResponse.json({ success: true }),

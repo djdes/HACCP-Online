@@ -3,6 +3,7 @@ import { decode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { CUSTOM_SESSION_COOKIE, LEGACY_SESSION_COOKIES } from "@/lib/auth-cookies";
 import { evaluatePartnerRequest } from "@/lib/partners/access-guard";
+import { isSessionVersionCurrent } from "@/lib/session-version";
 import { PARTNER_HEADER_METHOD, PARTNER_HEADER_PATH } from "@/lib/partners/request-context";
 
 export async function getServerSession(
@@ -28,6 +29,11 @@ export async function getServerSession(
   });
 
   if (!token) {
+    return null;
+  }
+  // Сессия отозвана («Завершить все сессии») — для сервера её нет.
+  const tokenUserId = typeof token.id === "string" ? token.id : String(token.sub ?? "");
+  if (!(await isSessionVersionCurrent(tokenUserId, token.sv))) {
     return null;
   }
 

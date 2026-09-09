@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { encode } from "next-auth/jwt";
+import { getSessionVersion } from "@/lib/session-version";
 import {
   ALL_SESSION_COOKIES,
   CUSTOM_SESSION_COOKIE,
@@ -103,6 +104,7 @@ export async function issueSession(
       isRoot: user.isRoot === true,
       actingAsOrganizationId: null,
       permissionPreset: user.permissionPreset ?? null,
+      sv: await getSessionVersion(user.id),
     },
   });
 
