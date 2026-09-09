@@ -18,6 +18,7 @@ import {
   Unlink,
   CalendarDays,
   Lightbulb,
+  BadgeCheck,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FeedbackDialog } from "@/components/layout/feedback-dialog";
@@ -309,6 +310,25 @@ export function MiniMeClient({
             </span>
             <span className="text-[11px]" style={{ color: "var(--mini-text-faint)" }}>
               предложить
+            </span>
+          </a>
+          <a
+            href="/settings/organization#badge"
+            target="_blank"
+            rel="noreferrer"
+            className="mini-press mt-2 flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-[14px] font-medium"
+            style={{
+              background: "var(--mini-card-solid-bg)",
+              color: "var(--mini-text)",
+              border: "1px solid var(--mini-divider)",
+            }}
+          >
+            <span className="inline-flex items-center gap-2">
+              <BadgeCheck className="size-4" style={{ color: "var(--mini-text-muted)" }} />
+              Публичный бейдж
+            </span>
+            <span className="text-[11px]" style={{ color: "var(--mini-text-faint)" }}>
+              для сайта
             </span>
           </a>
         </section>

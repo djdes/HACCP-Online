@@ -3,6 +3,9 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { OrganizationInfoForm } from "@/components/settings/organization-info-form";
+import { PublicBadgeCard } from "@/components/settings/public-badge-card";
+import { describeBadge } from "@/lib/badge/describe";
+import { getBadgeStatusForOrganization } from "@/lib/badge/status";
 import { readLegalProfile } from "@/lib/org-legal-profile";
 import { PageGuide } from "@/components/ui/page-guide";
 import { PageHeader } from "@/components/ui/page-header";
@@ -37,9 +40,13 @@ export default async function OrganizationInfoPage() {
       subscriptionPlan: true,
       subscriptionEnd: true,
       createdAt: true,
+      badgeEnabled: true,
+      badgeCode: true,
     },
   });
   if (!org) redirect("/settings");
+  const badgeStatus = org.badgeEnabled ? await getBadgeStatusForOrganization(getActiveOrgId(session)).catch(() => null) : null;
+  const badge = describeBadge(org, badgeStatus?.percent ?? null);
 
   return (
     <div className="space-y-5">
@@ -90,6 +97,8 @@ export default async function OrganizationInfoPage() {
           createdAt: org.createdAt.toISOString(),
         }}
       />
+
+      <PublicBadgeCard initial={badge} />
     </div>
   );
 }

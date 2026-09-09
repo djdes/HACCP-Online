@@ -234,6 +234,9 @@ model Organization {
   accountantEmail                String?
   /// Когда последний раз ушла недельная сводка (крон weekly-digest); повтор не раньше чем через 6 дней.
   weeklyDigestSentAt             DateTime?
+  /// Публичный бейдж «журналы ведутся в WeSetup»: opt-in и код страницы /b/<code>.
+  badgeEnabled                   Boolean                        @default(false)
+  badgeCode                      String?                        @unique
   /// IANA timezone для отображения дат и расчётов compliance.
   /// Default "Europe/Moscow" (UTC+3) — большинство клиентов в РФ.
   /// Используется для перевода дашборд/отчётов из UTC в локаль.
