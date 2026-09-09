@@ -184,8 +184,14 @@ const nextConfig: NextConfig = {
         // дашборд и /settings/journals: это и были недостающие ~400 КБ
         // из 465 КБ трафика каталога журналов. То же с `/brand/` и
         // `/icons/`. Свой Cache-Control им выставлен ниже.
+        //
+        // `uploads/` — файлы, загруженные людьми. Их отдаёт маршрут
+        // `app/uploads/[...path]`, и он сам ставит `private, immutable`:
+        // имена случайные, содержимое по ним не меняется. Под общим
+        // no-store фото в журнале качалось бы заново при каждом
+        // открытии записи.
         source:
-          "/((?!_next/static|_next/image|api/journal-samples|api/journal-previews|journal-samples/|brand/|icons/|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
+          "/((?!_next/static|_next/image|api/journal-samples|api/journal-previews|journal-samples/|brand/|icons/|uploads/|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
         headers: [
           {
             key: "Cache-Control",

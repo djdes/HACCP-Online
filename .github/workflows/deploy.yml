@@ -178,6 +178,24 @@ jobs:
             cd ${{ env.APP_DIR }}
             export GITHUB_SHA="${{ github.sha }}"
 
+            echo "=== Rescuing user uploads before the wipe ==="
+            # public/uploads — файлы, загруженные ЛЮДЬМИ: фото в журналах
+            # (доказательство на проверке), вложения обращений и отзывов.
+            # В репозитории их нет, они появляются в рантайме — и
+            # `rm -rf public` ниже уничтожал их на КАЖДОМ деплое.
+            # Обнаружено 2026-09-09: каталог на проде был пуст, а страница
+            # отзыва ссылалась на снимок, которого больше не существует.
+            #
+            # Держим файлы ВНЕ сносимого дерева и подставляем симлинком
+            # после распаковки. Симлинк, а не копирование обратно: при
+            # падении деплоя между шагами файлы остаются на месте.
+            UPLOADS_STORE=/var/www/wesetupru/data/uploads
+            mkdir -p "$UPLOADS_STORE"
+            if [ -d public/uploads ] && [ ! -L public/uploads ]; then
+              # Первый деплой после этой правки: спасаем то, что уцелело.
+              cp -an public/uploads/. "$UPLOADS_STORE"/ 2>/dev/null || true
+            fi
+
             echo "=== Cleaning stale source (keeps .env, node_modules, tarball) ==="
             # Source dirs below are fully owned by the repo — nuke them before
             # extraction so renamed/deleted files (e.g. src/app/(mini) moved
@@ -187,6 +205,11 @@ jobs:
 
             echo "=== Extracting tarball ==="
             tar xf deploy.tar && rm deploy.tar
+
+            echo "=== Re-linking user uploads ==="
+            mkdir -p public
+            ln -sfn "$UPLOADS_STORE" public/uploads
+            ls -ld public/uploads
             # Restore .env from backup if it exists
             [ -f .env.bak ] && cp .env.bak .env || true
 
