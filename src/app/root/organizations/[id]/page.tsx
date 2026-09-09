@@ -10,6 +10,8 @@ import { ImpersonateButton } from "./impersonate-button";
 import { DeleteOrgButton } from "./delete-org-button";
 import { OrgSettingsForm } from "./org-settings-form";
 import { BalanceCard } from "./balance-card";
+import { InvoiceActions } from "./invoice-actions";
+import { orderStatusLabel } from "@/lib/order-status";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
       pointsSpent: true,
       isTest: true,
       refundedAt: true,
+      paymentMethod: true,
     },
   });
   const documentsReady = isRequisitesComplete(await readPlatformRequisites());
@@ -232,7 +235,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
                           : "rounded-full bg-[#f5f6ff] px-2.5 py-0.5 text-[12px] text-[#6f7282]"
                       }
                     >
-                      {payment.status}
+                      {orderStatusLabel(payment)}
                     </span>
                   </td>
                   <td className="py-2.5 text-right tabular-nums text-[#0b1024]">
@@ -244,7 +247,14 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
                     ) : null}
                   </td>
                   <td className="py-2.5 pl-4">
-                    {closingEligible(payment) ? (
+                    {payment.paymentMethod === "invoice" && payment.status !== "cancelled" ? (
+                      <InvoiceActions
+                        orderId={payment.id}
+                        amountRub={Number(payment.amountRub)}
+                        organizationName={org.name}
+                        pending={payment.status === "pending"}
+                      />
+                    ) : closingEligible(payment) ? (
                       <a
                         href={`/api/closing-documents/${payment.id}/pdf`}
                         className="inline-flex h-8 items-center rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[12.5px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"

@@ -7,6 +7,9 @@ import { db } from "@/lib/db";
 import { ClosingDocumentActions } from "@/components/settings/closing-document-actions";
 import { readPlatformRequisites } from "@/lib/closing-documents/requisites";
 import { isRequisitesComplete } from "@/lib/closing-documents/types";
+import { InvoiceCard } from "@/components/settings/invoice-card";
+import { invoiceRequisitesReady } from "@/lib/invoices/build";
+import { orderStatusLabel } from "@/lib/order-status";
 import { PlanUpgrade } from "@/components/settings/plan-upgrade";
 import { ResumePausedCard } from "@/components/settings/resume-paused-card";
 import { pricingScaleRows, quoteSubscription } from "@/lib/subscription-pricing";
@@ -48,6 +51,7 @@ export default async function SubscriptionPage() {
       isDemo: true,
       balanceRub: true,
       inn: true,
+      name: true,
       _count: { select: { users: { where: { isActive: true } } } },
     },
   });
@@ -90,6 +94,8 @@ export default async function SubscriptionPage() {
       createdAt: true,
       pointsSpent: true,
       refundedAt: true,
+      paymentMethod: true,
+      invoiceDueAt: true,
     },
   });
   const paidTotalRub = payments
@@ -98,7 +104,13 @@ export default async function SubscriptionPage() {
   // Закрывающие документы выпускаются, только когда WeSetup заполнил свои
   // реквизиты и факсимиле; до этого колонка молчит. Документ — по
   // оплаченному деньгами, не тестовому и не возвращённому заказу.
-  const documentsReady = isRequisitesComplete(await readPlatformRequisites());
+  const platformRequisites = await readPlatformRequisites();
+  const documentsReady = isRequisitesComplete(platformRequisites);
+  // Счёт по безналу: нужны реквизиты и банк исполнителя, картинки — нет.
+  const invoiceReady = invoiceRequisitesReady(platformRequisites);
+  const pendingInvoice = payments.find(
+    (payment) => payment.paymentMethod === "invoice" && payment.status === "pending"
+  );
   const closingEligible = (payment: (typeof payments)[number]) =>
     documentsReady &&
     payment.status === "paid" &&
@@ -156,6 +168,25 @@ export default async function SubscriptionPage() {
         hardwareFromRub={hardwareFromRub}
         subscriptionMonthly={monthly.priceRub}
       />
+
+      {!isDemo ? (
+        <InvoiceCard
+          ready={invoiceReady}
+          orgName={org?.name ?? "организацию"}
+          orgInn={org?.inn ?? null}
+          amountRub={monthly.priceRub}
+          periodDays={monthly.periodDays}
+          pending={
+            pendingInvoice
+              ? {
+                  id: pendingInvoice.id,
+                  amountRub: Number(pendingInvoice.amountRub),
+                  dueAt: pendingInvoice.invoiceDueAt?.toISOString() ?? null,
+                }
+              : null
+          }
+        />
+      ) : null}
 
       <RecurringCard
         active={org?.recurringActive === true}
@@ -228,11 +259,7 @@ export default async function SubscriptionPage() {
                             : "rounded-full bg-[#f5f6ff] px-2.5 py-0.5 text-[12px] text-[#6f7282]"
                         }
                       >
-                        {payment.status === "paid"
-                          ? "оплачен"
-                          : payment.status === "expired"
-                            ? "истёк"
-                            : payment.status}
+                        {orderStatusLabel(payment)}
                       </span>
                     </td>
                     <td className="py-2.5 text-right tabular-nums text-[#0b1024]">
@@ -244,11 +271,23 @@ export default async function SubscriptionPage() {
                       ) : null}
                     </td>
                     <td className="py-2.5 pl-4">
-                      {closingEligible(payment) ? (
-                        <ClosingDocumentActions orderId={payment.id} canRefresh={Boolean(org?.inn)} />
-                      ) : (
-                        <span className="text-[#c9ccdb]">—</span>
-                      )}
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        {payment.paymentMethod === "invoice" && payment.status !== "cancelled" ? (
+                          <a
+                            href={`/api/payments/invoice/${payment.id}/pdf`}
+                            className="inline-flex h-8 items-center rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[12.5px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                          >
+                            Счёт (PDF)
+                          </a>
+                        ) : null}
+                        {closingEligible(payment) ? (
+                          <ClosingDocumentActions orderId={payment.id} canRefresh={Boolean(org?.inn)} />
+                        ) : null}
+                        {!closingEligible(payment) &&
+                        !(payment.paymentMethod === "invoice" && payment.status !== "cancelled") ? (
+                          <span className="text-[#c9ccdb]">—</span>
+                        ) : null}
+                      </span>
                     </td>
                   </tr>
                 ))}

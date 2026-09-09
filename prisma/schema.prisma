@@ -2404,6 +2404,10 @@ model PaymentOrder {
   pointsSpent            Int              @default(0)
   /// Организация-реферер из cookie `wesetup.ref` на момент оформления.
   referrerOrganizationId String?
+  /// "card" — Робокасса; "invoice" — счёт по безналу, оплату подтверждает ROOT.
+  paymentMethod          String           @default("card")
+  /// До какой даты действителен счёт по безналу.
+  invoiceDueAt           DateTime?
   partnerAccruals        PartnerAccrual[]
 
   @@index([email])

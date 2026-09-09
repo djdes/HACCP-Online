@@ -435,6 +435,37 @@ export async function sendWelcomeEmail(params: {
  * профиля (название организации, имя, пароль), существующему —
  * подтверждение продления со ссылкой на вход.
  */
+/**
+ * Счёт по безналу — клиенту, с PDF во вложении. Здесь же говорим, что
+ * будет после оплаты: подписка продлится сама, документы — в кабинете.
+ */
+export async function sendInvoiceEmail(params: {
+  to: string;
+  number: string;
+  amountRub: number;
+  dueAt: Date;
+  organizationId?: string | null;
+  pdf: Buffer;
+}) {
+  const brand = await emailBrandForOrganization(params.organizationId);
+  const subject = `Счёт № ${params.number} на оплату WeSetup`;
+  const rub = new Intl.NumberFormat("ru-RU").format(params.amountRub) + " ₽";
+  const due = params.dueAt.toLocaleDateString("ru-RU");
+  const body = `
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Здравствуйте!</p>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Счёт на оплату подписки WeSetup — во вложении.</p>
+    <div style="background:#f4f4f5;border-radius:8px;padding:20px;margin:0 0 24px">
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Счёт: <strong>№ ${escapeHtml(params.number)}</strong></p>
+      <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Сумма: <strong>${escapeHtml(rub)}</strong></p>
+      <p style="margin:0;color:#3f3f46;font-size:14px">Действителен до: <strong>${escapeHtml(due)}</strong></p>
+    </div>
+    <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">В назначении платежа укажите «Оплата по счёту № ${escapeHtml(params.number)}». Как только деньги поступят, подписка продлится автоматически, а закрывающие документы (УПД) появятся в кабинете: «Настройки → Подписка → История оплат» — и придут письмом.</p>
+    <p style="margin:24px 0 0;color:#71717a;font-size:13px">Вопросы по счёту — support@wesetup.ru.</p>`;
+  return sendEmail(params.to, subject, layout(subject, body, brand), [
+    { filename: `Invoice-${params.number.replace(/[^0-9A-Za-z_-]/g, "")}.pdf`, content: params.pdf, contentType: "application/pdf" },
+  ]);
+}
+
 export async function sendPaymentReceiptEmail(params: {
   to: string;
   amountRub: number;
