@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { publishToUser } from "@/lib/live-events";
 import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 /**
@@ -141,6 +142,9 @@ export async function upsertNotification(args: {
       },
     });
     pushNotification(args);
+    // Живое событие вкладке: колокольчик перечитает список сразу, а не
+    // через минуту по опросу. Данных не передаём — см. live-events.ts.
+    publishToUser(args.userId, { type: "notification", kind: args.kind });
     return;
   }
   // Merge by id — если incoming item имеет тот же id, что и существующий,
@@ -174,6 +178,7 @@ export async function upsertNotification(args: {
       readAt: null,
     },
   });
+  publishToUser(args.userId, { type: "notification", kind: args.kind });
 }
 
 /**

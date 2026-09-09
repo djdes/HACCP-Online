@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useLiveEvents } from "@/lib/use-live-events";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageGuide } from "@/components/ui/page-guide";
@@ -59,6 +60,29 @@ export function BalanceClient({
       /* обновим при следующем действии — экран уже показывает актуальное */
     }
   }, []);
+
+  // Админ начислил баллы — цифра меняется на экране сразу, а не после
+  // перезагрузки. Тост объясняет, что произошло: молча подскочившая
+  // сумма выглядит как ошибка.
+  useLiveEvents((event) => {
+    if (event.type === "balance") {
+      void refresh();
+      const amount = Number(event.data?.amount ?? 0);
+      const comment =
+        typeof event.data?.comment === "string" ? event.data.comment : "";
+      if (amount > 0) {
+        toast.success(`Начислено ${formatPoints(amount)}`, {
+          description: comment || undefined,
+        });
+      } else if (amount < 0) {
+        toast.message(`Списано ${formatPoints(Math.abs(amount))}`, {
+          description: comment || undefined,
+        });
+      }
+    } else if (event.type === "reconnect") {
+      void refresh();
+    }
+  });
 
   const referralLink = `${APP_ORIGIN}/r/${data.referralCode}`;
 

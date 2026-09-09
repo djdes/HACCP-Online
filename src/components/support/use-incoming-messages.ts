@@ -6,6 +6,7 @@ import {
   primeNotificationSound,
 } from "@/lib/notification-sound";
 import { SUPPORT_CHAT_READ_EVENT } from "@/lib/support-chat-bus";
+import { useLiveEvents } from "@/lib/use-live-events";
 import { shouldAlert, type SupportStatus } from "@/lib/support-threads-shared";
 
 /**
@@ -141,6 +142,15 @@ export function useIncomingMessages(opts: {
       document.visibilityState === "hidden" ? POLL_HIDDEN_MS : delay.current
     );
   }, [enabled, statusUrl, scope]);
+
+  // Ответ поддержки приходит как уведомление вида «support.reply» —
+  // дёргаем опрос сразу, не дожидаясь 25-секундного тика. Опрос
+  // остаётся страховкой, если поток событий не доходит.
+  useLiveEvents((event) => {
+    if (!enabled) return;
+    if (event.type === "reconnect") void tick();
+    if (event.type === "notification" && event.kind === "support.reply") void tick();
+  });
 
   useEffect(() => {
     if (!enabled || !statusUrl) return;

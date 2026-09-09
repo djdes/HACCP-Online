@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 import { recordAuditLog } from "@/lib/audit-log";
 import { creditBalance, InsufficientBalanceError } from "@/lib/balance/ledger";
 import { formatPoints } from "@/lib/balance/constants";
+import { publishToOrganization } from "@/lib/live-events";
+import { notifyManagement } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -82,6 +84,32 @@ export async function POST(
     entity: "Organization",
     entityId: organization.id,
     details: { amount: parsed.amount, comment: parsed.comment },
+  });
+
+  // Человек должен узнать о баллах сразу, а не когда сам откроет
+  // «Баланс». Уведомление — руководству организации, с текстом «за что»;
+  // живое событие — всем открытым вкладкам этой организации, чтобы
+  // цифра на экране баланса обновилась без перезагрузки.
+  //
+  // Оба вызова best-effort: проводка уже записана, и сбой оповещения
+  // не должен превратить успешное начисление в ошибку 500 у админа.
+  const credited = parsed.amount > 0;
+  await notifyManagement({
+    organizationId: organization.id,
+    kind: credited ? "balance.credited" : "balance.debited",
+    // Каждое начисление — отдельное уведомление, а не слияние в одно.
+    dedupeKey: `balance.${credited ? "credited" : "debited"}:${Date.now()}`,
+    title: credited
+      ? `Начислено ${formatPoints(parsed.amount)}`
+      : `Списано ${formatPoints(Math.abs(parsed.amount))}`,
+    linkHref: "/settings/balance",
+    linkLabel: "Открыть баланс",
+    items: [{ id: "comment", label: parsed.comment }],
+  }).catch((error) => console.error("[balance] notify failed", error));
+
+  publishToOrganization(organization.id, {
+    type: "balance",
+    data: { amount: parsed.amount, comment: parsed.comment },
   });
 
   const updated = await db.organization.findUnique({

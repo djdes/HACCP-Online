@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -137,23 +138,36 @@ export function SupportWidget({
     setSent(false);
   }, []);
 
-  // Всплывашка, колокольчик и deep-link `?support=chat` открывают сразу переписку.
+  // Всплывашка и колокольчик открывают переписку через шину.
   useEffect(() => {
     if (hideChat) return;
     window.addEventListener(SUPPORT_CHAT_OPEN_EVENT, openChat);
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("support") === "chat") {
-      openChat();
-      params.delete("support");
-      const query = params.toString();
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
-      );
-    }
     return () => window.removeEventListener(SUPPORT_CHAT_OPEN_EVENT, openChat);
   }, [hideChat, openChat]);
+
+  // Deep-link `?support=chat` — из письма, из Telegram, из уведомления.
+  //
+  // Раньше параметр читался из `window.location.search` один раз при
+  // монтировании. Виджет живёт в layout и при клиентском переходе не
+  // перемонтируется — ссылка «Открыть чат» из панели уведомлений
+  // меняла адрес, а чат не открывался. `useSearchParams` перерисовывает
+  // компонент при каждой смене строки запроса, в том числе при
+  // клиентском переходе.
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  useEffect(() => {
+    if (hideChat) return;
+    if (searchParams.get("support") !== "chat") return;
+    openChat();
+    // Убираем параметр из адреса, чтобы обновление страницы не открывало
+    // чат заново. Через router, а не history — иначе Next и браузер
+    // разошлись бы во мнении, какой сейчас адрес.
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete("support");
+    const query = rest.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
+  }, [hideChat, openChat, searchParams, pathname, router]);
 
   useEffect(() => {
     setMuted(isNotificationSoundMuted());

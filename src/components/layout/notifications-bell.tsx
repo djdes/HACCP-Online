@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, X } from "lucide-react";
 import { toast } from "sonner";
+import { openSupportChat } from "@/lib/support-chat-bus";
+import { useLiveEvents } from "@/lib/use-live-events";
 
 type NotificationItem = {
   id: string;
@@ -85,6 +87,8 @@ function TriStateCheckbox({
 }
 
 const REFRESH_INTERVAL_MS = 60 * 1000;
+/** Ссылка уведомлений поддержки — см. support-threads.ts. */
+const SUPPORT_CHAT_HREF = "/dashboard?support=chat";
 
 export function NotificationsBell() {
   const [open, setOpen] = useState(false);
@@ -139,6 +143,13 @@ export function NotificationsBell() {
     const t = setInterval(load, REFRESH_INTERVAL_MS);
     return () => clearInterval(t);
   }, [load]);
+
+  // Живые события: сервер сообщает о новом уведомлении — перечитываем
+  // сразу. Опрос выше остаётся страховкой на случай, если поток не
+  // доходит (прокси, корпоративный фильтр).
+  useLiveEvents((event) => {
+    if (event.type === "notification" || event.type === "reconnect") void load();
+  });
 
   const openPanel = useCallback(() => {
     setOpen(true);
@@ -450,7 +461,19 @@ export function NotificationsBell() {
                                 <Link
                                   href={row.linkHref}
                                   className="text-[#5566f6] hover:underline"
-                                  onClick={closePanel}
+                                  onClick={(event) => {
+                                    // «Открыть чат» открываем на месте, без
+                                    // перехода. Виджет поддержки живёт в
+                                    // layout и при клиентском переходе не
+                                    // перемонтируется — deep-link `?support=chat`
+                                    // он читал один раз при старте и ссылку из
+                                    // панели просто не замечал.
+                                    if (row.linkHref === SUPPORT_CHAT_HREF) {
+                                      event.preventDefault();
+                                      openSupportChat();
+                                    }
+                                    closePanel();
+                                  }}
                                 >
                                   {row.linkLabel}
                                 </Link>
