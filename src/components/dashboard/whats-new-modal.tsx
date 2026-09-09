@@ -74,6 +74,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Точки": MapPin,
   "Помещения и уборка": Building2,
   "Отклонения температуры": Thermometer,
+  "Уведомления и баланс": Zap,
   "Баланс и бонусы": Coins,
   "Чат и поддержка": MessageCircle,
   "Тёмная тема": Moon,
