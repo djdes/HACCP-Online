@@ -2408,6 +2408,9 @@ model PaymentOrder {
   paymentMethod          String           @default("card")
   /// До какой даты действителен счёт по безналу.
   invoiceDueAt           DateTime?
+  /// Промокод, применённый при оформлении (в верхнем регистре), и скидка в рублях.
+  promoCode              String?
+  discountRub            Int              @default(0)
   partnerAccruals        PartnerAccrual[]
 
   @@index([email])
@@ -3154,4 +3157,27 @@ model ClosingDocument {
   updatedAt      DateTime  @updatedAt
 
   @@index([organizationId, issuedAt])
+}
+
+/// Промокод на скидку при оформлении подписки. Создаёт ROOT. Скидка
+/// применяется к цене подписки (не к оборудованию), проверяется на сервере.
+/// Использования считаются по оплаченным заказам — брошенный заказ лимит не ест.
+model PromoCode {
+  id             String    @id @default(cuid())
+  /// В верхнем регистре, без пробелов.
+  code           String    @unique
+  /// "percent" | "fixed"
+  kind           String
+  /// Процент (1..100) или рубли.
+  value          Int
+  active         Boolean   @default(true)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  /// null — без лимита.
+  maxUses        Int?
+  /// Только организациям без оплаченных заказов.
+  newClientsOnly Boolean   @default(false)
+  note           String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

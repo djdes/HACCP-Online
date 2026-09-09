@@ -11,6 +11,7 @@ import {
   Loader2,
   ShieldCheck,
   XCircle,
+  Ticket,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -143,6 +144,12 @@ function Checkout({
   // Баллы, наоборот, списываем по умолчанию: они уже принадлежат
   // организации, и «забыл включить» — это переплата на ровном месте.
   const [usePoints, setUsePoints] = useState(true);
+  // Промокод: проверяется на сервере (/api/promo/check), здесь только
+  // показываем честный итог до нажатия; сумму скидки браузер не решает.
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; discountRub: number } | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Заказ, оформленный раньше, протух вместе с холдом баллов — их уже
@@ -284,12 +291,44 @@ function Checkout({
   // Сколько спишется баллами. Та же формула, что на сервере
   // (`pointsToSpend`): не больше баланса и не больше цены подписки.
   // Здесь она нужна только чтобы показать честный итог до нажатия.
+  const discountRub = promo?.discountRub ?? 0;
+  const amountAfterPromo = Math.max(0, amountRub - discountRub);
+  const capAfterPromo = Math.max(0, pointsCap - discountRub);
   const pointsSpent =
     usePoints && !recurringConsent
-      ? Math.min(pointsAvailable, Math.min(pointsCap, amountRub))
+      ? Math.min(pointsAvailable, Math.min(capAfterPromo, amountAfterPromo))
       : 0;
-  const netRub = Math.max(0, amountRub - pointsSpent);
+  const netRub = Math.max(0, amountAfterPromo - pointsSpent);
   const showPointsBlock = pointsAvailable > 0;
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code || !tariff) return;
+    setPromoBusy(true);
+    setPromoError(null);
+    try {
+      const res = await fetch("/api/promo/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, tariffKey: tariff.key }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        code?: string;
+        discountRub?: number;
+      };
+      if (!res.ok || !data.ok || !data.code) {
+        setPromo(null);
+        setPromoError(data.message ?? "Промокод не подошёл");
+        return;
+      }
+      setPromo({ code: data.code, discountRub: data.discountRub ?? 0 });
+    } catch {
+      setPromoError("Нет связи — попробуйте ещё раз");
+    } finally {
+      setPromoBusy(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -305,6 +344,7 @@ function Checkout({
           bundleConfig: bundleConfig ?? undefined,
           recurringConsent,
           usePoints: pointsSpent > 0,
+          promoCode: promo?.code,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -355,7 +395,7 @@ function Checkout({
             {formatRub(netRub)}
           </span>
         </div>
-        {items.length > 0 || pointsSpent > 0 ? (
+        {items.length > 0 || pointsSpent > 0 || discountRub > 0 ? (
           <ul className="mt-4 space-y-1.5 border-t border-[#ececf4] pt-4">
             <li className="flex justify-between gap-3 text-[13px] text-[#3c4053]">
               <span>Подписка на {tariff.periodDays} дн.</span>
@@ -375,6 +415,12 @@ function Checkout({
                 </span>
               </li>
             ))}
+            {discountRub > 0 && promo ? (
+              <li className="flex justify-between gap-3 text-[13px] font-medium text-[#3848c7]">
+                <span>Промокод {promo.code}</span>
+                <span className="tabular-nums">−{formatRub(discountRub)}</span>
+              </li>
+            ) : null}
             {pointsSpent > 0 ? (
               <li className="flex justify-between gap-3 text-[13px] font-medium text-[#116b2a]">
                 <span>Баллами</span>
@@ -385,6 +431,44 @@ function Checkout({
         ) : null}
       </div>
 
+      {/* Промокод — отдельным блоком под итогом: клиент видит, как
+          меняется сумма, до нажатия «Оплатить». */}
+      <div className="mt-4 rounded-2xl border border-[#dcdfed] bg-white p-5">
+        <div className="flex items-center gap-2 text-[15px] font-medium text-[#0b1024]">
+          <Ticket className="size-4 text-[#5566f6]" />
+          Промокод
+        </div>
+        <div className="mt-3 flex gap-2">
+          <input
+            value={promoInput}
+            onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void applyPromo();
+              }
+            }}
+            placeholder="Например, WELCOME10"
+            aria-label="Промокод"
+            className="h-11 min-w-0 flex-1 rounded-2xl border border-[#dcdfed] bg-white px-4 font-mono text-[14px] text-[#0b1024] placeholder:font-sans placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+          <button
+            type="button"
+            onClick={() => void applyPromo()}
+            disabled={promoBusy || !promoInput.trim()}
+            className="inline-flex h-11 shrink-0 items-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-50"
+          >
+            {promoBusy ? "Проверяем…" : promo ? "Обновить" : "Применить"}
+          </button>
+        </div>
+        {promo ? (
+          <p className="mt-2 text-[12px] text-[#116b2a]">
+            Промокод {promo.code} применён: −{formatRub(promo.discountRub)} от подписки.
+          </p>
+        ) : promoError ? (
+          <p className="mt-2 text-[12px] text-[#a13a32]">{promoError}</p>
+        ) : null}
+      </div>
       {showPointsBlock ? (
         <div className="mt-4 rounded-2xl border border-[#dcdfed] bg-white p-5">
           <div className="flex items-start justify-between gap-4">

@@ -74,6 +74,9 @@ export type CreateOrderWithPointsInput = {
   referrerOrganizationId: string | null;
   /** Тумблер «списать баллы» на странице оформления. */
   usePoints: boolean;
+  /** Промокод (в верхнем регистре) и скидка в рублях — уже посчитанные сервером. */
+  promoCode?: string | null;
+  discountRub?: number;
 };
 
 export type CreatedOrder = {
@@ -143,6 +146,8 @@ export async function createOrderWithPoints(
         userId: input.userId ?? undefined,
         pointsSpent,
         referrerOrganizationId: input.referrerOrganizationId ?? undefined,
+        promoCode: input.promoCode ?? undefined,
+        discountRub: input.discountRub ?? 0,
       },
       select: { id: true, isTest: true },
     });

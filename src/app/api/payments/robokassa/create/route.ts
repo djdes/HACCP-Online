@@ -4,6 +4,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId, isImpersonating } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { resolvePromo } from "@/lib/promo/service";
 import { readTariff, TARIFF_BUNDLE } from "@/lib/tariffs";
 import {
   hardwareTotal,
@@ -145,6 +146,20 @@ export async function POST(request: NextRequest) {
       : null;
   const usePoints =
     body.usePoints !== false && !recurringConsent && Boolean(organizationId);
+  // Промокод: скидка от цены подписки, считается здесь, не в браузере.
+  // Неподходящий код — ошибка, а не молчаливая оплата без скидки.
+  const promoRaw = typeof body.promoCode === "string" ? body.promoCode : "";
+  let promoCode: string | null = null;
+  let discountRub = 0;
+  if (promoRaw.trim()) {
+    const promo = await resolvePromo(promoRaw, {
+      organizationId,
+      subscriptionRub: tariff.priceRub,
+    });
+    if (!promo.ok) return NextResponse.json({ error: promo.message }, { status: 400 });
+    promoCode = promo.code;
+    discountRub = promo.discountRub;
+  }
 
   // Метка партнёра (cookie с /p/<slug>) едет в заказ: после оплаты
   // организация нового клиента привяжется к партнёру.
@@ -160,9 +175,11 @@ export async function POST(request: NextRequest) {
     userId: session?.user?.id ?? null,
     email,
     tariffKey: tariff.key,
-    description,
-    grossRub,
-    subscriptionRub: tariff.priceRub,
+    description: promoCode ? `${description} (промокод ${promoCode}: −${discountRub} ₽)` : description,
+    grossRub: grossRub - discountRub,
+    subscriptionRub: tariff.priceRub - discountRub,
+    promoCode,
+    discountRub,
     bundleConfig,
     isTest: isTestMode(),
     recurringConsent,
