@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Wifi, Loader2 } from "lucide-react";
+import { AlertTriangle, History, Wifi, Loader2 } from "lucide-react";
+import { describeDraftTime, draftStorageKey, filledCount } from "@/lib/form-draft";
 import { getJournalSpec } from "@/lib/journal-specs";
+import { useFormDraft } from "@/lib/use-form-draft";
 import {
   isFormInDeviation,
   getDeviationHint,
@@ -110,6 +112,11 @@ interface DynamicFormProps {
   employees?: EmployeeItem[];
   products?: ProductItem[];
   /**
+   * Черновик в localStorage: ключ «пользователь + журнал». Без scope
+   * черновики выключены (формы вне кабинета).
+   */
+  draftScope?: string;
+  /**
    * Root of the journal URL space for post-save + cancel navigation. Defaults
    * to `/journals` (the dashboard surface). Mini App callers pass
    * `/mini/journals` so the redirect stays inside the Mini App shell.
@@ -148,6 +155,7 @@ export function DynamicForm({
   equipment,
   employees = [],
   products = [],
+  draftScope,
   journalsBasePath = "/journals",
   customGuideNodes,
   rollingMode = false,
@@ -179,6 +187,28 @@ export function DynamicForm({
   const [error, setError] = useState<string | null>(null);
   const [dailyCount, setDailyCount] = useState<number>(dailyCountInitial);
   const [rollingNotice, setRollingNotice] = useState<string | null>(null);
+
+  // Черновик: автосохранение после правки человеком, предложение
+  // продолжить при следующем открытии, очистка после отправки.
+  const draftKey = draftScope ? draftStorageKey(draftScope, templateCode) : null;
+  const draftSnapshot = useMemo(
+    () => ({ data: formData, areaId, equipmentId, catalogProductId }),
+    [formData, areaId, equipmentId, catalogProductId],
+  );
+  const draft = useFormDraft(draftKey, draftSnapshot);
+  function restoreDraft() {
+    const found = draft.restore();
+    if (!found) return;
+    setFormData(found.data);
+    if (found.areaId && areas.some((a) => a.id === found.areaId)) setAreaId(found.areaId);
+    if (found.equipmentId && equipment.some((e) => e.id === found.equipmentId)) {
+      setEquipmentId(found.equipmentId);
+    }
+    if (found.catalogProductId && products.some((p) => p.id === found.catalogProductId)) {
+      setCatalogProductId(found.catalogProductId);
+    }
+    setError(null);
+  }
   const [isFetchingSensor, setIsFetchingSensor] = useState(false);
   const [sensorInfo, setSensorInfo] = useState<{
     temperature: number;
@@ -254,10 +284,12 @@ export function DynamicForm({
   }, [templateCode, formData.calibrationDate, selectedEquipment]);
 
   function updateField(key: string, value: unknown) {
+    draft.noteUserEdit();
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
 
   function updateMultipleFields(updates: Record<string, unknown>) {
+    draft.noteUserEdit();
     setFormData((prev) => ({ ...prev, ...updates }));
   }
 
@@ -434,6 +466,8 @@ export function DynamicForm({
         throw new Error(result.error || "Ошибка при сохранении");
       }
 
+      // Запись принята — черновик больше не нужен.
+      draft.clear();
       const result = await response.json().catch(() => ({}));
       const rollingMeta = result?.rolling as
         | {
@@ -531,6 +565,7 @@ export function DynamicForm({
       // перезагрузку, а её перехватит service worker и покажет экран
       // «Нет связи» — сразу после того, как мы сказали «сохранено».
       // Остаёмся здесь, чистим форму и объясняем, что произошло.
+      draft.clear();
       setFormData({});
       setError(null);
       setQueuedNotice(
@@ -610,6 +645,42 @@ export function DynamicForm({
         customNodes={customGuideNodes}
       />
 
+      {draft.pending ? (
+        <div
+          data-testid="journal-draft-banner"
+          className="flex flex-col gap-3 rounded-2xl border border-[#5566f6]/25 bg-[#f5f6ff] p-4 sm:flex-row sm:items-center"
+        >
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <History className="mt-0.5 size-5 shrink-0 text-[#5566f6]" />
+            <div className="min-w-0">
+              <div className="text-[14px] font-semibold leading-tight text-[#0b1024]">
+                Есть незаконченная запись
+              </div>
+              <p className="mt-1 text-[13px] leading-snug text-[#3c4053]">
+                Сохранена {describeDraftTime(draft.pending.savedAt, new Date())}, заполнено полей:{" "}
+                {filledCount(draft.pending)}. Продолжить её или начать заново?
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={restoreDraft}
+              className="inline-flex h-10 items-center justify-center rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            >
+              Продолжить
+            </button>
+            <button
+              type="button"
+              onClick={draft.discard}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            >
+              Начать заново
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {error && (
         <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
           {error}
@@ -658,6 +729,7 @@ export function DynamicForm({
           <Select
             value={catalogProductId}
             onValueChange={(productId) => {
+              draft.noteUserEdit();
               setCatalogProductId(productId);
               const product = products.find((p) => p.id === productId);
               if (!product) return;
@@ -700,7 +772,13 @@ export function DynamicForm({
       {areas.length > 0 && !isJournal7to9 && (
         <div className="space-y-2">
           <Label htmlFor="area">Участок</Label>
-          <Select value={areaId} onValueChange={setAreaId}>
+          <Select
+            value={areaId}
+            onValueChange={(value) => {
+              draft.noteUserEdit();
+              setAreaId(value);
+            }}
+          >
             <SelectTrigger id="area" className="w-full">
               <SelectValue placeholder="Выберите участок" />
             </SelectTrigger>

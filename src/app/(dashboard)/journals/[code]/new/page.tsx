@@ -189,6 +189,7 @@ export default async function NewJournalEntryPage({
             equipment={equipment}
             employees={employees}
             products={products}
+            draftScope={session.user.id}
             customGuideNodes={customGuideNodes}
             rollingMode={rollingMode}
             dailyCountInitial={dailyCountInitial}

@@ -200,6 +200,7 @@ export default async function MiniNewJournalEntryPage({
             equipment={equipment}
             employees={employees}
             products={products}
+            draftScope={session.user.id}
             customGuideNodes={customGuideNodes}
             journalsBasePath="/mini/journals"
             rollingMode={rollingMode}
