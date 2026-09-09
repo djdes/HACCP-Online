@@ -134,18 +134,34 @@ export default function MiniHomePage() {
       const loginUrl = `/mini/login?next=${encodeURIComponent(back)}`;
       // Кука уже может быть — вход по телефону, установленное приложение.
       // Провайдер стартует с session={null} и сам сессию не спрашивает,
-      // поэтому спрашиваем мы: getSession шлёт broadcast, по нему
-      // провайдер перечитывает сессию, и status становится
-      // «authenticated». Без этого каждый холодный старт приложения
-      // заканчивался формой входа при живой куке.
+      // поэтому спрашиваем мы. Без этого каждый холодный старт
+      // приложения заканчивался формой входа при живой куке.
       void (async () => {
         const existing = await getSession().catch(() => null);
         if (!existing?.user) {
           router.replace(loginUrl);
           return;
         }
-        // Страховка: broadcast не дошёл (нет BroadcastChannel) — лучше
-        // форма входа, чем вечный скелет.
+        // next-auth v4 узнаёт о сессии из ДРУГИХ вкладок: getSession пишет
+        // в localStorage ключ nextauth.message, а провайдер слушает
+        // событие `storage` — в своей вкладке браузер его не шлёт. Шлём
+        // сами: провайдер перечитает сессию, status станет «authenticated».
+        try {
+          window.dispatchEvent(
+            new StorageEvent("storage", {
+              key: "nextauth.message",
+              newValue: JSON.stringify({
+                event: "session",
+                data: { trigger: "getSession" },
+                timestamp: Math.floor(Date.now() / 1000),
+              }),
+            })
+          );
+        } catch {
+          /* нет StorageEvent — сработает страховка ниже */
+        }
+        // Страховка: провайдер не перечитал — лучше форма входа, чем
+        // вечный скелет.
         window.setTimeout(() => {
           if (statusRef.current !== "authenticated") router.replace(loginUrl);
         }, 4000);
