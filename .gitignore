@@ -105,3 +105,6 @@ dispatcher/logs/
 /*-snapshot.yml
 /.dev-server*.log
 .agent/tasks/*/e2e/creds.json
+
+# приватные данные рантайма (реквизиты, факсимиле) — см. LEGAL_DIR
+/.data/

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { closingDocumentFilename } from "@/lib/closing-documents/types";
 import { escapeHtml } from "@/lib/html-escape";
 import { FREE_MAX_USERS } from "@/lib/plan-limits";
 
@@ -68,7 +69,10 @@ function createSmtpTransport() {
  */
 export type EmailAttachment = {
   filename: string;
-  path: string;
+  /** Файл на диске или по URL. */
+  path?: string;
+  /** Содержимое — для PDF, собранных в памяти (закрывающие документы). */
+  content?: Buffer | string;
   contentType?: string;
 };
 
@@ -441,9 +445,18 @@ export async function sendPaymentReceiptEmail(params: {
   organizationId?: string | null;
   /** Сколько рублей закрыли баллами — показываем рядом с суммой. */
   pointsSpent?: number | null;
+  /** УПД по этому платежу — вложением; null, если документ не выпущен. */
+  closingDocument?: { number: string; pdf: Buffer } | null;
 }) {
   const { to, amountRub, description, actionUrl, isNewClient, subscriptionEnd, organizationId } =
     params;
+  const closing = params.closingDocument ?? null;
+  // Закрывающие — в том же письме, а не отдельным: бухгалтеру нужен один
+  // источник «оплата + документ». Про оригинал и ЭДО говорим сразу:
+  // факсимиле для признания расходов принимают не все.
+  const closingBlock = closing
+    ? `<p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">Закрывающие документы: универсальный передаточный документ № ${escapeHtml(closing.number)} — во вложении (PDF, с факсимиле). Он же всегда доступен в кабинете: «Настройки → Подписка → История оплат». Нужен оригинал с собственноручной подписью или обмен через ЭДО — просто ответьте на это письмо.</p>`
+    : "";
   const points = Math.max(0, Number(params.pointsSpent ?? 0));
   const brand = await emailBrandForOrganization(organizationId);
   const subject = isNewClient
@@ -469,6 +482,7 @@ export async function sendPaymentReceiptEmail(params: {
       <p style="margin:0 0 8px;color:#3f3f46;font-size:14px">Сумма: <strong>${escapeHtml(amount)}</strong></p>
       <p style="margin:0;color:#3f3f46;font-size:14px">Подписка действует до: <strong>${escapeHtml(until)}</strong></p>
     </div>
+    ${closingBlock}
     <p style="margin:0 0 16px;color:#3f3f46;line-height:1.6">${
       isNewClient
         ? "Осталось задать пароль и указать название организации — это займёт минуту."
@@ -478,8 +492,16 @@ export async function sendPaymentReceiptEmail(params: {
       isNewClient ? "Завершить настройку" : "Войти в кабинет"
     }</a>
     <p style="margin:24px 0 0;color:#71717a;font-size:13px">Вопросы по оплате и возврату — support@wesetup.ru.</p>`;
-
-  return sendEmail(to, subject, layout(subject, body, brand));
+  const attachments = closing
+    ? [
+        {
+          filename: closingDocumentFilename(closing.number).ascii,
+          content: closing.pdf,
+          contentType: "application/pdf",
+        },
+      ]
+    : undefined;
+  return sendEmail(to, subject, layout(subject, body, brand), attachments);
 }
 
 export type FeedbackType =

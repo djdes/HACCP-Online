@@ -3123,3 +3123,31 @@ model WebPushSubscription {
   @@index([userId])
   @@index([organizationId])
 }
+
+/// Закрывающий документ (УПД) по оплаченному заказу — снимок реквизитов
+/// сторон и строк на момент выпуска. PDF рисуется из снимка, поэтому
+/// смена реквизитов потом не меняет старые документы. Один на заказ.
+model ClosingDocument {
+  id             String    @id @default(cuid())
+  orderId        Int       @unique
+  organizationId String?
+  /// Номер = номер заказа (InvId кассы) — уникален и уже виден клиенту.
+  number         String
+  /// Дата документа — дата оплаты (решение владельца 2026-09-09).
+  issuedAt       DateTime
+  seller         Json
+  buyer          Json
+  lines          Json
+  totalRub       Decimal   @db.Decimal(10, 2)
+  /// "none" — без НДС (УСН), статус УПД 2.
+  vatMode        String    @default("none")
+  /// issued | voided (возврат платежа).
+  status         String    @default("issued")
+  voidedAt       DateTime?
+  /// Когда PDF ушёл письмом после оплаты.
+  emailedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId, issuedAt])
+}

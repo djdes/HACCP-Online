@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
+import { ClosingDocumentActions } from "@/components/settings/closing-document-actions";
+import { readPlatformRequisites } from "@/lib/closing-documents/requisites";
+import { isRequisitesComplete } from "@/lib/closing-documents/types";
 import { PlanUpgrade } from "@/components/settings/plan-upgrade";
 import { ResumePausedCard } from "@/components/settings/resume-paused-card";
 import { pricingScaleRows, quoteSubscription } from "@/lib/subscription-pricing";
@@ -44,6 +47,7 @@ export default async function SubscriptionPage() {
       recurringActive: true,
       isDemo: true,
       balanceRub: true,
+      inn: true,
       _count: { select: { users: { where: { isActive: true } } } },
     },
   });
@@ -85,11 +89,22 @@ export default async function SubscriptionPage() {
       paidAt: true,
       createdAt: true,
       pointsSpent: true,
+      refundedAt: true,
     },
   });
   const paidTotalRub = payments
     .filter((payment) => payment.status === "paid" && !payment.isTest)
     .reduce((sum, payment) => sum + Number(payment.amountRub), 0);
+  // Закрывающие документы выпускаются, только когда WeSetup заполнил свои
+  // реквизиты и факсимиле; до этого колонка молчит. Документ — по
+  // оплаченному деньгами, не тестовому и не возвращённому заказу.
+  const documentsReady = isRequisitesComplete(await readPlatformRequisites());
+  const closingEligible = (payment: (typeof payments)[number]) =>
+    documentsReady &&
+    payment.status === "paid" &&
+    !payment.isTest &&
+    !payment.refundedAt &&
+    Number(payment.amountRub) > 0;
 
   return (
     <div className="space-y-5">
@@ -163,6 +178,16 @@ export default async function SubscriptionPage() {
           ) : null}
         </div>
 
+        {documentsReady && !org?.inn && payments.some(closingEligible) ? (
+          <p className="mt-3 rounded-2xl bg-[#fff8eb] px-3.5 py-2.5 text-[13px] leading-relaxed text-[#b25f00]">
+            В закрывающих документах пока только название организации. Укажите ИНН в{" "}
+            <Link href="/settings/organization" className="underline underline-offset-2">
+              настройках организации
+            </Link>{" "}
+            и нажмите «обновить» рядом с документом — реквизиты покупателя подставятся.
+          </p>
+        ) : null}
+
         {payments.length === 0 ? (
           <p className="mt-4 text-[13.5px] text-[#9b9fb3]">
             Платежей пока не было.
@@ -176,6 +201,7 @@ export default async function SubscriptionPage() {
                   <th className="pb-2 font-medium">Назначение</th>
                   <th className="pb-2 font-medium">Статус</th>
                   <th className="pb-2 text-right font-medium">Сумма</th>
+                  <th className="pb-2 pl-4 font-medium">Документы</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,6 +242,13 @@ export default async function SubscriptionPage() {
                           баллами −{payment.pointsSpent.toLocaleString("ru-RU")}
                         </div>
                       ) : null}
+                    </td>
+                    <td className="py-2.5 pl-4">
+                      {closingEligible(payment) ? (
+                        <ClosingDocumentActions orderId={payment.id} canRefresh={Boolean(org?.inn)} />
+                      ) : (
+                        <span className="text-[#c9ccdb]">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}

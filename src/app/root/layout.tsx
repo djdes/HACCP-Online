@@ -8,6 +8,7 @@ import {
   ScrollText,
   Settings2,
   Star,
+  Stamp,
   Wallet,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
@@ -113,6 +114,13 @@ export default async function RootAreaLayout({
             >
               <Wallet className="size-4" />
               Тарифы
+            </Link>
+            <Link
+              href="/root/requisites"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Stamp className="size-4" />
+              Реквизиты
             </Link>
             <Link
               href="/root/partners"

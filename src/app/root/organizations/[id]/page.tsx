@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, BadgeCheck, BookText, Users } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { readPlatformRequisites } from "@/lib/closing-documents/requisites";
+import { isRequisitesComplete } from "@/lib/closing-documents/types";
 import { getUserRoleLabel } from "@/lib/user-roles";
 import { ImpersonateButton } from "./impersonate-button";
 import { DeleteOrgButton } from "./delete-org-button";
@@ -65,8 +67,17 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
       paidAt: true,
       createdAt: true,
       pointsSpent: true,
+      isTest: true,
+      refundedAt: true,
     },
   });
+  const documentsReady = isRequisitesComplete(await readPlatformRequisites());
+  const closingEligible = (payment: (typeof payments)[number]) =>
+    documentsReady &&
+    payment.status === "paid" &&
+    !payment.isTest &&
+    !payment.refundedAt &&
+    Number(payment.amountRub) > 0;
   const paidTotalRub = payments
     .filter((payment) => payment.status === "paid")
     .reduce((sum, payment) => sum + Number(payment.amountRub), 0);
@@ -203,6 +214,7 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
                 <th className="pb-2 font-medium">Тариф</th>
                 <th className="pb-2 font-medium">Статус</th>
                 <th className="pb-2 text-right font-medium">Сумма</th>
+                <th className="pb-2 pl-4 font-medium">Документы</th>
               </tr>
             </thead>
             <tbody>
@@ -230,6 +242,18 @@ export default async function OrganizationDetailPage({ params }: PageProps) {
                         баллами −{payment.pointsSpent.toLocaleString("ru-RU")}
                       </span>
                     ) : null}
+                  </td>
+                  <td className="py-2.5 pl-4">
+                    {closingEligible(payment) ? (
+                      <a
+                        href={`/api/closing-documents/${payment.id}/pdf`}
+                        className="inline-flex h-8 items-center rounded-xl border border-[#dcdfed] bg-white px-2.5 text-[12.5px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                      >
+                        УПД (PDF)
+                      </a>
+                    ) : (
+                      <span className="text-[#c9ccdb]">—</span>
+                    )}
                   </td>
                 </tr>
               ))}

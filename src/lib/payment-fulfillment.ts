@@ -6,6 +6,10 @@ import {
   hashInviteToken,
   inviteExpiresAt,
 } from "@/lib/invite-tokens";
+import {
+  markClosingDocumentEmailed,
+  prepareClosingDocumentEmail,
+} from "@/lib/closing-documents/service";
 import { sendPaymentReceiptEmail } from "@/lib/email";
 import { notifyPlatformAdmin } from "@/lib/platform-admin";
 import { describeHardwareConfig } from "@/lib/hardware-pricing";
@@ -270,7 +274,17 @@ export async function notifyAboutPayment(args: {
     ? `${APP_URL}/order?complete=${result.completeToken}`
     : `${APP_URL}/login`;
 
-  await sendPaymentReceiptEmail({
+  // Закрывающий документ (УПД) — вложением в это же письмо. Best-effort:
+  // без реквизитов исполнителя или при сбое рендера письмо уходит как
+  // раньше, без вложения; документ клиент скачает из кабинета позже.
+  const closingDocument = order.isTest
+    ? null
+    : await prepareClosingDocumentEmail(order.id, {
+        subscriptionEnd: result.subscriptionEnd,
+        organizationId: result.organizationId,
+      });
+
+  const sent = await sendPaymentReceiptEmail({
     to: order.email,
     amountRub: amount,
     description: order.description,
@@ -279,7 +293,14 @@ export async function notifyAboutPayment(args: {
     subscriptionEnd: result.subscriptionEnd,
     organizationId: result.organizationId,
     pointsSpent,
-  }).catch((err) => console.error("sendPaymentReceiptEmail failed", err));
+    closingDocument,
+  }).catch((err) => {
+    console.error("sendPaymentReceiptEmail failed", err);
+    return false;
+  });
+  if (sent && closingDocument) {
+    await markClosingDocumentEmailed(order.id).catch(() => undefined);
+  }
 
   const hardware = describeHardwareConfig(
     (order.bundleConfig as Record<string, number>) ?? {},

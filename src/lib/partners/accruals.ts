@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { voidClosingDocument } from "@/lib/closing-documents/service";
 import { db } from "@/lib/db";
 import { hardwareTotal, normalizeHardwareConfig } from "@/lib/hardware-pricing";
 import { escapeTelegramHtml, notifyEmployee } from "@/lib/telegram";
@@ -299,6 +300,10 @@ export async function markOrderRefunded(orderId: number): Promise<{ created: num
   if (!order.refundedAt) {
     await db.paymentOrder.update({ where: { id: orderId }, data: { refundedAt: new Date() } });
   }
+  // Возврат аннулирует закрывающий документ: скачать его больше нельзя.
+  await voidClosingDocument(orderId).catch((error) =>
+    console.error("[closing-documents] void failed", error)
+  );
   return reverseOrderAccruals(orderId);
 }
 

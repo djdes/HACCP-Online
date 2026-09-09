@@ -5,9 +5,11 @@ import { MiniOrgSwitcher } from "@/app/mini/_components/mini-org-switcher";
 import { MiniLocationSwitcher } from "@/app/mini/_components/mini-location-switcher";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   ArrowLeft,
   Coins,
+  FileText,
   LogOut,
   MessageCircleMore,
   Moon,
@@ -243,6 +245,33 @@ export function MiniMeClient({
           </span>
         </Link>
       </section>
+
+      {/* Оплаты и закрывающие документы живут на сайте: в Mini App
+          экрана подписки нет, поэтому ссылка ведёт в кабинет. Только
+          руководителям — сотрудника сайт всё равно перенаправит. */}
+      {hasFullWorkspaceAccess(u) ? (
+        <section>
+          <a
+            href="/settings/subscription"
+            target="_blank"
+            rel="noreferrer"
+            className="mini-press flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-[14px] font-medium"
+            style={{
+              background: "var(--mini-card-solid-bg)",
+              color: "var(--mini-text)",
+              border: "1px solid var(--mini-divider)",
+            }}
+          >
+            <span className="inline-flex items-center gap-2">
+              <FileText className="size-4" style={{ color: "var(--mini-text-muted)" }} />
+              Оплаты и закрывающие документы
+            </span>
+            <span className="text-[11px]" style={{ color: "var(--mini-text-faint)" }}>
+              на сайте
+            </span>
+          </a>
+        </section>
+      ) : null}
 
       {/* Обратная связь — паритет с сайтом (П-3): на сайте форма живёт
           в шапке, в Mini App шапки нет, поэтому она стоит карточкой в
