@@ -127,6 +127,10 @@ function LiveClock() {
   return (
     <span
       className="mini-mono tabular-nums"
+      // Время на сервере и в браузере разное — React ругался на
+      // гидрацию (#418) при каждом открытии. Часы по определению
+      // расходятся, предупреждение здесь бессмысленно.
+      suppressHydrationWarning
       style={{
         fontSize: 11,
         color: "var(--mini-text-muted)",

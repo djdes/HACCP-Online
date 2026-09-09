@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { getSession, signIn, useSession } from "next-auth/react";
 import { useLiveRefetch } from "@/lib/use-live-refetch";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -110,6 +110,10 @@ export default function MiniHomePage() {
   const signInStarted = useRef(false);
   const fetchStarted = useRef(false);
   const redirectStarted = useRef(false);
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
   const nextPath = (() => {
     const target = sanitizeMiniAppRedirectPath(searchParams.get("next") ?? "");
     return target === "/mini" ? null : target;
@@ -127,7 +131,25 @@ export default function MiniHomePage() {
       // тех, кто уже привязан, — эта ветка его не трогает.
       signInStarted.current = true;
       const back = window.location.pathname + window.location.search;
-      router.replace(`/mini/login?next=${encodeURIComponent(back)}`);
+      const loginUrl = `/mini/login?next=${encodeURIComponent(back)}`;
+      // Кука уже может быть — вход по телефону, установленное приложение.
+      // Провайдер стартует с session={null} и сам сессию не спрашивает,
+      // поэтому спрашиваем мы: getSession шлёт broadcast, по нему
+      // провайдер перечитывает сессию, и status становится
+      // «authenticated». Без этого каждый холодный старт приложения
+      // заканчивался формой входа при живой куке.
+      void (async () => {
+        const existing = await getSession().catch(() => null);
+        if (!existing?.user) {
+          router.replace(loginUrl);
+          return;
+        }
+        // Страховка: broadcast не дошёл (нет BroadcastChannel) — лучше
+        // форма входа, чем вечный скелет.
+        window.setTimeout(() => {
+          if (statusRef.current !== "authenticated") router.replace(loginUrl);
+        }, 4000);
+      })();
       return;
     }
     try {
