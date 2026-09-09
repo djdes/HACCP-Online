@@ -2229,12 +2229,14 @@ export function CleaningDocumentClient(props: Props) {
             <DayFirstCards
               items={rows
                 .filter((row) => row.kind === "room")
-                .map((row) => ({
+                .map((row) => {
+                  const before = cellValue(row, todayKey) || "";
+                  return {
                   id: row.id,
                   title: row.kind === "room" ? row.room.name : row.id,
                   subtitle:
                     row.kind === "room" ? row.room.detergent || undefined : undefined,
-                  value: cellValue(row, todayKey) || undefined,
+                  value: before || undefined,
                   disabledReason:
                     props.status === "active" ? undefined : "журнал закрыт",
                   onPress: (event: React.MouseEvent) => {
@@ -2247,7 +2249,29 @@ export function CleaningDocumentClient(props: Props) {
                       dateKey: todayKey,
                     });
                   },
-                }))}
+                  // Смахнуть вправо — «Т», текущая уборка: она бывает
+                  // ежедневно, генеральная по графику. Возврат ставит
+                  // ровно прежнее значение, а не пустоту: в клетке могло
+                  // стоять «Г» или «/».
+                  quickMark: {
+                    label: "Т",
+                    onApply: () => {
+                      void applyCellValue(
+                        row.id,
+                        todayKey,
+                        "T" as CleaningMatrixValue,
+                      );
+                    },
+                    onUndo: () => {
+                      void applyCellValue(
+                        row.id,
+                        todayKey,
+                        before as CleaningMatrixValue,
+                      );
+                    },
+                  },
+                  };
+                })}
               emptyLabel="Добавьте помещение через меню «Добавить»."
             />
           </div>
