@@ -62,3 +62,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   });
   return NextResponse.json({ idea: { ...idea, statusChangedAt: idea.statusChangedAt?.toISOString() ?? null } });
 }
+
+/** DELETE — убрать идею совсем (спам, дубль, тестовая запись). Голоса уходят каскадом. */
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await requireRoot();
+  const { id } = await params;
+  const idea = await db.idea.findUnique({ where: { id }, select: { id: true, title: true, organizationId: true } });
+  if (!idea) return NextResponse.json({ error: "Идея не найдена" }, { status: 404 });
+  await db.idea.delete({ where: { id } });
+  await recordAuditLog({
+    organizationId: idea.organizationId,
+    session,
+    request,
+    action: "idea.delete",
+    entity: "Idea",
+    entityId: id,
+    details: { title: idea.title },
+  });
+  return NextResponse.json({ ok: true });
+}

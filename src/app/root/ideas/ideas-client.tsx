@@ -1,9 +1,10 @@
 "use client";
 
-import { Lightbulb, Save, ThumbsUp } from "lucide-react";
+import { Lightbulb, Save, ThumbsUp, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { IDEA_STATUSES, IDEA_STATUS_LABEL, type IdeaStatus } from "@/lib/ideas/rules";
 
 type RootIdea = {
@@ -28,6 +29,20 @@ export function RootIdeasClient() {
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, { status: IdeaStatus; adminNote: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<RootIdea | null>(null);
+
+  async function remove() {
+    if (!deleting) return;
+    try {
+      const response = await fetch(`/api/root/ideas/${deleting.id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Не удалось удалить");
+      toast.success("Идея удалена");
+      setDeleting(null);
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -137,9 +152,29 @@ export function RootIdeasClient() {
                 {saving === idea.id ? "Сохраняем…" : "Сохранить"}
               </button>
             </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleting(idea)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-2xl px-3 text-[13px] font-medium text-[#a13a32] transition-colors hover:bg-[#fff4f2]"
+              >
+                <Trash2 className="size-4" />
+                Удалить
+              </button>
+            </div>
           </section>
         );
       })}
+      <ConfirmDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        variant="danger"
+        title="Удалить идею?"
+        description={deleting ? `«${deleting.title}» исчезнет у всех клиентов вместе с голосами.` : ""}
+        bullets={[{ label: "Голоса удаляются вместе с идеей" }, { label: "Автору уведомление не уходит" }]}
+        confirmLabel="Удалить"
+        onConfirm={remove}
+      />
     </div>
   );
 }
