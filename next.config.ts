@@ -190,8 +190,12 @@ const nextConfig: NextConfig = {
         // имена случайные, содержимое по ним не меняется. Под общим
         // no-store фото в журнале качалось бы заново при каждом
         // открытии записи.
+        //
+        // `b/<код>/badge.svg` — публичный бейдж, который вставляют на чужие
+        // сайты; маршрут сам ставит `public, max-age=900`, иначе картинка
+        // качалась бы при каждом показе страницы клиента.
         source:
-          "/((?!_next/static|_next/image|api/journal-samples|api/journal-previews|journal-samples/|brand/|icons/|uploads/|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/).*)",
+          "/((?!_next/static|_next/image|api/journal-samples|api/journal-previews|journal-samples/|brand/|icons/|uploads/|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/|b/[a-z0-9]+/badge\\.svg).*)",
         headers: [
           {
             key: "Cache-Control",
