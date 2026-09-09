@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, ShieldCheck, Sparkles } from "lucide-react";
+import { LogOut, MessageCircle, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -17,9 +17,36 @@ type LoginRow = {
 
 const CARD = "rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]";
 
-export function SecurityClient({ logins }: { logins: LoginRow[] }) {
+export function SecurityClient({
+  logins,
+  twoFactor,
+}: {
+  logins: LoginRow[];
+  twoFactor: { enabled: boolean; telegramLinked: boolean };
+}) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [codeEnabled, setCodeEnabled] = useState(twoFactor.enabled);
+  const [codeBusy, setCodeBusy] = useState(false);
+
+  async function toggleCode(next: boolean) {
+    setCodeBusy(true);
+    try {
+      const response = await fetch("/api/security/two-factor", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) throw new Error(data?.error ?? "Не удалось");
+      setCodeEnabled(next);
+      toast.success(next ? "Теперь при входе попросим код из Telegram" : "Код при входе выключен");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setCodeBusy(false);
+    }
+  }
 
   async function logoutAll() {
     setBusy(true);
@@ -101,12 +128,34 @@ export function SecurityClient({ logins }: { logins: LoginRow[] }) {
         </section>
         <section className={CARD}>
           <div className="flex items-center gap-2 text-[15px] font-semibold text-[#0b1024]">
-            <Sparkles className="size-4 text-[#5566f6]" />
-            Скоро
+            <MessageCircle className="size-4 text-[#5566f6]" />
+            Код в Telegram при входе
           </div>
           <p className="mt-1 text-[13px] leading-relaxed text-[#6f7282]">
-            Подтверждение входа кодом в Telegram — включается здесь же.
+            После пароля попросим шестизначный код из Telegram. Даже с украденным паролем в
+            кабинет не войти. Вход через сам Telegram кода не требует.
           </p>
+          {twoFactor.telegramLinked ? (
+            <button
+              type="button"
+              onClick={() => void toggleCode(!codeEnabled)}
+              disabled={codeBusy}
+              className={
+                codeEnabled
+                  ? "mt-4 inline-flex h-11 w-full items-center justify-center rounded-2xl border border-[#dcdfed] bg-white px-5 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+                  : "mt-4 inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+              }
+            >
+              {codeEnabled ? "Выключить код" : "Включить код"}
+            </button>
+          ) : (
+            <p className="mt-3 rounded-2xl bg-[#fff8eb] px-3.5 py-2.5 text-[12.5px] leading-relaxed text-[#b25f00]">
+              Сначала привяжите Telegram — код приходит туда. Это делается в профиле приложения.
+            </p>
+          )}
+          {codeEnabled ? (
+            <p className="mt-3 text-[12px] text-[#116b2a]">Включено: при входе по паролю попросим код.</p>
+          ) : null}
         </section>
       </aside>
 

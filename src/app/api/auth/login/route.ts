@@ -3,6 +3,7 @@ import { verifyEmailPassword } from "@/lib/credentials";
 import { issueSession } from "@/lib/issue-session";
 import { loginRateLimiter } from "@/lib/rate-limit";
 import { recordLogin } from "@/lib/login-trace";
+import { startTelegramChallenge, twoFactorRequired } from "@/lib/two-factor";
 
 
 export async function POST(request: Request) {
@@ -45,6 +46,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // Включено подтверждение кодом — сессию не выдаём: код уходит в
+    // Telegram, сессию выдаст /api/auth/login/code.
+    if (twoFactorRequired(user)) {
+      const challenge = await startTelegramChallenge(user, {
+        ip: ip === "unknown" ? null : ip,
+        userAgent: request.headers.get("user-agent"),
+        method: "password",
+      });
+      if ("error" in challenge) {
+        return NextResponse.json({ error: challenge.error }, { status: 503 });
+      }
+      return NextResponse.json({ requiresCode: true, challengeId: challenge.challengeId });
+    }
     // Отметка о входе — до выдачи сессии, но не в блокирующем смысле:
     // recordLogin глотает свои ошибки, вход от неё не зависит.
     await recordLogin(user.id, ip === "unknown" ? null : ip, {

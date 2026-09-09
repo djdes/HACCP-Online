@@ -13,6 +13,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function SecurityPage() {
   const session = await requireAuth();
+  const me = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { twoFactorTelegram: true, telegramChatId: true },
+  });
   const rows = await db.loginEvent.findMany({
     where: { userId: session.user.id },
     orderBy: { at: "desc" },
@@ -34,7 +38,10 @@ export default async function SecurityPage() {
         title="Безопасность"
         description="Кто и откуда входил в ваш аккаунт, и одна кнопка, чтобы разом выйти со всех устройств."
       />
-      <SecurityClient logins={logins} />
+      <SecurityClient
+        logins={logins}
+        twoFactor={{ enabled: me?.twoFactorTelegram === true, telegramLinked: Boolean(me?.telegramChatId) }}
+      />
     </div>
   );
 }

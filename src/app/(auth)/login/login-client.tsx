@@ -32,6 +32,9 @@ function LoginForm() {
     email: prefilledEmail,
     password: "",
   });
+  // Второй шаг входа: код из Telegram (если человек включил в «Безопасности»).
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const [forgotState, setForgotState] = useState<"idle" | "sending" | "sent">(
     "idle",
   );
@@ -79,6 +82,40 @@ function LoginForm() {
           error?: string;
         } | null;
         setError(data?.error || "Неверный email или пароль");
+        return;
+      }
+      const data = (await res.json().catch(() => null)) as {
+        requiresCode?: boolean;
+        challengeId?: string;
+      } | null;
+      if (data?.requiresCode && data.challengeId) {
+        setChallengeId(data.challengeId);
+        setCode("");
+        return;
+      }
+      router.push(nextPath);
+      router.refresh();
+    } catch {
+      setError("Ошибка соединения с сервером");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!challengeId) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login/code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId, code }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error || "Неверный код");
         return;
       }
       router.push(nextPath);
@@ -185,7 +222,9 @@ function LoginForm() {
             Вход в личный кабинет
           </h2>
           <p className="mt-2 text-[14px] text-[#6f7282]">
-            Введите email и пароль, выданные вашей компанией.
+            {challengeId
+              ? "Второй шаг: код из Telegram."
+              : "Введите email и пароль, выданные вашей компанией."}
           </p>
 
           {alreadyExists && (
@@ -218,7 +257,41 @@ function LoginForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          {challengeId ? (
+            <form onSubmit={handleCode} className="mt-8 space-y-5">
+              <div className="rounded-2xl border border-[#dcdfed] bg-[#fafbff] p-4 text-[13.5px] leading-relaxed text-[#3c4053]">
+                Пароль верный. Мы отправили код в ваш Telegram — введите его, код действует 5 минут.
+              </div>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                placeholder="000000"
+                aria-label="Код из Telegram"
+                className="h-14 w-full rounded-2xl border border-[#dcdfed] bg-white text-center font-mono text-[24px] tracking-[0.4em] text-[#0b1024] placeholder:text-[#c9ccdb] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+              <button
+                type="submit"
+                disabled={loading || code.length !== 6}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#5566f6] text-[15px] font-medium text-white shadow-[0_12px_36px_-12px_rgba(85,102,246,0.65)] transition-colors hover:bg-[#4a5bf0] disabled:opacity-60"
+              >
+                {loading ? "Проверяем…" : "Подтвердить"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setChallengeId(null);
+                  setError(null);
+                }}
+                className="w-full text-center text-[13px] text-[#6f7282] underline underline-offset-2"
+              >
+                Назад — отправить код ещё раз
+              </button>
+            </form>
+          ) : null}
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5" hidden={Boolean(challengeId)}>
             <Field
               id="email"
               label="Email"

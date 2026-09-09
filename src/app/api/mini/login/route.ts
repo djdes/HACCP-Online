@@ -4,6 +4,7 @@ import { clientIp } from "@/lib/client-ip";
 import { verifyPhonePassword } from "@/lib/credentials";
 import { issueSession } from "@/lib/issue-session";
 import { recordLogin } from "@/lib/login-trace";
+import { startTelegramChallenge, twoFactorRequired } from "@/lib/two-factor";
 import { loginRateLimiter } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -58,6 +59,17 @@ export async function POST(request: Request) {
       );
     }
 
+    if (twoFactorRequired(user)) {
+      const challenge = await startTelegramChallenge(user, {
+        ip: ip === "unknown" ? null : ip,
+        userAgent: request.headers.get("user-agent"),
+        method: "phone",
+      });
+      if ("error" in challenge) {
+        return NextResponse.json({ error: challenge.error }, { status: 503 });
+      }
+      return NextResponse.json({ requiresCode: true, challengeId: challenge.challengeId });
+    }
     await recordLogin(user.id, ip === "unknown" ? null : ip, {
       userAgent: request.headers.get("user-agent"),
       method: "phone",

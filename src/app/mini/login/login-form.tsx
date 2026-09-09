@@ -23,6 +23,9 @@ export function MiniLoginForm({ next }: { next?: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Второй шаг: код из Telegram, если включено в «Безопасности».
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -41,6 +44,11 @@ export function MiniLoginForm({ next }: { next?: string }) {
         setError(body.error || "Не удалось войти");
         return;
       }
+      if (body.requiresCode && body.challengeId) {
+        setChallengeId(String(body.challengeId));
+        setCode("");
+        return;
+      }
       // Куда возвращать — только внутрь /mini: адрес приходит из
       // строки запроса, и без проверки он стал бы открытым редиректом.
       const target = next ? sanitizeMiniAppRedirectPath(next) : null;
@@ -54,6 +62,74 @@ export function MiniLoginForm({ next }: { next?: string }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function submitCode(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy || !challengeId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/login/code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId, code }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(body.error || "Неверный код");
+        return;
+      }
+      const target = next ? sanitizeMiniAppRedirectPath(next) : null;
+      window.location.assign(target ?? "/mini");
+    } catch {
+      setError("Нет связи. Проверьте интернет и попробуйте ещё раз.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (challengeId) {
+    return (
+      <form onSubmit={submitCode} className="mt-5 space-y-3">
+        <p className="text-[14px] leading-[1.55] opacity-80">
+          Пароль верный. Код отправлен в ваш Telegram, действует 5 минут.
+        </p>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          autoFocus
+          placeholder="000000"
+          aria-label="Код из Telegram"
+          className="mini-input h-14 w-full rounded-2xl px-4 text-center font-mono text-[24px] tracking-[0.4em]"
+        />
+        {error ? (
+          <p role="alert" className="text-[14px] leading-[1.5] text-[#ff6b6b]">
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          disabled={busy || code.length !== 6}
+          className="mini-btn-primary mini-press h-14 w-full text-[16px] disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="size-5 animate-spin" /> : null}
+          Подтвердить
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setChallengeId(null);
+            setError(null);
+          }}
+          className="w-full text-center text-[13px] underline underline-offset-2 opacity-70"
+        >
+          Назад — отправить код ещё раз
+        </button>
+      </form>
+    );
   }
 
   return (

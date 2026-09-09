@@ -647,6 +647,8 @@ model User {
   lastLoginAt                 DateTime?
   /// Версия сессий: растёт при «Завершить все сессии», см. lib/session-version.ts.
   sessionVersion              Int                      @default(0)
+  /// Подтверждение входа кодом в Telegram (только при привязанном чате).
+  twoFactorTelegram           Boolean                  @default(false)
   /// Когда человек подтвердил почту кодом. null — не подтверждал.
   /// Ничего не блокирует: это отметка для настроек и быстрого старта.
   emailVerifiedAt             DateTime?
@@ -3203,4 +3205,22 @@ model LoginEvent {
 
   @@index([userId, at])
   @@index([userId, deviceKey])
+}
+
+/// Код подтверждения входа: одноразовый, пять минут, пять попыток.
+/// Хеш кода солится id челленджа (lib/login-challenge.ts).
+model LoginChallenge {
+  id         String    @id @default(cuid())
+  userId     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  ip         String?
+  userAgent  String?
+  /// password | phone
+  method     String    @default("password")
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }
