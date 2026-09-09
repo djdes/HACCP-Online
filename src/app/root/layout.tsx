@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Activity,
   Bot,
   Handshake,
   LayoutDashboard,
@@ -9,6 +10,7 @@ import {
   Settings2,
   Star,
   Stamp,
+  Ticket,
   Wallet,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
@@ -121,6 +123,20 @@ export default async function RootAreaLayout({
             >
               <Stamp className="size-4" />
               Реквизиты
+            </Link>
+            <Link
+              href="/root/promo-codes"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Ticket className="size-4" />
+              Промокоды
+            </Link>
+            <Link
+              href="/root/status"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Activity className="size-4" />
+              Статус
             </Link>
             <Link
               href="/root/partners"

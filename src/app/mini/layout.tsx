@@ -12,6 +12,8 @@ import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { LiveConnectionIndicator } from "@/components/live/live-connection-indicator";
+import { AnnouncementBanner } from "@/components/layout/announcement-banner";
+import { currentAnnouncement } from "@/lib/platform-status";
 import { Toaster } from "@/components/ui/sonner";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
 import { MiniTour } from "./_components/mini-tour";
@@ -75,6 +77,7 @@ export default async function MiniLayout({
   // via Telegram initData) get the default `dark`; once they sign in,
   // a subsequent navigation pulls their preference.
   const session = await getServerSession(authOptions).catch(() => null);
+  const announcement = await currentAnnouncement();
   const initialTheme: "light" | "dark" = await (async () => {
     if (!session?.user?.id) return "dark";
     const user = await db.user
@@ -187,6 +190,7 @@ export default async function MiniLayout({
                   "max(7rem, calc(env(safe-area-inset-bottom) + 6rem))",
               }}
             >
+              <AnnouncementBanner announcement={announcement} variant="mini" />
               {children}
             </main>
             {/* Тосты: в Mini App контейнера не было вовсе, и любой

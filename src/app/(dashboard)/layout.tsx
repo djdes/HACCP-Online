@@ -19,6 +19,8 @@ import { SupportWidget } from "@/components/support/support-widget";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { WhatsNewModal } from "@/components/dashboard/whats-new-modal";
+import { AnnouncementBanner } from "@/components/layout/announcement-banner";
+import { currentAnnouncement } from "@/lib/platform-status";
 import { WHATS_NEW_NOTES, whatsNewVersion } from "@/lib/whats-new-notes";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
@@ -167,6 +169,7 @@ export default async function DashboardLayout({
     ? await getBalance(activeOrgId).catch(() => null)
     : null;
 
+  const announcement = await currentAnnouncement();
   const impersonatedName = impersonatedOrg?.name ?? null;
   const initialTheme: "light" | "dark" =
     profile?.themePreference === "dark" ? "dark" : "light";
@@ -344,6 +347,9 @@ export default async function DashboardLayout({
                     impersonatedName ?? session.user.organizationName ?? ""
                   }
                 />
+                {/* Объявление ROOT (плановые работы, инцидент) — над контентом,
+                    закрывается и запоминается по id. */}
+                <AnnouncementBanner announcement={announcement} />
                 {children}
               </PageNavProvider>
             </div>

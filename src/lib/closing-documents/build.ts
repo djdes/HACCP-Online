@@ -44,6 +44,8 @@ export type BuildInput = {
     paidAt: Date;
     description: string;
     bundleConfig: unknown;
+    promoCode?: string | null;
+    discountRub?: number;
   };
   tariff: { title: string; periodDays: number } | null;
   /** Конец оплаченного периода, известен при оплате; иначе считаем от даты оплаты. */
@@ -136,7 +138,11 @@ export function buildClosingLines(input: BuildInput): ClosingLine[] {
     subscriptionEnd: input.subscriptionEnd,
   });
   const tariffTitle = input.tariff?.title?.trim() || input.order.description.trim() || "Подписка";
-  const discount = points > 0 ? ` Скидка баллами: ${formatRub(points)}.` : "";
+  const promoNote =
+    input.order.promoCode && (input.order.discountRub ?? 0) > 0
+      ? ` Промокод ${input.order.promoCode}: −${formatRub(input.order.discountRub ?? 0)}.`
+      : "";
+  const discount = (points > 0 ? ` Скидка баллами: ${formatRub(points)}.` : "") + promoNote;
   const service: ClosingLine = {
     title: `Доступ к сервису WeSetup, тариф «${tariffTitle}», период ${formatRuDate(period.from)} — ${formatRuDate(period.to)}.${discount}`,
     unit: "усл. ед.",
