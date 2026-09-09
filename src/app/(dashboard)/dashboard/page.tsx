@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LiveRefresh } from "@/components/live/live-refresh";
 import { redirect } from "next/navigation";
 import {
   Activity,
@@ -288,6 +289,9 @@ export default async function DashboardPage() {
   const consultant = toConsultantContact(await getVisibleOrgBranding(organizationId));
   return (
     <div className="space-y-5">
+      {/* Сотрудник отметился с телефона — «сегодня осталось» и карточки
+          журналов обновляются сами, без F5 (событие `journal`). */}
+      <LiveRefresh />
       {/* Persist для DashboardSection (collapsible-блоки): inline-script
           читает localStorage и настраивает initial open state. */}
       <DashboardSectionPersistScript />

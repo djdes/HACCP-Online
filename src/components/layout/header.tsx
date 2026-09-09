@@ -49,6 +49,7 @@ import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { UndoRedoButtons } from "@/components/journals/undo-redo-buttons";
 import { useHeaderUndo } from "@/components/journals/journal-undo-slot";
 import { OfflineIndicator } from "@/components/layout/offline-indicator";
+import { LiveConnectionIndicator } from "@/components/live/live-connection-indicator";
 import { planLabel } from "@/lib/plan-limits";
 import { orgDisplayName } from "@/lib/org-display-name";
 import {
@@ -594,6 +595,7 @@ export function Header({
             чем они отличаются. Остался пузырь: там же и онлайн-чат. */}
         <div className="flex items-center gap-2">
           <OfflineIndicator />
+          <LiveConnectionIndicator />
           <NotificationsBell />
 
           {partnerCabinet ? (

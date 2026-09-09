@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { LiveRefresh } from "@/components/live/live-refresh";
 import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import { JournalsBrowser } from "@/components/journals/journals-browser";
@@ -110,6 +111,7 @@ export default async function JournalsPage() {
 
   return (
     <div className="space-y-5">
+      <LiveRefresh />
       {/* Крошки даёт глобальный PageNav из (dashboard)/layout.tsx —
           локальные тут дублировали бы ту же строку. */}
       <PageHeader

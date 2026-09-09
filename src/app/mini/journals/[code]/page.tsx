@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
+import { useLiveRefetch } from "@/lib/use-live-refetch";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
 import { PhotoUploader, PhotoFile } from "../../_components/photo-uploader";
@@ -82,12 +83,12 @@ export default function MiniJournalPage({
   const [copying, setCopying] = useState(false);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    let aborted = false;
-    void (async () => {
+  const load = useCallback(
+    async (signal?: AbortSignal, silent = false) => {
       try {
         const resp = await fetch(`/api/mini/journals/${code}/entries`, {
           cache: "no-store",
+          signal,
         });
         if (!resp.ok) {
           const body = (await resp.json().catch(() => ({ error: "" }))) as {
@@ -96,17 +97,26 @@ export default function MiniJournalPage({
           throw new Error(body.error || `HTTP ${resp.status}`);
         }
         const data = (await resp.json()) as Payload;
-        if (!aborted) setPayload(data);
+        if (!signal?.aborted) setPayload(data);
       } catch (err) {
-        if (!aborted) {
-          setError(err instanceof Error ? err.message : "Ошибка загрузки");
-        }
+        // Тихое перечитывание по живому событию не должно подменять
+        // список экраном ошибки из-за одного неудачного запроса.
+        if (signal?.aborted || silent) return;
+        setError(err instanceof Error ? err.message : "Ошибка загрузки");
       }
-    })();
-    return () => {
-      aborted = true;
-    };
-  }, [code]);
+    },
+    [code]
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
+
+  // Коллега отметился с другого телефона — список обновляется сам.
+  // Только события этого журнала.
+  useLiveRefetch(() => void load(undefined, true), { codes: [code] });
 
   if (error) {
     return (

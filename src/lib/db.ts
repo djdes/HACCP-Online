@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
+import { notifyJournalWrite } from "@/lib/journal-change-events";
 import { resolvePartnerAuditMarker } from "@/lib/partners/audit-marker";
 
 const globalForPrisma = globalThis as unknown as {
@@ -53,6 +54,31 @@ function createPrismaClient(): PrismaClient {
             };
           }
           return query(args);
+        },
+      },
+      // Живые события журналов: любая запись в три модели → событие
+      // организации «журнал изменился», одним хуком на все ~40 путей
+      // записи (см. lib/journal-change-events.ts). После query, не
+      // ждём и не бросаем — запись в журнал от события не зависит.
+      journalEntry: {
+        async $allOperations({ operation, args, query }) {
+          const result = await query(args);
+          notifyJournalWrite(base, "journalEntry", operation, args, result);
+          return result;
+        },
+      },
+      journalDocumentEntry: {
+        async $allOperations({ operation, args, query }) {
+          const result = await query(args);
+          notifyJournalWrite(base, "journalDocumentEntry", operation, args, result);
+          return result;
+        },
+      },
+      journalDocument: {
+        async $allOperations({ operation, args, query }) {
+          const result = await query(args);
+          notifyJournalWrite(base, "journalDocument", operation, args, result);
+          return result;
         },
       },
     },

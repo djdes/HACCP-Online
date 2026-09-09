@@ -1,4 +1,5 @@
 import type React from "react";
+import { LiveRefresh } from "@/components/live/live-refresh";
 import { hasSeenNotice } from "@/lib/seen-notices";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -4049,6 +4050,9 @@ export default async function JournalDocumentsPage({
 
   return withBanner(
     <div className="space-y-8">
+      {/* Записи и документы этого журнала обновляются по живому событию —
+          только своего кода, чужие журналы страницу не дёргают. */}
+      <LiveRefresh codes={[code]} />
       {/* Тёмный hero снят: на рабочей странице журнала он занимал первый
           экран, а название журнала и так стоит в крошках PageNav. */}
       <PageHeader

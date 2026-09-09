@@ -6,6 +6,7 @@ import {
   formatSseEvent,
   publishToOrganization,
   publishToUser,
+  publishToUsers,
   subscribe,
   subscriberCount,
 } from "@/lib/live-events";
@@ -123,5 +124,43 @@ describe("кадры SSE", () => {
     const frame = formatSseComment("ping");
     assert.equal(frame, ": ping\n\n");
     assert.equal(formatSseComment("a\nb"), ": a b\n\n");
+  });
+});
+
+describe("publishToUsers", () => {
+  it("доставляет каждому из списка один раз, дубли id не удваивают", () => {
+    const got: string[] = [];
+    const unsubscribeA = subscribe({
+      userId: "a",
+      organizationId: null,
+      send: () => {
+        got.push("a");
+        return true;
+      },
+    });
+    const unsubscribeB = subscribe({
+      userId: "b",
+      organizationId: null,
+      send: () => {
+        got.push("b");
+        return true;
+      },
+    });
+    const unsubscribeC = subscribe({
+      userId: "c",
+      organizationId: null,
+      send: () => {
+        got.push("c");
+        return true;
+      },
+    });
+
+    const delivered = publishToUsers(["a", "b", "a"], { type: "support", kind: "message" });
+
+    assert.equal(delivered, 2);
+    assert.deepEqual(got.sort(), ["a", "b"]);
+    unsubscribeA();
+    unsubscribeB();
+    unsubscribeC();
   });
 });

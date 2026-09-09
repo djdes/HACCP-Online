@@ -25,11 +25,19 @@
  * Redis — интерфейс ниже это позволяет, не трогая вызывающих.
  */
 
-export type LiveEventType = "notification" | "balance" | "reconnect";
+export type LiveEventType =
+  | "notification"
+  | "balance"
+  | "journal"
+  | "support"
+  | "reconnect";
 
 export type LiveEvent = {
   type: LiveEventType;
-  /** Уточнение для `notification`: kind уведомления («support.reply»). */
+  /**
+   * Уточнение: для `notification` — kind уведомления («support.reply»),
+   * для `journal` — «changed», для `support` — «message» | «typing».
+   */
   kind?: string;
   at: string;
   data?: Record<string, unknown>;
@@ -101,6 +109,21 @@ export function publishToUser(
 ): number {
   return deliver(
     Array.from(registry).filter((s) => s.userId === userId),
+    event,
+  );
+}
+
+/**
+ * Нескольким людям сразу — ROOT-пользователям, участникам партнёра.
+ * Повторы id в списке не удваивают доставку.
+ */
+export function publishToUsers(
+  userIds: Iterable<string>,
+  event: Omit<LiveEvent, "at">,
+): number {
+  const ids = new Set(userIds);
+  return deliver(
+    Array.from(registry).filter((s) => ids.has(s.userId)),
     event,
   );
 }

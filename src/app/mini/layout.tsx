@@ -11,6 +11,7 @@ import { MiniServiceWorkerRegister } from "./_components/mini-sw-register";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
+import { LiveConnectionIndicator } from "@/components/live/live-connection-indicator";
 import { Toaster } from "@/components/ui/sonner";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
 import { MiniTour } from "./_components/mini-tour";
@@ -193,6 +194,9 @@ export default async function MiniLayout({
                 никуда. Позиция «сверху по центру» — из общего компонента. */}
             <Toaster />
             <OfflineIndicator />
+            {/* «Нет связи с сервером» — только после входа: без сессии
+                поток и не должен открываться. */}
+            {session?.user ? <LiveConnectionIndicator variant="mini" /> : null}
             <MiniNav />
             <MiniTour />
             {/* AI помощник и в Mini App (П-3: зеркало сайта). FAB поднят

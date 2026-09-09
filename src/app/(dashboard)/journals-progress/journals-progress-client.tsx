@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefetch } from "@/lib/use-live-refetch";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Loader2, RefreshCcw } from "lucide-react";
@@ -30,6 +32,10 @@ export function JournalsProgressClient() {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Живое событие «журнал изменился» — перечитать сразу (тихо, без
+  // спиннера); опрос раз в 60 с остаётся страховкой.
+  useLiveRefetch(() => void load(true));
 
   async function load(silent = false, signal?: AbortSignal) {
     if (!silent) setLoading(true);

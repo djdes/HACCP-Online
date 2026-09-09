@@ -1,5 +1,7 @@
 "use client";
 
+import { useLiveRefetch } from "@/lib/use-live-refetch";
+
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -105,6 +107,10 @@ export function VerificationsClient() {
     const t = window.setInterval(() => void load(), 30000);
     return () => window.clearInterval(t);
   }, []);
+
+  // Живое событие «журнал изменился» — перечитать сразу; опрос раз в
+  // 30 с остаётся страховкой, если поток не доходит.
+  useLiveRefetch(() => void load());
 
   async function loadGuide(code: string) {
     if (guideByCode[code] !== undefined) return;

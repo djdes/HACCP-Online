@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -29,6 +29,9 @@ import {
 import { PARTNER_ESCALATION_HOURS, ageLabel } from "@/lib/support-threads-shared";
 import type { SupportAttachmentMeta } from "@/lib/support-attachments-shared";
 import { cn } from "@/lib/utils";
+import { createTypingPinger, isTypingFresh } from "@/lib/support-typing";
+import { useLiveEvents } from "@/lib/use-live-events";
+import { useLiveRefetch } from "@/lib/use-live-refetch";
 
 /**
  * Онлайн-чаты в админке: список веток с пометкой, кто должен ответить
@@ -90,6 +93,28 @@ export function SupportChats({
   const [composeOpen, setComposeOpen] = useState(false);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
 
+  // Список веток и сообщения приходят с сервера: новое сообщение клиента
+  // → перечитать страницу. Не чаще раза в 2 с; вкладка в фоне — при
+  // возвращении. Раньше панель не обновлялась вовсе, только F5.
+  const router = useRouter();
+  useLiveRefetch(() => router.refresh(), { types: ["support"], minIntervalMs: 2000 });
+
+  // «Печатает…» по веткам: время последнего пинга, секундный тик, чтобы
+  // метка погасла сама (TTL — в support-typing.ts).
+  const [typingAt, setTypingAt] = useState<Record<string, number>>({});
+  const [now, setNow] = useState(() => Date.now());
+  useLiveEvents((event) => {
+    if (event.type !== "support" || event.kind !== "typing") return;
+    const threadId = typeof event.data?.threadId === "string" ? event.data.threadId : null;
+    if (threadId) setTypingAt((prev) => ({ ...prev, [threadId]: Date.now() }));
+  });
+  const anyTyping = Object.values(typingAt).some((at) => isTypingFresh(at, now));
+  useEffect(() => {
+    if (!anyTyping) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [anyTyping]);
+
   const waitingWesetup = threads.filter((t) => t.unreadForStaff > 0 && !t.partner).length;
   const waitingPartner = threads.filter((t) => t.unreadForStaff > 0 && t.partner).length;
 
@@ -125,7 +150,11 @@ export function SupportChats({
       ) : (
         <div className="mt-4 space-y-3">
           {threads.map((thread) => (
-            <ThreadCard key={thread.id} thread={thread} />
+            <ThreadCard
+              key={thread.id}
+              thread={thread}
+              typing={isTypingFresh(typingAt[thread.id], now)}
+            />
           ))}
         </div>
       )}
@@ -144,11 +173,21 @@ export function SupportChats({
   );
 }
 
-function ThreadCard({ thread }: { thread: RootChatThread }) {
+function ThreadCard({ thread, typing = false }: { thread: RootChatThread; typing?: boolean }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const files = useAttachmentUploads();
+  // Свой набор ответа → клиенту «Поддержка печатает…», не чаще раза в 2,5 с.
+  const pingTyping = useMemo(
+    () =>
+      createTypingPinger(() => {
+        void fetch(`/api/root/support/threads/${thread.id}/typing`, { method: "POST" }).catch(
+          () => undefined
+        );
+      }),
+    [thread.id]
+  );
 
   const waitingHours =
     thread.unreadForStaff > 0
@@ -195,6 +234,11 @@ function ThreadCard({ thread }: { thread: RootChatThread }) {
           <span className="font-medium text-[#0b1024]">
             {thread.organizationName || (thread.kind === "guest" ? "Гость с сайта" : "Без организации")}
           </span>
+          {typing ? (
+            <span className="inline-flex items-center rounded-full bg-[#eef1ff] px-2 py-0.5 text-[11px] font-medium text-[#3848c7]">
+              печатает…
+            </span>
+          ) : null}
           <span className="text-[#6f7282]">
             {[thread.userName, thread.userEmail, thread.phone].filter(Boolean).join(" · ")}
           </span>
@@ -278,7 +322,10 @@ function ThreadCard({ thread }: { thread: RootChatThread }) {
           <AttachButton onFiles={files.addFiles} disabled={busy} />
           <textarea
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              if (event.target.value.trim()) pingTyping();
+            }}
             onPaste={files.handlePaste}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {

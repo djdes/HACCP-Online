@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -29,6 +29,8 @@ import {
   LauncherBadge,
 } from "@/components/support/incoming-message-popup";
 import { useIncomingMessages } from "@/components/support/use-incoming-messages";
+import { TYPING_TTL_MS, createTypingPinger } from "@/lib/support-typing";
+import { useLiveEvents } from "@/lib/use-live-events";
 import { useFabAction, useHasFabDock } from "@/components/layout/fab-dock";
 import {
   isNotificationSoundMuted,
@@ -132,6 +134,25 @@ export function SupportWidget({
   });
   const { chirpFor } = incoming;
 
+  // «Поддержка печатает…» — эфемерно: событие приходит по потоку и
+  // гаснет через TYPING_TTL_MS после последнего. Свой набор текста
+  // пингуем не чаще раза в 2,5 с — сервер не должен видеть каждую букву.
+  const [operatorTyping, setOperatorTyping] = useState(false);
+  const typingTimer = useRef<number | null>(null);
+  const pingTyping = useMemo(
+    () =>
+      createTypingPinger(() => {
+        void fetch("/api/support/chat/typing", { method: "POST" }).catch(() => undefined);
+      }),
+    []
+  );
+  useEffect(
+    () => () => {
+      if (typingTimer.current != null) window.clearTimeout(typingTimer.current);
+    },
+    []
+  );
+
   const openChat = useCallback(() => {
     setOpen(true);
     setScreen("chat");
@@ -195,6 +216,24 @@ export function SupportWidget({
     [chirpFor]
   );
 
+  // Живой поток: ответ оператора и «печатает» приходят сразу; опрос раз
+  // в 10 с остаётся страховкой, если поток не доходит.
+  useLiveEvents((event) => {
+    if (hideChat) return;
+    if (event.type === "support" && event.kind === "typing") {
+      setOperatorTyping(true);
+      if (typingTimer.current != null) window.clearTimeout(typingTimer.current);
+      typingTimer.current = window.setTimeout(() => setOperatorTyping(false), TYPING_TTL_MS);
+      return;
+    }
+    if (!chatVisible) return;
+    if (event.type === "support" && event.kind === "message") {
+      setOperatorTyping(false);
+      void loadChat(true);
+    }
+    if (event.type === "reconnect") void loadChat(true);
+  });
+
   // Данные шапки нужны сразу при открытии, ещё до выбора экрана.
   useEffect(() => {
     if (!open || identity) return;
@@ -212,7 +251,7 @@ export function SupportWidget({
     if (screen === "chat") {
       bottomRef.current?.scrollIntoView({ block: "end" });
     }
-  }, [screen, messages]);
+  }, [screen, messages, operatorTyping]);
 
   function close() {
     setOpen(false);
@@ -633,6 +672,19 @@ export function SupportWidget({
                   </div>
                 ))
               )}
+              {operatorTyping ? (
+                <div
+                  className="flex w-fit items-center gap-2 rounded-2xl bg-[#f5f6ff] px-3.5 py-2.5 text-[12px] text-[#6f7282]"
+                  aria-live="polite"
+                >
+                  <span className="flex items-center gap-0.5" aria-hidden>
+                    <span className="size-1.5 animate-bounce rounded-full bg-[#5566f6]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-[#5566f6] [animation-delay:120ms]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-[#5566f6] [animation-delay:240ms]" />
+                  </span>
+                  Поддержка печатает…
+                </div>
+              ) : null}
               <div ref={bottomRef} />
             </div>
 
@@ -645,7 +697,10 @@ export function SupportWidget({
                 <AttachButton onFiles={chatFiles.addFiles} disabled={busy} />
                 <textarea
                   value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
+                  onChange={(event) => {
+                    setDraft(event.target.value);
+                    if (event.target.value.trim()) pingTyping();
+                  }}
                   onPaste={chatFiles.handlePaste}
                   onKeyDown={(event) => {
                     // Enter отправляет, Shift+Enter — перенос строки: так

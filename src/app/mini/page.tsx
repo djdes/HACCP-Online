@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
+import { useLiveRefetch } from "@/lib/use-live-refetch";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
@@ -216,6 +217,11 @@ export default function MiniHomePage() {
       });
     }
   }, []);
+
+  // Коллега отметился с другого телефона, руководитель закрыл день —
+  // главная обновляется сама, без «потяните вниз». Поток открываем
+  // только после входа: без сессии /api/live отвечает 401.
+  useLiveRefetch(() => void fetchHome(), { enabled: status === "authenticated" });
 
   const startShift = useCallback(async () => {
     setStartingShift(true);

@@ -19,8 +19,10 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { publishToOrganization, publishToUser, publishToUsers } from "@/lib/live-events";
 import { sendFeedbackAdminEmail } from "@/lib/email";
 import { notifyManagement } from "@/lib/notifications";
+import { platformOrgId } from "@/lib/partners/partner-hint";
 import { sendPartnerChatMessageEmail } from "@/lib/partners/emails";
 import { getPlatformAdminEmail, notifyPlatformAdmin } from "@/lib/platform-admin";
 import {
@@ -328,6 +330,11 @@ export async function postClientMessage(args: {
       select: MESSAGE_SELECT,
     }),
   ]);
+  // Оператору — по живому потоку сразу, не дожидаясь Telegram и почты
+  // из deliverClientMessage: админка обновится, пока письмо ещё идёт.
+  void publishSupportToOperators(thread, { kind: "message" }).catch((error) =>
+    console.error("[support-threads] live publish failed:", error)
+  );
   return { thread, message: toMessageDto(message), previousMessages };
 }
 
@@ -346,6 +353,26 @@ export async function deliverClientMessage(ctx: {
       ? `\n📎 ${message.attachments.map((a) => a.filename).join(", ")}`
       : "";
   const bodyText = (message.body || "(вложение без текста)") + attachmentsNote;
+
+  // Колокольчик ROOT: письмо и Telegram уходят ниже, а в самой админке о
+  // новом сообщении раньше узнавали, только обновив страницу. Одно
+  // уведомление на ветку — новые реплики дописываются в него.
+  await notifyManagement({
+    organizationId: platformOrgId(),
+    kind: "support.message",
+    dedupeKey: `support.message:${thread.id}`,
+    title: `Сообщение в чате: ${
+      thread.organizationName ?? message.authorName ?? thread.userName ?? "гость с сайта"
+    }`,
+    linkHref: "/root/feedback",
+    linkLabel: "Открыть переписку",
+    items: [
+      {
+        id: message.id,
+        label: previewOf(message.body, message.attachments.length, 140) || "📎 Вложение",
+      },
+    ],
+  }).catch((error) => console.error("[support-threads] root notification failed:", error));
 
   const partner = thread.organizationId
     ? await getActivePartnerForOrg(thread.organizationId).catch(() => null)
@@ -481,6 +508,8 @@ export async function postOperatorMessage(args: {
       select: MESSAGE_SELECT,
     }),
   ]);
+  // Клиенту — по живому потоку: чат перечитает переписку, не дожидаясь опроса.
+  publishSupportToClient(thread, { kind: "message" });
   return { thread, message: toMessageDto(message) };
 }
 
@@ -588,4 +617,74 @@ export async function latestMessageOf(threadId: string) {
     operatorName: row.operatorName,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Живые события чата (см. lib/live-events.ts): «сообщение» и «печатает»
+// ---------------------------------------------------------------------------
+
+type SupportLiveEvent = { kind: "message" | "typing"; data?: Record<string, unknown> };
+
+let rootUserIdsCache: { at: number; ids: string[] } | null = null;
+const ROOT_IDS_TTL_MS = 60_000;
+
+async function listRootUserIds(): Promise<string[]> {
+  if (rootUserIdsCache && Date.now() - rootUserIdsCache.at < ROOT_IDS_TTL_MS) {
+    return rootUserIdsCache.ids;
+  }
+  const rows = await db.user.findMany({
+    where: { isRoot: true, isActive: true },
+    select: { id: true },
+  });
+  rootUserIdsCache = { at: Date.now(), ids: rows.map((row) => row.id) };
+  return rootUserIdsCache.ids;
+}
+
+/**
+ * Тем, кто отвечает: ROOT в админке и участникам партнёра, если ветка
+ * партнёрская. Адресуем по userId, а не по организации: ROOT может в
+ * этот момент смотреть чужую организацию (impersonate), и подписка его
+ * вкладки числится за ней.
+ */
+export async function publishSupportToOperators(
+  thread: Pick<ThreadRow, "id" | "organizationId">,
+  event: SupportLiveEvent
+): Promise<void> {
+  const ids = new Set(await listRootUserIds());
+  if (thread.organizationId) {
+    const partner = await getActivePartnerForOrg(thread.organizationId).catch(() => null);
+    if (partner) {
+      const members = await db.partnerUser.findMany({
+        where: { partnerId: partner.partnerId },
+        select: { userId: true },
+      });
+      for (const member of members) ids.add(member.userId);
+    }
+  }
+  publishToUsers(ids, {
+    type: "support",
+    kind: event.kind,
+    data: { threadId: thread.id, ...(event.data ?? {}) },
+  });
+}
+
+/**
+ * Клиенту: всем вкладкам организации; legacy-ветка по userId — этому
+ * человеку. Гость с сайта поток не открывает — ему остаётся опрос.
+ */
+export function publishSupportToClient(
+  thread: Pick<ThreadRow, "id" | "key" | "organizationId">,
+  event: SupportLiveEvent
+): void {
+  const payload = {
+    type: "support" as const,
+    kind: event.kind,
+    data: { threadId: thread.id, ...(event.data ?? {}) },
+  };
+  const kind = threadKindOf(thread.key);
+  if (kind === "org" && thread.organizationId) {
+    publishToOrganization(thread.organizationId, payload);
+  } else if (kind === "legacy") {
+    publishToUser(thread.key, payload);
+  }
 }
