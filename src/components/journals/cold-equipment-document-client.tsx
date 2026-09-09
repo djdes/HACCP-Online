@@ -93,7 +93,7 @@ import { MobileViewAxisToggle } from "@/components/journals/mobile-view-axis-tog
 import { DayFirstCards } from "@/components/journals/day-first-cards";
 import { FillRunner } from "@/components/journals/fill-runner";
 import { TodayProgressStrip } from "@/components/journals/today-progress-strip";
-import { useMobileView } from "@/lib/use-mobile-view";
+import { documentViewClasses, useMobileView } from "@/lib/use-mobile-view";
 
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -865,8 +865,14 @@ export function ColdEquipmentDocumentClient({
   // per equipment with a per-day temperature input accordion. See
   // hygiene-document-client.tsx for the original pattern. Общий хук,
   // ключ `journal-mobile-view:cold_equipment_control`.
-  const { mobileView, switchMobileView, mobileAxis, switchMobileAxis } =
-    useMobileView("cold_equipment_control");
+  const {
+    mobileView,
+    switchMobileView,
+    mobileAxis,
+    switchMobileAxis,
+    viewResolved,
+  } = useMobileView("cold_equipment_control");
+  const viewClasses = documentViewClasses(mobileView, viewResolved);
   // Конвейер «Заполнить подряд»: один холодильник — один экран.
   const [runnerOpen, setRunnerOpen] = useState(false);
   const [expandedEquipmentId, setExpandedEquipmentId] = useState<string | null>(
@@ -1459,12 +1465,12 @@ export function ColdEquipmentDocumentClient({
             над таблицу — как на эталоне. В mobile-cards ветке она
             рендерится тем же узлом выше карточек. */}
         {mobileView === "cards" ? (
-          <div className="sm:hidden print:hidden">{equipmentAddBar}</div>
+          <div className={viewClasses.cards}>{equipmentAddBar}</div>
         ) : null}
 
-        {/* Mobile-only view toggle. Cards = accordion per equipment with
-            per-day temperature inputs, vastly more usable on a phone than
-            a 1900-px grid. Hidden on sm+ and in print. */}
+        {/* View toggle. Cards = accordion per equipment with per-day
+            temperature inputs, vastly more usable on a phone than a
+            1900-px grid; on desktop it is an opt-in alternative. */}
         {/* Один ряд вместо двух: таблица показывает весь период и
             ось игнорирует, так что состояний три, а не четыре. */}
         <MobileViewAxisToggle
@@ -1489,7 +1495,7 @@ export function ColdEquipmentDocumentClient({
             на строку. Раньше восемь единиц оборудования требовали восьми
             раскрытий аккордеона с пятнадцатью днями внутри каждого. */}
         {mobileView === "cards" && mobileAxis === "today" && todayInPeriod ? (
-          <div className="mb-4 sm:hidden print:hidden">
+          <div className={`mb-4 ${viewClasses.cards}`}>
             <DayFirstCards
               items={config.equipment.map((item) => {
                 const value = rowByDate[todayKey]?.data.temperatures[item.id];
@@ -1534,7 +1540,7 @@ export function ColdEquipmentDocumentClient({
 
         {mobileView === "cards" &&
         (mobileAxis === "entity" || !todayInPeriod) ? (
-          <div className="space-y-2 sm:hidden print:hidden">
+          <div className={`space-y-2 ${viewClasses.cards}`}>
             {config.equipment.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">
                 Добавьте единицу холодильного оборудования через кнопку
@@ -1646,7 +1652,7 @@ export function ColdEquipmentDocumentClient({
         {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Сетка на 15 дней шире полотна и продолжает скроллиться внутри
             своего GRID_VIEWPORT_CLASS. */}
-        <div className={`${DOC_PAPER_CANVAS_CLASS} ${mobileView === "cards" ? "hidden sm:block print:block" : ""}`}>
+        <div className={`${DOC_PAPER_CANVAS_CLASS} ${viewClasses.table}`}>
         {/* A10 аудита: ОДИН scroll-viewport на весь бланк.
          *
          * Раньше ХАССП-шапка и сетка замеров жили в РАЗНЫХ
@@ -1689,11 +1695,10 @@ export function ColdEquipmentDocumentClient({
             оборудования
           </JournalDocumentTitle>
         </div>
-        {/* Без JS-гейта по mobileView: cards — дефолт стейта и на десктопе,
-            из-за чего кнопка «Добавить ХК» на десктопе не рендерилась вовсе.
-            Внешний контейнер в cards-режиме уже `hidden sm:block`, так что
-            на мобильном этот экземпляр скрыт CSS'ом (копия для карточек —
-            в своём `sm:hidden` выше). */}
+        {/* Без JS-гейта по mobileView: внешний контейнер в cards-режиме
+            спрятан классом (`viewClasses.table`), копия для карточек
+            рендерится выше в своей обёртке — на экране всегда ровно один
+            экземпляр кнопки «Добавить ХО». */}
         {equipmentAddBar}
         {selectionBar}
           <table className="w-full border-collapse text-[13px]">

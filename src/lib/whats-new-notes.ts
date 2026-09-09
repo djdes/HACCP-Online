@@ -22,11 +22,17 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  */
 
 /** SHA текущей версии notes. Меняется только когда обновляется список ниже. */
-export const LATEST_NOTES_BUILD_SHA = "9c8adc39";
+export const LATEST_NOTES_BUILD_SHA = "401c4196";
 
 export type { WhatsNewNote };
 
 export const WHATS_NEW_NOTES: WhatsNewNote[] = [
+  {
+    category: "Журналы",
+    items: [
+      "Вкладки «Сегодня / По сотрудникам / Таблица» в гигиеническом журнале, уборке и холодильниках теперь работают и на компьютере. Раньше на ПК всегда показывалась таблица, а нажатие на «Сегодня» ничего не меняло. На компьютере по умолчанию открывается таблица, на телефоне — карточки; выбор запоминается для каждого журнала отдельно.",
+    ],
+  },
   {
     category: "Уведомления и баланс",
     items: [

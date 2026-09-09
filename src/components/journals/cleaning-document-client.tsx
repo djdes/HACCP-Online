@@ -108,7 +108,7 @@ import {
 } from "@/components/journals/journal-document-header";
 import { MobileViewAxisToggle } from "@/components/journals/mobile-view-axis-toggle";
 import { DayFirstCards } from "@/components/journals/day-first-cards";
-import { useMobileView } from "@/lib/use-mobile-view";
+import { documentViewClasses, useMobileView } from "@/lib/use-mobile-view";
 import {
   PositionSelectItems,
   usePositionEmployeeCascade,
@@ -676,8 +676,14 @@ export function CleaningDocumentClient(props: Props) {
   // for the full rationale; the 920-px grid behind horizontal scroll is
   // unusable on a 320-px phone, so we collapse it into a per-row accordion
   // with tap-to-cycle day buttons. Desktop / print always use the table.
-  const { mobileView, switchMobileView, mobileAxis, switchMobileAxis } =
-    useMobileView("cleaning");
+  const {
+    mobileView,
+    switchMobileView,
+    mobileAxis,
+    switchMobileAxis,
+    viewResolved,
+  } = useMobileView("cleaning");
+  const viewClasses = documentViewClasses(mobileView, viewResolved);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   // Миграция со старого ключа "cleaning-mobile-view" (до перехода на
   // общий useMobileView). Читаем один раз: если нового ключа ещё нет,
@@ -2196,7 +2202,7 @@ export function CleaningDocumentClient(props: Props) {
             таблицу — как на эталоне (cleaning-07-grid-with-room.png).
             В mobile-cards ветке те же узлы рендерятся выше карточек. */}
         {mobileView === "cards" ? (
-          <div className="sm:hidden print:hidden">
+          <div className={viewClasses.cards}>
             {cleaningAddToolbar}
             {cleaningRaceStrip}
           </div>
@@ -2225,7 +2231,7 @@ export function CleaningDocumentClient(props: Props) {
         {mobileView === "cards" &&
         mobileAxis === "today" &&
         dayKeys.includes(todayKey) ? (
-          <div className="mb-4 sm:hidden print:hidden">
+          <div className={`mb-4 ${viewClasses.cards}`}>
             <DayFirstCards
               items={rows
                 .filter((row) => row.kind === "room")
@@ -2277,11 +2283,12 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        {/* Mobile Cards view — hidden on sm+ and print. Each row (room or
-            responsible) is an accordion with per-day tap-to-cycle cells. */}
+        {/* Cards view — hidden in print, on screen the toggle decides.
+            Each row (room or responsible) is an accordion with per-day
+            tap-to-cycle cells. */}
         {mobileView === "cards" &&
         (mobileAxis === "entity" || !dayKeys.includes(todayKey)) ? (
-          <div className="space-y-2 sm:hidden print:hidden">
+          <div className={`space-y-2 ${viewClasses.cards}`}>
             {rows.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] p-5 text-center text-[13px] text-[#6f7282]">
                 Добавьте помещение или ответственного через меню «Добавить».
@@ -2465,7 +2472,7 @@ export function CleaningDocumentClient(props: Props) {
           </div>
         ) : null}
 
-        <div className={mobileView === "cards" ? "hidden sm:block print:block" : ""}>
+        <div className={viewClasses.table}>
         {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Сетка уборки шире (min-w 1200) и продолжает скроллиться внутри
             своего GRID_VIEWPORT_CLASS, который лежит ВНУТРИ полотна. */}
@@ -2490,13 +2497,11 @@ export function CleaningDocumentClient(props: Props) {
           <JournalDocumentTitle className={DOC_CAPS_TITLE_CLASS}>
             {config.documentTitle || CLEANING_PAGE_TITLE}
           </JournalDocumentTitle>
-          {/* Тулбар рендерим ВСЕГДА: внешний контейнер (строка ~2063) в
-              cards-режиме и так `hidden sm:block`, т.е. на мобильном этот
-              экземпляр скрыт CSS'ом, а копия для карточек рендерится выше
-              в своём `sm:hidden`. Раньше стоял JS-гейт `mobileView ===
-              "cards" ? null : …` — а cards является дефолтом стейта и на
-              десктопе, поэтому десктоп оставался вовсе без кнопки
-              «Добавить» (таблицу показывал CSS, тулбар прятал JS). */}
+          {/* Тулбар рендерим ВСЕГДА: внешний контейнер в cards-режиме
+              спрятан классом (`viewClasses.table`), а копия для карточек
+              рендерится выше в своей обёртке. До восстановления выбора
+              обе обёртки брейкпоинтные, после — по состоянию, так что на
+              экране всегда ровно один экземпляр. */}
           {cleaningAddToolbar}
           {cleaningRaceStrip}
           <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>

@@ -36,7 +36,7 @@ import {
 } from "@/components/journals/journal-document-header";
 import { MobileViewAxisToggle } from "@/components/journals/mobile-view-axis-toggle";
 import { DayFirstCards } from "@/components/journals/day-first-cards";
-import { useMobileView } from "@/lib/use-mobile-view";
+import { documentViewClasses, useMobileView } from "@/lib/use-mobile-view";
 import {
   HYGIENE_REGISTER_LEGEND,
   HYGIENE_REGISTER_NOTES,
@@ -315,12 +315,18 @@ export function HygieneDocumentClient({
   const [isDeleting, setIsDeleting] = useState(false);
   const [savingCellKey, setSavingCellKey] = useState<string | null>(null);
   const [cellMenu, setCellMenu] = useState<HygieneCellMenu | null>(null);
-  // Mobile-only view preference: 'cards' (default) vs 'table' (horizontal
-  // scroll of the full sheet). Общий хук `useMobileView` — тот же, что в
-  // cleaning / disinfectant, ключ `journal-mobile-view:hygiene`. Desktop и
-  // печать всегда рендерят таблицу.
-  const { mobileView, switchMobileView, mobileAxis, switchMobileAxis } =
-    useMobileView("hygiene");
+  // Вид документа: карточки (по умолчанию на телефоне) или таблица
+  // (по умолчанию на ПК). Общий хук `useMobileView` — тот же, что в
+  // cleaning / disinfectant, ключ `journal-mobile-view:hygiene`. Печать
+  // всегда рендерит таблицу; на экране выбор работает на любой ширине.
+  const {
+    mobileView,
+    switchMobileView,
+    mobileAxis,
+    switchMobileAxis,
+    viewResolved,
+  } = useMobileView("hygiene");
+  const viewClasses = documentViewClasses(mobileView, viewResolved);
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
     null
   );
@@ -1201,14 +1207,14 @@ export function HygieneDocumentClient({
         />
       </div>
 
-      {/* Mobile cards view — rendered outside the scroll wrapper so it
-          respects the viewport width naturally. Hidden on sm+ and in
-          print (both always use the table). */}
+      {/* Cards view — rendered outside the scroll wrapper so it respects
+          the viewport width naturally. Hidden in print (always the table);
+          on screen the toggle decides on every width. */}
       {/* Ось «Сегодня»: плоский список сотрудников за один день. Раньше,
           чтобы закрыть смену, каждого приходилось раскрывать и искать
           сегодняшнюю строку среди пятнадцати дней. */}
       {mobileView === "cards" && mobileAxis === "today" && todayInPeriod ? (
-        <div className="mb-6 sm:hidden print:hidden">
+        <div className={`mb-6 ${viewClasses.cards}`}>
           <DayFirstCards
             items={printableEmployees
               .filter((employee) => employee.name)
@@ -1272,7 +1278,7 @@ export function HygieneDocumentClient({
       ) : null}
 
       {mobileView === "cards" && (mobileAxis === "entity" || !todayInPeriod) ? (
-        <div className="mb-6 space-y-2 sm:hidden print:hidden">
+        <div className={`mb-6 space-y-2 ${viewClasses.cards}`}>
           {printableEmployees
             .filter((employee) => employee.name)
             .map((employee) => {
@@ -1448,9 +1454,7 @@ export function HygieneDocumentClient({
           эталоне. Полоса автозаполнения и H1 остаются во всю ширину,
           потому что живут выше по дереву. */}
       <div
-        className={`${DOC_PAPER_CANVAS_CLASS} ${
-          mobileView === "cards" ? "hidden sm:block print:block" : ""
-        }`}
+        className={`${DOC_PAPER_CANVAS_CLASS} ${viewClasses.table}`}
       >
       <div className={GRID_VIEWPORT_CLASS}>
         {/* Q3: `py-6` добавлял 24px СВЕРХУ к 40px полосы автозаполнения —
