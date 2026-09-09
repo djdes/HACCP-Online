@@ -18,6 +18,8 @@ import { SanpinChatWidget } from "@/components/ai/sanpin-chat-widget";
 import { SupportWidget } from "@/components/support/support-widget";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
+import { WhatsNewModal } from "@/components/dashboard/whats-new-modal";
+import { WHATS_NEW_NOTES, whatsNewVersion } from "@/lib/whats-new-notes";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { hasCapability } from "@/lib/permission-presets";
 import { getBalance } from "@/lib/balance/ledger";
@@ -82,6 +84,7 @@ export default async function DashboardLayout({
       select: {
         positionTitle: true,
         themePreference: true,
+        showWhatsNew: true,
         // Признаки незавершённой анкеты после мгновенной регистрации:
         // имя равно почте и/или не заполнен телефон.
         email: true,
@@ -363,11 +366,22 @@ export default async function DashboardLayout({
               hideChat={Boolean(partnerAccess)}
             />
           ) : null}
-          {/* «Что нового» отключено: заметки писались вручную и отставали
-              от кода — менялся SHA сборки, а текст оставался прежним, и
-              модалка после каждого входа показывала старое как новое.
-              Компонент и src/lib/whats-new-notes.ts на месте: вернуть
-              можно одной строкой, когда будет чем наполнять. */}
+          {/* «Что нового» — короткий список изменений при первом заходе
+              после обновления. Только для руководства: рядовому
+              сотруднику это шум.
+
+              Окно выключали в августе, потому что оно было привязано к
+              SHA сборки: SHA менялся, текст оставался прежним, и люди
+              при каждом входе видели одно и то же как новость. Теперь
+              показ зависит от самого текста (`whatsNewVersion`) — не
+              изменили заметки, окно не появится. Плюс человек может
+              выключить его совсем в «Настройки → Внешний вид». */}
+          {hasFullWorkspaceAccess(session.user) && profile?.showWhatsNew !== false ? (
+            <WhatsNewModal
+              buildSha={whatsNewVersion()}
+              notes={WHATS_NEW_NOTES}
+            />
+          ) : null}
           {/* ⌘K — палитра-навигатор. Один глобальный listener на keydown,
               ноль cost когда не открыт. Доступна всем кто видит dashboard. */}
           <CommandPalette />

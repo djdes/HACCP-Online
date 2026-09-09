@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/auth-helpers";
 import { hasCapability } from "@/lib/permission-presets";
 import { PageHeader } from "@/components/ui/page-header";
 import { ThemeModeControls } from "@/components/theme/theme-quick-switch";
+import { WhatsNewToggle } from "@/components/dashboard/whats-new-toggle";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,13 @@ export const dynamic = "force-dynamic";
 export default async function AppearanceSettingsPage() {
   const session = await requireAuth();
   if (!hasCapability(session.user, "admin.full")) redirect("/journals");
+
+  const me = await db.user
+    .findUnique({
+      where: { id: session.user.id },
+      select: { showWhatsNew: true },
+    })
+    .catch(() => null);
 
   return (
     <div className="space-y-5">
@@ -42,6 +51,19 @@ export default async function AppearanceSettingsPage() {
         </div>
 
         <ThemeModeControls className="max-w-[420px]" />
+      </section>
+
+      <section className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-6">
+        <div className="mb-4">
+          <div className="text-[15px] font-semibold text-[#0b1024]">
+            Сообщения об обновлениях
+          </div>
+          <div className="mt-0.5 text-[13px] text-[#6f7282]">
+            Настройка запоминается в вашем аккаунте.
+          </div>
+        </div>
+
+        <WhatsNewToggle initial={me?.showWhatsNew ?? true} />
       </section>
     </div>
   );

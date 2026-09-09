@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   BellRing,
   ChevronDown,
+  Camera,
   Coins,
   FileText,
   Gauge,
@@ -98,6 +99,9 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Скорость и отклик": Zap,
   "Замеры и приборы": Thermometer,
   "Вход и установка на телефон": KeyRound,
+  "Заполнение с телефона": Smartphone,
+  "Фото в журналах": Camera,
+  "Дашборд": Gauge,
   "Работа без интернета": WifiOff,
   "Уведомления": BellRing,
   "Голосовой ввод": MicVocal,
