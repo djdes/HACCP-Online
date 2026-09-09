@@ -215,46 +215,38 @@ jobs:
 
             echo "=== Backup OLD .next/static (chunks survive deploy window) ==="
             # R40 fix: PM2 продолжает обслуживать СТАРЫЙ HTML до конца
-            # деплоя (его restart — последний шаг). Старый HTML ссылается
-            # на старые chunk-имена (/_next/static/chunks/<hash>.js),
-            # которые `rm -rf .next` ниже удаляет → активные пользователи
-            # получают 500 на КАЖДЫЙ JS chunk на ~30-60 сек, пока build
-            # идёт. Решение: бэкапим .next/static, и после build'а
-            # копируем СТАРЫЕ chunks обратно в .next/static (имена hash'ами,
-            # с новыми не конфликтуют — coexist'ят). После pm2 restart
-            # они становятся dead-weight и стираются на следующем деплое
-            # (тем же rm -rf .next). Window 500's закрыт.
-            rm -rf .next.static-backup 2>/dev/null || true
-            if [ -d .next/static ]; then
-              mv .next/static .next.static-backup
-              echo "[backup] .next/static → .next.static-backup ($(find .next.static-backup -type f | wc -l) files)"
-            else
-              echo "[backup] .next/static отсутствует — нечего бэкапить (первый деплой?)"
-            fi
-
-            echo "=== Backup .next/cache (переживает rm -rf .next ниже) ==="
-            # Кеш сборки лежит ВНУТРИ .next, который через несколько
-            # строк сносится целиком. Без этого переноса каждая сборка
-            # холодная — 2.7 минуты вместо примерно минуты. Кеш
-            # адресуется по содержимому, устаревшие записи Next
-            # выбрасывает сам, склеить старый код с новым он не может.
+            # деплоя (его restart — последний шаг).
+            #
+            # 2026-09-09: раньше здесь `.next/static` УНОСИЛСЯ в бэкап, а
+            # ниже шёл `rm -rf .next` — то есть живой сайт оставался без
+            # статики с этого момента и до перезапуска в шаге 3. Поймано
+            # вживую: `/journals` падал с ChunkLoadError, пять чанков
+            # отдавали 500. Теперь работающая сборка НЕ ТРОГАЕТСЯ вовсе:
+            # новая собирается в отдельный каталог (шаг 2), и каталоги
+            # меняются местами непосредственно перед рестартом (шаг 3).
+            echo "=== Кеш сборки для инкрементальной пересборки ==="
+            # Копируем, а не переносим: `.next/cache` должен остаться у
+            # работающей сборки. Стоит немного места и одну операцию —
+            # против минут неработающего сайта.
             rm -rf .next.cache-backup 2>/dev/null || true
             if [ -d .next/cache ]; then
-              mv .next/cache .next.cache-backup
-              echo "[cache] .next/cache → .next.cache-backup ($(du -sh .next.cache-backup | cut -f1))"
+              cp -r .next/cache .next.cache-backup
+              echo "[cache] скопирован ($(du -sh .next.cache-backup | cut -f1))"
             else
-              echo "[cache] .next/cache отсутствует — следующая сборка холодная"
+              echo "[cache] отсутствует — следующая сборка холодная"
             fi
+
+            # Мусор от прошлых деплоев: незавершённая сборка и уже
+            # ненужная предыдущая версия.
+            rm -rf .next-build .next-previous 2>/dev/null || true
 
             echo "=== Installing server dependencies (clean) ==="
             # Remove stale node_modules + CI-produced .next to prevent
             # "Cannot find module 'next/dist/compiled/cookie'" desync after
             # npm ci replaces packages referenced by the bundled CI build.
             [ -s ~/.nvm/nvm.sh ] && . ~/.nvm/nvm.sh || true
-            # npm ci падает с ENOTEMPTY когда прошлый build оставил файлы
-            # в node_modules/*/lib-vendor — стараемся вычистить жёстко.
-            # Второй rm-rf покрывает race если первый упал посередине.
-            rm -rf .next 2>/dev/null || true
+            # `.next` здесь НЕ трогаем: из него прямо сейчас работает
+            # сайт. Новая сборка уезжает в `.next-build` (шаг 2).
 
             # Зависимости переустанавливаем, только если менялся
             # package-lock. Раньше node_modules сносились и ставились
@@ -302,15 +294,26 @@ jobs:
             echo "=== Запись .build-sha (на случай если step 1 не записал) ==="
             echo "$GITHUB_SHA" > .build-sha
 
-            echo "=== Restoring .next/cache (инкрементальная сборка) ==="
+            # Собираем в ОТДЕЛЬНЫЙ каталог: `.next` продолжает
+            # обслуживать живой сайт, пока идёт сборка. Переключение —
+            # в шаге 3, непосредственно перед рестартом.
+            #
+            # `distDir` уже читается из окружения (next.config.ts:
+            # `process.env.NEXT_DIST_DIR || ".next"`), правок в
+            # приложении не нужно.
+            export NEXT_DIST_DIR=.next-build
+            BUILD_DIR=.next-build
+
+            echo "=== Restoring build cache (инкрементальная сборка) ==="
             # Без кеша Next собирает всё заново: 2.7 минуты вместо
             # примерно минуты. Кеш адресуется по содержимому — устаревшие
             # записи Next выбрасывает сам, поэтому перенос между сборками
             # безопасен и не даёт склеить старый код с новым.
+            rm -rf "$BUILD_DIR"
             if [ -d .next.cache-backup ]; then
-              mkdir -p .next
-              mv .next.cache-backup .next/cache
-              echo "[cache] восстановлен ($(du -sh .next/cache | cut -f1))"
+              mkdir -p "$BUILD_DIR"
+              mv .next.cache-backup "$BUILD_DIR/cache"
+              echo "[cache] восстановлен ($(du -sh "$BUILD_DIR/cache" | cut -f1))"
             else
               echo "[cache] бэкапа нет — сборка холодная"
             fi
@@ -326,7 +329,7 @@ jobs:
             # как «зелёный» — пользователи видели «Что-то пошло не так»
             # на /root/organizations/[id], /mini и пр. Удаляем lock'и
             # перед каждой попыткой.
-            rm -f .next/lock 2>/dev/null || true
+            rm -f "$BUILD_DIR/lock" 2>/dev/null || true
             # Запускаем build через `setsid` + nohup — он становится
             # process group leader, не наследует SSH-PTY и переживёт
             # любой SSH-SIGHUP/network-blip от GitHub-runner'а.
@@ -385,31 +388,9 @@ jobs:
             fi
             tail -20 .build.log
 
-            echo "=== Restoring OLD .next/static chunks (R40 fix) ==="
-            # cp -n = no-clobber: новые chunks от свежего build'а имеют
-            # приоритет, ничего не перезаписываем. Старые chunks с
-            # уникальными hash-именами просто доезжают рядом — их
-            # запрашивают пользователи которые уже загрузили СТАРУЮ
-            # HTML до pm2 restart.
-            if [ -d .next.static-backup ]; then
-              # Restore только chunks/ (где живут JS бандлы) и css/.
-              # media/ — fonts/images, тоже могут быть нужны.
-              for sub in chunks css media; do
-                if [ -d ".next.static-backup/$sub" ]; then
-                  mkdir -p ".next/static/$sub"
-                  cp -rn ".next.static-backup/$sub/." ".next/static/$sub/" 2>/dev/null || true
-                fi
-              done
-              restored=$(find .next.static-backup -type f | wc -l)
-              echo "[restore] $restored old static files preserved alongside new build"
-              rm -rf .next.static-backup
-            else
-              echo "[restore] no backup — пропуск (первый деплой / build с нуля)"
-            fi
-
             echo "=== Verifying client-reference manifests ==="
             # Next.js 16 периодически собирается «успешно», но без
-            # client-reference-manifest.js файлов в .next/server/app —
+            # client-reference-manifest.js файлов в $BUILD_DIR/server/app —
             # SSR HTML отдаётся, но React не может гидрировать (особенно
             # на мобильных, где нет кэша) и страницы выглядят рабочими
             # на ПК и сломанными на телефоне. Если такая ситуация —
@@ -422,15 +403,15 @@ jobs:
             # конкретного route отсутствует» — последний крашил
             # /root/organizations/[id], /mini и пр. с InvariantError.
             verify_manifests() {
-              # Sanity: build вообще должен был сгенерировать .next/server/app.
+              # Sanity: build вообще должен был сгенерировать $BUILD_DIR/server/app.
               # Если его нет — `find` молча вернёт пусто, и loop ниже отдаст
               # missing=0 → false-positive «всё ок». Проверяем явно.
-              if [ ! -d .next/server/app ]; then
-                echo "[fail] .next/server/app отсутствует — build не дошёл до compilation"
+              if [ ! -d "$BUILD_DIR/server/app" ]; then
+                echo "[fail] $BUILD_DIR/server/app отсутствует — build не дошёл до compilation"
                 return 1
               fi
               local pages
-              pages=$(find .next/server/app -name 'page.js' 2>/dev/null | wc -l)
+              pages=$(find "$BUILD_DIR/server/app" -name 'page.js' 2>/dev/null | wc -l)
               if [ "$pages" -lt "10" ]; then
                 echo "[fail] всего $pages page.js — build явно неполный (ожидаем 80+)"
                 return 1
@@ -456,13 +437,13 @@ jobs:
                 # mini для now (ещё не критичный для public). Остальные —
                 # обязательные.
                 [[ "$route" == *_NA ]] && continue
-                if [ ! -f ".next/server/app/$route" ]; then
+                if [ ! -f "$BUILD_DIR/server/app/$route" ]; then
                   critical_missing="$critical_missing $route"
                 fi
               done
               if [ -n "$critical_missing" ]; then
                 echo "[fail] критичные routes не собрались:"
-                for r in $critical_missing; do echo "  - .next/server/app/$r"; done
+                for r in $critical_missing; do echo "  - $BUILD_DIR/server/app/$r"; done
                 return 1
               fi
               local missing=0
@@ -473,16 +454,16 @@ jobs:
                 dir=$(dirname "$page_js")
                 if [ ! -f "$dir/page_client-reference-manifest.js" ]; then
                   missing=$((missing+1))
-                  missing_list="$missing_list ${dir#.next/server/app/}"
+                  missing_list="$missing_list ${dir#$BUILD_DIR/server/app/}"
                 fi
-              done < <(find .next/server/app -name 'page.js' 2>/dev/null)
+              done < <(find "$BUILD_DIR/server/app" -name 'page.js' 2>/dev/null)
               if [ "$missing" -gt "0" ]; then
                 echo "[fail] $missing routes без client-reference-manifest:"
                 for r in $missing_list; do echo "  - $r"; done
                 return 1
               fi
               local total
-              total=$(find .next/server/app -name '*client-reference-manifest.js' 2>/dev/null | wc -l)
+              total=$(find "$BUILD_DIR/server/app" -name '*client-reference-manifest.js' 2>/dev/null | wc -l)
               echo "[ok] $pages page-routes (включая critical), все имеют manifest ($total файлов)"
               return 0
             }
@@ -491,7 +472,10 @@ jobs:
               echo "[warn] manifest check failed — rebuilding from clean .next"
               # Полный rm -rf — заодно убирает stale .next/lock который
               # мог остаться от первого build'а, упавшего на OOM.
-              rm -rf .next
+              # Сносим только новую сборку — работающая не при чём.
+              # Раньше здесь стоял `rm -rf .next`, и именно эта ветка
+              # оставляла живой сайт вообще без статики.
+              rm -rf "$BUILD_DIR"
               npm run build > .build-rebuild.log 2>&1 || REBUILD_FAIL=$?
               echo "[rebuild] $(wc -l < .build-rebuild.log) lines logged → .build-rebuild.log"
               tail -50 .build-rebuild.log
@@ -504,7 +488,29 @@ jobs:
                 exit 1
               fi
             fi
-            echo "[build] step 2 OK — следующий шаг применяет миграции и рестартит pm2"
+            echo "=== Переносим старые chunks в новую сборку ==="
+            # У человека, открывшего страницу ДО переключения, в HTML
+            # стоят старые имена чанков. После переключения каталогов их
+            # запросы пошли бы в новую сборку, где таких имён нет.
+            # Имена содержат хеш, поэтому старые и новые спокойно лежат
+            # рядом; `cp -n` не даёт перезаписать новые.
+            #
+            # Берём прямо из ЖИВОЙ сборки — она на месте, отдельный
+            # бэкап больше не нужен.
+            if [ -d .next/static ]; then
+              for sub in chunks css media; do
+                if [ -d ".next/static/$sub" ]; then
+                  mkdir -p "$BUILD_DIR/static/$sub"
+                  cp -rn ".next/static/$sub/." "$BUILD_DIR/static/$sub/" 2>/dev/null || true
+                fi
+              done
+              echo "[chunks] старые файлы перенесены рядом с новыми"
+            else
+              echo "[chunks] живой сборки нет — первый деплой"
+            fi
+
+            echo "[build] step 2 OK — новая сборка готова в $BUILD_DIR"
+            echo "[build] живой сайт всё это время работал со старой"
 
       - name: Deploy step 3/3 — db push + seeds + pm2 restart + prewarm
         uses: appleboy/ssh-action@v1
@@ -575,6 +581,32 @@ jobs:
               echo ".env not found, skip seed"
             fi
 
+            echo "=== Переключение на новую сборку ==="
+            # Момент истины и единственное место, где живой сайт вообще
+            # меняется. До этой строки он работал со старой сборкой всё
+            # время: распаковку, npm ci, сборку и проверку манифестов.
+            #
+            # Два переименования каталогов — это миллисекунды, и сразу за
+            # ними идёт рестарт. Раньше на этом месте были минуты: сборка
+            # шла ПОВЕРХ работающего каталога, и всё это время JS отдавал
+            # 500. Поймано вживую 2026-09-09 на /journals.
+            #
+            # Если сборка не удалась, сюда мы не дойдём — шаг 2 упадёт
+            # раньше, и сайт останется на прежней версии.
+            if [ ! -d .next-build ]; then
+              echo "[swap] .next-build отсутствует — шаг 2 не подготовил сборку"
+              exit 1
+            fi
+            rm -rf .next-previous
+            # Не `[ -d .next ] && mv …`: при `set -e` ложное условие
+            # уронило бы весь шаг на первом деплое, когда каталога ещё
+            # нет.
+            if [ -d .next ]; then
+              mv .next .next-previous
+            fi
+            mv .next-build .next
+            echo "[swap] переключено на новую сборку"
+
             echo "=== Restarting PM2 (web + telegram poller) ==="
             npx pm2 delete haccp-online 2>/dev/null || true
             # next start по умолчанию слушает :3000, но nginx проксирует
@@ -624,6 +656,11 @@ jobs:
             if ! bash scripts/prewarm-routes.sh 2>&1; then
               echo "[prewarm] script failed — non-fatal, продолжаем"
             fi
+
+            echo "=== Уборка предыдущей сборки ==="
+            # Держали её до этого момента на случай, если рестарт или
+            # прогрев упадут и придётся возвращаться руками.
+            rm -rf .next-previous 2>/dev/null || true
 
             echo "=== Deploy complete ==="
 
