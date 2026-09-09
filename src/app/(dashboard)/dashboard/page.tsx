@@ -352,7 +352,13 @@ export default async function DashboardPage() {
                   : { text: "все ✓", tone: "ok" }
               }
             >
-              <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {/* На телефоне один столбец, а не два. Две колонки
+                  оставляли названию около 110 px, и «Гигиенический
+                  журнал» рвался посреди слова: «Гигиеническ / ий». Во
+                  всю ширину название помещается целиком, и список из
+                  тридцати четырёх журналов становится короче: строка
+                  вместо карточки с превью. */}
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {complianceItems.map((item) => (
                   <Link
                     key={item.id}
@@ -370,7 +376,13 @@ export default async function DashboardPage() {
                         если cron уже отрисовал, иначе стандартный образец
                         бланка — по названию вроде «Чек-лист (памятка)
                         проведения санитарного дня» невозможно вспомнить,
-                        что там за форма. */}
+                        что там за форма.
+                        
+                        На телефоне превью скрыто: в карточке шириной
+                        165 px бумажный бланк с пропорциями 1228×862
+                        превращается в нечитаемую полоску 119 px, а
+                        тридцать четыре таких полоски растягивали
+                        дашборд на семь экранов. */}
                     {item.previewUrl || SAMPLE_CODES.has(item.code) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -381,7 +393,7 @@ export default async function DashboardPage() {
                         fetchPriority="low"
                         width={768}
                         height={539}
-                        className="aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top"
+                        className="hidden aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top sm:block"
                       />
                     ) : null}
 
@@ -411,23 +423,22 @@ export default async function DashboardPage() {
                       </span>
                       <span
                         className={cn(
-                          // На телефоне карточки по две в ряд, и 15px
-                          // резали название до «Гигиени…». Мельче — зато
-                          // журнал читается целиком.
-                          "line-clamp-3 min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug tracking-[-0.01em] sm:line-clamp-2 sm:text-[15px]",
+                          // Кегль вернулся к 15px: с одной колонкой на
+                          // телефоне названию хватает ширины, и мельчить
+                          // ради «Гигиени…» больше не нужно.
+                          "line-clamp-2 min-w-0 flex-1 break-words text-[15px] font-semibold leading-snug tracking-[-0.01em]",
                           item.filled ? "text-[#136b2a]" : "text-[#a1362f]"
                         )}
                       >
                         {item.name}
                       </span>
-                      {/* Стрелка — только на широком экране. На телефоне
-                          карточки идут по две в ряд, и эти 16px забирали
-                          последнее слово названия: «Гигиенич…» вместо
-                          «Гигиенический журнал». Вся карточка и так
-                          ссылка, стрелка тут украшение. */}
+                      {/* Стрелка вернулась и на телефон: раньше эти
+                          16px забирали последнее слово названия, но с
+                          одной колонкой места достаточно, а строка без
+                          стрелки хуже читается как ссылка. */}
                       <ArrowRight
                         className={cn(
-                          "hidden size-4 shrink-0 transition-transform group-hover:translate-x-0.5 sm:block",
+                          "size-4 shrink-0 transition-transform group-hover:translate-x-0.5",
                           item.filled ? "text-[#7cf5c0]" : "text-[#ffb0a6]"
                         )}
                       />
