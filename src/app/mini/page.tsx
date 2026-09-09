@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getSession, signIn, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+import { adoptCookieSession } from "./_lib/cookie-session";
 import { useLiveRefetch } from "@/lib/use-live-refetch";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -133,35 +134,15 @@ export default function MiniHomePage() {
       const back = window.location.pathname + window.location.search;
       const loginUrl = `/mini/login?next=${encodeURIComponent(back)}`;
       // Кука уже может быть — вход по телефону, установленное приложение.
-      // Провайдер стартует с session={null} и сам сессию не спрашивает,
-      // поэтому спрашиваем мы. Без этого каждый холодный старт
-      // приложения заканчивался формой входа при живой куке.
+      // Провайдер сам её не подхватит (см. _lib/cookie-session.ts):
+      // спрашиваем, и без сессии ведём на вход. Страховка на 4 с — если
+      // провайдер не перечитал, лучше форма входа, чем вечный скелет.
       void (async () => {
-        const existing = await getSession().catch(() => null);
-        if (!existing?.user) {
+        const adopted = await adoptCookieSession();
+        if (!adopted) {
           router.replace(loginUrl);
           return;
         }
-        // next-auth v4 узнаёт о сессии из ДРУГИХ вкладок: getSession пишет
-        // в localStorage ключ nextauth.message, а провайдер слушает
-        // событие `storage` — в своей вкладке браузер его не шлёт. Шлём
-        // сами: провайдер перечитает сессию, status станет «authenticated».
-        try {
-          window.dispatchEvent(
-            new StorageEvent("storage", {
-              key: "nextauth.message",
-              newValue: JSON.stringify({
-                event: "session",
-                data: { trigger: "getSession" },
-                timestamp: Math.floor(Date.now() / 1000),
-              }),
-            })
-          );
-        } catch {
-          /* нет StorageEvent — сработает страховка ниже */
-        }
-        // Страховка: провайдер не перечитал — лучше форма входа, чем
-        // вечный скелет.
         window.setTimeout(() => {
           if (statusRef.current !== "authenticated") router.replace(loginUrl);
         }, 4000);
