@@ -2,6 +2,7 @@
 
 import { Unplug } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { shouldShowLiveDown } from "@/lib/live-connection";
@@ -61,7 +62,10 @@ export function LiveConnectionIndicator({ variant = "site" }: { variant?: "site"
     "Сервер не отвечает уже больше минуты. Страница показывает то, что успела получить; как только связь вернётся, всё обновится само.";
 
   if (variant === "mini") {
-    return (
+    // В body, а не в .mini-root: правило `.mini-root > *` в mini-theme.css
+    // делает прямых детей position: relative, и «fixed» полоса уезжала
+    // в конец потока, за экран. Здесь мы уже на клиенте (shown === true).
+    return createPortal(
       <div
         role="status"
         title={title}
@@ -69,7 +73,8 @@ export function LiveConnectionIndicator({ variant = "site" }: { variant?: "site"
       >
         <Unplug className="size-3.5" />
         Нет связи с сервером
-      </div>
+      </div>,
+      document.body
     );
   }
 

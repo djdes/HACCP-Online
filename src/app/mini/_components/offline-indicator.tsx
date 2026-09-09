@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useNetwork } from "../_hooks/use-network";
 import {
@@ -25,6 +26,9 @@ export function OfflineIndicator() {
   const [pending, setPending] = useState(0);
   const [justSent, setJustSent] = useState(0);
   const flushing = useRef(false);
+  // Портал в body есть только на клиенте; до монтирования — ничего.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const refresh = useCallback(async () => {
     const rows = await listQueuedEntries().catch(() => []);
@@ -67,7 +71,7 @@ export function OfflineIndicator() {
   }, [isOnline, pending, flush]);
 
   const visible = !isOnline || pending > 0 || justSent > 0;
-  if (!visible) return null;
+  if (!visible || !mounted) return null;
 
   const tone = !isOnline
     ? "bg-amber-500"
@@ -83,12 +87,16 @@ export function OfflineIndicator() {
       ? `Отправляем записи: ${pending}`
       : `Отправлено: ${justSent}`;
 
-  return (
+  // В body, а не в .mini-root: правило `.mini-root > *` в mini-theme.css
+  // делает прямых детей position: relative, и «fixed» полоса уезжала в
+  // конец потока — на длинной странице её не было видно вовсе.
+  return createPortal(
     <div
       role="status"
       className={`fixed left-1/2 top-2 z-[60] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-full px-4 py-1.5 text-center text-[12px] font-medium text-white shadow-lg transition-all ${tone}`}
     >
       {text}
-    </div>
+    </div>,
+    document.body
   );
 }
