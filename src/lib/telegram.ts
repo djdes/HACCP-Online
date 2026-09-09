@@ -1,4 +1,6 @@
 import { Bot, InputFile } from "grammy";
+
+import { isStreamingBody } from "@/lib/streaming-body";
 import { Agent, fetch as undiciFetch, setGlobalDispatcher } from "undici";
 import crypto from "node:crypto";
 import { escapeHtml } from "@/lib/html-escape";
@@ -70,14 +72,26 @@ if (forceIp) {
 //      an instance of AbortSignal". Strip the polyfill signal (loses
 //      grammy's soft-timeout, but undici has its own 300s cap) OR forward
 //      only native signals.
+//   3. Отправка ФАЙЛА идёт потоковым телом, а undici требует для такого
+//      `duplex: "half"` — без него конструктор Request бросает
+//      «RequestInit: duplex option is required when sending a body».
+//      Сообщения уходили (у них тело строкой), а вложения молча падали:
+//      человек прикладывал фото к обращению, оно не доходило, и в логе
+//      оставалось только «Telegram attachment send error». Наблюдалось
+//      на проде 2026-09-08 в 00:28.
 const tgFetch = forceIp
   ? async (url: unknown, init: unknown) => {
-      const opts = (init as { signal?: unknown } | undefined) ?? {};
+      const opts = (init as { signal?: unknown; body?: unknown } | undefined) ?? {};
       const signal = opts.signal;
-      const forwarded =
+      const forwarded: Record<string, unknown> =
         signal && !(signal instanceof AbortSignal)
           ? { ...(init as object), signal: undefined }
-          : (init as object | undefined);
+          : { ...((init as object | undefined) ?? {}) };
+
+      // Ставим только для потокового тела: для строк и Buffer'ов undici
+      // ругается на лишний duplex.
+      if (isStreamingBody(opts.body)) forwarded.duplex = "half";
+
       return undiciFetch(
         url as Parameters<typeof undiciFetch>[0],
         forwarded as Parameters<typeof undiciFetch>[1]
