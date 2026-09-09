@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { getActiveBuildingId } from "@/lib/active-building";
 import { buildingWhere } from "@/lib/building-scope";
+import { findOverlappingDocument } from "@/lib/journal-document-overlap";
 import { db } from "@/lib/db";
 import {
   buildColdEquipmentConfigFromEquipment,
@@ -187,6 +188,9 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const { templateCode, title, dateFrom, dateTo, responsibleUserId, responsibleTitle, config } = body;
+  // `force: true` присылает клиент после того, как человек в диалоге
+  // подтвердил, что второй документ на тот же период нужен осознанно.
+  const force = body?.force === true;
 
   if (!templateCode || !dateFrom || !dateTo) {
     return NextResponse.json(
@@ -835,6 +839,58 @@ export async function POST(request: Request) {
     resolvedTemplateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE
       ? withUvCommissioningDate(finalConfig, dateFrom)
       : finalConfig;
+
+  /**
+   * Не заводим второй бланк на тот же период молча.
+   *
+   * Раньше здесь создавалось безусловно, и на проде вышло два документа
+   * на 1–15 сентября: один сделало ночное автосоздание, второй —
+   * руководитель кнопкой. Названия разные, потому что собирались в
+   * разных местах кода, а период один. Для матричных журналов документ
+   * И ЕСТЬ период: половина отметок смены уходит в один бланк, половина
+   * в другой, и на проверке ни один не выглядит заполненным.
+   *
+   * Запрещать наглухо нельзя — второй документ иногда нужен осознанно.
+   * Поэтому отвечаем 409 и отдаём найденный: пусть человек решит,
+   * открыть существующий или всё-таки создать ещё один.
+   */
+  if (!force) {
+    const sameTemplate = await db.journalDocument.findMany({
+      where: {
+        organizationId: getActiveOrgId(session),
+        templateId: template.id,
+        status: "active",
+        ...buildingWhere(activeBuildingId),
+      },
+      select: { id: true, title: true, dateFrom: true, dateTo: true, status: true },
+      orderBy: [{ dateFrom: "desc" }],
+      take: 50,
+    });
+    const clash = findOverlappingDocument(sameTemplate, {
+      dateFrom: new Date(dateFrom),
+      dateTo: new Date(dateTo),
+    });
+    if (clash) {
+      // Человеческий текст кладём именно в `error`: его показывают все
+      // двадцать четыре места, откуда создаются документы. Машинный код
+      // отдельным полем — для тех, кто захочет разобрать ответ.
+      return NextResponse.json(
+        {
+          error:
+            `За этот период уже есть документ «${clash.title}». ` +
+            "Откройте его или выберите другой период.",
+          code: "duplicate-period",
+          existing: {
+            id: clash.id,
+            title: clash.title,
+            dateFrom: clash.dateFrom.toISOString(),
+            dateTo: clash.dateTo.toISOString(),
+          },
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   const doc = await db.journalDocument.create({
     data: {
