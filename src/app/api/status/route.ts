@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import { NextResponse } from "next/server";
 
+import { getInboundBot } from "@/lib/bot/bot-app";
 import { db } from "@/lib/db";
 import { currentAnnouncement, readPlatformStatus, serviceState } from "@/lib/platform-status";
 
@@ -24,20 +25,28 @@ async function readMarker(name: string): Promise<string | null> {
   }
 }
 
-async function checkTelegram(origin: string): Promise<{ ok: boolean; detail: string }> {
+/**
+ * Telegram-бот — тем же getMe(), что и /api/telegram/health, но напрямую,
+ * без HTTP-вызова самого себя: сервер не всегда достаёт свой публичный
+ * адрес изнутри, и проверка ложно горела красным.
+ */
+async function checkTelegram(): Promise<{ ok: boolean; detail: string }> {
+  if (!process.env.TELEGRAM_BOT_TOKEN?.trim()) return { ok: false, detail: "токен не настроен" };
+  const bot = getInboundBot();
+  if (!bot) return { ok: false, detail: "не инициализирован" };
+  const started = Date.now();
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    const response = await fetch(`${origin}/api/telegram/health`, { signal: controller.signal, cache: "no-store" });
-    clearTimeout(timer);
-    const body = (await response.json().catch(() => null)) as { ok?: boolean } | null;
-    return { ok: response.ok && body?.ok === true, detail: response.ok ? "отвечает" : `HTTP ${response.status}` };
-  } catch {
-    return { ok: false, detail: "не отвечает" };
+    const me = await Promise.race([
+      bot.api.getMe(),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 4000)),
+    ]);
+    return { ok: Boolean(me?.username), detail: `${Date.now() - started} мс` };
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error && error.message === "timeout" ? "не отвечает" : "ошибка" };
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   let dbOk = true;
   let dbLatencyMs = 0;
   try {
@@ -47,11 +56,10 @@ export async function GET(request: Request) {
   } catch {
     dbOk = false;
   }
-  const origin = new URL(request.url).origin;
   const [buildSha, buildTime, telegram, settings, announcement] = await Promise.all([
     readMarker(".build-sha"),
     readMarker(".build-time"),
-    checkTelegram(origin),
+    checkTelegram(),
     readPlatformStatus(),
     currentAnnouncement(),
   ]);
