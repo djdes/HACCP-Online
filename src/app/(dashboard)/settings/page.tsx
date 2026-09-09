@@ -591,6 +591,7 @@ const GROUP_TEAM = new Set([
   "/settings/users",
   "/settings/role-presets",
   "/settings/permissions",
+  "/settings/security",
   "/settings/staff-hierarchy",
   "/settings/position-staff-visibility",
   "/settings/schedule",
