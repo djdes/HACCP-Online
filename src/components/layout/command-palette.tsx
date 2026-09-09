@@ -15,6 +15,7 @@ import {
   Sparkles,
   User,
   Wand2,
+  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -104,6 +105,7 @@ const ROUTE_ITEMS: StaticItem[] = [
   { kind: "route", label: "CAPA", href: "/capa", icon: Cog, keywords: ["capa", "корректирующее"] },
   { kind: "route", label: "Партии", href: "/batches", icon: Boxes, keywords: ["batches", "партии"] },
   { kind: "route", label: "Потери", href: "/losses", icon: Cog, keywords: ["losses", "потери"] },
+  { kind: "route", label: "Идеи и голосование", href: "/ideas", icon: Lightbulb, keywords: ["ideas", "идеи", "голосование", "предложить"] },
   { kind: "route", label: "Планы", href: "/plans", icon: Cog, keywords: ["plans"] },
   { kind: "route", label: "Изменения", href: "/changes", icon: Cog, keywords: ["changes"] },
   { kind: "route", label: "Компетенции", href: "/competencies", icon: User, keywords: ["staff competency", "медкнижка"] },

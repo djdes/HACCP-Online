@@ -12,6 +12,7 @@ export const ROUTE_TITLES: Record<string, string> = {
   "/batches/new": "Новая партия",
   "/bonuses": "Премии",
   "/capa": "CAPA",
+  "/ideas": "Идеи и голосование",
   "/capa/new": "Новое CAPA",
   "/changes": "Изменения",
   "/changes/new": "Новое изменение",

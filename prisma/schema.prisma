@@ -3228,3 +3228,37 @@ model LoginChallenge {
 
   @@index([userId, createdAt])
 }
+
+/// Идея клиента: площадка общая для всех организаций, автор виден только ROOT.
+/// Статусы: new | planned | in_progress | done | declined (lib/ideas/rules.ts).
+model Idea {
+  id              String     @id @default(cuid())
+  organizationId  String
+  authorId        String
+  title           String
+  description     String?
+  status          String     @default("new")
+  /// Кэш числа голосов — держится в одной транзакции с IdeaVote.
+  votes           Int        @default(0)
+  /// Комментарий команды WeSetup, виден всем клиентам.
+  adminNote       String?
+  statusChangedAt DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  voteRows        IdeaVote[]
+
+  @@index([status, votes])
+  @@index([organizationId, createdAt])
+}
+
+/// Один голос одного человека за идею.
+model IdeaVote {
+  id        String   @id @default(cuid())
+  ideaId    String
+  idea      Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([ideaId, userId])
+  @@index([userId])
+}

@@ -29,6 +29,7 @@ import {
   TrendingDown,
   UserRound,
   Users,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isManagementRole } from "@/lib/user-roles";
@@ -78,6 +79,7 @@ const secondaryNavItems = [
   { label: "CAPA", href: "/capa", icon: AlertTriangle },
   { label: "Отчёты", href: "/reports", icon: FileText },
   { label: "Премии", href: "/bonuses", icon: Coins },
+  { label: "Идеи", href: "/ideas", icon: Lightbulb },
 ];
 
 const STAFF_NAV_ITEM = {

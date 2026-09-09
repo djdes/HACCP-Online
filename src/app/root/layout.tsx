@@ -12,6 +12,7 @@ import {
   Stamp,
   Ticket,
   Wallet,
+  Lightbulb,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -137,6 +138,13 @@ export default async function RootAreaLayout({
             >
               <Activity className="size-4" />
               Статус
+            </Link>
+            <Link
+              href="/root/ideas"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Lightbulb className="size-4" />
+              Идеи
             </Link>
             <Link
               href="/root/partners"
