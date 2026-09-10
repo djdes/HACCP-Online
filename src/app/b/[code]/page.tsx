@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { nicheLandingForSphere } from "@/lib/badge/niche-link";
 import { badgeTone } from "@/lib/badge/render";
 import { getBadgeStatusByCode } from "@/lib/badge/status";
 
@@ -76,6 +77,9 @@ export default async function PublicBadgePage({ params }: { params: Promise<{ co
         </section>
 
         <div className="mt-6 flex flex-col items-center gap-3 text-center">
+          <Link href={nicheLandingForSphere(status.sphereValue)} className="text-[14px] font-medium text-[#3848c7] underline-offset-2 hover:underline">
+            Электронные журналы для сферы «{status.sphere}» — как это устроено
+          </Link>
           <Link
             href="/"
             className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"

@@ -13,6 +13,7 @@ import {
   Ticket,
   Wallet,
   Lightbulb,
+  SearchCheck,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -145,6 +146,13 @@ export default async function RootAreaLayout({
             >
               <Lightbulb className="size-4" />
               Идеи
+            </Link>
+            <Link
+              href="/root/seo"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <SearchCheck className="size-4" />
+              SEO
             </Link>
             <Link
               href="/root/partners"

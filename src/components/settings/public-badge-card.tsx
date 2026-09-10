@@ -114,7 +114,7 @@ export function PublicBadgeCard({ initial }: { initial: BadgeState }) {
             <BadgeCheck className="size-4" />
             {busy ? "Включаем…" : "Включить бейдж"}
           </button>
-          <p className="mt-2 text-[12.5px] text-[#9b9fb3]">Появится ссылка на публичную страницу и HTML-код картинки.</p>
+          <p className="mt-2 text-[12.5px] text-[#9b9fb3]">Появится ссылка на публичную страницу и HTML-код картинки. Бейдж на вашем сайте или в меню — это ещё и ссылка на вашу публичную страницу: гости видят статус, а поисковики — что заведение ведёт контроль.</p>
         </div>
       )}
 

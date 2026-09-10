@@ -81,7 +81,7 @@ export const metadata = {
   title: "Электронные журналы СанПиН и ХАССП онлайн — WeSetup",
   description:
     "35 электронных журналов СанПиН и ХАССП для общепита и производств. Автозаполнение, Telegram-бот, PDF для Роспотребнадзора. Бесплатно до 3 сотрудников.",
-  alternates: { canonical: "https://wesetup.ru/" },
+  alternates: { canonical: "https://wesetup.ru/", types: { "application/rss+xml": [{ url: "https://wesetup.ru/blog/feed.xml", title: "WeSetup — блог" }, { url: "https://wesetup.ru/whats-new/feed.xml", title: "WeSetup — что нового" }] } },
 };
 
 const FEATURES = [

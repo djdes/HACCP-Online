@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Lightbulb, Rss } from "lucide-react";
 
 import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
+import { PublicFooter, PublicHeader } from "@/components/public/public-chrome";
 import { CHANGELOG } from "@/content/changelog";
 import { ogImages, twitterImages } from "@/lib/og-image";
 import { DEFAULT_TWITTER_CARD } from "@/lib/meta-defaults";
@@ -26,6 +27,7 @@ function formatDate(iso: string): string {
 export default function WhatsNewPage() {
   return (
     <div className="min-h-screen bg-white text-[#0b1024]">
+      <PublicHeader />
       <div className="mx-auto max-w-[860px] px-4 py-10 sm:px-6 sm:py-14">
         <PublicBreadcrumbs items={[{ name: "Что нового" }]} tone="light" />
         <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
@@ -75,6 +77,7 @@ export default function WhatsNewPage() {
           </Link>
         </div>
       </div>
+      <PublicFooter />
     </div>
   );
 }

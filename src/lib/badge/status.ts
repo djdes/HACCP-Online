@@ -8,6 +8,8 @@ export type BadgeStatus = {
   organizationId: string;
   name: string;
   sphere: string;
+  /** Код сферы (`Organization.type`) — для ссылки на нишевый лендинг. */
+  sphereValue: string;
   /** null — журналов нет или ещё не заполнялись. */
   percent: number | null;
   filledSlots: number;
@@ -57,6 +59,7 @@ export async function getBadgeStatusForOrganization(organizationId: string, now:
     organizationId: org.id,
     name: org.name,
     sphere: sphereLabel(org.type),
+    sphereValue: org.type,
     ...compliance,
     days: BADGE_DAYS,
     computedAt: now.toISOString(),
