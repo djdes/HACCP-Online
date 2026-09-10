@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
+import { emitWebhook } from "@/lib/webhooks/dispatch";
 import {
   generateInviteToken,
   hashInviteToken,
@@ -283,6 +284,10 @@ export async function notifyAboutPayment(args: {
         subscriptionEnd: result.subscriptionEnd,
         organizationId: result.organizationId,
       });
+
+  if (result.organizationId) {
+    emitWebhook(result.organizationId, "payment.paid", { orderId: order.id, amountRub: amount, description: order.description, subscriptionEnd: result.subscriptionEnd ? new Date(result.subscriptionEnd).toISOString() : null });
+  }
 
   const sent = await sendPaymentReceiptEmail({
     to: order.email,

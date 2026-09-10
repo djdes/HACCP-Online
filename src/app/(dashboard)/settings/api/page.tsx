@@ -58,7 +58,8 @@ export default async function ExternalApiSettingsPage() {
             оно берётся из ключа. Для повторных запросов используйте заголовок
             <code className="ml-1 rounded bg-muted px-1 py-0.5">Idempotency-Key</code>, чтобы сервер вернул тот же
             ответ без дублей. Healthcheck:{" "}
-            <code className="rounded bg-muted px-1 py-0.5">GET /api/external/healthz</code>.
+            <code className="rounded bg-muted px-1 py-0.5">GET /api/external/healthz</code>. Полное описание методов и вебхуков — на{" "}
+            <a href="/developers" target="_blank" rel="noreferrer" className="text-[#3848c7] underline underline-offset-2">wesetup.ru/developers</a>.
           </p>
         </CardContent>
       </Card>

@@ -218,6 +218,7 @@ export function PublicFooter() {
           <Link href="/calc/journals" className="py-2.5 transition-colors hover:text-[#0b1024]">Какие журналы нужны</Link>
           <Link href="/calc/fines" className="py-2.5 transition-colors hover:text-[#0b1024]">Калькулятор штрафов</Link>
           <Link href="/whats-new" className="py-2.5 transition-colors hover:text-[#0b1024]">Что нового</Link>
+          <Link href="/developers" className="py-2.5 transition-colors hover:text-[#0b1024]">Разработчикам</Link>
           <Link href="/journals-info" className="py-2.5 transition-colors hover:text-[#0b1024]">Журналы</Link>
           <Link href="/blanki" className="py-2.5 transition-colors hover:text-[#0b1024]">Бланки</Link>
           <Link href="/pricing" className="py-2.5 transition-colors hover:text-[#0b1024]">Тарифы</Link>

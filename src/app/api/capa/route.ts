@@ -2,6 +2,7 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { emitWebhook } from "@/lib/webhooks/dispatch";
 import { NextRequest, NextResponse } from "next/server";
 import { isManagementRole } from "@/lib/user-roles";
 
@@ -113,5 +114,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  emitWebhook(orgId, "capa.created", { id: ticket.id, title: ticket.title, priority: ticket.priority, category: ticket.category, dueDate: ticket.dueDate?.toISOString() ?? null });
   return NextResponse.json(ticket, { status: 201 });
 }

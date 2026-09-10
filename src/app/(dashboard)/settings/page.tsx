@@ -33,6 +33,7 @@ import {
   Handshake,
   Award,
   CalendarDays,
+  Webhook,
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { PageGuide } from "@/components/ui/page-guide";
@@ -266,6 +267,13 @@ const settingsCards = [
     icon: Bell,
     iconClass: "text-[#10b981]",
     bgClass: "bg-[#ecfdf5]",
+  },
+  {
+    description: "События WeSetup на ваш сервер: записи, отклонения, CAPA, оплаты",
+    href: "/settings/webhooks",
+    icon: Webhook,
+    iconClass: "text-[#3848c7]",
+    bgClass: "bg-[#eef1ff]",
   },
   {
     description: "Сроки медкнижек, поверок и подписки — в вашем календаре",
@@ -633,6 +641,7 @@ const GROUP_INTEGRATIONS = new Set([
   "/settings/integrations/tasksflow",
   "/settings/notifications",
   "/settings/calendar",
+  "/settings/webhooks",
   "/settings/accounting",
   "/settings/consultant",
   "/settings/api",

@@ -5,6 +5,7 @@ import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { IDEA_ADMIN_NOTE_MAX, IDEA_STATUS_LABEL, describeIdeaStatusChange, isIdeaStatus } from "@/lib/ideas/rules";
 import { upsertNotification } from "@/lib/notifications";
+import { emitWebhook } from "@/lib/webhooks/dispatch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   });
 
   if (data.status && data.status !== before.status && isIdeaStatus(data.status)) {
+    emitWebhook(before.organizationId, "idea.status", { ideaId: before.id, title: before.title, status: data.status, adminNote: data.adminNote ?? null });
     await upsertNotification({
       organizationId: before.organizationId,
       userId: before.authorId,

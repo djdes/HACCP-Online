@@ -1,0 +1,140 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, KeyRound, Radio, Send, Webhook } from "lucide-react";
+
+import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
+import { PublicFooter, PublicHeader } from "@/components/public/public-chrome";
+import { DEFAULT_TWITTER_CARD } from "@/lib/meta-defaults";
+import { ogImages, twitterImages } from "@/lib/og-image";
+
+const TITLE = "API WeSetup для разработчиков";
+const DESCRIPTION = "Открытый REST API электронных журналов ХАССП: записи в журналы, показания датчиков, сводка за день, вебхуки. Ключ организации, Idempotency-Key, примеры curl.";
+
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "https://wesetup.ru/developers" },
+  openGraph: { type: "website", locale: "ru_RU", siteName: "WeSetup", url: "https://wesetup.ru/developers", title: TITLE, description: DESCRIPTION, images: ogImages({ title: TITLE, subtitle: DESCRIPTION, kind: "feature" }) },
+  twitter: { card: DEFAULT_TWITTER_CARD, title: TITLE, description: DESCRIPTION, images: twitterImages({ title: TITLE, kind: "feature" }) },
+};
+
+const CODE = "block overflow-x-auto rounded-2xl bg-[#0b1024] px-5 py-4 font-mono text-[12.5px] leading-[1.6] text-[#e6e8f5]";
+
+const ENDPOINTS = [
+  {
+    method: "POST",
+    path: "/api/external/entries",
+    title: "Запись в журнал",
+    text: "Создаёт запись в полевом журнале организации. Повтор с тем же Idempotency-Key возвращает прежний ответ без дубля.",
+    sample: `curl -X POST https://wesetup.ru/api/external/entries \\
+  -H "Authorization: Bearer <ключ организации>" \\
+  -H "Idempotency-Key: 6f1c…" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "journalCode": "hygiene",
+    "date": "2026-09-10",
+    "data": { "status": "healthy", "temperatureAbove37": false }
+  }'`,
+  },
+  {
+    method: "POST",
+    path: "/api/external/sensors",
+    title: "Показание датчика",
+    text: "Один вызов — один замер температуры или влажности по оборудованию; отклонения от нормы сразу уходят в уведомления.",
+    sample: `curl -X POST https://wesetup.ru/api/external/sensors \\
+  -H "Authorization: Bearer <ключ организации>" \\
+  -H "Content-Type: application/json" \\
+  -d '{ "equipmentId": "clx…", "type": "temperature", "value": 3.8, "timestamp": "2026-09-10T08:00:00+03:00" }'`,
+  },
+  {
+    method: "GET",
+    path: "/api/external/summary?date=2026-09-10",
+    title: "Сводка за день",
+    text: "Какие журналы заполнены, какие нет, отклонения и задачи — для панелей и интеграций с учётом.",
+    sample: `curl https://wesetup.ru/api/external/summary?date=2026-09-10 \\
+  -H "Authorization: Bearer <ключ организации>"`,
+  },
+  {
+    method: "GET",
+    path: "/api/external/healthz",
+    title: "Проверка доступности",
+    text: "Без ключа. Отвечает 200, если API живо; для мониторинга интеграции.",
+    sample: `curl https://wesetup.ru/api/external/healthz`,
+  },
+];
+
+export default function DevelopersPage() {
+  return (
+    <div className="min-h-screen bg-white text-[#0b1024]">
+      <PublicHeader />
+      <div className="mx-auto max-w-[960px] px-4 py-8 sm:px-6 sm:py-12">
+        <PublicBreadcrumbs items={[{ name: "Разработчикам" }]} tone="light" />
+        <h1 className="mt-6 text-[32px] font-semibold leading-tight tracking-[-0.02em] sm:text-[44px]">{TITLE}</h1>
+        <p className="mt-3 max-w-[760px] text-[16px] leading-[1.7] text-[#3c4053]">{DESCRIPTION}</p>
+
+        <section className="mt-10 rounded-3xl border border-[#ececf4] bg-[#fafbff] p-6 md:p-7">
+          <div className="flex items-center gap-2 text-[15px] font-semibold">
+            <KeyRound className="size-4 text-[#5566f6]" />
+            Авторизация
+          </div>
+          <p className="mt-2 text-[14px] leading-[1.65] text-[#3c4053]">
+            Ключ организации выдаётся в кабинете: «Настройки → API интеграций». Передавайте его в заголовке <code className="rounded bg-white px-1.5 py-0.5 text-[12.5px]">Authorization: Bearer &lt;ключ&gt;</code>. Все запросы с ключом пишутся в организацию ключа — <code className="rounded bg-white px-1.5 py-0.5 text-[12.5px]">organizationId</code> указывать не нужно. Утёк — сбросьте ключ в настройках, старый перестанет работать сразу.
+          </p>
+        </section>
+
+        <h2 className="mt-10 text-[24px] font-semibold tracking-[-0.02em]">Методы</h2>
+        <div className="mt-4 space-y-5">
+          {ENDPOINTS.map((e) => (
+            <section key={e.path} className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-2.5 py-0.5 font-mono text-[12px] font-semibold ${e.method === "GET" ? "bg-[#ecfdf5] text-[#116b2a]" : "bg-[#eef1ff] text-[#3848c7]"}`}>{e.method}</span>
+                <code className="text-[14px] font-semibold">{e.path}</code>
+              </div>
+              <div className="mt-2 text-[15px] font-semibold">{e.title}</div>
+              <p className="mt-1 text-[14px] leading-[1.65] text-[#3c4053]">{e.text}</p>
+              <pre className={`mt-3 ${CODE}`}>{e.sample}</pre>
+            </section>
+          ))}
+        </div>
+
+        <section className="mt-10 grid gap-5 md:grid-cols-2">
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+            <div className="flex items-center gap-2 text-[15px] font-semibold">
+              <Send className="size-4 text-[#5566f6]" />
+              Идемпотентность и ошибки
+            </div>
+            <ul className="mt-3 space-y-2 text-[14px] leading-[1.65] text-[#3c4053]">
+              <li>• <code className="rounded bg-[#f5f6ff] px-1.5 py-0.5 text-[12.5px]">Idempotency-Key</code> — любой уникальный ключ до 128 символов; повтор в течение 48 часов возвращает тот же ответ.</li>
+              <li>• 401 — нет или неверный ключ; 400 — тело не прошло проверку, в ответе поле <code className="rounded bg-[#f5f6ff] px-1.5 py-0.5 text-[12.5px]">error</code>; 429 — превышен лимит, подождите минуту.</li>
+              <li>• Даты — ISO 8601, время организации задаётся её часовым поясом.</li>
+            </ul>
+          </div>
+          <div className="rounded-3xl border border-[#ececf4] bg-white p-6 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+            <div className="flex items-center gap-2 text-[15px] font-semibold">
+              <Webhook className="size-4 text-[#5566f6]" />
+              Вебхуки
+            </div>
+            <p className="mt-2 text-[14px] leading-[1.65] text-[#3c4053]">
+              WeSetup может сам присылать события на ваш адрес: запись в журнале, отклонение, задача CAPA, оплата, статус идеи. Подписки настраиваются в «Настройки → Вебхуки»; каждый вызов подписан <code className="rounded bg-[#f5f6ff] px-1.5 py-0.5 text-[12.5px]">X-WeSetup-Signature</code> (HMAC-SHA256 тела вашим секретом), неудачные доставки повторяются.
+            </p>
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-3xl border border-[#ececf4] bg-[#fafbff] p-6 md:p-7">
+          <div className="flex items-center gap-2 text-[15px] font-semibold">
+            <Radio className="size-4 text-[#5566f6]" />
+            Статус и изменения API
+          </div>
+          <p className="mt-2 text-[14px] leading-[1.65] text-[#3c4053]">
+            Работает ли сервис — на <Link href="/status" className="text-[#3848c7] underline-offset-2 hover:underline">странице статуса</Link>. Изменения API попадают в <Link href="/whats-new" className="text-[#3848c7] underline-offset-2 hover:underline">«Что нового»</Link> и RSS. Вопросы — support@wesetup.ru.
+          </p>
+          <Link href="/register" className="mt-4 inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]">
+            Получить ключ
+            <ArrowRight className="size-4" />
+          </Link>
+        </section>
+      </div>
+      <PublicFooter />
+    </div>
+  );
+}

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { emitWebhook } from "@/lib/webhooks/dispatch";
 import { sendTemperatureAlertEmail } from "@/lib/email";
 import {
   escapeTelegramHtml as esc,
@@ -537,6 +538,14 @@ function defaultDeps(): Deps {
           notifiedAt: input.notifiedAt,
           lastSeenAt: input.now,
         },
+      });
+      emitWebhook(row.organizationId, "journal.deviation", {
+        incidentId: row.id,
+        subject: row.subjectName,
+        value: row.lastValue,
+        tempMin: row.tempMin,
+        tempMax: row.tempMax,
+        equipmentId: row.equipmentId,
       });
       return toIncident(row);
     },

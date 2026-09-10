@@ -1,5 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 
+import { emitWebhook } from "@/lib/webhooks/dispatch";
+
 import { publishToOrganization, type LiveEvent } from "@/lib/live-events";
 
 /**
@@ -314,9 +316,20 @@ export function notifyJournalWrite(
     return;
   }
   if (hints.length === 0) return;
+  const isCreate = operation === "create" || operation === "createMany" || operation === "upsert";
   void Promise.all(hints.map((hint) => resolveJournalChange(client, hint)))
     .then((changes) => {
-      for (const change of changes) if (change) queueJournalChange(change);
+      const seen = new Set<string>();
+      for (const change of changes) {
+        if (!change) continue;
+        queueJournalChange(change);
+        // Исходящий вебхук — только на новые записи, по одному на журнал за операцию.
+        const key = `${change.organizationId}:${change.code ?? ""}`;
+        if (isCreate && !seen.has(key)) {
+          seen.add(key);
+          emitWebhook(change.organizationId, "journal.entry", { journalCode: change.code, documentId: change.documentId });
+        }
+      }
     })
     .catch((error) => console.error("[live] journal change failed", error));
 }
