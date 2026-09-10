@@ -3265,3 +3265,62 @@ model IdeaVote {
   @@unique([ideaId, userId])
   @@index([userId])
 }
+
+/// Вход по ссылке из письма: хеш одноразового токена, 15 минут, один на пользователя.
+model MagicLinkToken {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/// Замер доступности раз в 5 минут (крон uptime-sample) для страницы /status.
+model UptimeSample {
+  id         String   @id @default(cuid())
+  at         DateTime @default(now())
+  ok         Boolean
+  dbMs       Int?
+  telegramOk Boolean  @default(false)
+
+  @@index([at])
+}
+
+/// Подписка организации на исходящие вебхуки (lib/webhooks).
+model Webhook {
+  id             String            @id @default(cuid())
+  organizationId String
+  url            String
+  secret         String
+  events         String[]          @default([])
+  enabled        Boolean           @default(true)
+  lastSuccessAt  DateTime?
+  lastError      String?
+  createdById    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  deliveries     WebhookDelivery[]
+
+  @@index([organizationId])
+}
+
+/// Доставка одного события: очередь с повторами 1/5/30 минут.
+model WebhookDelivery {
+  id            String    @id @default(cuid())
+  webhookId     String
+  webhook       Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event         String
+  payload       Json
+  /// queued | sent | failed
+  status        String    @default("queued")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime?
+  lastStatus    Int?
+  lastError     String?
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([webhookId, createdAt])
+}

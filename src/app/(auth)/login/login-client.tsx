@@ -35,6 +35,34 @@ function LoginForm() {
   // Второй шаг входа: код из Telegram (если человек включил в «Безопасности»).
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [code, setCode] = useState("");
+  const [magicState, setMagicState] = useState<"idle" | "sending" | "sent">("idle");
+  const magicReason = searchParams.get("magic");
+  async function requestMagicLink() {
+    const email = formData.email.trim();
+    if (!email) {
+      setError("Введите почту — на неё придёт ссылка для входа");
+      return;
+    }
+    setMagicState("sending");
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(data?.error || "Не удалось отправить письмо");
+        setMagicState("idle");
+        return;
+      }
+      setMagicState("sent");
+    } catch {
+      setError("Ошибка соединения с сервером");
+      setMagicState("idle");
+    }
+  }
   const [forgotState, setForgotState] = useState<"idle" | "sending" | "sent">(
     "idle",
   );
@@ -349,6 +377,32 @@ function LoginForm() {
             </button>
           </form>
 
+          {magicReason ? (
+            <p className="mt-4 rounded-2xl border border-[#ffe9b0] bg-[#fffaf0] px-4 py-3 text-[13px] text-[#8a5a00]" role="status">
+              {magicReason === "expired"
+                ? "Ссылка из письма устарела — запросите новую."
+                : magicReason === "used"
+                  ? "Эта ссылка уже использована — запросите новую."
+                  : magicReason === "two-factor"
+                    ? "У вас включён код в Telegram: войдите по паролю, ссылка из письма его не заменяет."
+                    : "Ссылка не подошла — запросите новую."}
+            </p>
+          ) : null}
+          {magicState === "sent" ? (
+            <p className="mt-4 rounded-2xl border border-[#c8f0d5] bg-[#effaf1] px-4 py-3 text-[13px] text-[#136b2a]" data-testid="magic-sent">
+              Если аккаунт с такой почтой есть, ссылка для входа уже отправлена. Она действует 15 минут.
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={requestMagicLink}
+              disabled={magicState === "sending"}
+              data-testid="magic-link-button"
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] disabled:opacity-60"
+            >
+              {magicState === "sending" ? "Отправляем письмо…" : "Войти по ссылке из письма"}
+            </button>
+          )}
           {forgotState === "sent" ? (
             <p className="mt-4 rounded-2xl border border-[#c8f0d5] bg-[#effaf1] px-4 py-3 text-[13px] text-[#136b2a]">
               Если аккаунт с такой почтой существует, письмо со ссылкой для
