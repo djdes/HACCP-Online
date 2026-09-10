@@ -343,29 +343,23 @@ TOPVISOR_PROJECT_ID=32866188
 — тратить деньги молчаливым кликом нельзя. Удаление фраз — `ConfirmDialog`
 с `typeToConfirm`, по правилу 6 из CLAUDE.md.
 
-### Схема БД
+### Схема БД — не меняется
 
-Две маленькие таблицы. Копии Topvisor нет.
+Первая редакция спеки закладывала две таблицы. **Обе оказались не
+нужны**, миграций у фичи нет.
 
-```prisma
-/// Фразы, предложенные Claude, ждущие утверждения владельцем.
-/// Не копия семантики Topvisor — только очередь на добавление.
-model SeoKeywordDraft {
-  id        String   @id @default(cuid())
-  phrase    String   @unique
-  reason    String?
-  status    String   @default("pending") // pending | pushed | rejected
-  createdAt DateTime @default(now())
-  pushedAt  DateTime?
-}
+- `SeoKeywordDraft` (очередь фраз на утверждение) — отпала на заливке:
+  ядро пришло готовым из `journal-seo.ts`, а не сочинялось по одной
+  фразе. Модель имеет смысл, только если фразы начнут добавляться
+  штучно в рабочем режиме.
+- `SeoAlertState` (анти-спам алертов) — отпала, потому что такой
+  механизм в проекте уже есть: `raisePlatformAlert` считает кулдаун по
+  паре `kind + dedupeKey` в `TelegramLog`, и в его же комментарии прямо
+  написано «своей таблицы не заводим». Второй такой механизм был бы
+  дублированием.
 
-/// Анти-спам для алертов: о чём уже сообщили и на какой позиции.
-model SeoAlertState {
-  key          String   @id // "<phrase>:<region_index>"
-  lastPosition Int
-  notifiedAt   DateTime
-}
-```
+Единственное состояние крона — дата уже разобранного среза — лежит в
+существующем `PlatformSetting` под ключом `seo.alerts.lastDate`.
 
 ### Крон алертов
 
@@ -382,6 +376,24 @@ model SeoAlertState {
 
 Расписание прописывается в crontab на сервере. Роут в репозитории
 расписанием не является.
+
+## Что нужно сделать на проде
+
+Код сам по себе фичу не включает — нужны два ручных шага.
+
+1. **Переменные окружения** в `/var/www/wesetupru/data/www/wesetup.ru/app/.env`:
+   `TOPVISOR_API_KEY`, `TOPVISOR_USER_ID`, `TOPVISOR_PROJECT_ID`.
+   Без них `/root/seo/positions` показывает заглушку «Topvisor не
+   подключён» и не падает — это сознательно. Деплой `.env` не
+   перетирает, строки переживут выкаты.
+2. **Строка в crontab** для `/api/cron/seo-alerts`. Наличие роута в
+   репозитории расписанием не является — это уже обжигало на
+   `purge-audit-log`, который так и не был прописан. Разумная частота —
+   раз в сутки утром:
+
+   ```
+   0 9 * * * curl -s "https://wesetup.ru/api/cron/seo-alerts?secret=$CRON_SECRET" >/dev/null 2>&1
+   ```
 
 ## Что осознанно не делаем
 
