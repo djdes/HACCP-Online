@@ -3,8 +3,8 @@ import { ImageResponse } from "next/og";
 import { OG_KIND_LABEL, clampOgText, type OgKind } from "@/lib/og-image";
 
 // nodejs runtime — см. og-default: edge требует wasm-bundle resvg, которого
-// нет в deploy.tar. Кэш — публичный на сутки, next.config исключает `/og`
-// из глобального no-store.
+// нет в deploy.tar. Кэш — публичный на сутки: next.config и src/proxy.ts
+// исключают `/og/` из глобального no-store.
 const SITE = "https://wesetup.ru";
 
 export const runtime = "nodejs";

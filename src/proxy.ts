@@ -35,10 +35,15 @@ function withRequestContext(
   // middleware.ts, который в dev перекрывал этот файл целиком — и guard
   // партнёра там не работал).
   const { pathname } = req.nextUrl;
+  // `/og/*` и `/og-default` — картинки для соцсетей без расширения в пути:
+  // маршруты сами ставят публичный кэш, иначе превью генерировалось бы
+  // заново на каждый показ ссылки.
+  const isPublicImageRoute = pathname.startsWith("/og/") || pathname === "/og-default";
   const isAppPage =
     !pathname.startsWith("/_next") &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/favicon") &&
+    !isPublicImageRoute &&
     !pathname.includes(".");
   if (isAppPage) {
     res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
