@@ -33,7 +33,7 @@ export function generateStaticParams() {
 function texts(slug: string) {
   const c = CITIES[slug];
   const title = `Электронные журналы СанПиН и ХАССП ${c.inCity}`;
-  const description = `Электронные журналы ХАССП для кафе, ресторанов и производств ${c.inCity}: заполнение с телефона, PDF для проверок ${c.rpn.replace("Управление Роспотребнадзора", "Роспотребнадзора")}. Бесплатно до 3 сотрудников.`;
+  const description = `Электронные журналы ХАССП для кафе и ресторанов ${c.inCity}: 35 журналов, заполнение с телефона, PDF к проверке Роспотребнадзора. Бесплатно до 3 сотрудников.`;
   return { c, title, description, url: `${SITE}/v/${c.slug}` };
 }
 
