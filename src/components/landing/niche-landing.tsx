@@ -9,6 +9,7 @@ import {
 import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
 import { jsonLdSafeString } from "@/lib/json-ld";
+import { buildNicheFaq, nicheFaqJsonLd } from "@/lib/niche-faq";
 import { NICHES, type Niche } from "@/content/niches";
 export { NICHES };
 export type { Niche };
@@ -71,6 +72,8 @@ export function NicheLanding({ slug }: { slug: string }) {
     throw new Error(`Unknown niche: ${slug}`);
   }
 
+  const faq = buildNicheFaq(data);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -86,6 +89,12 @@ export function NicheLanding({ slug }: { slug: string }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafeString(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdSafeString(nicheFaqJsonLd(faq)),
+        }}
       />
       <PublicHeader />
 
@@ -281,6 +290,31 @@ export function NicheLanding({ slug }: { slug: string }) {
             Начать бесплатно
             <ArrowRight className="size-4 text-[#5566f6]" />
           </Link>
+        </div>
+      </section>
+
+      {/* Вопросы собираются из данных самой ниши — её болей, набора
+          журналов и обещания. Один шаблон на двенадцати лендингах был бы
+          дубликатом и только усилил бы причину, по которой поисковик
+          показывал вместо ниши главную страницу. */}
+      <section className="mx-auto max-w-[860px] px-4 pb-14 sm:px-6">
+        <h2 className="text-[clamp(1.5rem,1.8vw+1rem,2rem)] font-semibold tracking-[-0.02em]">
+          Вопросы и ответы
+        </h2>
+        <div className="mt-6 space-y-3">
+          {faq.map((item) => (
+            <details
+              key={item.q}
+              className="group rounded-2xl border border-[#ececf4] bg-white p-5 open:bg-[#fafbff]"
+            >
+              <summary className="cursor-pointer list-none text-[15px] font-medium text-[#0b1024] transition-colors duration-150 group-hover:text-[#5566f6]">
+                {item.q}
+              </summary>
+              <p className="mt-3 text-[15px] leading-[1.65] text-[#3c4053]">
+                {item.a}
+              </p>
+            </details>
+          ))}
         </div>
       </section>
 
