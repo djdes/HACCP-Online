@@ -17,6 +17,8 @@ import { JOURNAL_SEO } from "@/content/journal-seo";
 import { JournalScreenshot } from "@/components/public/journal-screenshot";
 import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
 import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
+import { buildJournalFaq, journalFaqJsonLd } from "@/lib/journal-faq";
+import { journalHeadline } from "@/lib/journal-headline";
 import { jsonLdSafeString } from "@/lib/json-ld";
 import {
   DOCX_SAMPLE_CODES,
@@ -81,6 +83,16 @@ export default async function JournalInfoDetailPage({
   if (!info) notFound();
   const seo = JOURNAL_SEO[code];
 
+  // Название из каталога («Гигиенический журнал», «Журнал уборки») — это
+  // и есть та фраза, по которой страницу ищут. Раньше оно использовалось
+  // только в хлебных крошках, а заголовок брал описательный tagline.
+  const journalName = journalHeadline(
+    seo?.title,
+    ACTIVE_JOURNAL_CATALOG.find((j) => j.code === code)?.name,
+    info.tagline
+  );
+  const faq = buildJournalFaq(info, journalName);
+
   const related = Object.values(JOURNAL_INFO)
     .filter((j) => j.category === info.category && j.code !== info.code)
     .slice(0, 4);
@@ -143,6 +155,12 @@ export default async function JournalInfoDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafeString(jsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdSafeString(journalFaqJsonLd(faq)),
+        }}
+      />
       <PublicHeader activeSection="journals-info" />
 
       <section className="mx-auto max-w-[1200px] px-4 sm:px-6">
@@ -155,22 +173,24 @@ export default async function JournalInfoDetailPage({
             <PublicBreadcrumbs
               items={[
                 { name: "Журналы", href: "/journals-info" },
-                {
-                  name:
-                    ACTIVE_JOURNAL_CATALOG.find((j) => j.code === code)?.name ??
-                    info.tagline,
-                },
+                { name: journalName },
               ]}
             />
             <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[12px] font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur">
               <BookOpenCheck className="size-3.5" />
               {JOURNAL_CATEGORY_LABEL[info.category]}
             </div>
+            {/* h1 — название журнала, а не tagline. Раньше здесь стояло
+                описательное предложение с точкой («Акт списания
+                продукции.»), в котором слова «журнал» не было вовсе,
+                хотя <title> у страницы ключ-первый. Из-за расхождения
+                Яндекс по запросам «журнал X» показывал сводную /blanki,
+                а не саму страницу журнала (съём 2026-09-10). */}
             <h1 className="mt-4 max-w-[780px] text-[32px] font-semibold leading-[1.1] tracking-[-0.02em] md:text-[44px]">
-              {info.tagline}
+              {journalName}
             </h1>
             <p className="mt-4 max-w-[720px] text-[16px] leading-[1.6] text-white/80 md:text-[18px]">
-              {info.why}
+              {info.tagline} {info.why}
             </p>
           </div>
         </div>
@@ -179,9 +199,9 @@ export default async function JournalInfoDetailPage({
       {seo?.seoIntro ? (
         <section className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6 sm:pt-10">
           <div className="rounded-3xl border border-[#ececf4] bg-[#fafbff] p-5 sm:p-7 md:p-8">
-            <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+            <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
               Что это за журнал
-            </div>
+            </h2>
             <p className="text-[16px] leading-[1.7] text-[#3c4053]">
               {seo.seoIntro}
             </p>
@@ -193,9 +213,9 @@ export default async function JournalInfoDetailPage({
           scripts/capture-screenshots.ts nightly. Falls back to a neutral
           skeleton when the file isn't on disk yet. */}
       <section className="mx-auto max-w-[1200px] px-4 pt-8 sm:px-6 sm:pt-10">
-        <div className="mb-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+        <h2 className="mb-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
           Как это выглядит в системе
-        </div>
+        </h2>
         <JournalScreenshot code={code} label={info.tagline} />
       </section>
 
@@ -212,9 +232,9 @@ export default async function JournalInfoDetailPage({
                 <FileDown className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-semibold text-[#0b1024]">
+                <h2 className="text-[15px] font-semibold text-[#0b1024]">
                   Так выглядит заполненный журнал
-                </div>
+                </h2>
                 <p className="mt-1 text-[13px] leading-[1.55] text-[#6f7282]">
                   Тот же файл, который сервис выдаёт инспектору. Данные
                   вымышленные — организация «Ромашка» и пять сотрудников.
@@ -265,10 +285,10 @@ export default async function JournalInfoDetailPage({
           <div className="space-y-8">
             {/* WHAT TO FILL */}
             <div className="rounded-3xl border border-[#ececf4] bg-white p-5 sm:p-7">
-              <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[#3848c7]">
+              <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[#3848c7]">
                 <CheckCircle2 className="size-4" />
                 Что заполняется
-              </div>
+              </h2>
               <ul className="mt-4 space-y-2.5 text-[15px] leading-[1.6] text-[#3c4053]">
                 {info.whatToFill.map((item, i) => (
                   <li key={i} className="flex gap-3">
@@ -281,10 +301,10 @@ export default async function JournalInfoDetailPage({
 
             {/* NORMATIVE */}
             <div className="rounded-3xl border border-[#ececf4] bg-white p-5 sm:p-7">
-              <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[#3848c7]">
+              <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-[#3848c7]">
                 <ScrollText className="size-4" />
                 На основании
-              </div>
+              </h2>
               <ul className="mt-4 space-y-2 text-[15px] text-[#3c4053]">
                 {info.normative.map((n, i) => (
                   <li key={i}>
@@ -365,6 +385,31 @@ export default async function JournalInfoDetailPage({
               </div>
             )}
           </aside>
+        </div>
+      </section>
+
+      {/* Вопросы собираются из полей самого журнала — графы, норматив,
+          периодичность. Одинаковый блок на 35 страницах был бы дублем и
+          только усилил бы причину, по которой поисковик выбирал сводную
+          /blanki вместо профильных страниц. */}
+      <section className="mx-auto max-w-[860px] px-4 pb-12 sm:px-6">
+        <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
+          Вопросы и ответы
+        </h2>
+        <div className="mt-6 space-y-3">
+          {faq.map((item) => (
+            <details
+              key={item.q}
+              className="group rounded-2xl border border-[#ececf4] bg-white p-5 open:bg-[#fafbff]"
+            >
+              <summary className="cursor-pointer list-none text-[15px] font-medium text-[#0b1024] transition-colors duration-150 group-hover:text-[#5566f6]">
+                {item.q}
+              </summary>
+              <p className="mt-3 text-[15px] leading-[1.65] text-[#3c4053]">
+                {item.a}
+              </p>
+            </details>
+          ))}
         </div>
       </section>
 
