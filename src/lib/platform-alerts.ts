@@ -28,7 +28,8 @@ import { notifyPlatformAdmin } from "@/lib/platform-admin";
 export type PlatformAlertKind =
   | "tasksflow-outbox"
   | "tasksflow-poll"
-  | "journal-automation";
+  | "journal-automation"
+  | "seo-positions";
 
 /** Не чаще раза в час на один повод. */
 const ALERT_COOLDOWN_MS = 60 * 60 * 1000;
