@@ -1920,3 +1920,46 @@ html, body {
     animation: none;
   }
 }
+
+/* Печать инструкции по заполнению журнала.
+ *
+ * Инструкцию вешают на кухне и дают новому сотруднику на смену, поэтому
+ * она должна печататься целиком и читаемо. Две проблемы решаются здесь.
+ *
+ * 1. Свёрнутый `<details>`. Inline-вариант гайда (внутри формы) закрыт
+ *    по умолчанию, а браузер прячет содержимое закрытого `<details>`
+ *    своим UA-стилем — на бумагу уходила бы одна строка заголовка.
+ *    Раскрываем принудительно и убираем строку «раскрыть ↓», которая
+ *    на бумаге бессмысленна.
+ *
+ * 2. Разрывы страниц. Шаг инструкции, разорванный между листами,
+ *    читается как два разных пункта.
+ */
+@media print {
+  [data-guide-print] details > *:not(summary) {
+    display: block !important;
+  }
+
+  [data-guide-print] details summary {
+    list-style: none;
+  }
+
+  [data-guide-print] details summary span:last-child,
+  [data-guide-print] details summary span.group-open\:hidden {
+    display: none !important;
+  }
+
+  [data-guide-print] li,
+  [data-guide-print] ol > li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Ссылки на фото шага: на бумаге кликнуть нельзя, но адрес нужен. */
+  [data-guide-print] a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 10px;
+    color: #6f7282;
+    word-break: break-all;
+  }
+}

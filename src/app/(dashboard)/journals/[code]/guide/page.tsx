@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { JournalGuide } from "@/components/journals/journal-guide";
+import { PrintJournalButton } from "@/components/journals/print-journal-button";
 import { JournalPageCrumbs } from "@/components/journals/journal-breadcrumbs";
 import { getJournalCrumbMenu } from "@/lib/journal-crumb-menu";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
@@ -59,10 +60,28 @@ export default async function JournalGuidePage({
       ? `/journals/${resolvedCode}`
       : `/journals/${resolvedCode}/new`;
 
+  const organizationName = organization?.name || ORG_NAME_FALLBACK;
+
   return (
-    <div className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6">
+    <div
+      data-guide-print
+      className="mx-auto max-w-3xl space-y-5 px-1 sm:space-y-6"
+    >
+      {/* Печатная шапка: на бумаге не видно ни крошек, ни шапки сайта,
+          и лист без названия организации превращается в анонимную
+          распечатку, которую не подошьёшь к документации. */}
+      <div className="hidden print:block">
+        <div className="text-[15px] font-semibold text-black">
+          {organizationName}
+        </div>
+        <div className="mt-1 text-[13px] text-black">
+          Инструкция по заполнению: {template.name}
+        </div>
+        <div className="mt-3 border-b border-black" />
+      </div>
+
       <JournalPageCrumbs
-        organizationName={organization?.name || ORG_NAME_FALLBACK}
+        organizationName={organizationName}
         journalName={template.name}
         journalCode={resolvedCode}
         journalMenu={journalMenu}
@@ -76,12 +95,17 @@ export default async function JournalGuidePage({
         title={template.name}
         description="Прочитай эту страницу до того как начнёшь заполнять журнал. Она объясняет шаги, что взять с собой, типичные ошибки и требования СанПиН."
         actions={
-          <Link
-            href={fillHref}
-            className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-          >
-            К заполнению →
-          </Link>
+          <>
+            {/* Инструкцию вешают на стену и выдают новичку на смену —
+                без печати страница остаётся только «прочитать с экрана». */}
+            <PrintJournalButton label="Распечатать" />
+            <Link
+              href={fillHref}
+              className="inline-flex h-10 items-center gap-2 rounded-2xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
+            >
+              К заполнению →
+            </Link>
+          </>
         }
       />
 

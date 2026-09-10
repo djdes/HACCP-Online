@@ -304,6 +304,20 @@ const settingsCards = [
     bgClass: "bg-[#fdf2f8]",
   },
   {
+    description: "Настройка журналов, аудит, консультации и выезд специалиста",
+    href: "/settings/services",
+    icon: Sparkles,
+    iconClass: "text-[#7a5cff]",
+    bgClass: "bg-[#f5f0ff]",
+  },
+  {
+    description: "Приказы по предприятию: заполнить реквизитами и распечатать",
+    href: "/orders",
+    icon: ScrollText,
+    iconClass: "text-[#5566f6]",
+    bgClass: "bg-[#eef1ff]",
+  },
+  {
     description: "Аудит всех событий",
     href: "/settings/audit",
     icon: ScrollText,
@@ -566,7 +580,7 @@ export default async function SettingsPage() {
       />
       <SettingsGroup
         title="Оплата"
-        subtitle="Баланс, тариф, партнёрская программа"
+        subtitle="Баланс, тариф, услуги специалиста, партнёрская программа"
         items={settingsCards.filter((c) => GROUP_MONEY.has(c.href as string))}
       />
       <SettingsGroup
@@ -623,6 +637,7 @@ const GROUP_JOURNALS = new Set([
   "/settings/journal-checklists",
   "/settings/journal-pipelines",
   "/settings/onboarding-template",
+  "/orders",
 ]);
 const GROUP_TASKS = new Set([
   "/settings/journal-task-mode",
@@ -635,6 +650,7 @@ const GROUP_TASKS = new Set([
 const GROUP_MONEY = new Set([
   "/settings/balance",
   "/settings/subscription",
+  "/settings/services",
   "/settings/partner",
 ]);
 const GROUP_INTEGRATIONS = new Set([

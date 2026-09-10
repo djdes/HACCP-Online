@@ -192,6 +192,17 @@ export const journalSampleRateLimiter = createRateLimiter({
   intervalMs: 60_000,
 });
 
+/**
+ * Заявки на платные услуги. Форма на /uslugi открыта без авторизации,
+ * поэтому лимит жёсткий: три заявки в десять минут на IP. Живому
+ * клиенту хватает одной, а спамеру этого мало, чтобы завалить админский
+ * Telegram.
+ */
+export const serviceRequestRateLimiter = createRateLimiter({
+  tokensPerInterval: 3,
+  intervalMs: 10 * 60 * 1000,
+});
+
 export const registrationCodeRateLimiter = createRateLimiter({
   tokensPerInterval: 5,
   intervalMs: 10 * 60 * 1000,

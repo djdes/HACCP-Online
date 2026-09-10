@@ -58,6 +58,7 @@ export type BalanceTransactionKind =
   | "review_reward"
   | "order_spend"
   | "order_release"
+  | "service_spend"
   | "manual_adjust";
 
 /** Подписи видов транзакций для истории в кабинете и у ROOT. */
@@ -66,6 +67,7 @@ export const TRANSACTION_KIND_LABELS: Record<BalanceTransactionKind, string> = {
   review_reward: "Отзыв",
   order_spend: "Оплата заказа",
   order_release: "Возврат баллов",
+  service_spend: "Оплата услуги",
   manual_adjust: "Корректировка",
 };
 

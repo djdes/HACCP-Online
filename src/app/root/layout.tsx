@@ -9,9 +9,11 @@ import {
   ScrollText,
   Settings2,
   Star,
+  Sparkles,
   Stamp,
   Ticket,
   Wallet,
+  ClipboardList,
   Lightbulb,
   SearchCheck,
   HeartPulse,
@@ -120,6 +122,20 @@ export default async function RootAreaLayout({
             >
               <Wallet className="size-4" />
               Тарифы
+            </Link>
+            <Link
+              href="/root/services"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Sparkles className="size-4" />
+              Услуги
+            </Link>
+            <Link
+              href="/root/service-requests"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <ClipboardList className="size-4" />
+              Заявки
             </Link>
             <Link
               href="/root/requisites"

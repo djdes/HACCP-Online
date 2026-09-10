@@ -41,6 +41,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // файлы лежат под /api/ и закрыты в robots.ts — это намеренно,
     // иначе в выдачу попадал бы PDF вместо страницы.
     { url: `${SITE}/blanki`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE}/prikazy`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${SITE}/uslugi`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE}/whats-new`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE}/developers`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     // Индекс возможностей: до 2026-09-08 страницы `/features` не

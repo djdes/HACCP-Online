@@ -336,6 +336,7 @@ model Organization {
   referredAt                     DateTime?
   balanceTransactions            BalanceTransaction[]
   customerReviews                CustomerReview[]
+  companyOrders                  CompanyOrder[]
   referralInvites                ReferralInvite[]
   users                          User[]
   areas                          Area[]
@@ -390,17 +391,17 @@ model Organization {
 /// здание содержит набор Room — это и есть «помещения», по которым
 /// строятся журналы уборки и аналогичные. Settings: /settings/buildings.
 model Building {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String
-  address        String?
+  id                 String              @id @default(cuid())
+  organizationId     String
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name               String
+  address            String?
   /// Точки (2026-09-05): реквизиты точки для шапки PDF — у сети КПП и
   /// телефон свои на каждом адресе.
-  kpp            String?
-  phone          String?
-  sortOrder      Int          @default(0)
-  rooms          Room[]
+  kpp                String?
+  phone              String?
+  sortOrder          Int                 @default(0)
+  rooms              Room[]
   /// Точки (2026-09-05): документы и обязательства, привязанные к этому
   /// зданию как к точке. При удалении здания связь обнуляется —
   /// документы остаются в организации и становятся общими.
@@ -408,8 +409,8 @@ model Building {
   journalObligations JournalObligation[]
   /// Площадки этой точки в ФГИС «Меркурий».
   mercuryEnterprises MercuryEnterprise[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@unique([organizationId, name])
   @@index([organizationId, sortOrder])
@@ -2912,24 +2913,24 @@ enum MercuryOutboxStatus {
 }
 
 model MercuryIntegration {
-  id             String       @id @default(cuid())
-  organizationId String       @unique
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id               String       @id @default(cuid())
+  organizationId   String       @unique
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// "test" | "prod" — по нему выбирается baseUrl из env. Сам URL в БД не
   /// храним: иначе его можно подменить и увести запросы наружу.
-  environment    String       @default("test")
+  environment      String       @default("test")
   /// ГУИД хозяйствующего субъекта в Ветис (issuerId в запросах).
-  issuerGuid     String
+  issuerGuid       String
   /// Логин уполномоченного лица в Меркурии — от его имени гасятся ВСД.
-  initiatorLogin String
+  initiatorLogin   String
   /// Escape hatch для крупного клиента со СВОЕЙ зарегистрированной ИС.
   /// null — используется системный MERCURY_API_KEY. AES-256-GCM.
   apiKeyEncrypted  String?
   apiKeyPrefix     String?
-  enabled          Boolean   @default(false)
+  enabled          Boolean      @default(false)
   /// "off" | "assisted" | "auto_after_journal". По умолчанию assisted:
   /// система находит и заполняет, но гасит человек. См. docs/MERCURY.md.
-  autoProcessMode  String    @default("assisted")
+  autoProcessMode  String       @default("assisted")
   /// Белый список поставщиков для auto_after_journal: массив ИНН.
   autoSupplierInns Json?
   /// Кому слать уведомления о новых и просроченных ВСД.
@@ -2939,8 +2940,8 @@ model MercuryIntegration {
   lastSyncAt       DateTime?
   lastSyncError    String?
   label            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   enterprises MercuryEnterprise[]
   documents   MercuryVetDocument[]
@@ -2980,27 +2981,27 @@ model MercuryEnterprise {
 
 /// Входящий ветеринарный сопроводительный документ.
 model MercuryVetDocument {
-  id             String             @id @default(cuid())
-  integrationId  String
-  integration    MercuryIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  organizationId String
-  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  enterpriseId   String?
-  enterprise     MercuryEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: SetNull)
+  id              String             @id @default(cuid())
+  integrationId   String
+  integration     MercuryIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  organizationId  String
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  enterpriseId    String?
+  enterprise      MercuryEnterprise? @relation(fields: [enterpriseId], references: [id], onDelete: SetNull)
   /// Денормализация ради buildingWhere() — фильтра по точке.
-  buildingId     String?
+  buildingId      String?
   /// UUID ВСД в Ветис — натуральный ключ. Пара (организация, uuid) и есть
   /// единственная настоящая защита от двойного гашения.
-  uuid           String
-  number         String?
+  uuid            String
+  number          String?
   /// TRANSPORT | PRODUCTIVE | RETURNABLE
-  docType        String?
+  docType         String?
   /// Статус в Ветис: CONFIRMED | UTILIZED | WITHDRAWN | ...
-  remoteStatus   String
+  remoteStatus    String
   /// Наш: new | acknowledged | processing | processed | process_failed | irrelevant
-  localStatus    String             @default("new")
-  issueDate      DateTime?
-  deliveryDate   DateTime?
+  localStatus     String             @default("new")
+  issueDate       DateTime?
+  deliveryDate    DateTime?
   /// Дедлайн гашения — один рабочий день, считается по производственному
   /// календарю РФ и таймзоне организации (src/lib/mercury/deadline.ts).
   processingDueAt DateTime?
@@ -3344,4 +3345,95 @@ model NpsResponse {
 
   @@index([createdAt])
   @@index([organizationId])
+}
+
+/// Изданный приказ по организации.
+///
+/// Тело приказа НЕ храним: оно всегда пересобирается из шаблона
+/// (`src/lib/orders/catalog.ts`) и `values`. Иначе правка формулировки
+/// шаблона разошлась бы с тем, что лежит в реестре, и два приказа с
+/// одним кодом печатались бы по-разному.
+model CompanyOrder {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Код шаблона из каталога: "haccp-responsible", "journals-intro", …
+  templateCode   String
+  /// Снимок названия на момент издания — шаблон могут переименовать.
+  title          String
+  /// Номер приказа как его ввёл человек: "12", "12-ОД".
+  number         String
+  issuedAt       DateTime
+  /// Значения полей формы: { responsibleName: "Иванова О.П.", … }.
+  values         Json
+  /// Снимок реквизитов организации на момент издания. Без него
+  /// перевыпуск после смены директора показал бы чужую подпись под
+  /// старым приказом.
+  orgSnapshot    Json
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, templateCode, number])
+  @@index([organizationId, issuedAt])
+}
+
+/// Платная услуга каталога (настройка журналов, аудит, консультация).
+///
+/// Цена живёт в БД и правится ROOT'ом в /root/services — ровно как
+/// `PlatformTariff`, чтобы смена прайса не требовала деплоя.
+model PlatformService {
+  /// Стабильный ключ, на который ссылается ServiceRequest.
+  key         String   @id
+  title       String
+  /// Одна строка для карточки каталога.
+  summary     String
+  /// Подробное описание: что входит, как проходит, что на выходе.
+  description String
+  /// null = «цена по запросу». Вместе с priceFrom даёт три вида
+  /// подписи: «5 000 ₽», «от 15 000 ₽», «по запросу».
+  priceRub    Int?
+  priceFrom   Boolean  @default(true)
+  /// "за услугу" | "в месяц" | "за час" — приписка справа от цены.
+  unit        String?
+  /// "setup" | "consult" | "audit" | "docs"
+  category    String
+  active      Boolean  @default(true)
+  sort        Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+/// Заявка на платную услугу.
+///
+/// Поля контактов повторяют `FeedbackReport`: форма на публичном сайте
+/// и форма в кабинете пишут одинаково, а ROOT разбирает их одним
+/// списком в /root/service-requests.
+model ServiceRequest {
+  id                String    @id @default(cuid())
+  serviceKey        String
+  /// Снимок названия услуги: каталог могут переименовать.
+  serviceTitle      String
+  organizationId    String?
+  organizationName  String?
+  userId            String?
+  contactName       String
+  contactPhone      String
+  contactEmail      String?
+  comment           String?
+  /// "new" | "in_progress" | "done" | "cancelled"
+  status            String    @default("new")
+  /// Сколько списано с баланса при оформлении. 0 — заявка без оплаты
+  /// (цена «от» / «по запросу» либо баланса не хватило).
+  paidRub           Int       @default(0)
+  /// "app" — из кабинета, "site" — с публичной страницы /uslugi.
+  source            String    @default("app")
+  /// Когда админ-уведомление реально ушло. null = канал промолчал —
+  /// это видно в /root/service-requests, а не только в console.error.
+  adminTgNotifiedAt DateTime?
+  adminEmailedAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([organizationId, createdAt])
 }

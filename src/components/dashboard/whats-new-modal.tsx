@@ -19,6 +19,7 @@ import {
   Building2,
   Moon,
   Plug,
+  ScrollText,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -71,6 +72,8 @@ function isCategoryNote(
  * нельзя (server→client serialization), поэтому держим mapping здесь.
  */
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "Приказы и инструкции": ScrollText,
+  "Услуги специалиста": Handshake,
   "Точки": MapPin,
   "Помещения и уборка": Building2,
   "Отклонения температуры": Thermometer,
