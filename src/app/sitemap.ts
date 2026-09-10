@@ -4,6 +4,9 @@ import { JOURNAL_INFO } from "@/content/journal-info";
 import { FEATURES_ORDER } from "@/content/features";
 import { NICHES } from "@/components/landing/niche-landing";
 import { SEO_LANDINGS } from "@/components/landing/seo-journal-landing";
+import { CITY_ORDER } from "@/content/cities";
+import { COMPARISON_ORDER } from "@/content/comparisons";
+import { GLOSSARY } from "@/content/glossary";
 
 /**
  * Dynamic sitemap for crawlers. Combines:
@@ -101,6 +104,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
+  // Контентные SEO-страницы: города, глоссарий, сравнения, калькуляторы.
+  const contentPages: MetadataRoute.Sitemap = [
+    { url: `${SITE}/glossary`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    ...GLOSSARY.map((t) => ({ url: `${SITE}/glossary/${t.slug}`, lastModified: now, changeFrequency: "yearly" as const, priority: 0.5 })),
+    { url: `${SITE}/compare`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    ...COMPARISON_ORDER.map((slug) => ({ url: `${SITE}/compare/${slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.75 })),
+    { url: `${SITE}/calc/journals`, lastModified: now, changeFrequency: "monthly", priority: 0.75 },
+    { url: `${SITE}/calc/fines`, lastModified: now, changeFrequency: "monthly", priority: 0.75 },
+    ...CITY_ORDER.map((slug) => ({ url: `${SITE}/v/${slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.7 })),
+  ];
+
   return [
     ...staticPages,
     ...journalPages,
@@ -108,5 +122,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...articlePages,
     ...nichePages,
     ...seoPages,
+    ...contentPages,
   ];
 }

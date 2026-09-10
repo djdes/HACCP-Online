@@ -213,6 +213,11 @@ export function PublicFooter() {
             Разделы
           </div>
           <Link href="/blog" className="py-2.5 transition-colors hover:text-[#0b1024]">Блог</Link>
+          <Link href="/glossary" className="py-2.5 transition-colors hover:text-[#0b1024]">Глоссарий</Link>
+          <Link href="/compare" className="py-2.5 transition-colors hover:text-[#0b1024]">Сравнения</Link>
+          <Link href="/calc/journals" className="py-2.5 transition-colors hover:text-[#0b1024]">Какие журналы нужны</Link>
+          <Link href="/calc/fines" className="py-2.5 transition-colors hover:text-[#0b1024]">Калькулятор штрафов</Link>
+          <Link href="/whats-new" className="py-2.5 transition-colors hover:text-[#0b1024]">Что нового</Link>
           <Link href="/journals-info" className="py-2.5 transition-colors hover:text-[#0b1024]">Журналы</Link>
           <Link href="/blanki" className="py-2.5 transition-colors hover:text-[#0b1024]">Бланки</Link>
           <Link href="/pricing" className="py-2.5 transition-colors hover:text-[#0b1024]">Тарифы</Link>
