@@ -6,6 +6,11 @@ import { PublicHeader, PublicFooter } from "@/components/public/public-chrome";
 import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
 import { ArticleRenderer } from "@/components/public/article-renderer";
 import { isArticleBlockArray } from "@/lib/article-blocks";
+import { relatedJournalCodes } from "@/lib/blog-related-journals";
+import { JOURNAL_INFO } from "@/content/journal-info";
+import { ACTIVE_JOURNAL_CATALOG } from "@/lib/journal-catalog";
+import { journalHeadline } from "@/lib/journal-headline";
+import { JOURNAL_SEO } from "@/content/journal-seo";
 import { jsonLdSafeString } from "@/lib/json-ld";
 import {
   DEFAULT_TWITTER_CARD,
@@ -92,6 +97,26 @@ export default async function BlogArticlePage({
           })),
         }
       : null;
+
+  // Журналы, о которых статья написана. Раньше единственная
+  // перелинковка вела на другие статьи блога, и весь внутренний вес
+  // оставался внутри блога — на страницах, которые не ранжируются.
+  // Каталог, который ранжируется, из блога не получал ничего.
+  const journalLinks = relatedJournalCodes(slug)
+    .map((code) => {
+      const info = JOURNAL_INFO[code];
+      if (!info) return null;
+      return {
+        code,
+        name: journalHeadline(
+          JOURNAL_SEO[code]?.title,
+          ACTIVE_JOURNAL_CATALOG.find((j) => j.code === code)?.name,
+          info.tagline
+        ),
+        tagline: info.tagline,
+      };
+    })
+    .filter((item): item is { code: string; name: string; tagline: string } => item !== null);
 
   // Похожие статьи: ранжируем по пересечению тегов с текущей.
   // Запрашиваем чуть больше чем 3 чтобы было из чего выбирать,
@@ -235,11 +260,35 @@ export default async function BlogArticlePage({
         </div>
       </article>
 
+      {journalLinks.length > 0 && (
+        <section className="mx-auto max-w-[1200px] px-4 pb-10 sm:px-6">
+          <h2 className="text-[13px] font-medium uppercase tracking-[0.18em] text-[#6f7282]">
+            Журналы из статьи
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {journalLinks.map((item) => (
+              <Link
+                key={item.code}
+                href={`/journals-info/${item.code}`}
+                className="group rounded-3xl border border-[#ececf4] bg-white p-5 transition-all duration-150 hover:-translate-y-0.5 hover:border-[#5566f6]/40"
+              >
+                <div className="text-[15px] font-semibold leading-snug text-[#0b1024] group-hover:text-[#3848c7]">
+                  {item.name}
+                </div>
+                <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.5] text-[#6f7282]">
+                  {item.tagline}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {related.length > 0 && (
         <section className="mx-auto max-w-[1200px] px-4 pb-10 sm:px-6 sm:pb-16">
-          <div className="text-[13px] font-medium uppercase tracking-[0.18em] text-[#6f7282]">
+          <h2 className="text-[13px] font-medium uppercase tracking-[0.18em] text-[#6f7282]">
             Читать дальше
-          </div>
+          </h2>
           <div className="mt-4 grid gap-5 md:grid-cols-3">
             {related.map((r) => (
               <Link
