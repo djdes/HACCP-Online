@@ -6,7 +6,8 @@ import { sendRawEmail } from "@/lib/email";
 import { notifyOrganization } from "@/lib/telegram";
 import { buildWeeklyDigestData, weeklyDigestRecipients } from "@/lib/weekly-digest/build";
 import { renderWeeklyDigestEmail, renderWeeklyDigestTelegram } from "@/lib/weekly-digest/render";
-import { shouldSendWeeklyDigest } from "@/lib/weekly-digest/schedule";
+import { isDigestSlot, shouldSendWeeklyDigest } from "@/lib/weekly-digest/schedule";
+import { sendRootHealthEmail } from "@/lib/root-health-email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,7 +89,15 @@ async function handle(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, now: now.toISOString(), sent, skipped, errors, total: orgs.length, results });
+  // Письмо ROOT «здоровье клиентов» — в тот же понедельничный слот по Москве
+  // (или ?rootHealth=1 для проверки; с orgId не шлём — это разовая отладка).
+  const rootHealthForce = searchParams.get("rootHealth") === "1";
+  const rootHealth =
+    rootHealthForce || (!orgIdFilter && isDigestSlot(now, "Europe/Moscow"))
+      ? await sendRootHealthEmail({ now, force: rootHealthForce, to: rootHealthForce ? searchParams.get("to")?.trim() || null : null }).catch((error) => ({ sent: false, reason: `error: ${String(error).slice(0, 120)}` }))
+      : { sent: false, reason: "not-slot" };
+
+  return NextResponse.json({ ok: true, now: now.toISOString(), sent, skipped, errors, total: orgs.length, results, rootHealth });
 }
 
 export const GET = handle;

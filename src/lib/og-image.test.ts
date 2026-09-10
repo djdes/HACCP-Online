@@ -13,7 +13,7 @@ describe("og-image", () => {
   });
   it("собирает адрес /og с закодированными параметрами", () => {
     const url = ogImageUrl({ title: "Журнал здоровья", subtitle: "СанПиН", kind: "journal" });
-    assert.ok(url.startsWith("https://wesetup.ru/og?"));
+    assert.ok(url.startsWith("https://wesetup.ru/og/image?"));
     const params = new URL(url).searchParams;
     assert.equal(params.get("t"), "Журнал здоровья");
     assert.equal(params.get("s"), "СанПиН");

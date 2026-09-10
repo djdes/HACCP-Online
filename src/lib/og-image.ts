@@ -30,7 +30,7 @@ export function ogImageUrl(input: { title: string; subtitle?: string | null; kin
   const subtitle = clampOgText(input.subtitle, 140);
   if (subtitle) params.set("s", subtitle);
   if (input.kind && input.kind !== "page") params.set("k", input.kind);
-  return `${SITE}/og?${params.toString()}`;
+  return `${SITE}/og/image?${params.toString()}`;
 }
 
 export function ogImages(input: { title: string; subtitle?: string | null; kind?: OgKind }) {

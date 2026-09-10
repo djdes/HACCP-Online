@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { NextResponse } from "next/server";
 
 import { getInboundBot } from "@/lib/bot/bot-app";
+import { loadUptime } from "@/lib/uptime";
 import { db } from "@/lib/db";
 import { currentAnnouncement, readPlatformStatus, serviceState } from "@/lib/platform-status";
 
@@ -56,12 +57,13 @@ export async function GET() {
   } catch {
     dbOk = false;
   }
-  const [buildSha, buildTime, telegram, settings, announcement] = await Promise.all([
+  const [buildSha, buildTime, telegram, settings, announcement, uptime] = await Promise.all([
     readMarker(".build-sha"),
     readMarker(".build-time"),
     checkTelegram(),
     readPlatformStatus(),
     currentAnnouncement(),
+    loadUptime().catch(() => null),
   ]);
   const state = serviceState(settings.incidents, dbOk);
   return NextResponse.json(
@@ -78,6 +80,7 @@ export async function GET() {
       ],
       announcement,
       incidents: settings.incidents.slice(0, 20),
+      uptime: uptime ? { pct30: uptime.pct30, pct90: uptime.pct90, days: uptime.days } : null,
     },
     { status: dbOk ? 200 : 503, headers: { "Cache-Control": "no-store" } }
   );

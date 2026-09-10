@@ -14,6 +14,7 @@ import {
   Wallet,
   Lightbulb,
   SearchCheck,
+  HeartPulse,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -153,6 +154,13 @@ export default async function RootAreaLayout({
             >
               <SearchCheck className="size-4" />
               SEO
+            </Link>
+            <Link
+              href="/root/health"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <HeartPulse className="size-4" />
+              Здоровье
             </Link>
             <Link
               href="/root/partners"

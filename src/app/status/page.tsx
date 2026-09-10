@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 
 import { LegalArticle } from "@/components/public/legal-article";
+import { UptimeBar } from "@/components/public/uptime-bar";
+import type { UptimeStats } from "@/lib/uptime";
 import { SERVICE_STATE_LABEL, type Announcement, type Incident, type ServiceState } from "@/lib/platform-status";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ type StatusPayload = {
   components: Array<{ key: string; title: string; ok: boolean; detail: string }>;
   announcement: Announcement | null;
   incidents: Incident[];
+  uptime: Pick<UptimeStats, "pct30" | "pct90" | "days"> | null;
 };
 
 const STATE_STYLE: Record<ServiceState, string> = {
@@ -94,6 +97,12 @@ export default async function StatusPage() {
             </div>
           ))}
         </div>
+
+        {data?.uptime ? (
+          <div className="mt-8 rounded-2xl border border-[#ececf4] bg-white p-4">
+            <UptimeBar stats={{ ...data.uptime, firstSampleAt: null }} />
+          </div>
+        ) : null}
 
         <h2 className="mt-8 text-[18px] font-semibold tracking-[-0.02em] text-[#0b1024]">История</h2>
         {data && data.incidents.length > 0 ? (
