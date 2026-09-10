@@ -4,6 +4,7 @@ import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { YandexBackupClient } from "./yandex-backup-client";
+import { ExportJournalsCard } from "@/components/settings/export-journals-card";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,9 @@ export default async function BackupSettingsPage() {
           </div>
         </div>
       </div>
+
+      <ExportJournalsCard />
+
 
       <YandexBackupClient
         initialState={{

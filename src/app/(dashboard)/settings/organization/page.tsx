@@ -4,6 +4,7 @@ import { hasCapability } from "@/lib/permission-presets";
 import { db } from "@/lib/db";
 import { OrganizationInfoForm } from "@/components/settings/organization-info-form";
 import { PublicBadgeCard } from "@/components/settings/public-badge-card";
+import { DeleteOrganizationCard } from "@/components/settings/delete-organization-card";
 import { describeBadge } from "@/lib/badge/describe";
 import { getBadgeStatusForOrganization } from "@/lib/badge/status";
 import { readLegalProfile } from "@/lib/org-legal-profile";
@@ -42,6 +43,7 @@ export default async function OrganizationInfoPage() {
       createdAt: true,
       badgeEnabled: true,
       badgeCode: true,
+      deletionRequestedAt: true,
     },
   });
   if (!org) redirect("/settings");
@@ -99,6 +101,8 @@ export default async function OrganizationInfoPage() {
       />
 
       <PublicBadgeCard initial={badge} />
+
+      <DeleteOrganizationCard organizationName={org.name} deletionRequestedAt={org.deletionRequestedAt?.toISOString() ?? null} />
     </div>
   );
 }
