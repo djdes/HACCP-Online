@@ -68,6 +68,24 @@ export function ArticleRenderer({ blocks }: { blocks: ArticleBlock[] }) {
                 ) : null}
               </blockquote>
             );
+          case "faq":
+            return (
+              <div key={idx} className="space-y-3">
+                {block.items.map((item) => (
+                  <details
+                    key={item.q}
+                    className="group rounded-2xl border border-[#ececf4] bg-white p-5 open:bg-[#fafbff]"
+                  >
+                    <summary className="cursor-pointer list-none text-[15px] font-medium text-[#0b1024] transition-colors duration-150 group-hover:text-[#5566f6]">
+                      {item.q}
+                    </summary>
+                    <p className="mt-3 text-[15px] leading-[1.65] text-[#3c4053]">
+                      {item.a}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            );
           case "callout": {
             const tone = calloutTone[block.tone ?? "info"];
             return (

@@ -11,7 +11,14 @@ export type ArticleBlock =
   | { type: "ul"; items: string[] }
   | { type: "ol"; items: string[] }
   | { type: "quote"; text: string; author?: string }
-  | { type: "callout"; tone?: "info" | "warn" | "tip"; title?: string; text: string };
+  | { type: "callout"; tone?: "info" | "warn" | "tip"; title?: string; text: string }
+  /**
+   * Блок вопросов. Отдельный тип, а не пара h3+p, потому что из него
+   * собирается разметка FAQPage: вывести её из обычных заголовков нельзя
+   * — в статьях они называют разделы («Настройка», «Что заполняется»),
+   * а не задают вопросы, и разметка получилась бы выдуманной.
+   */
+  | { type: "faq"; items: Array<{ q: string; a: string }> };
 
 export type ArticleRecord = {
   id: string;
@@ -48,6 +55,18 @@ export function isArticleBlockArray(value: unknown): value is ArticleBlock[] {
         return (
           typeof b.text === "string" &&
           (b.author === undefined || typeof b.author === "string")
+        );
+      case "faq":
+        return (
+          Array.isArray(b.items) &&
+          b.items.length > 0 &&
+          b.items.every(
+            (it) =>
+              !!it &&
+              typeof it === "object" &&
+              typeof (it as Record<string, unknown>).q === "string" &&
+              typeof (it as Record<string, unknown>).a === "string"
+          )
         );
       case "callout":
         return (

@@ -75,6 +75,24 @@ export default async function BlogArticlePage({
 
   const body = isArticleBlockArray(article.body) ? article.body : [];
 
+  // Вопросы берём из блоков статьи, а не выводим из заголовков: в этих
+  // статьях заголовки называют разделы, а не спрашивают.
+  const faqItems = body.flatMap((block) =>
+    block.type === "faq" ? block.items : []
+  );
+  const faqLd =
+    faqItems.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqItems.map((item) => ({
+            "@type": "Question",
+            name: item.q,
+            acceptedAnswer: { "@type": "Answer", text: item.a },
+          })),
+        }
+      : null;
+
   // Похожие статьи: ранжируем по пересечению тегов с текущей.
   // Запрашиваем чуть больше чем 3 чтобы было из чего выбирать,
   // считаем overlap, сортируем, берём top-3.
@@ -157,6 +175,14 @@ export default async function BlogArticlePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafeString(articleJsonLd) }}
       />
+      {/* FAQPage только когда в статье реально есть блок вопросов:
+          пустая или выдуманная разметка хуже её отсутствия. */}
+      {faqLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdSafeString(faqLd) }}
+        />
+      ) : null}
       <PublicHeader activeSection="blog" />
 
       <article className="mx-auto max-w-[760px] px-6 py-10 md:py-14">
