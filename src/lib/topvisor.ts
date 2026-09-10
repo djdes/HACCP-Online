@@ -146,6 +146,9 @@ function idFilter(ids: number[]) {
   return [{ name: "id", operator: "EQUALS", values: ids }];
 }
 
+// Регионы живут в `topvisor-regions.ts` — этот модуль читает секреты и
+// ходит в сеть, поэтому клиентским компонентам его импортировать нельзя.
+
 // ─────────────────────────── семантика ───────────────────────────
 
 export type TopvisorGroup = { id: number; name: string };
