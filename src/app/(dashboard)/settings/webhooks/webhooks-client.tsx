@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { WebhookDto } from "@/lib/webhooks/serialize";
-import { WEBHOOK_EVENTS, WEBHOOK_EVENT_LABEL, type WebhookEvent } from "@/lib/webhooks/sign";
+import { WEBHOOK_EVENTS, WEBHOOK_EVENT_LABEL, type WebhookEvent } from "@/lib/webhooks/events";
 
 type Delivery = { id: string; webhookId: string; event: string; status: string; attempts: number; lastStatus: number | null; lastError: string | null; createdAt: string; sentAt: string | null; nextAttemptAt: string | null };
 
