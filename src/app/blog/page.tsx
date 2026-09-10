@@ -17,7 +17,7 @@ export const metadata = {
     "Статьи об электронных журналах, СанПиН, ХАССП и подготовке к проверкам Роспотребнадзора.",
   // Canonical всегда без query-string — иначе /blog?q=test и /blog?tag=haccp
   // индексируются Google как отдельные страницы (duplicate content penalty).
-  alternates: { canonical: "https://wesetup.ru/blog" },
+  alternates: { canonical: "https://wesetup.ru/blog", types: { "application/rss+xml": "https://wesetup.ru/blog/feed.xml" } },
   // Полный openGraph — иначе Next.js shallow-merge заменит parent
   // полностью и мы потеряем images. Url должен совпадать с canonical
   // чтобы Telegram/FB share-preview не показывал home page metadata.

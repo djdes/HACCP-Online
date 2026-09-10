@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isArticleBlockArray } from "@/lib/article-blocks";
+import { announceArticleIfPublished, articlePublishState } from "@/lib/blog-announce";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,10 +49,13 @@ export async function PATCH(
     data.body = src.body as unknown as object;
   }
 
+  const before = await articlePublishState(id);
   const updated = await db.article.update({
     where: { id },
     data,
   });
+  // Впервые опубликована — анонс в Telegram-канал (если канал задан).
+  await announceArticleIfPublished({ before: before ?? { publishedAt: null }, after: updated }).catch(() => false);
   return NextResponse.json({ article: updated });
 }
 

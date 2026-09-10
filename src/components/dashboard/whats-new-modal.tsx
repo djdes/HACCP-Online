@@ -319,6 +319,14 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
           >
             Спасибо, понял · {totalCategories > 1 ? `${totalCategories} раздела` : "ок"}
           </button>
+          <a
+            href="/whats-new"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 block text-center text-[12.5px] text-[#6f7282] underline-offset-2 hover:underline"
+          >
+            Вся история изменений — wesetup.ru/whats-new
+          </a>
         </div>
       </div>
     </div>

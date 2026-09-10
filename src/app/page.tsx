@@ -30,6 +30,7 @@ import { EquipmentPricing } from "@/components/landing/equipment-pricing";
 import { AudienceCarousel } from "@/components/landing/audience-carousel";
 import { TestimonialsCarousel } from "@/components/landing/testimonials-carousel";
 import { listPublicReviews } from "@/lib/balance/reviews";
+import { buildAggregateRating } from "@/lib/seo/aggregate-rating";
 import { IndustriesGrid } from "@/components/landing/industries-grid";
 import { AutomationScene } from "@/components/landing/automation-scene";
 import { SampleGallery } from "@/components/landing/sample-gallery";
@@ -301,6 +302,7 @@ export default async function LandingPage() {
     console.error("[landing] Failed to load reviews", error);
     return [];
   });
+  const rating = buildAggregateRating(publicReviews);
 
   const tariffs = await readTariffs().catch(() => fallbackTariffs());
   const monthly =
@@ -361,6 +363,8 @@ export default async function LandingPage() {
           priceCurrency: "RUB",
           description: "Бесплатный тариф до 3 сотрудников",
         },
+        // Звёзды в выдаче: только из одобренных отзывов с оценкой, не меньше трёх.
+        ...(rating ?? {}),
       },
       {
         "@type": "FAQPage",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { isArticleBlockArray } from "@/lib/article-blocks";
+import { announceArticleIfPublished } from "@/lib/blog-announce";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,5 +76,6 @@ export async function POST(request: Request) {
           : null,
     },
   });
+  await announceArticleIfPublished({ before: { publishedAt: null }, after: created }).catch(() => false);
   return NextResponse.json({ article: created });
 }

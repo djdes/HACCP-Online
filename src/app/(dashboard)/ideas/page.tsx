@@ -19,7 +19,7 @@ export default async function IdeasPage() {
     <div className="space-y-6">
       <PageHeader
         title="Идеи и голосование"
-        description="Чего не хватает в WeSetup? Предложите — или поддержите чужую идею голосом. Что набирает голоса, попадает в план."
+        description="Чего не хватает в WeSetup? Предложите — или поддержите чужую идею голосом. Что набирает голоса, попадает в план; что вышло — на wesetup.ru/whats-new."
       />
       <IdeasClient />
     </div>

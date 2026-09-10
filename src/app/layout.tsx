@@ -31,6 +31,14 @@ const manrope = localFont({
 });
 
 export const metadata: Metadata = {
+  alternates: {
+    types: {
+      "application/rss+xml": [
+        { url: "https://wesetup.ru/blog/feed.xml", title: "WeSetup — блог" },
+        { url: "https://wesetup.ru/whats-new/feed.xml", title: "WeSetup — что нового" },
+      ],
+    },
+  },
   metadataBase: new URL("https://wesetup.ru"),
   title: {
     default:
