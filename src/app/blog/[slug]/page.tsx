@@ -8,10 +8,9 @@ import { ArticleRenderer } from "@/components/public/article-renderer";
 import { isArticleBlockArray } from "@/lib/article-blocks";
 import { jsonLdSafeString } from "@/lib/json-ld";
 import {
-  DEFAULT_OG_IMAGES,
   DEFAULT_TWITTER_CARD,
-  DEFAULT_TWITTER_IMAGES,
-} from "@/lib/meta-defaults";
+  } from "@/lib/meta-defaults";
+import { ogImages, twitterImages } from "@/lib/og-image";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -51,14 +50,14 @@ export async function generateMetadata({
       url,
       title: article.title,
       description: article.excerpt,
-      images: DEFAULT_OG_IMAGES,
+      images: ogImages({ title: article.title, subtitle: article.excerpt, kind: "article" }),
       publishedTime: article.publishedAt?.toISOString(),
     },
     twitter: {
       card: DEFAULT_TWITTER_CARD,
       title: article.title,
       description: article.excerpt,
-      images: DEFAULT_TWITTER_IMAGES,
+      images: twitterImages({ title: article.title, subtitle: article.excerpt, kind: "article" }),
     },
   };
 }

@@ -18,10 +18,9 @@ import { PublicBreadcrumbs } from "@/components/public/public-breadcrumbs";
 import { ArticleRenderer } from "@/components/public/article-renderer";
 import { FEATURES_INFO, FEATURES_ORDER } from "@/content/features";
 import {
-  DEFAULT_OG_IMAGES,
   DEFAULT_TWITTER_CARD,
-  DEFAULT_TWITTER_IMAGES,
-} from "@/lib/meta-defaults";
+  } from "@/lib/meta-defaults";
+import { ogImages, twitterImages } from "@/lib/og-image";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -58,13 +57,13 @@ export async function generateMetadata({
       url,
       title: info.title,
       description: info.tagline,
-      images: DEFAULT_OG_IMAGES,
+      images: ogImages({ title: info.title, subtitle: info.tagline, kind: "feature" }),
     },
     twitter: {
       card: DEFAULT_TWITTER_CARD,
       title: info.title,
       description: info.tagline,
-      images: DEFAULT_TWITTER_IMAGES,
+      images: twitterImages({ title: info.title, subtitle: info.tagline, kind: "feature" }),
     },
   };
 }

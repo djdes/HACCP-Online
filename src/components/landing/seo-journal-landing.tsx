@@ -12,10 +12,9 @@ import { SEO_LANDINGS, type SeoJournalConfig } from "@/content/seo-landings";
 export { SEO_LANDINGS };
 export type { SeoJournalConfig };
 import {
-  DEFAULT_OG_IMAGES,
   DEFAULT_TWITTER_CARD,
-  DEFAULT_TWITTER_IMAGES,
-} from "@/lib/meta-defaults";
+  } from "@/lib/meta-defaults";
+import { ogImages, twitterImages } from "@/lib/og-image";
 
 /**
  * E17 — SEO-лендинги под ключевые поисковые запросы.
@@ -79,13 +78,13 @@ export function getSeoMetadata(c: SeoJournalConfig) {
       title: c.metaTitle,
       description: c.metaDescription,
       url: `https://wesetup.ru/${c.slug}`,
-      images: DEFAULT_OG_IMAGES,
+      images: ogImages({ title: c.metaTitle, subtitle: c.metaDescription, kind: "landing" }),
     },
     twitter: {
       card: DEFAULT_TWITTER_CARD,
       title: c.metaTitle,
       description: c.metaDescription,
-      images: DEFAULT_TWITTER_IMAGES,
+      images: twitterImages({ title: c.metaTitle, subtitle: c.metaDescription, kind: "landing" }),
     },
   };
 }

@@ -23,10 +23,10 @@ import {
 } from "@/lib/document-docx";
 import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
 import {
-  DEFAULT_OG_IMAGES,
   DEFAULT_TWITTER_CARD,
-  DEFAULT_TWITTER_IMAGES,
-} from "@/lib/meta-defaults";
+  } from "@/lib/meta-defaults";
+import { FILLING_GUIDES } from "@/lib/journal-filling-guides";
+import { ogImageUrl, ogImages, twitterImages } from "@/lib/og-image";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -56,13 +56,13 @@ export async function generateMetadata({
       type: "article",
       locale: "ru_RU",
       siteName: "WeSetup",
-      images: DEFAULT_OG_IMAGES,
+      images: ogImages({ title: seo?.title ?? info.tagline, subtitle: seo?.description ?? info.why, kind: "journal" }),
     },
     twitter: {
       card: DEFAULT_TWITTER_CARD,
       title: seo?.title ?? info.tagline,
       description: seo?.description ?? info.why,
-      images: DEFAULT_TWITTER_IMAGES,
+      images: twitterImages({ title: seo?.title ?? info.tagline, subtitle: seo?.description ?? info.why, kind: "journal" }),
     },
   };
 }
@@ -95,7 +95,7 @@ export default async function JournalInfoDetailPage({
     // карточка не попадает в Article rich result. /og-default — 1200×630
     // landscape brand-hero, лучше для rich-snippet чем квадрат
     // icon-512.png. См. blog/[slug] для идентичного фикса.
-    image: ["https://wesetup.ru/og-default"],
+    image: [ogImageUrl({ title: seo?.title ?? info.tagline, subtitle: seo?.description ?? info.why, kind: "journal" })],
     url: canonical,
     inLanguage: "ru-RU",
     keywords: seo?.keywords?.join(", "),
@@ -113,8 +113,32 @@ export default async function JournalInfoDetailPage({
     },
   };
 
+  // HowTo — расширенный сниппет «как заполнять»: шаги и материалы из гайда
+  // для новых сотрудников, того же, что показывается внутри формы.
+  const guide = FILLING_GUIDES[code];
+  const howToLd = guide
+    ? {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        name: `Как заполнять: ${seo?.title ?? info.tagline}`,
+        description: guide.summary,
+        inLanguage: "ru-RU",
+        supply: guide.materials.map((name) => ({ "@type": "HowToSupply", name })),
+        step: guide.steps.map((step, index) => ({
+          "@type": "HowToStep",
+          position: index + 1,
+          name: step.title,
+          text: step.detail,
+          url: `${canonical}#step-${index + 1}`,
+        })),
+      }
+    : null;
+
   return (
     <div className="min-h-screen bg-white text-[#0b1024]">
+      {howToLd ? (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafeString(howToLd) }} />
+      ) : null}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafeString(jsonLd) }}

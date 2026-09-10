@@ -13,10 +13,9 @@ import { NICHES, type Niche } from "@/content/niches";
 export { NICHES };
 export type { Niche };
 import {
-  DEFAULT_OG_IMAGES,
   DEFAULT_TWITTER_CARD,
-  DEFAULT_TWITTER_IMAGES,
-} from "@/lib/meta-defaults";
+  } from "@/lib/meta-defaults";
+import { ogImages, twitterImages } from "@/lib/og-image";
 
 /**
  * E19 — лендинги под ниши общепита. Каждая ниша имеет адаптированный
@@ -52,13 +51,13 @@ export function getNicheMetadata(slug: string) {
       title: data.metaTitle,
       description: data.metaDescription,
       url: `https://wesetup.ru/${data.slug}`,
-      images: DEFAULT_OG_IMAGES,
+      images: ogImages({ title: data.metaTitle, subtitle: data.metaDescription, kind: "landing" }),
     },
     twitter: {
       card: DEFAULT_TWITTER_CARD,
       title: data.metaTitle,
       description: data.metaDescription,
-      images: DEFAULT_TWITTER_IMAGES,
+      images: twitterImages({ title: data.metaTitle, subtitle: data.metaDescription, kind: "landing" }),
     },
   };
 }
