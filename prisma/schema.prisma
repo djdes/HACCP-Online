@@ -234,6 +234,9 @@ model Organization {
   accountantEmail                String?
   /// Когда последний раз ушла недельная сводка (крон weekly-digest); повтор не раньше чем через 6 дней.
   weeklyDigestSentAt             DateTime?
+  /// Самоудаление: запрошено руководителем, удаляется кроном через 30 дней (lib/org-deletion.ts).
+  deletionRequestedAt            DateTime?
+  deletionRequestedById          String?
   /// Публичный бейдж «журналы ведутся в WeSetup»: opt-in и код страницы /b/<code>.
   badgeEnabled                   Boolean                        @default(false)
   badgeCode                      String?                        @unique
@@ -656,6 +659,8 @@ model User {
   twoFactorTelegram           Boolean                  @default(false)
   /// Личный токен ленты iCalendar (/api/calendar/<token>.ics); null — ссылка не создана.
   calendarToken               String?                  @unique
+  /// Когда последний раз задавали вопрос NPS (или «не сейчас»); повтор через 90 дней.
+  npsAskedAt                  DateTime?
   /// Когда человек подтвердил почту кодом. null — не подтверждал.
   /// Ничего не блокирует: это отметка для настроек и быстрого старта.
   emailVerifiedAt             DateTime?
@@ -1603,11 +1608,14 @@ model TelegramLog {
   error          String?
   attempts       Int       @default(0)
   sentAt         DateTime?
+  /// Тихие часы: отправить не раньше этого времени (status "deferred").
+  deliverAfter   DateTime?
   createdAt      DateTime  @default(now())
 
   @@index([userId, createdAt])
   @@index([userId, organizationId, kind, dedupeKey, createdAt])
   @@index([status, createdAt])
+  @@index([status, deliverAfter])
 }
 
 /// Состояние фоновой задачи между запусками. Нужно ровно для одного:
@@ -3323,4 +3331,17 @@ model WebhookDelivery {
 
   @@index([status, nextAttemptAt])
   @@index([webhookId, createdAt])
+}
+
+/// Ответ на вопрос NPS (0–10) руководителя организации.
+model NpsResponse {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  score          Int
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([organizationId])
 }

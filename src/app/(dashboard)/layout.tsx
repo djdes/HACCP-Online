@@ -20,6 +20,10 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { UrgentJournalHotkey } from "@/components/layout/urgent-journal-hotkey";
 import { WhatsNewModal } from "@/components/dashboard/whats-new-modal";
 import { AnnouncementBanner } from "@/components/layout/announcement-banner";
+import { DeletionBanner } from "@/components/layout/deletion-banner";
+import { NpsBanner } from "@/components/layout/nps-banner";
+import { askNpsFor } from "@/lib/nps-data";
+import { deletionDueAt } from "@/lib/org-deletion";
 import { currentAnnouncement } from "@/lib/platform-status";
 import { WHATS_NEW_NOTES, whatsNewVersion } from "@/lib/whats-new-notes";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -170,6 +174,11 @@ export default async function DashboardLayout({
     : null;
 
   const announcement = await currentAnnouncement();
+  const [askNps, deletionState] = await Promise.all([
+    askNpsFor(session).catch(() => false),
+    db.organization.findUnique({ where: { id: activeOrgId }, select: { deletionRequestedAt: true } }).catch(() => null),
+  ]);
+  const deletionDue = deletionState?.deletionRequestedAt ? deletionDueAt(deletionState.deletionRequestedAt).toISOString() : null;
   const impersonatedName = impersonatedOrg?.name ?? null;
   const initialTheme: "light" | "dark" =
     profile?.themePreference === "dark" ? "dark" : "light";
@@ -350,6 +359,8 @@ export default async function DashboardLayout({
                 {/* Объявление ROOT (плановые работы, инцидент) — над контентом,
                     закрывается и запоминается по id. */}
                 <AnnouncementBanner announcement={announcement} />
+                {deletionDue ? <DeletionBanner dueAt={deletionDue} canCancel={hasCapability(session.user, "admin.full")} /> : null}
+                {askNps ? <NpsBanner /> : null}
                 {children}
               </PageNavProvider>
             </div>

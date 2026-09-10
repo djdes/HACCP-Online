@@ -13,6 +13,11 @@ import { MiniNav } from "./_components/mini-nav";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { LiveConnectionIndicator } from "@/components/live/live-connection-indicator";
 import { AnnouncementBanner } from "@/components/layout/announcement-banner";
+import { DeletionBanner } from "@/components/layout/deletion-banner";
+import { NpsBanner } from "@/components/layout/nps-banner";
+import { askNpsFor } from "@/lib/nps-data";
+import { deletionDueAt } from "@/lib/org-deletion";
+import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { currentAnnouncement } from "@/lib/platform-status";
 import { Toaster } from "@/components/ui/sonner";
 import { MiniTelegramRuntime, MiniTopBar } from "./_components/mini-shell";
@@ -78,6 +83,11 @@ export default async function MiniLayout({
   // a subsequent navigation pulls their preference.
   const session = await getServerSession(authOptions).catch(() => null);
   const announcement = await currentAnnouncement();
+  const [askNps, deletionState] = await Promise.all([
+    session?.user ? askNpsFor(session).catch(() => false) : Promise.resolve(false),
+    session?.user ? db.organization.findUnique({ where: { id: session.user.organizationId }, select: { deletionRequestedAt: true } }).catch(() => null) : Promise.resolve(null),
+  ]);
+  const deletionDue = deletionState?.deletionRequestedAt ? deletionDueAt(deletionState.deletionRequestedAt).toISOString() : null;
   const initialTheme: "light" | "dark" = await (async () => {
     if (!session?.user?.id) return "dark";
     const user = await db.user
@@ -191,6 +201,8 @@ export default async function MiniLayout({
               }}
             >
               <AnnouncementBanner announcement={announcement} variant="mini" />
+              {deletionDue ? <DeletionBanner dueAt={deletionDue} canCancel={session?.user ? hasFullWorkspaceAccess(session.user) : false} variant="mini" /> : null}
+              {askNps ? <NpsBanner variant="mini" /> : null}
               {children}
             </main>
             {/* Тосты: в Mini App контейнера не было вовсе, и любой

@@ -31,10 +31,13 @@ interface NotificationPrefs {
   deviations: boolean;
   compliance: boolean;
   weeklyDigest: boolean;
+  quietHours?: { enabled: boolean; from: string; to: string };
 }
 
+type BooleanPrefKey = "temperature" | "deviations" | "compliance" | "weeklyDigest";
+
 const PREF_ITEMS: Array<{
-  key: keyof NotificationPrefs;
+  key: BooleanPrefKey;
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -114,8 +117,26 @@ export function NotificationSettings({
     }
   }
 
+  async function handleQuietHoursChange(next: { enabled: boolean; from: string; to: string }) {
+    const oldPrefs = prefs;
+    const newPrefs = { ...prefs, quietHours: next };
+    setPrefs(newPrefs);
+    try {
+      const res = await fetch("/api/notifications/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPrefs),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Сохранено");
+    } catch {
+      setPrefs(oldPrefs);
+      toast.error("Ошибка сохранения");
+    }
+  }
+
   async function handlePrefChange(
-    key: keyof NotificationPrefs,
+    key: BooleanPrefKey,
     value: boolean
   ) {
     const oldPrefs = prefs;
@@ -346,6 +367,45 @@ export function NotificationSettings({
       </section>
 
       {/* Footer note */}
+      <section className="rounded-3xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]" data-testid="quiet-hours">
+        <header className="border-b border-[#f0f1f8] px-8 py-6">
+          <h3 className="text-[20px] font-semibold tracking-tight text-[#0b1024]">Тихие часы</h3>
+          <p className="mt-1 text-[14px] text-[#6f7282]">
+            В это время Telegram молчит: напоминания и сводки придут, когда окно закончится. Отклонения температуры и инциденты приходят сразу. Время — по часовому поясу организации.
+          </p>
+        </header>
+        <div className="flex flex-wrap items-center gap-4 px-8 py-5">
+          <label className="inline-flex items-center gap-3 text-[15px] font-medium text-[#0b1024]">
+            <input
+              type="checkbox"
+              checked={prefs.quietHours?.enabled ?? false}
+              onChange={(e) => void handleQuietHoursChange({ enabled: e.target.checked, from: prefs.quietHours?.from ?? "22:00", to: prefs.quietHours?.to ?? "08:00" })}
+              className="size-4 accent-[#5566f6]"
+              data-testid="quiet-toggle"
+            />
+            Включить
+          </label>
+          <label className="inline-flex items-center gap-2 text-[13px] text-[#6f7282]">
+            с
+            <input
+              type="time"
+              value={prefs.quietHours?.from ?? "22:00"}
+              onChange={(e) => void handleQuietHoursChange({ enabled: prefs.quietHours?.enabled ?? false, from: e.target.value, to: prefs.quietHours?.to ?? "08:00" })}
+              className="h-10 rounded-2xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </label>
+          <label className="inline-flex items-center gap-2 text-[13px] text-[#6f7282]">
+            до
+            <input
+              type="time"
+              value={prefs.quietHours?.to ?? "08:00"}
+              onChange={(e) => void handleQuietHoursChange({ enabled: prefs.quietHours?.enabled ?? false, from: prefs.quietHours?.from ?? "22:00", to: e.target.value })}
+              className="h-10 rounded-2xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+          </label>
+        </div>
+      </section>
+
       <section className="rounded-3xl border border-[#f0f1f8] bg-[#fafbff] p-6 text-[13px] text-[#6f7282]">
         <div className="font-medium text-[#0b1024]">Полезно знать</div>
         <ul className="mt-3 grid gap-1.5 md:grid-cols-2">

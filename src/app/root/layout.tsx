@@ -15,6 +15,7 @@ import {
   Lightbulb,
   SearchCheck,
   HeartPulse,
+  Smile,
 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -161,6 +162,13 @@ export default async function RootAreaLayout({
             >
               <HeartPulse className="size-4" />
               Здоровье
+            </Link>
+            <Link
+              href="/root/nps"
+              className="inline-flex items-center gap-2 hover:text-white"
+            >
+              <Smile className="size-4" />
+              NPS
             </Link>
             <Link
               href="/root/partners"

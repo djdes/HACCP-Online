@@ -87,6 +87,10 @@ export const notificationPrefsSchema = z.object({
   compliance: z.boolean(),
   /// Еженедельная сводка на почту (понедельник 08:00). Старые записи без ключа = включено.
   weeklyDigest: z.boolean().default(true),
+  /// Тихие часы Telegram: не-срочное откладывается до конца окна (lib/quiet-hours.ts).
+  quietHours: z
+    .object({ enabled: z.boolean(), from: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), to: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/) })
+    .optional(),
 });
 
 export type NotificationPrefs = z.infer<typeof notificationPrefsSchema>;

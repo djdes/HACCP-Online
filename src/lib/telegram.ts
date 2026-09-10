@@ -1,4 +1,5 @@
 import { Bot, InputFile } from "grammy";
+import { isUrgentKind, parseQuietHours, quietUntil } from "@/lib/quiet-hours";
 
 import { isStreamingBody } from "@/lib/streaming-body";
 import { Agent, fetch as undiciFetch, setGlobalDispatcher } from "undici";
@@ -417,8 +418,17 @@ export async function sendTelegramMessage(
   if (await shouldSkipTelegramSendOnRerun(opts)) {
     return false;
   }
-
   const delivery = normalizeTelegramDeliveryMetadata(opts?.delivery);
+  // Тихие часы: не-срочное для конкретного человека откладываем до конца окна.
+  if (opts?.userId && !isUrgentKind(delivery.kind)) {
+    const until = await quietUntilForUser(opts.userId);
+    if (until) {
+      await db.telegramLog.create({
+        data: { chatId, body: text, userId: opts.userId, organizationId: delivery.organizationId, kind: delivery.kind, dedupeKey: delivery.dedupeKey, status: "deferred", deliverAfter: until, attempts: 0 },
+      });
+      return false;
+    }
+  }
   const log = await db.telegramLog.create({
     data: {
       chatId,
@@ -609,6 +619,15 @@ export async function notifyEmployee(
   }
 
   const delivery = normalizeTelegramDeliveryMetadata(opts?.delivery);
+  if (!isUrgentKind(delivery.kind)) {
+    const until = await quietUntilForUser(user.id);
+    if (until) {
+      await db.telegramLog.create({
+        data: { chatId: user.telegramChatId, body: text, userId: user.id, organizationId: delivery.organizationId, kind: delivery.kind, dedupeKey: delivery.dedupeKey, status: "deferred", deliverAfter: until, attempts: 0 },
+      });
+      return;
+    }
+  }
   const log = await db.telegramLog.create({
     data: {
       chatId: user.telegramChatId,
@@ -893,4 +912,42 @@ export function parseLinkToken(
   } catch {
     return null;
   }
+}
+
+/** Конец тихих часов для пользователя (по его настройкам и поясу организации), null — не тихо. */
+async function quietUntilForUser(userId: string): Promise<Date | null> {
+  const { db } = await import("./db");
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { notificationPrefs: true, organization: { select: { timezone: true } } },
+  });
+  if (!user) return null;
+  const prefs = (user.notificationPrefs ?? null) as { quietHours?: unknown } | null;
+  const quiet = parseQuietHours(prefs?.quietHours);
+  if (!quiet) return null;
+  return quietUntil(new Date(), user.organization?.timezone ?? "Europe/Moscow", quiet);
+}
+
+/** Крон: отправить отложенные тихими часами сообщения, чьё время пришло. */
+export async function sendDeferredTelegramLogs(now: Date = new Date()): Promise<{ sent: number; failed: number }> {
+  const { db } = await import("./db");
+  const due = await db.telegramLog.findMany({
+    where: { status: "deferred", deliverAfter: { lte: now } },
+    orderBy: { deliverAfter: "asc" },
+    take: 100,
+    select: { id: true, chatId: true, body: true },
+  });
+  let sent = 0;
+  let failed = 0;
+  for (const log of due) {
+    if (!bot) {
+      await db.telegramLog.update({ where: { id: log.id }, data: { status: "failed", error: "bot not configured" } });
+      failed += 1;
+      continue;
+    }
+    const ok = await executeTelegramSend(log.id, () => bot.api.sendMessage(log.chatId, log.body, { parse_mode: "HTML" }), "deferred");
+    if (ok) sent += 1;
+    else failed += 1;
+  }
+  return { sent, failed };
 }
