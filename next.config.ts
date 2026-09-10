@@ -195,7 +195,7 @@ const nextConfig: NextConfig = {
         // сайты; маршрут сам ставит `public, max-age=900`, иначе картинка
         // качалась бы при каждом показе страницы клиента.
         source:
-          "/((?!_next/static|_next/image|api/journal-samples|api/journal-previews|journal-samples/|brand/|icons/|uploads/|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/|b/[a-z0-9]+/badge\\.svg|og/image|blog/feed\\.xml|whats-new/feed\\.xml).*)",
+          "/((?!_next/static|_next/image|api/journal-samples|api/journal-previews|journal-samples/|brand/|icons/|uploads/|favicon\\.ico|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml|screenshots/|b/[a-z0-9]+/badge\\.svg|og/image|og-default|blog/feed\\.xml|whats-new/feed\\.xml).*)",
         headers: [
           {
             key: "Cache-Control",
