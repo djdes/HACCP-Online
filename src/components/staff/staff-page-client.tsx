@@ -1663,6 +1663,7 @@ function WorkOffGrid(props: {
     <div className="space-y-4">
       <Button
         type="button"
+        data-print-hide
         onClick={props.onIikoClick}
         className="h-10 gap-2 rounded-xl bg-[#5566f6] px-4 text-[14px] font-medium text-white shadow-[0_8px_20px_-12px_rgba(85,102,246,0.6)] hover:bg-[#4a5bf0]"
       >
@@ -1860,7 +1861,7 @@ function WorkOffGrid(props: {
         )}
       </div>
 
-      <div className="space-y-1 text-[12px] text-[#9b9fb3]">
+      <div data-print-hide className="space-y-1 text-[12px] text-[#9b9fb3]">
         <div className="flex items-center gap-2">
           <span className="inline-block size-3 rounded-sm bg-[#fff5d9]/80 ring-1 ring-[#ffe2a0]" />
           Выходные — суббота и воскресенье подсвечены светло-жёлтым

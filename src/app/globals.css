@@ -1857,6 +1857,39 @@ html, body {
     page: journal-landscape;
   }
 
+  /* На лист идёт ТОЛЬКО отмеченный блок.
+   *
+   * Сначала было наоборот — прятали по одному: шапку, вкладки,
+   * подсказки. На печать всё равно уезжала вся страница: заголовок
+   * «Сотрудники», аккордеон должностей, кнопки «Шаблон / Выгрузить /
+   * Пригласить по QR», блок «Добавить организацию» — и график
+   * переползал на второй лист. Перечислять всё, что не надо печатать,
+   * — заведомо проигрышный способ: любой новый блок на странице снова
+   * окажется на бумаге.
+   *
+   * Поэтому гасим всё и возвращаем видимость только нужному поддереву.
+   * `visibility`, а не `display`: он наследуется, поэтому потомки
+   * оживают одним правилом. Место погашенные узлы при этом занимают —
+   * отсюда `position: absolute` ниже, иначе график уехал бы вниз, а
+   * первый лист вышел бы пустым. */
+  body:has([data-print-landscape]) * {
+    visibility: hidden !important;
+  }
+
+  body:has([data-print-landscape]) [data-print-landscape],
+  body:has([data-print-landscape]) [data-print-landscape] * {
+    visibility: visible !important;
+  }
+
+  body:has([data-print-landscape]) [data-print-landscape] {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   /* ГРАФИКИ ПЕРСОНАЛА — один лист A4.
    *
    * Требование: месяц (до 31 колонки) на весь штат должен помещаться на
