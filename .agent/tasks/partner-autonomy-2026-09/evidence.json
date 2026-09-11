@@ -1,0 +1,26 @@
+{
+  "task": "partner-autonomy-2026-09",
+  "date": "2026-09-11",
+  "commits": [
+    "430dae04",
+    "de48254a",
+    "901222c6",
+    "3c35b770",
+    "7f793579",
+    "e971af13"
+  ],
+  "checks": {
+    "typecheck": "pass",
+    "tests": {
+      "pass": 987,
+      "fail": 0
+    },
+    "eslint_touched_dirs": "pass",
+    "webpack_parity_build": "pass"
+  },
+  "acceptance": {
+    "AC15": "PASS",
+    "AC1-AC14": "IMPLEMENTED_NOT_MANUALLY_VERIFIED"
+  },
+  "not_verified": "browser/manual run; local DB is a tunnel to production"
+}
