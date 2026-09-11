@@ -56,6 +56,12 @@ export type OverviewClientInput = {
   detachedAt: Date | null;
   accessLevel: PartnerAccessLevel;
   clientHidesBranding: boolean;
+  /**
+   * Организацию завёл партнёр, и активных людей в ней ещё нет — значит
+   * она не передана клиенту. Необязательное: тесты агрегатора собирают
+   * строки вручную и про это поле не знают.
+   */
+  needsHandover?: boolean;
 };
 
 export type OverviewDocInput = {
@@ -188,6 +194,7 @@ export function aggregateOverview(input: {
       activeLast7Days: client.detachedAt ? false : activeLast7Days,
       overdueToday: client.detachedAt ? 0 : overdueToday,
       medBooksExpiring: client.detachedAt ? 0 : (medBooksByOrg.get(client.organizationId) ?? 0),
+      needsHandover: client.detachedAt ? false : Boolean(client.needsHandover),
     };
   });
 
@@ -224,6 +231,7 @@ export async function loadPartnerOverview(partnerId: string, now = new Date()): 
       detachedAt: true,
       accessLevel: true,
       clientHidesBranding: true,
+      source: true,
       organization: {
         select: {
           name: true,
@@ -231,6 +239,8 @@ export async function loadPartnerOverview(partnerId: string, now = new Date()): 
           subscriptionPlan: true,
           subscriptionEnd: true,
           timezone: true,
+          // Активных людей нет — владелец ещё не принял приглашение.
+          _count: { select: { users: { where: { isActive: true } } } },
         },
       },
     },
@@ -248,6 +258,7 @@ export async function loadPartnerOverview(partnerId: string, now = new Date()): 
     detachedAt: link.detachedAt,
     accessLevel: link.accessLevel === "edit" ? "edit" : "view",
     clientHidesBranding: link.clientHidesBranding,
+    needsHandover: link.source === "manual" && link.organization._count.users === 0,
   }));
 
   const activeOrgIds = clients.filter((c) => !c.detachedAt).map((c) => c.organizationId);

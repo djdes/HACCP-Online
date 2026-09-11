@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, RefreshCw } from "lucide-react";
+import { Building2, Mail, RefreshCw } from "lucide-react";
 import { getBrandingSettings } from "@/lib/partners/branding-admin";
 import { buildInviteTexts } from "@/lib/partners/invite-texts";
 import { isOverviewFilter, loadPartnerOverview } from "@/lib/partners/overview";
@@ -7,7 +7,7 @@ import { loadPayoutForm, requirePartnerPage } from "@/lib/partners/page-context"
 import { OnboardingWizard } from "@/components/partner/onboarding-wizard";
 import { OverviewClients } from "@/components/partner/overview-clients";
 import { PageGuide } from "@/components/ui/page-guide";
-import { btnOutline, formatDateTime } from "@/components/partner/ui";
+import { btnOutline, btnPrimary, formatDateTime } from "@/components/partner/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +57,12 @@ export default async function PartnerOverviewPage({
             <Mail className="size-4 text-[#5566f6]" />
             Пригласить клиента
           </Link>
+          {/* Второй путь подключения: клиента, который ещё не в WeSetup,
+              быстрее завести самому, чем ждать, пока он зарегистрируется. */}
+          <Link href="/partner/clients/new" className={btnPrimary}>
+            <Building2 className="size-4" />
+            Создать организацию
+          </Link>
         </div>
       </div>
 
@@ -67,7 +73,8 @@ export default async function PartnerOverviewPage({
           "«Активные» — у клиента есть записи в журналах каждый из последних 7 дней. Если клиент выпал из активных — ему стоит позвонить.",
           "«Просрочка сегодня» — число ежедневных журналов, в которых за сегодня ещё нет ни одной записи (по часовому поясу клиента).",
           "«Медкнижки» — сотрудники клиента, у которых обследование истекает в ближайшие 30 дней или уже просрочено.",
-          "Нажмите на клиента — откроется карточка: заметки, начисления и кнопка «Открыть кабинет» с тем уровнем доступа, который выбрал клиент.",
+          "Нажмите на клиента — откроется карточка: заметки, начисления, реквизиты организации и кнопка «Открыть кабинет».",
+          "Клиента, которого ещё нет в WeSetup, можно завести самому кнопкой «Создать организацию»: настроите за него журналы и сотрудников, а потом отправите приглашение владельцу.",
         ]}
       />
 

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, CalendarDays, Link2, Phone, Users } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, Link2, Users } from "lucide-react";
 
 import { AccrualsTable, serializeAccrual } from "@/components/partner/accruals-table";
 import { ClientCardActions } from "@/components/partner/client-card-actions";
 import { ClientNotes } from "@/components/partner/client-notes";
+import { ClientAccessLevel } from "@/components/partner/client-access-level";
+import { ClientHandoverCard } from "@/components/partner/client-handover-card";
+import { ClientOrgCard } from "@/components/partner/client-org-card";
 import { Card, Pill, formatDate, formatRubFixed, planLabel } from "@/components/partner/ui";
 import { PARTNER_ACCESS_LEVEL_LABELS } from "@/lib/partners/access-guard";
 import { getPartnerClientCard } from "@/lib/partners/client-card";
@@ -39,7 +42,7 @@ export default async function PartnerClientPage({ params }: { params: Promise<{ 
     throw error;
   }
 
-  const { link, organization, notes, accruals, balances } = card;
+  const { link, organization, notes, accruals, balances, handover } = card;
   const detached = Boolean(link.detachedAt);
 
   return (
@@ -75,12 +78,20 @@ export default async function PartnerClientPage({ params }: { params: Promise<{ 
         />
       </div>
 
-      {!detached && link.accessLevel === "view" ? (
-        <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 text-[13px] leading-[1.55] text-[#3c4053]">
-          Клиент выбрал уровень «только просмотр»: в его кабинете вы увидите журналы и отчёты, но не сможете
-          ничего менять, скачивать PDF через «Инспектор пришёл» и открывать данные медкнижек, кроме статуса и срока.
-          Изменить уровень может только клиент — в разделе «Настройки → Консультант».
-        </div>
+      {!detached ? (
+        <Card title="Что вам доступно в кабинете клиента" eyebrow="Уровень доступа">
+          <ClientAccessLevel
+            organizationId={organization.id}
+            organizationName={organization.name}
+            level={link.accessLevel}
+          />
+          <p className="mt-3 text-[13px] leading-[1.55] text-[#6f7282]">
+            {link.accessLevel === "view"
+              ? "Сейчас открыт только просмотр: журналы и отчёты видны, но заполнить или настроить ничего нельзя. Переключите на редактирование, если ведёте журналы за клиента."
+              : "Вы работаете в кабинете как руководитель. Деньги, подписка и удаление организации остаются только за клиентом."}{" "}
+            О смене уровня клиент узнаёт сразу и может вернуть просмотр одним кликом.
+          </p>
+        </Card>
       ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -116,15 +127,27 @@ export default async function PartnerClientPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="space-y-5">
-          <Card title="Организация" eyebrow="Сведения">
-            <dl className="space-y-3 text-[14px]">
-              <Row icon={Building2} label="Сфера" value={sphereLabel(organization.type)} />
-              <Row icon={Phone} label="Телефон" value={organization.phone || "—"} />
-              <Row icon={Users} label="Сотрудники" value={`${organization.activeUsersCount} активных из ${organization.usersCount}`} />
-              <Row icon={CalendarDays} label="В WeSetup с" value={formatDate(organization.createdAt)} />
-              {organization.address ? <Row icon={Building2} label="Адрес" value={organization.address} /> : null}
-            </dl>
-          </Card>
+          <ClientOrgCard
+            organizationId={organization.id}
+            canEdit={!detached && link.accessLevel === "edit"}
+            activeUsersCount={organization.activeUsersCount}
+            usersCount={organization.usersCount}
+            createdAt={formatDate(organization.createdAt)}
+            initial={{
+              name: organization.name,
+              type: organization.type,
+              ownershipKind: organization.ownershipKind,
+              inn: organization.inn ?? "",
+              address: organization.address ?? "",
+              phone: organization.phone ?? "",
+              timezone: organization.timezone,
+              locationsCount: organization.locationsCount,
+            }}
+          />
+
+          {!detached ? (
+            <ClientHandoverCard organizationId={organization.id} handover={handover} />
+          ) : null}
 
           <Card title="Подключение" eyebrow="Сопровождение">
             <dl className="space-y-3 text-[14px]">

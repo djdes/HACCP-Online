@@ -118,14 +118,19 @@ export function OverviewClients({
               title={clients.length === 0 ? "Клиентов пока нет" : "Ничего не найдено"}
               hint={
                 clients.length === 0
-                  ? "Отправьте клиенту ссылку или код из раздела «Приглашения» — после регистрации он появится здесь."
+                  ? "Отправьте клиенту ссылку или код из раздела «Приглашения» — или заведите организацию сами и настройте её до первого входа клиента."
                   : "Попробуйте другой фильтр или запрос."
               }
               action={
                 clients.length === 0 ? (
-                  <Link href="/partner/invites" className="text-[14px] font-medium text-[#3848c7] hover:text-[#5566f6]">
-                    Перейти к приглашениям →
-                  </Link>
+                  <span className="flex flex-wrap items-center justify-center gap-4">
+                    <Link href="/partner/clients/new" className="text-[14px] font-medium text-[#3848c7] hover:text-[#5566f6]">
+                      Создать организацию →
+                    </Link>
+                    <Link href="/partner/invites" className="text-[14px] font-medium text-[#3848c7] hover:text-[#5566f6]">
+                      Перейти к приглашениям →
+                    </Link>
+                  </span>
                 ) : undefined
               }
             />
@@ -152,7 +157,12 @@ export function OverviewClients({
                       <td className="px-4 py-3 md:px-5">
                         <Link href={`/partner/clients/${c.organizationId}`} className="block min-w-0">
                           <span className="block truncate font-medium text-[#0b1024] hover:text-[#5566f6]">{c.name}</span>
-                          <span className="block text-[12px] text-[#6f7282]">{c.type}</span>
+                          <span className="flex flex-wrap items-center gap-1.5 text-[12px] text-[#6f7282]">
+                            {c.type}
+                            {/* Организацию завели вы, а владелец ещё не
+                                назначен — иначе про неё легко забыть. */}
+                            {c.needsHandover ? <Pill tone="warn">не передана клиенту</Pill> : null}
+                          </span>
                         </Link>
                       </td>
                       <td className="px-3 py-3">

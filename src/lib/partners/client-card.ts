@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 
 import type { PartnerAccessLevel } from "./access-guard";
+import { getClientHandoverState, type ClientHandoverState } from "./client-organizations";
 import { listAccruals, summarizeBalances, type AccrualView } from "./accruals";
 import { PartnerError } from "./errors";
 
@@ -23,8 +24,12 @@ export type PartnerClientCard = {
     id: string;
     name: string;
     type: string;
+    ownershipKind: string;
+    inn: string | null;
     address: string | null;
     phone: string | null;
+    timezone: string;
+    locationsCount: number;
     plan: string;
     subscriptionEnd: string | null;
     createdAt: string;
@@ -34,6 +39,8 @@ export type PartnerClientCard = {
   notes: Array<{ id: string; text: string; authorName: string; createdAt: string }>;
   accruals: AccrualView[];
   balances: ReturnType<typeof summarizeBalances>;
+  /** Назначен ли владелец — для организаций, которые завёл сам партнёр. */
+  handover: ClientHandoverState;
 };
 
 export async function getPartnerClientCard(partnerId: string, organizationId: string): Promise<PartnerClientCard> {
@@ -54,8 +61,12 @@ export async function getPartnerClientCard(partnerId: string, organizationId: st
           id: true,
           name: true,
           type: true,
+          ownershipKind: true,
+          inn: true,
           address: true,
           phone: true,
+          timezone: true,
+          locationsCount: true,
           subscriptionPlan: true,
           subscriptionEnd: true,
           createdAt: true,
@@ -66,7 +77,7 @@ export async function getPartnerClientCard(partnerId: string, organizationId: st
   });
   if (!link) throw new PartnerError("Клиент не найден", 404);
 
-  const [activeUsers, notes, accruals] = await Promise.all([
+  const [activeUsers, notes, accruals, handover] = await Promise.all([
     db.user.count({ where: { organizationId, isActive: true } }),
     db.partnerClientNote.findMany({
       where: { partnerId, partnerClientId: link.id },
@@ -74,6 +85,7 @@ export async function getPartnerClientCard(partnerId: string, organizationId: st
       select: { id: true, text: true, authorName: true, createdAt: true },
     }),
     listAccruals({ partnerId, organizationId, take: 500 }),
+    getClientHandoverState(organizationId),
   ]);
 
   return {
@@ -91,8 +103,12 @@ export async function getPartnerClientCard(partnerId: string, organizationId: st
       id: link.organization.id,
       name: link.organization.name,
       type: link.organization.type,
+      ownershipKind: link.organization.ownershipKind,
+      inn: link.organization.inn,
       address: link.organization.address,
       phone: link.organization.phone,
+      timezone: link.organization.timezone,
+      locationsCount: link.organization.locationsCount,
       plan: link.organization.subscriptionPlan,
       subscriptionEnd: link.organization.subscriptionEnd ? link.organization.subscriptionEnd.toISOString() : null,
       createdAt: link.organization.createdAt.toISOString(),
@@ -102,6 +118,7 @@ export async function getPartnerClientCard(partnerId: string, organizationId: st
     notes: notes.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() })),
     accruals,
     balances: summarizeBalances(accruals),
+    handover,
   };
 }
 

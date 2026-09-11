@@ -155,6 +155,33 @@ export async function sendPartnerClientAttachedEmail(params: {
 }
 
 /**
+ * Кабинет готов — будущему владельцу организации, которую завёл партнёр.
+ *
+ * Отдельное письмо, а не общее `sendInviteTokenEmail`: то говорит «вас
+ * пригласили в организацию», и владельцу, для которого кабинет как раз и
+ * создан, это читается неверно. Здесь главное — что работа уже сделана
+ * и осталось только войти.
+ */
+export async function sendPartnerClientOwnerInviteEmail(params: {
+  to: string;
+  name: string;
+  organizationName: string;
+  brandName: string;
+  inviteUrl: string;
+}) {
+  const subject = `Ваш кабинет WeSetup готов — ${params.organizationName}`;
+  const body = `
+    <p ${P}>Здравствуйте, <strong>${escapeHtml(params.name)}</strong>!</p>
+    <p ${P}><strong>${escapeHtml(params.brandName)}</strong> подготовил для вас кабинет WeSetup — электронные журналы СанПиН и ХАССП для организации <strong>${escapeHtml(params.organizationName)}</strong>.</p>
+    <div ${BOX}>
+      <p style="margin:0;color:#3f3f46;line-height:1.6">Журналы, должности и сотрудники уже настроены. Останется установить пароль и начать заполнять.</p>
+    </div>
+    ${button(params.inviteUrl, "Установить пароль и войти")}
+    <p ${MUTED}>Ссылка действительна 7 дней. После входа вы станете владельцем организации: сможете управлять доступом консультанта и подпиской в разделе «Настройки».</p>`;
+  return sendRawEmail(params.to, subject, renderEmailLayout("Кабинет готов", body));
+}
+
+/**
  * Администратор платформы изменил реквизиты для выплат — партнёру.
  *
  * Молча менять счёт, на который уходят деньги, нельзя даже с добрыми

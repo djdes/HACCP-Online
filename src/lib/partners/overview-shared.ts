@@ -35,6 +35,8 @@ export type OverviewClientRow = {
   activeLast7Days: boolean;
   overdueToday: number;
   medBooksExpiring: number;
+  /** Организацию завёл сам партнёр и владелец ей ещё не назначен. */
+  needsHandover: boolean;
 };
 
 export type OverviewTiles = {
