@@ -21,12 +21,24 @@ export async function POST(request: Request, ctx: { params: Promise<{ orgId: str
   const { session, membership } = auth.ctx;
   const { orgId } = await ctx.params;
 
+  // Только организации, которые завёл сам партнёр (`source: "manual"`).
+  // Иначе на клиенте, пришедшем по ссылке и почему-либо оставшемся без
+  // владельца (легаси до миграции аккаунтов), партнёр смог бы назначить
+  // владельцем произвольный адрес — то есть отдать чужую организацию.
   const link = await db.partnerClient.findFirst({
-    where: { partnerId: membership.partnerId, organizationId: orgId, detachedAt: null },
+    where: {
+      partnerId: membership.partnerId,
+      organizationId: orgId,
+      detachedAt: null,
+      source: "manual",
+    },
     select: { id: true, organization: { select: { name: true } } },
   });
   if (!link) {
-    return NextResponse.json({ error: "Клиент не найден" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Передать можно только организацию, которую вы завели сами" },
+      { status: 404 },
+    );
   }
 
   const body = await readJson<{ email?: unknown; name?: unknown; phone?: unknown }>(request);

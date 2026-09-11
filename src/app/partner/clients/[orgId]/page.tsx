@@ -145,7 +145,9 @@ export default async function PartnerClientPage({ params }: { params: Promise<{ 
             }}
           />
 
-          {!detached ? (
+          {/* Только организации, которые партнёр завёл сам: у клиента,
+              пришедшего по ссылке, владелец — его дело. */}
+          {!detached && link.source === "manual" ? (
             <ClientHandoverCard organizationId={organization.id} handover={handover} />
           ) : null}
 
