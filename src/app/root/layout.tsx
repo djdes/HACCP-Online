@@ -1,25 +1,7 @@
 import Link from "next/link";
-import {
-  Activity,
-  Bot,
-  Handshake,
-  LayoutDashboard,
-  MessageSquareText,
-  NotebookText,
-  ScrollText,
-  Settings2,
-  Star,
-  Sparkles,
-  Stamp,
-  Ticket,
-  Wallet,
-  ClipboardList,
-  Lightbulb,
-  SearchCheck,
-  HeartPulse,
-  Smile,
-} from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { requireRoot } from "@/lib/auth-helpers";
+import { RootNav } from "@/components/root/root-nav";
 import { db } from "@/lib/db";
 import { AuthSessionProvider } from "@/components/layout/session-provider";
 import {
@@ -70,8 +52,10 @@ export default async function RootAreaLayout({
         data-app-theme={initialTheme}
         suppressHydrationWarning
       >
-      <header className="border-b border-[#dddfe8] bg-[#11142b] text-white">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-8 sm:py-5">
+      {/* Шапка в две строки: кто вошёл — сверху, разделы — под ней.
+          Девятнадцать разделов одной строкой не помещались. */}
+      <header className="border-b border-[#ececf4] bg-[#0b1024] text-white">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:gap-4 sm:px-8 sm:pt-5">
           <div className="min-w-0">
             <div className="text-[11px] uppercase tracking-[0.18em] text-white/60 sm:text-[12px]">
               WeSetup · Platform
@@ -80,134 +64,16 @@ export default async function RootAreaLayout({
               {session.user.name || session.user.email}
             </div>
           </div>
-          <nav className="-mx-4 flex items-center gap-4 overflow-x-auto px-4 text-[13px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:gap-6 sm:overflow-visible sm:px-0 sm:text-[14px]">
-            <Link
-              href="/root"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <LayoutDashboard className="size-4" />
-              Организации
-            </Link>
-            <Link
-              href="/root/feedback"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <MessageSquareText className="size-4" />
-              Обратная связь
-            </Link>
-            <Link
-              href="/root/reviews"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Star className="size-4" />
-              Отзывы
-            </Link>
-            <Link
-              href="/root/assistant"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Bot className="size-4" />
-              Ассистент
-            </Link>
-            <Link
-              href="/root/blog"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <NotebookText className="size-4" />
-              Блог
-            </Link>
-            <Link
-              href="/root/tariffs"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Wallet className="size-4" />
-              Тарифы
-            </Link>
-            <Link
-              href="/root/services"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Sparkles className="size-4" />
-              Услуги
-            </Link>
-            <Link
-              href="/root/service-requests"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <ClipboardList className="size-4" />
-              Заявки
-            </Link>
-            <Link
-              href="/root/requisites"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Stamp className="size-4" />
-              Реквизиты
-            </Link>
-            <Link
-              href="/root/promo-codes"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Ticket className="size-4" />
-              Промокоды
-            </Link>
-            <Link
-              href="/root/status"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Activity className="size-4" />
-              Статус
-            </Link>
-            <Link
-              href="/root/ideas"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Lightbulb className="size-4" />
-              Идеи
-            </Link>
-            <Link
-              href="/root/seo"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <SearchCheck className="size-4" />
-              SEO
-            </Link>
-            <Link
-              href="/root/health"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <HeartPulse className="size-4" />
-              Здоровье
-            </Link>
-            <Link
-              href="/root/nps"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Smile className="size-4" />
-              NPS
-            </Link>
-            <Link
-              href="/root/partners"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <Handshake className="size-4" />
-              Партнёры
-            </Link>
-            <Link
-              href="/root/telegram-logs"
-              className="inline-flex items-center gap-2 hover:text-white"
-            >
-              <ScrollText className="size-4" />
-              Telegram логи
-            </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-1.5 hover:bg-white/20"
-            >
-              <Settings2 className="size-4" />
-              Выйти в приложение
-            </Link>
-          </nav>
+          <Link
+            href="/dashboard"
+            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-white/10 px-3 py-1.5 text-[14px] transition-colors duration-150 hover:bg-white/20"
+          >
+            <Settings2 className="size-4" />
+            Выйти в приложение
+          </Link>
+        </div>
+        <div className="mx-auto max-w-[1400px] px-4 pb-3 pt-3 sm:px-8">
+          <RootNav />
         </div>
       </header>
 
