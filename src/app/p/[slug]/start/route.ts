@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { relativeRedirect } from "@/lib/relative-redirect";
 
 import { isPartnerAccessLevel } from "@/lib/partners/access-guard";
 import { getPartnerBrandBySlug } from "@/lib/partners/branding";
@@ -20,9 +20,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ slug: strin
   const { slug: rawSlug } = await ctx.params;
   const url = new URL(request.url);
   const slugCheck = validateSlug(rawSlug);
-  if (!slugCheck.ok) return NextResponse.redirect(new URL("/register", url));
+  if (!slugCheck.ok) return relativeRedirect("/register");
   const brand = await getPartnerBrandBySlug(slugCheck.slug);
-  if (!brand) return NextResponse.redirect(new URL("/register", url));
+  if (!brand) return relativeRedirect("/register");
 
   const levelParam = url.searchParams.get("level");
   const level = isPartnerAccessLevel(levelParam) ? levelParam : "view";
@@ -30,9 +30,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ slug: strin
 
   const consultantPath = `/settings/consultant?attach=${encodeURIComponent(brand.slug)}&level=${level}`;
   const target =
-    to === "login" ? new URL(`/login?next=${encodeURIComponent(consultantPath)}`, url) : new URL("/register", url);
+    to === "login" ? `/login?next=${encodeURIComponent(consultantPath)}` : "/register";
 
-  const res = NextResponse.redirect(target);
+  const res = relativeRedirect(target);
   res.cookies.set({
     name: PARTNER_REF_COOKIE,
     value: encodePartnerRef({ slug: brand.slug, level }),

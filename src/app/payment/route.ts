@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { relativeRedirect } from "@/lib/relative-redirect";
 import { db } from "@/lib/db";
 import { formatOutSum, verifyResultSignature } from "@/lib/robokassa";
 import { completePaidOrder } from "@/lib/payment-fulfillment";
@@ -119,6 +120,6 @@ export async function POST(request: NextRequest) {
  * Живой GET нужен, чтобы случайный переход по адресу из кабинета или
  * закладки не отдавал 405 — уводим человека на страницу заказа.
  */
-export async function GET(request: NextRequest) {
-  return NextResponse.redirect(new URL("/order", request.url));
+export async function GET() {
+  return relativeRedirect("/order");
 }

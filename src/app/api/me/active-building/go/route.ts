@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { loadBuildingContext, setActiveBuildingCookie } from "@/lib/active-building";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
+import { relativeRedirect } from "@/lib/relative-redirect";
 import { getServerSession } from "@/lib/server-session";
 
 export const runtime = "nodejs";
@@ -16,12 +16,10 @@ export const dynamic = "force-dynamic";
  * редиректим на `next` (только внутри /mini). Недоступная точка cookie не
  * трогает — человек просто попадает по ссылке в своей текущей точке.
  *
- * Location — относительный: за nginx `request.url` приходит как
- * `http://localhost:3002/…`, и абсолютный адрес увёл бы на localhost.
+ * Location — относительный (см. `lib/relative-redirect`): за nginx
+ * `request.url` приходит как `http://localhost:3002/…`, и абсолютный
+ * адрес увёл бы на localhost.
  */
-function relativeRedirect(next: string): NextResponse {
-  return new NextResponse(null, { status: 307, headers: { Location: next } });
-}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);

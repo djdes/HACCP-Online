@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { relativeRedirect } from "@/lib/relative-redirect";
 
 import { db } from "@/lib/db";
 import { issueSession } from "@/lib/issue-session";
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function loginRedirect(request: Request, reason: string) {
-  return NextResponse.redirect(new URL(`/login?magic=${reason}`, request.url));
+  return relativeRedirect(`/login?magic=${reason}`);
 }
 
 /** GET /api/auth/magic/<token> — по ссылке из письма: сессия и переход в кабинет. */
@@ -26,5 +26,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const xff = request.headers.get("x-forwarded-for") ?? "";
   const ip = xff.split(",")[0].trim() || null;
   await recordLogin(user.id, ip, { userAgent: request.headers.get("user-agent"), method: "magic" });
-  return issueSession(NextResponse.redirect(new URL("/dashboard", request.url)), user, user.organization.name);
+  return issueSession(relativeRedirect("/dashboard"), user, user.organization.name);
 }

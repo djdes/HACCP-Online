@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { relativeRedirect } from "@/lib/relative-redirect";
 
 import {
   REFERRAL_COOKIE,
@@ -28,16 +28,18 @@ export async function GET(
   const url = new URL(request.url);
   const referrer = await resolveReferrerByCode(code);
   if (!referrer) {
-    return NextResponse.redirect(new URL("/register", url));
+    return relativeRedirect("/register");
   }
 
-  const target = new URL("/register?ref=1", url);
+  // Путь собираем строкой: абсолютный адрес из request.url за nginx
+  // указывает на localhost:3002 (см. lib/relative-redirect).
+  const params = new URLSearchParams({ ref: "1" });
   const email = url.searchParams.get("email");
   if (email && email.includes("@") && email.length <= 200) {
-    target.searchParams.set("email", email);
+    params.set("email", email);
   }
 
-  const response = NextResponse.redirect(target);
+  const response = relativeRedirect(`/register?${params.toString()}`);
   response.cookies.set({
     name: REFERRAL_COOKIE,
     value: code.trim().toUpperCase(),
