@@ -29,6 +29,13 @@ import { ACCRUAL_KIND_LABELS, ACCRUAL_STATUS_LABELS } from "@/lib/partners/rewar
 import { cn } from "@/lib/utils";
 
 import { REVIEW_ACTION_LABELS, ReviewDialog, availableReviewActions, type ReviewAction } from "../review-dialog";
+import {
+  EditToggle,
+  PartnerPayoutForm,
+  PartnerProfileForm,
+  type PayoutInitial,
+  type ProfileInitial,
+} from "./partner-edit-forms";
 
 type CardData = Awaited<ReturnType<typeof getPartnerForAdmin>>;
 type ClientRow = CardData["clients"][number];
@@ -85,11 +92,52 @@ function payoutDetailRows(raw: unknown): Array<[string, string]> {
   return rows;
 }
 
+/**
+ * Реквизиты из JSON — в плоские поля формы. Пустые строки вместо
+ * undefined: иначе управляемый input переключается на неуправляемый.
+ */
+function payoutFormValues(payoutType: string | null, raw: unknown): PayoutInitial {
+  const d = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const str = (key: string) => (typeof d[key] === "string" ? (d[key] as string) : "");
+  return {
+    payoutType: payoutType ?? "ip",
+    fullName: str("fullName"),
+    inn: str("inn"),
+    kpp: str("kpp"),
+    ogrn: str("ogrn"),
+    bank: str("bank"),
+    bik: str("bik"),
+    account: str("account"),
+  };
+}
+
 export function PartnerCardClient({ data }: { data: CardData }) {
   const router = useRouter();
   const { partner: p, clients, members, accruals, balances, orders, invites } = data;
   const [review, setReview] = useState<{ partnerId: string; name: string; action: ReviewAction } | null>(null);
+  // Анкета и реквизиты правятся по одной: открытые сразу обе формы
+  // превращают карточку в сплошное поле ввода без ориентиров.
+  const [editing, setEditing] = useState<"profile" | "payout" | null>(null);
   const refresh = () => router.refresh();
+  const stopEditing = () => setEditing(null);
+  const savedAndClose = () => {
+    setEditing(null);
+    refresh();
+  };
+
+  const profileInitial: ProfileInitial = {
+    companyName: p.companyName,
+    brandName: p.brandName,
+    type: p.type,
+    inn: p.inn,
+    city: p.city,
+    phone: p.phone,
+    telegram: p.telegram ?? "",
+    contactEmail: p.contactEmail,
+    venuesCount: p.venuesCount,
+    slug: p.slug,
+  };
+  const payoutInitial: PayoutInitial = payoutFormValues(p.payoutType, p.payoutDetails);
 
   const activeClients = clients.filter((c) => !c.detachedAt);
   const pastClients = clients.filter((c) => c.detachedAt);
@@ -145,7 +193,25 @@ export function PartnerCardClient({ data }: { data: CardData }) {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
           {/* Реквизиты заявки */}
-          <Card eyebrow="Заявка" title="Контакты и доступы">
+          <Card
+            eyebrow="Заявка"
+            title="Контакты и доступы"
+            actions={
+              <EditToggle
+                editing={editing === "profile"}
+                onToggle={() => setEditing(editing === "profile" ? null : "profile")}
+              />
+            }
+          >
+            {editing === "profile" ? (
+              <PartnerProfileForm
+                partnerId={p.id}
+                initial={profileInitial}
+                onSaved={savedAndClose}
+                onCancel={stopEditing}
+              />
+            ) : (
+            <>
             <dl className="grid gap-x-8 gap-y-2.5 text-[14px] sm:grid-cols-2">
               <Row label="Публичная ссылка">
                 <a
@@ -189,6 +255,8 @@ export function PartnerCardClient({ data }: { data: CardData }) {
                 {p.agreementSigned ? "договор подписан" : "договор не подписан"}
               </Pill>
             </div>
+            </>
+            )}
           </Card>
 
           {/* Клиенты */}
@@ -287,8 +355,24 @@ export function PartnerCardClient({ data }: { data: CardData }) {
         <div className="space-y-5">
           <AgreementCard partnerId={p.id} signed={p.agreementSigned} number={p.agreementNumber} signedAt={p.agreementSignedAt} onChanged={refresh} />
 
-          <Card eyebrow="Выплаты" title="Реквизиты партнёра">
-            {p.payoutTypeLabel ? (
+          <Card
+            eyebrow="Выплаты"
+            title="Реквизиты партнёра"
+            actions={
+              <EditToggle
+                editing={editing === "payout"}
+                onToggle={() => setEditing(editing === "payout" ? null : "payout")}
+              />
+            }
+          >
+            {editing === "payout" ? (
+              <PartnerPayoutForm
+                partnerId={p.id}
+                initial={payoutInitial}
+                onSaved={savedAndClose}
+                onCancel={stopEditing}
+              />
+            ) : p.payoutTypeLabel ? (
               <>
                 <Pill tone="indigo">{p.payoutTypeLabel}</Pill>
                 <dl className="mt-3 space-y-1.5 text-[14px]">
@@ -470,6 +554,36 @@ function ClientsTable({
   onChanged: () => void;
 }) {
   const [detach, setDetach] = useState<ClientRow | null>(null);
+  const [levelBusy, setLevelBusy] = useState<string | null>(null);
+
+  /**
+   * Уровень доступа консультанта. Нужен поддержке: клиент звонит
+   * «консультант ничего не может заполнить», и переключить быстрее, чем
+   * вести его по настройкам. Клиент получит то же уведомление, что и
+   * при смене уровня самим партнёром.
+   */
+  async function setLevel(client: ClientRow, level: PartnerAccessLevel) {
+    setLevelBusy(client.partnerClientId);
+    try {
+      const res = await fetch(`/api/root/partners/${partnerId}/clients/${client.organizationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessLevel: level }),
+      });
+      if (!res.ok) {
+        toast.error(await readError(res, "Не удалось изменить уровень доступа"));
+        return;
+      }
+      toast.success(
+        level === "edit"
+          ? `«${client.name}»: консультант может редактировать`
+          : `«${client.name}»: консультанту оставлен только просмотр`,
+      );
+      onChanged();
+    } finally {
+      setLevelBusy(null);
+    }
+  }
 
   async function confirmDetach() {
     if (!detach) return;
@@ -511,9 +625,21 @@ function ClientsTable({
                   {c.subscriptionEnd ? <div className="text-[12px] text-[#6f7282]">до {formatDate(c.subscriptionEnd)}</div> : null}
                 </td>
                 <td className="px-3 py-3">
-                  <Pill tone={c.accessLevel === "edit" ? "indigo" : "neutral"}>
-                    {PARTNER_ACCESS_LEVEL_LABELS[c.accessLevel as PartnerAccessLevel] ?? c.accessLevel}
-                  </Pill>
+                  {c.detachedAt ? (
+                    <Pill tone={c.accessLevel === "edit" ? "indigo" : "neutral"}>
+                      {PARTNER_ACCESS_LEVEL_LABELS[c.accessLevel as PartnerAccessLevel] ?? c.accessLevel}
+                    </Pill>
+                  ) : (
+                    <select
+                      value={c.accessLevel}
+                      disabled={levelBusy === c.partnerClientId}
+                      onChange={(e) => void setLevel(c, e.target.value as PartnerAccessLevel)}
+                      className="h-8 rounded-xl border border-[#dcdfed] bg-white px-2 text-[13px] text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15 disabled:opacity-50"
+                    >
+                      <option value="view">{PARTNER_ACCESS_LEVEL_LABELS.view}</option>
+                      <option value="edit">{PARTNER_ACCESS_LEVEL_LABELS.edit}</option>
+                    </select>
+                  )}
                 </td>
                 <td className="px-3 py-3 text-[#3c4053]">
                   {formatDate(c.attachedAt)}

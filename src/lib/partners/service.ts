@@ -28,6 +28,7 @@ import {
   isValidPartnerCode,
   normalizePartnerCode,
   partnerCodeFromBytes,
+  RESERVED_SLUGS,
   validateSlug,
 } from "./validation";
 
@@ -209,11 +210,6 @@ export function parseApplicationInput(raw: unknown): PartnerApplicationInput {
   if (!input.termsAccepted) throw new PartnerError("Нужно согласиться с условиями партнёрской программы");
   return input;
 }
-
-const RESERVED_SLUGS = new Set([
-  "admin", "root", "api", "www", "app", "mini", "partner", "partners", "login", "register",
-  "settings", "dashboard", "wesetup", "support", "help", "blog", "static", "assets",
-]);
 
 export async function isSlugAvailable(slug: string, exceptPartnerId?: string): Promise<boolean> {
   if (RESERVED_SLUGS.has(slug)) return false;

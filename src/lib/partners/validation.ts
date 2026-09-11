@@ -31,25 +31,32 @@ export const PARTNER_CODE_LENGTH = 6;
 /**
  * Служебные пути, которые не могут стать slug'ом: ссылка `/p/<slug>`
  * живёт рядом с ними, а в будущем slug станет субдоменом.
+ *
+ * Единственный список на весь проект. Раньше их было два — здесь и в
+ * `service.ts` — и они разошлись: `app`, `help` и `blog` отвергались
+ * только при подаче заявки, а `mail` и `p` — только этой функцией.
  */
-const RESERVED_SLUGS = new Set([
-  "www",
-  "api",
+export const RESERVED_SLUGS = new Set([
   "admin",
-  "root",
+  "api",
+  "app",
+  "assets",
+  "blog",
+  "dashboard",
+  "help",
+  "login",
+  "mail",
+  "mini",
+  "p",
   "partner",
   "partners",
-  "mini",
-  "login",
   "register",
+  "root",
   "settings",
-  "dashboard",
-  "wesetup",
-  "support",
-  "mail",
   "static",
-  "assets",
-  "p",
+  "support",
+  "wesetup",
+  "www",
 ]);
 
 export function normalizeSlug(raw: string): string {
