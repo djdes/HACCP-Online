@@ -51,6 +51,30 @@ const ACTION_LABELS: Record<
   "journal.entry.delete": { label: "Запись удалена", variant: "destructive" },
   "journal.document.close": { label: "Журнал закрыт", variant: "secondary" },
   "journal.document.reopen": { label: "Журнал переоткрыт", variant: "outline" },
+  // Консультант (партнёр). Действия внутри кабинета уже подписаны его
+  // именем в колонке «Кто», здесь — сами события сопровождения.
+  "partner.attached": { label: "Консультант подключён", variant: "default" },
+  "partner.detached": { label: "Консультант отключён", variant: "destructive" },
+  "partner.access_level": {
+    label: "Уровень доступа консультанта",
+    variant: "secondary",
+  },
+  "partner.cabinet_opened": {
+    label: "Консультант открыл кабинет",
+    variant: "outline",
+  },
+  "partner.client_org_created": {
+    label: "Организация создана консультантом",
+    variant: "default",
+  },
+  "partner.org_updated": {
+    label: "Консультант изменил реквизиты",
+    variant: "secondary",
+  },
+  "partner.owner_invited": {
+    label: "Приглашение владельцу",
+    variant: "outline",
+  },
   // Settings / admin actions
   "settings.tasksflow.connect": {
     label: "TasksFlow подключён",

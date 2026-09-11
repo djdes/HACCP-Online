@@ -5,7 +5,8 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { generateInviteToken, hashInviteToken, inviteExpiresAt, buildInviteUrl } from "@/lib/invite-tokens";
 import { notifyPlatformAdmin } from "@/lib/platform-admin";
-import { escapeTelegramHtml, notifyEmployee } from "@/lib/telegram";
+import { escapeTelegramHtml, notifyEmployee, notifyOrganization } from "@/lib/telegram";
+import { getDbRoleValuesWithLegacy, MANAGEMENT_ROLES } from "@/lib/user-roles";
 
 import { isPartnerAccessLevel, type PartnerAccessLevel } from "./access-guard";
 import { consultantLine, invalidateOrgBranding, invalidatePartnerBranding, toBrandView } from "./branding";
@@ -15,6 +16,7 @@ import {
   sendPartnerClientAttachedEmail,
   sendPartnerClientDetachedEmail,
   sendPartnerClientInviteEmail,
+  sendConsultantAccessLevelChangedEmail,
   sendPartnerRejectedEmail,
   sendPartnerSuspendedEmail,
   sendPartnerTeamInviteEmail,
@@ -613,14 +615,41 @@ export async function detachOrganizationFromPartner(input: {
   return { detached: true };
 }
 
+/**
+ * Уровень доступа консультанта к организации.
+ *
+ * Менять его может и клиент («Настройки → Консультант»), и сам партнёр
+ * из своего кабинета. Поэтому два обязательных отличия от прежней
+ * версии:
+ *
+ * - `partnerId` сужает поиск привязки. Без него партнёрский роут менял
+ *   бы уровень любой организации по её id, включая чужого клиента.
+ * - `by` решает, уведомлять ли клиента. Когда переключил сам клиент,
+ *   писать ему об этом незачем; когда партнёр — клиент обязан узнать,
+ *   потому что речь о доступе к его журналам.
+ */
 export async function setClientAccessLevel(input: {
   organizationId: string;
   level: PartnerAccessLevel;
   actorUserId: string | null;
+  /** Сужает привязку — обязателен для вызова со стороны партнёра. */
+  partnerId?: string;
+  by?: "client" | "partner";
 }): Promise<void> {
+  const by = input.by ?? "client";
   const active = await db.partnerClient.findFirst({
-    where: { organizationId: input.organizationId, detachedAt: null },
-    select: { id: true, accessLevel: true, partnerId: true },
+    where: {
+      organizationId: input.organizationId,
+      detachedAt: null,
+      ...(input.partnerId ? { partnerId: input.partnerId } : {}),
+    },
+    select: {
+      id: true,
+      accessLevel: true,
+      partnerId: true,
+      partner: { select: { companyName: true, branding: { select: { brandName: true } } } },
+      organization: { select: { name: true } },
+    },
   });
   if (!active) throw new PartnerError("У организации нет консультанта", 404);
   if (active.accessLevel === input.level) return;
@@ -634,10 +663,102 @@ export async function setClientAccessLevel(input: {
         action: "partner.access_level",
         entity: "PartnerClient",
         entityId: active.id,
-        details: { partnerId: active.partnerId, from: active.accessLevel, to: input.level },
+        details: { partnerId: active.partnerId, from: active.accessLevel, to: input.level, by },
       },
     })
     .catch((err) => console.error("partner level audit failed", err));
+
+  if (by === "partner") {
+    notifyClientAccessLevelChanged({
+      organizationId: input.organizationId,
+      organizationName: active.organization.name,
+      partnerClientId: active.id,
+      brandName: active.partner.branding?.brandName ?? active.partner.companyName,
+      level: input.level,
+    }).catch((err) => console.error("partner level notify failed", err));
+  }
+}
+
+/**
+ * Клиенту — тремя каналами сразу: уведомление в кабинете, Telegram и
+ * письмо. Речь о том, кто может писать в его журналы, поэтому пропустить
+ * это сообщение нельзя, а какой канал человек читает — заранее неизвестно.
+ * Все отправки best-effort: молчание канала не должно ронять саму смену.
+ */
+async function notifyClientAccessLevelChanged(input: {
+  organizationId: string;
+  organizationName: string;
+  partnerClientId: string;
+  brandName: string;
+  level: PartnerAccessLevel;
+}): Promise<void> {
+  const human =
+    input.level === "edit"
+      ? "просмотр и редактирование"
+      : "только просмотр";
+  const title =
+    input.level === "edit"
+      ? `Консультант ${input.brandName} включил себе редактирование`
+      : `Консультант ${input.brandName} оставил себе только просмотр`;
+
+  const { notifyManagement } = await import("@/lib/notifications");
+  await Promise.allSettled([
+    notifyManagement({
+      organizationId: input.organizationId,
+      kind: "partner_access_level",
+      dedupeKey: `partner-level-${input.partnerClientId}-${input.level}`,
+      title,
+      linkHref: "/settings/consultant",
+      linkLabel: "Настройки консультанта",
+      items: [
+        {
+          id: input.partnerClientId,
+          label: `Теперь доступно: ${human}`,
+          hint: "изменить или отключить — в настройках",
+        },
+      ],
+    }),
+    notifyOrganization(
+      input.organizationId,
+      `🔐 Консультант <b>${escapeTelegramHtml(input.brandName)}</b> изменил свой уровень доступа.\nТеперь ему доступно: ${human}.\nВернуть «только просмотр» или отключить консультанта — ${APP_URL}/settings/consultant`,
+      ["owner"],
+    ),
+    (async () => {
+      const to = await findOrganizationOwnerEmail(input.organizationId);
+      if (!to) return;
+      await sendConsultantAccessLevelChangedEmail({
+        to,
+        brandName: input.brandName,
+        organizationName: input.organizationName,
+        level: input.level,
+      });
+    })(),
+  ]);
+}
+
+/**
+ * Почта, на которую пишем руководству организации: сперва владелец
+ * аккаунта, затем — любой активный человек из руководства. У организации,
+ * которую консультант завёл и ещё не передал, владельца может не быть
+ * вовсе — тогда писать некому и это нормально.
+ */
+async function findOrganizationOwnerEmail(organizationId: string): Promise<string | null> {
+  const owner = await db.organizationMember.findFirst({
+    where: { organizationId, role: "owner", user: { isActive: true } },
+    select: { user: { select: { email: true } } },
+  });
+  if (owner?.user.email) return owner.user.email;
+  const manager = await db.user.findFirst({
+    where: {
+      organizationId,
+      isActive: true,
+      archivedAt: null,
+      role: { in: getDbRoleValuesWithLegacy(MANAGEMENT_ROLES) },
+    },
+    orderBy: { createdAt: "asc" },
+    select: { email: true },
+  });
+  return manager?.email ?? null;
 }
 
 export async function setClientHidesBranding(input: { organizationId: string; hide: boolean }): Promise<void> {

@@ -35,6 +35,26 @@ import {
 const DISMISS_KEY = "wesetup.complete-profile-dismissed";
 
 /**
+ * Что уже известно об организации. Анкета стартует с этих значений, а не
+ * с пустых полей: её сабмит перезаписывает организацию целиком, и у
+ * человека, пришедшего в уже настроенный кабинет (например, владелец,
+ * которому консультант передал готовую организацию), пустая форма
+ * стёрла бы название, сферу, ИНН и адрес.
+ *
+ * Название передаём только настоящее: плейсхолдер `DEFAULT_ORG_NAME`
+ * отсеивает вызывающая сторона, иначе анкета предложила бы сохранить
+ * «Моя организация» как имя заведения.
+ */
+export type CompleteProfileInitial = {
+  organizationName?: string | null;
+  sphere?: string | null;
+  ownershipKind?: string | null;
+  locationsCount?: number | null;
+  inn?: string | null;
+  address?: string | null;
+};
+
+/**
  * Напоминание заполнить анкету после мгновенной регистрации.
  *
  * Аккаунт создаётся по одной почте, поэтому данные организации
@@ -45,7 +65,13 @@ const DISMISS_KEY = "wesetup.complete-profile-dismissed";
  * Сразу после регистрации (`?welcome=1`) модалка открывается сама —
  * это единственный авто-показ, дальше только баннер.
  */
-export function CompleteProfileNudge({ email }: { email: string }) {
+export function CompleteProfileNudge({
+  email,
+  initial,
+}: {
+  email: string;
+  initial?: CompleteProfileInitial;
+}) {
   const searchParams = useSearchParams();
   const welcome = searchParams.get("welcome") === "1";
 
@@ -121,6 +147,7 @@ export function CompleteProfileNudge({ email }: { email: string }) {
         <CompleteProfileModal
           email={email}
           welcome={welcome}
+          initial={initial}
           onClose={() => setOpen(false)}
         />
       ) : null}
@@ -171,22 +198,38 @@ function phoneLooksValid(raw: string): boolean {
 function CompleteProfileModal({
   email,
   welcome,
+  initial,
   onClose,
 }: {
   email: string;
   welcome: boolean;
+  initial?: CompleteProfileInitial;
   onClose: () => void;
 }) {
   const router = useRouter();
   // Фон под анкетой не должен прокручиваться (на iOS body.overflow не помогает).
   useBodyScrollLock(true);
 
-  const [organizationName, setOrganizationName] = useState("");
+  // Стартуем от того, что уже известно об организации: сабмит анкеты
+  // перезаписывает её целиком, и пустые поля стёрли бы готовые данные.
+  const [organizationName, setOrganizationName] = useState(
+    initial?.organizationName ?? "",
+  );
   const [phone, setPhone] = useState("");
-  const [sphere, setSphere] = useState("restaurant");
-  const [ownershipKind, setOwnershipKind] = useState("private");
-  const [locationsCount, setLocationsCount] = useState(1);
-  const [inn, setInn] = useState("");
+  // Тип расширяем до string намеренно: сюда же кладут значение из
+  // ЕГРЮЛ (`found.sphere`), которое приходит с сервера обычной строкой.
+  const [sphere, setSphere] = useState<string>(
+    initial?.sphere ? normalizeSphere(initial.sphere) : "restaurant",
+  );
+  const [ownershipKind, setOwnershipKind] = useState<string>(
+    initial?.ownershipKind ?? "private",
+  );
+  const [locationsCount, setLocationsCount] = useState(
+    initial?.locationsCount && initial.locationsCount > 0
+      ? initial.locationsCount
+      : 1,
+  );
+  const [inn, setInn] = useState(initial?.inn ?? "");
   const [name, setName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [asEmployee, setAsEmployee] = useState(true);
@@ -203,12 +246,14 @@ function CompleteProfileModal({
   // цифры и только для ИНН с верной контрольной суммой. Название
   // подставляем, если поле пустое или в нём наша прошлая подстановка;
   // сферу и тип — пока человек не выбирал их сам.
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(initial?.address ?? "");
   const [innState, setInnState] = useState<"idle" | "loading" | "found" | "missing">("idle");
   const autoNameRef = useRef("");
   const autoPersonRef = useRef("");
-  const sphereTouchedRef = useRef(false);
-  const ownershipTouchedRef = useRef(false);
+  // Уже известные сфера и тип считаются выбранными: их задал человек или
+  // консультант, и подстановка из ЕГРЮЛ не должна их перебивать.
+  const sphereTouchedRef = useRef(Boolean(initial?.sphere));
+  const ownershipTouchedRef = useRef(Boolean(initial?.ownershipKind));
   const positionTouchedRef = useRef(false);
   useEffect(() => {
     const digits = innDigits(inn);
@@ -233,7 +278,9 @@ function CompleteProfileModal({
         if (found.ownershipKind && !ownershipTouchedRef.current) {
           setOwnershipKind(found.ownershipKind);
         }
-        setAddress(found.address ?? "");
+        // Пустой адрес из ЕГРЮЛ не стирает уже известный: у заведения он
+        // часто фактический, а не юридический.
+        setAddress((current) => found.address ?? current);
         // Руководитель юрлица или сам ИП — почти всегда тот, кто регистрирует
         // организацию. Своё имя не перетираем.
         const person = found.personName ?? "";

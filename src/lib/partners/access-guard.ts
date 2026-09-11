@@ -73,6 +73,11 @@ export const PARTNER_DENYLIST = [
   "/api/payments",
   "/order",
   "/api/organizations",
+  // Анкета регистрации пишет в активную организацию целиком: название,
+  // сферу, тип, число точек, ИНН и адрес. Заполняет её клиент — иначе
+  // консультант, у которого не заполнен свой профиль, отправил бы её в
+  // чужом кабинете и стёр настроенное.
+  "/api/profile/complete",
   "/api/settings/organization/delete",
   "/api/settings/subscription",
   "/api/inspector",

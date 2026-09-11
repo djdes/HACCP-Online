@@ -154,6 +154,42 @@ export async function sendPartnerClientAttachedEmail(params: {
   return sendRawEmail(params.to, subject, renderEmailLayout("Новый клиент", body));
 }
 
+/**
+ * Консультант сам изменил свой уровень доступа — руководству клиента.
+ *
+ * Письмо обязано отвечать на три вопроса сразу: что изменилось, где это
+ * вернуть и почему за консультантом видно всё. Иначе смена уровня
+ * выглядит как что-то, что произошло за спиной.
+ */
+export async function sendConsultantAccessLevelChangedEmail(params: {
+  to: string;
+  brandName: string;
+  organizationName: string;
+  level: "view" | "edit";
+}) {
+  const human =
+    params.level === "edit" ? "просмотр и редактирование" : "только просмотр";
+  const subject = `Консультант изменил уровень доступа: ${params.organizationName}`;
+  const body = `
+    <p ${P}>Здравствуйте!</p>
+    <p ${P}>Консультант <strong>${escapeHtml(params.brandName)}</strong> изменил свой уровень доступа к организации <strong>${escapeHtml(params.organizationName)}</strong>. Теперь ему доступно: <strong>${human}</strong>.</p>
+    <div ${BOX}>
+      <p style="margin:0;color:#3f3f46;line-height:1.6">${
+        params.level === "edit"
+          ? "С этим уровнем консультант может заполнять журналы и менять настройки за вас — как руководитель. Деньги, подписка и удаление организации ему по-прежнему недоступны."
+          : "С этим уровнем консультант только смотрит: записи в ваших журналах он делать не может."
+      }</p>
+    </div>
+    <p ${P}>Решение за вами: вернуть «только просмотр» или отключить консультанта можно в один клик.</p>
+    ${button(`${APP_URL}/settings/consultant`, "Настройки консультанта")}
+    <p ${MUTED}>Каждое действие консультанта помечено его именем в журнале действий: «Настройки → Журнал действий».</p>`;
+  return sendRawEmail(
+    params.to,
+    subject,
+    renderEmailLayout("Уровень доступа консультанта", body),
+  );
+}
+
 /** Приглашение в команду партнёра. */
 export async function sendPartnerTeamInviteEmail(params: {
   to: string;

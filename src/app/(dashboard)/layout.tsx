@@ -112,6 +112,13 @@ export default async function DashboardLayout({
         type: true,
         accountId: true,
         account: { select: { subscriptionPlan: true } },
+        // Анкета «Завершите регистрацию» перезаписывает организацию
+        // целиком, поэтому стартовать она должна от уже известного —
+        // иначе владелец готового кабинета сотрёт настроенное.
+        ownershipKind: true,
+        locationsCount: true,
+        inn: true,
+        address: true,
         // Демо-организация: баннер «данные тестовые» + счётчики для
         // диалога удаления.
         isDemo: true,
@@ -193,10 +200,16 @@ export default async function DashboardLayout({
   // владельца, у него нет и не должно быть анкеты заведения. Демо —
   // тоже: `/api/profile/complete` пишет в активную организацию и
   // переименовал бы песочницу вместо своей.
+  //
+  // Партнёр в кабинете клиента — тоже: `isImpersonating` ловит только
+  // ROOT, поэтому консультанта без своего телефона анкета встречала бы
+  // в чужом кабинете и её отправка перезаписала бы название, сферу, ИНН
+  // и адрес организации клиента. Анкету заведения заполняет клиент.
   const platformOrgId = (process.env.PLATFORM_ORG_ID ?? "platform").trim();
   const needsProfileCompletion =
     hasFullWorkspaceAccess(session.user) &&
     !isImpersonating(session) &&
+    !session.user.partnerAccess &&
     session.user.isRoot !== true &&
     activeOrgId !== platformOrgId &&
     !brandedOrg?.isDemo &&
@@ -284,7 +297,21 @@ export default async function DashboardLayout({
           {needsProfileCompletion ? (
             // Suspense — компонент читает `?welcome=1` через useSearchParams.
             <Suspense fallback={null}>
-              <CompleteProfileNudge email={profile?.email ?? ""} />
+              <CompleteProfileNudge
+                email={profile?.email ?? ""}
+                initial={{
+                  // Заглушку мгновенной регистрации за название не выдаём.
+                  organizationName:
+                    brandedOrg?.name && brandedOrg.name !== DEFAULT_ORG_NAME
+                      ? brandedOrg.name
+                      : null,
+                  sphere: brandedOrg?.type ?? null,
+                  ownershipKind: brandedOrg?.ownershipKind ?? null,
+                  locationsCount: brandedOrg?.locationsCount ?? null,
+                  inn: brandedOrg?.inn ?? null,
+                  address: brandedOrg?.address ?? null,
+                }}
+              />
             </Suspense>
           ) : null}
           {/* Провайдер обнимает и шапку, и страницу: кнопки отмены
