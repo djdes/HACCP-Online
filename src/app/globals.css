@@ -1849,6 +1849,107 @@ html, body {
   body:has([data-journal-print-root="portrait"]) {
     page: journal-portrait;
   }
+
+  /* Тот же альбомный лист для графиков персонала (`/settings/users`).
+     Отдельный маркер, а не `data-journal-print-root`: это не журнал, и
+     называть его журналом ради ориентации значило бы врать в разметке. */
+  body:has([data-print-landscape]) {
+    page: journal-landscape;
+  }
+
+  /* ГРАФИКИ ПЕРСОНАЛА — один лист A4.
+   *
+   * Требование: месяц (до 31 колонки) на весь штат должен помещаться на
+   * одну страницу. Поэтому таблица ужимается: мелкий шрифт, минимальные
+   * отступы, узкие колонки дней. При 27 сотрудниках — предел, который
+   * сейчас есть в базе, — лист заполняется примерно на три четверти.
+   *
+   * `table-layout: fixed` обязателен: без него браузер раздаёт ширину по
+   * содержимому, длинные ФИО растягивают первую колонку и правые дни
+   * уезжают за край листа. */
+  [data-print-landscape] table {
+    width: 100% !important;
+    table-layout: fixed;
+    font-size: 7pt !important;
+    border-collapse: collapse !important;
+  }
+
+  [data-print-landscape] th,
+  [data-print-landscape] td {
+    padding: 1px 2px !important;
+    line-height: 1.15 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Ниже — правила КОЛОНОК, и они разные у двух таблиц этой страницы.
+     Вешать их на общий `[data-print-landscape]` нельзя: у графика
+     выходных третья колонка — чипы недельных выходных, а у таблиц
+     отпусков и больничных третья колонка — ФАМИЛИЯ. Одно правило на
+     обе спрятало бы сотрудников с листа. */
+
+  /* График выходных: третья колонка — недельные выходные чипами. На
+     бумаге она лишняя, тот же шаблон виден по самим отметкам в днях, а
+     сжатая до пяти процентов ширины она превращалась в нечитаемую
+     полоску. Освободив её, отдаём место дням. */
+  [data-print-schedule] th:nth-child(3),
+  [data-print-schedule] td:nth-child(3) {
+    display: none !important;
+  }
+
+  [data-print-schedule] th:nth-child(n + 4),
+  [data-print-schedule] td:nth-child(n + 4) {
+    width: 2.25% !important;
+    text-align: center;
+  }
+
+  [data-print-schedule] th:first-child,
+  [data-print-schedule] td:first-child {
+    width: 18% !important;
+  }
+
+  [data-print-schedule] th:nth-child(2),
+  [data-print-schedule] td:nth-child(2) {
+    width: 12% !important;
+  }
+
+  /* Отпуска, больничные, увольнения: убираем служебные крайние колонки
+     — пустую под чекбокс и колонку кнопки удаления. Остальные шире,
+     потому что их всего четыре. */
+  [data-print-periods] th:first-child,
+  [data-print-periods] td:first-child,
+  [data-print-periods] th:last-child,
+  [data-print-periods] td:last-child {
+    display: none !important;
+  }
+
+  [data-print-periods] {
+    font-size: 9pt !important;
+  }
+
+  [data-print-periods] th,
+  [data-print-periods] td {
+    padding: 3px 6px !important;
+    white-space: normal;
+  }
+
+  /* Липкие колонки на бумаге не нужны и ломают раскладку. */
+  [data-print-landscape] .sticky {
+    position: static !important;
+  }
+
+  /* Прокрутка на бумаге обрезала бы правую часть графика. */
+  [data-print-landscape] .overflow-x-auto,
+  [data-print-landscape] .overflow-auto,
+  [data-print-landscape] .overflow-hidden {
+    overflow: visible !important;
+  }
+
+  /* Строку сотрудника не рвём между листами. */
+  [data-print-landscape] tr {
+    break-inside: avoid;
+  }
 }
 
 /* Кнопка «Начать бесплатно» в шапке лендинга появляется после ухода

@@ -16,6 +16,7 @@ import {
   KeyRound,
   Pencil,
   Plus,
+  Printer,
   QrCode,
   RefreshCcw,
   Send,
@@ -28,6 +29,14 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  clampOffset,
+  formatDayLong,
+  monthDates,
+  monthLabel,
+  monthOf,
+  shiftMonth,
+} from "@/lib/staff-schedule-month";
 import { Button } from "@/components/ui/button";
 import { StaffPairDialog } from "@/components/staff/staff-pair-dialog";
 import { StaffQrInviteDialog } from "@/components/staff/staff-qr-invite-dialog";
@@ -67,6 +76,13 @@ import { StaffAccessDialog } from "@/components/staff/staff-access-dialog";
 
 type TabKey = "work-off" | "vacations" | "sick-leaves" | "dismissals";
 
+const TAB_TITLES: Record<TabKey, string> = {
+  "work-off": "График выходных дней",
+  vacations: "График отпусков",
+  "sick-leaves": "График больничных",
+  dismissals: "График увольнений",
+};
+
 /** Ключ sessionStorage для «какая должность раскрыта в рубрике». */
 const OPEN_POSITIONS_STORAGE_KEY = "staff.openPositions";
 
@@ -76,18 +92,6 @@ function pluralDays(count: number): string {
   if (mod10 === 1 && mod100 !== 11) return "день";
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "дня";
   return "дней";
-}
-
-function generateWorkOffDays(start: Date, count = 20): string[] {
-  const out: string[] = [];
-  const d = new Date(
-    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
-  );
-  for (let i = 0; i < count; i++) {
-    out.push(d.toISOString().slice(0, 10));
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
-  return out;
 }
 
 function formatDayCell(iso: string) {
@@ -309,7 +313,15 @@ export function StaffPageClient(props: StaffPageProps) {
     }
     return map;
   }, [props.workOffDays]);
-  const workOffDates = useMemo(() => generateWorkOffDays(new Date(), 20), []);
+  // График календарный, а не «20 дней от сегодня»: такой период нельзя
+  // ни распечатать, ни повесить на кухне — он начинается сегодняшним
+  // числом и обрывается посреди следующего месяца.
+  const [monthOffset, setMonthOffset] = useState(0);
+  const scheduleMonth = useMemo(
+    () => shiftMonth(monthOf(new Date()), monthOffset),
+    [monthOffset]
+  );
+  const workOffDates = useMemo(() => monthDates(scheduleMonth), [scheduleMonth]);
 
   // Sorting for period/dismissal tables.
   const [sortField, setSortField] = useState<SortField>("name");
@@ -843,7 +855,10 @@ export function StaffPageClient(props: StaffPageProps) {
       </div>
 
       {/* Tabs */}
-      <div className="overflow-x-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        data-print-hide
+        className="overflow-x-auto pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
       <div className="flex min-w-max items-center gap-6 border-b border-[#ececf4]">
         {[
           { key: "work-off" as TabKey, label: "График выходных дней" },
@@ -874,16 +889,95 @@ export function StaffPageClient(props: StaffPageProps) {
       </div>
       </div>
 
-      {/* Tab content */}
-      <section className="space-y-4">
-        <h2 className="text-center text-[18px] font-semibold text-[#0b1024]">
-          {tab === "work-off" && "График выходных дней"}
-          {tab === "vacations" && "График отпусков"}
-          {tab === "sick-leaves" && "График больничных"}
-          {tab === "dismissals" && "График увольнений"}
+      {/* Tab content. `data-print-landscape` переводит лист в альбомную
+          ориентацию — см. @page в globals.css. */}
+      <section className="space-y-4" data-print-landscape>
+        {/* Шапка листа: на экране её нет, на бумаге по ней понятно,
+            чей это график и за какой период. */}
+        <div className="hidden print:block">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-black">
+            {props.organization.name}
+          </div>
+          <div className="mt-1 text-[16px] font-semibold text-black">
+            {TAB_TITLES[tab]}
+            {tab === "work-off" ? ` — ${monthLabel(scheduleMonth)}` : null}
+          </div>
+          {tab === "work-off" && workOffDates.length > 0 ? (
+            <div className="mt-0.5 text-[10px] text-black">
+              Период: {formatDayLong(workOffDates[0])} —{" "}
+              {formatDayLong(workOffDates[workOffDates.length - 1])}
+            </div>
+          ) : null}
+        </div>
+
+        <h2 className="text-center text-[18px] font-semibold text-[#0b1024] print:hidden">
+          {TAB_TITLES[tab]}
         </h2>
 
-        <div className="space-y-2 text-[13px] leading-[1.55] text-[#6f7282]">
+        <div
+          data-print-hide
+          className="flex flex-wrap items-center justify-between gap-2"
+        >
+          {tab === "work-off" ? (
+            <div className="flex items-center gap-1 rounded-2xl border border-[#dcdfed] bg-white p-1">
+              <button
+                type="button"
+                aria-label="Предыдущий месяц"
+                onClick={() => setMonthOffset((o) => clampOffset(o - 1))}
+                className="rounded-xl px-2.5 py-1.5 text-[#6f7282] transition-colors hover:bg-[#f5f6ff] hover:text-[#3848c7]"
+              >
+                <ChevronDown className="size-4 rotate-90" />
+              </button>
+              <span className="min-w-[132px] text-center text-[13.5px] font-medium tabular-nums text-[#0b1024]">
+                {monthLabel(scheduleMonth)}
+              </span>
+              <button
+                type="button"
+                aria-label="Следующий месяц"
+                onClick={() => setMonthOffset((o) => clampOffset(o + 1))}
+                className="rounded-xl px-2.5 py-1.5 text-[#6f7282] transition-colors hover:bg-[#f5f6ff] hover:text-[#3848c7]"
+              >
+                <ChevronDown className="size-4 -rotate-90" />
+              </button>
+              {monthOffset !== 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setMonthOffset(0)}
+                  className="ml-1 rounded-xl px-2.5 py-1.5 text-[13px] text-[#3848c7] transition-colors hover:bg-[#f5f6ff]"
+                >
+                  Текущий
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <span />
+          )}
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[13.5px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+            title="Лист A4, альбомная ориентация"
+          >
+            <Printer className="size-4 text-[#5566f6]" />
+            Распечатать
+          </button>
+        </div>
+
+        <div
+          data-print-hide
+          className="space-y-2 text-[13px] leading-[1.55] text-[#6f7282]"
+        >
+          {tab === "work-off" ? (
+            <p className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 text-[#3c4053]">
+              <b>Новый месяц не нужно заводить.</b> График на любой месяц
+              строится сам из недельных выходных каждого сотрудника — тех, что
+              отмечены чипами «Пн-Вс» в его строке. Переключите месяц стрелками,
+              и он уже заполнен. Отличия от расписания — подмены, отгулы,
+              дополнительные смены — проставляются вручную кликом по клетке:
+              такая отметка перебивает недельное правило только на этот день.
+            </p>
+          ) : null}
           <p>
             Выходные учитываются при автозаполнении журналов и раздаче задач:
             в свой выходной сотрудник не получает ежедневные обязательства и
@@ -1598,7 +1692,10 @@ function WorkOffGrid(props: {
             Нет сотрудников. Добавьте хотя бы одного, чтобы управлять графиком.
           </p>
         ) : (
-          <table className="w-full min-w-[1100px] border-collapse text-[12px]">
+          <table
+            data-print-schedule
+            className="w-full min-w-[1100px] border-collapse text-[12px]"
+          >
             <thead>
               <tr className="bg-[#f5f6ff] text-[#6f7282]">
                 <th
@@ -1736,7 +1833,7 @@ function WorkOffGrid(props: {
                           >
                             <span
                               className={cn(
-                                "inline-flex size-4 items-center justify-center rounded border transition-colors",
+                                "inline-flex size-4 items-center justify-center rounded border transition-colors print:hidden",
                                 checked
                                   ? "border-[#5566f6] bg-[#5566f6] text-white"
                                   : "border-[#d0d4e6] bg-white text-transparent",
@@ -1744,6 +1841,12 @@ function WorkOffGrid(props: {
                               )}
                             >
                               <Check className="size-3" strokeWidth={3} />
+                            </span>
+                            {/* На бумаге отметка — буква: заливку браузер
+                                при печати гасит, и синий квадрат с белой
+                                галочкой вышел бы пустой клеткой. */}
+                            <span aria-hidden className="hidden print:inline">
+                              {checked ? "В" : ""}
                             </span>
                           </button>
                         </td>
@@ -1841,7 +1944,7 @@ function PeriodsTable(props: {
 
       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
         <div className="min-w-[540px] overflow-hidden rounded-2xl border border-[#ececf4] bg-white shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-          <table className="w-full text-[13px]">
+          <table data-print-periods className="w-full text-[13px]">
           <thead>
             <tr className="bg-[#f5f6ff]">
               <th className="w-[44px] px-3 py-2" />
