@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, Package, Thermometer } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   SEARCH_WORTH_IT_FROM,
 } from "../_components/mini-search-field";
 import { filterAndRank } from "../_lib/list-search";
+import { useRegisterRefresh } from "../_components/refresh-provider";
 
 type EquipmentItem = {
   id: string;
@@ -32,18 +33,26 @@ export default function MiniEquipmentPage() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/mini/equipment", { cache: "no-store" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      setState({ kind: "ready", items: data.equipment });
+    } catch (err) {
+      setState({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Ошибка",
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (status !== "authenticated") return;
-    fetch("/api/mini/equipment", { cache: "no-store" })
-      .then(async (resp) => {
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        setState({ kind: "ready", items: data.equipment });
-      })
-      .catch((err) =>
-        setState({ kind: "error", message: err.message || "Ошибка" })
-      );
-  }, [status]);
+    void load();
+  }, [status, load]);
+
+  useRegisterRefresh(load);
 
   if (state.kind === "loading") {
     return (

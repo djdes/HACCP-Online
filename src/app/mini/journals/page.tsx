@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ScanLine } from "lucide-react";
@@ -10,6 +10,7 @@ import { MiniCard } from "../_components/mini-card";
 import { MiniListSkeleton } from "../_components/mini-list-skeleton";
 import { MiniSearchField } from "../_components/mini-search-field";
 import { filterAndRank } from "../_lib/list-search";
+import { useRegisterRefresh } from "../_components/refresh-provider";
 
 /**
  * Указатель журналов.
@@ -46,27 +47,26 @@ export default function MiniJournalsIndexPage() {
   // Удержание карточки — быстрые действия без захода в журнал.
   const [actionsFor, setActionsFor] = useState<Journal | null>(null);
 
+  const load = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/mini/home", { cache: "no-store" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      setState({ kind: "ready", journals: data.all ?? [] });
+    } catch (err) {
+      setState({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Ошибка",
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (status !== "authenticated") return;
-    let alive = true;
-    fetch("/api/mini/home", { cache: "no-store" })
-      .then(async (resp) => {
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        if (!alive) return;
-        setState({ kind: "ready", journals: data.all ?? [] });
-      })
-      .catch((err: unknown) => {
-        if (!alive) return;
-        setState({
-          kind: "error",
-          message: err instanceof Error ? err.message : "Ошибка",
-        });
-      });
-    return () => {
-      alive = false;
-    };
-  }, [status]);
+    void load();
+  }, [status, load]);
+
+  useRegisterRefresh(load);
 
   if (state.kind === "loading") {
     return <MiniListSkeleton rows={5} label="Загружаем журналы" />;

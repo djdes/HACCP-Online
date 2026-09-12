@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
+import { haptic } from "./use-haptic";
+
 /**
  * Pull-to-refresh для Mini App.
  *
@@ -76,6 +78,9 @@ export function PullToRefresh({
       const damped = Math.min(MAX_PULL, delta * 0.55);
       setPull(damped);
       const next: PullPhase = damped >= ACTIVATION_THRESHOLD ? "armed" : "pulling";
+      // Щелчок ровно в момент взвода: без него непонятно, дотянул ли
+      // до порога, и лист тянут с запасом до упора.
+      if (next === "armed" && phaseRef.current !== "armed") haptic("selection");
       phaseRef.current = next;
       setPhase(next);
       if (delta > 4 && e.cancelable) e.preventDefault();
@@ -117,7 +122,11 @@ export function PullToRefresh({
   const isActive = phase === "armed" || phase === "refreshing";
 
   return (
-    <div ref={containerRef} className="relative">
+    // Обёртки обязаны быть колонкой с flex-1: теперь они стоят между
+    // `<main>` и любым экраном, а экраны тянутся через `flex-1`.
+    // Без этого цепочка рвётся и центрированные состояния (спиннер,
+    // скелетон) схлопываются к верху экрана.
+    <div ref={containerRef} className="relative flex min-h-0 flex-1 flex-col">
       {/* Indicator — sticky над контентом, появляется по мере pull. */}
       <div
         className="pointer-events-none absolute left-0 right-0 top-0 flex justify-center"
@@ -146,6 +155,7 @@ export function PullToRefresh({
       {/* Контент сдвигается вниз ровно на pull, чтобы индикатор был
           визуально «отделён» от хедера и не накрывал текст. */}
       <div
+        className="flex min-h-0 flex-1 flex-col"
         style={{
           transform: `translateY(${
             phase === "refreshing" ? 36 : pull

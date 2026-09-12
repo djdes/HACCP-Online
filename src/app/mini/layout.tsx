@@ -11,6 +11,7 @@ import { MiniServiceWorkerRegister } from "./_components/mini-sw-register";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
 import { EdgeBack } from "./_components/edge-back";
+import { RefreshProvider } from "./_components/refresh-provider";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { LiveConnectionIndicator } from "@/components/live/live-connection-indicator";
 import { AnnouncementBanner } from "@/components/layout/announcement-banner";
@@ -204,7 +205,11 @@ export default async function MiniLayout({
               <AnnouncementBanner announcement={announcement} variant="mini" />
               {deletionDue ? <DeletionBanner dueAt={deletionDue} canCancel={session?.user ? hasFullWorkspaceAccess(session.user) : false} variant="mini" /> : null}
               {askNps ? <NpsBanner variant="mini" /> : null}
-              {children}
+              {/* Жест «потянуть, чтобы обновить» — на всех экранах сразу.
+                  Экран может сказать, чем именно обновляться
+                  (`useRegisterRefresh`); кто не сказал — перезапрашивает
+                  серверные данные маршрута. */}
+              <RefreshProvider>{children}</RefreshProvider>
             </main>
             {/* Тосты: в Mini App контейнера не было вовсе, и любой
                 toast.success/error (смена, отзыв, приглашение) уходил в

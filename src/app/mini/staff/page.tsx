@@ -10,6 +10,7 @@ import {
   SEARCH_WORTH_IT_FROM,
 } from "../_components/mini-search-field";
 import { filterAndRank } from "../_lib/list-search";
+import { useRegisterRefresh } from "../_components/refresh-provider";
 
 type Employee = {
   id: string;
@@ -56,6 +57,9 @@ export default function MiniStaffPage() {
     if (status !== "authenticated") return;
     loadData();
   }, [status]);
+
+  // Потянули вниз — перечитываем штат.
+  useRegisterRefresh(() => loadData());
 
   useEffect(() => {
     // Clear все pending-timer'ы при unmount компонента.

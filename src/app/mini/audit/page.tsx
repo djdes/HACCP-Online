@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+
+import { useRegisterRefresh } from "../_components/refresh-provider";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
 type AuditLog = {
@@ -19,20 +21,25 @@ export default function MiniAuditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/mini/audit", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load");
-        const data = await res.json();
-        setLogs(data.logs ?? []);
-      } catch {
-        setError("Не удалось загрузить журнал аудита");
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/mini/audit", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load");
+      const data = await res.json();
+      setLogs(data.logs ?? []);
+      setError(null);
+    } catch {
+      setError("Не удалось загрузить журнал аудита");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useRegisterRefresh(load);
 
   return (
     <div className="flex flex-1 flex-col gap-4 pb-24">

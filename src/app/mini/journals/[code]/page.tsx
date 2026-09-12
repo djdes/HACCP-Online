@@ -3,6 +3,7 @@
 import { MiniListSkeleton } from "@/app/mini/_components/mini-list-skeleton";
 
 import { use, useCallback, useEffect, useState } from "react";
+import { useRegisterRefresh } from "../../_components/refresh-provider";
 import { useLiveRefetch } from "@/lib/use-live-refetch";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Plus } from "lucide-react";
@@ -123,6 +124,8 @@ export default function MiniJournalPage({
   // Коллега отметился с другого телефона — список обновляется сам.
   // Только события этого журнала.
   useLiveRefetch(() => void load(undefined, true), { codes: [code] });
+  // Потянули вниз — перечитываем записи этого журнала.
+  useRegisterRefresh(() => load());
 
   if (error) {
     return (

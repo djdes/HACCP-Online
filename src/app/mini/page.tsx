@@ -23,7 +23,7 @@ import { getTelegramWebApp } from "./_components/telegram-web-app";
 import { QrScannerButton } from "./_components/qr-scanner";
 import { GeoReminder } from "./_components/geo-reminder";
 import { MiniHomeSkeleton } from "./_components/mini-home-skeleton";
-import { PullToRefresh } from "./_components/pull-to-refresh";
+import { useRegisterRefresh } from "./_components/refresh-provider";
 import { MyShiftButton } from "./_components/my-shift-button";
 
 type LocalState =
@@ -248,6 +248,8 @@ export default function MiniHomePage() {
   // главная обновляется сама, без «потяните вниз». Поток открываем
   // только после входа: без сессии /api/live отвечает 401.
   useLiveRefetch(() => void fetchHome(), { enabled: status === "authenticated" });
+  // Потянули вниз — перечитываем главную, а не всю страницу.
+  useRegisterRefresh(fetchHome);
 
   const startShift = useCallback(async () => {
     setStartingShift(true);
@@ -439,7 +441,6 @@ export default function MiniHomePage() {
   const completion = total === 0 ? 0 : Math.round((filled / total) * 100);
 
   return (
-    <PullToRefresh onRefresh={fetchHome}>
     <div className="flex flex-1 flex-col gap-5 pb-28">
       {/* Editorial hero — «Сегодня» + progress ring */}
       <header className="mini-reveal relative">
@@ -808,7 +809,6 @@ export default function MiniHomePage() {
         onClose={() => setJournalActions(null)}
       />
     </div>
-    </PullToRefresh>
   );
 }
 

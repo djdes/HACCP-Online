@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { useRegisterRefresh } from "../_components/refresh-provider";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -109,6 +111,14 @@ export default function MiniTodayPage() {
       void load();
     }
   }, [gate]);
+
+  // Потянули вниз — и состояние смены, и список задач: смену
+  // могли открыть с другого телефона, и один список без гейта остался
+  // бы запертым.
+  useRegisterRefresh(async () => {
+    await loadGate();
+    await load();
+  });
 
   async function claim(scope: Scope) {
     if (!data) return;
