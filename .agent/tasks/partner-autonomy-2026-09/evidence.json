@@ -1,13 +1,56 @@
 {
   "task": "partner-autonomy-2026-09",
-  "date": "2026-09-11",
+  "verified_on": "production https://wesetup.ru",
+  "date": "2026-09-12",
+  "phases": {
+    "A_menu": {
+      "passed": 13,
+      "total": 13
+    },
+    "B_admin_partner_edit": {
+      "passed": 17,
+      "total": 17
+    },
+    "C1_create_client_orgs": {
+      "passed": 26,
+      "total": 26
+    },
+    "C2_handover_edit_access": {
+      "passed": 33,
+      "total": 33
+    },
+    "C3_profile_guard": {
+      "passed": 12,
+      "total": 12
+    },
+    "D_prefill_first_run": {
+      "passed": 11,
+      "total": 14,
+      "note": "нашёл дефект подмены адреса и имени"
+    },
+    "D2_prefill_after_fix": {
+      "passed": 17,
+      "total": 17
+    }
+  },
+  "total_after_fix": {
+    "passed": 118,
+    "total": 118
+  },
+  "defect_found_and_fixed": {
+    "commit": "81b5df01",
+    "summary": "анкета подменяла фактический адрес юридическим из ЕГРЮЛ и переименовывала владельца в руководителя юрлица по реестру",
+    "introduced_by": "430dae04"
+  },
   "commits": [
     "430dae04",
     "de48254a",
     "901222c6",
     "3c35b770",
     "7f793579",
-    "e971af13"
+    "e971af13",
+    "6393eef6",
+    "81b5df01"
   ],
   "checks": {
     "typecheck": "pass",
@@ -15,12 +58,7 @@
       "pass": 987,
       "fail": 0
     },
-    "eslint_touched_dirs": "pass",
+    "eslint_touched": "pass",
     "webpack_parity_build": "pass"
-  },
-  "acceptance": {
-    "AC15": "PASS",
-    "AC1-AC14": "IMPLEMENTED_NOT_MANUALLY_VERIFIED"
-  },
-  "not_verified": "browser/manual run; local DB is a tunnel to production"
+  }
 }

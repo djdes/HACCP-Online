@@ -1,0 +1,131 @@
+[
+  {
+    "name": "AC8 создание без владельца → 200",
+    "ok": true,
+    "detail": "200 {\"ok\":true,\"organizationId\":\"cmty0lais0138trtsw3td4ejw\",\"partnerClientId\":\"cmty0laiv0139trtsypsdxle8\"}"
+  },
+  {
+    "name": "AC8 организация без аккаунта (не передана)",
+    "ok": true,
+    "detail": "null"
+  },
+  {
+    "name": "AC8 владельца ещё нет",
+    "ok": true,
+    "detail": "0 участников"
+  },
+  {
+    "name": "AC8 привязка source=manual",
+    "ok": true,
+    "detail": "manual"
+  },
+  {
+    "name": "AC8 уровень доступа по умолчанию edit",
+    "ok": true,
+    "detail": "edit"
+  },
+  {
+    "name": "AC8 тариф бесплатный",
+    "ok": true,
+    "detail": "free"
+  },
+  {
+    "name": "AC8 сфера сохранена",
+    "ok": true,
+    "detail": "cafe"
+  },
+  {
+    "name": "AC8 набор журналов и автоматика заполнены",
+    "ok": true,
+    "detail": "disabled=32"
+  },
+  {
+    "name": "AC8 аудит создания записан",
+    "ok": true,
+    "detail": "партнёр: E2E Консалт, Администратор"
+  },
+  {
+    "name": "AC8 в аудите видно, что это партнёр",
+    "ok": true,
+    "detail": "партнёр: E2E Консалт, Администратор"
+  },
+  {
+    "name": "AC8 создание с владельцем → 200",
+    "ok": true,
+    "detail": "200 {\"ok\":true,\"organizationId\":\"cmty0lay8013dtrts9muzuf0l\",\"partnerClientId\":\"cmty0layw013itrtsh4f3a2l2\"}"
+  },
+  {
+    "name": "AC8 у организации появился свой аккаунт",
+    "ok": true,
+    "detail": "cmty0layh013ftrtsyl3saesi"
+  },
+  {
+    "name": "AC8 владелец назначен",
+    "ok": true,
+    "detail": "e2e-owner-141220@example.com"
+  },
+  {
+    "name": "AC8 владелец пока не активен",
+    "ok": true,
+    "detail": "false"
+  },
+  {
+    "name": "AC8 пароль не задан",
+    "ok": true,
+    "detail": "«»"
+  },
+  {
+    "name": "AC8 приглашение выписано",
+    "ok": true,
+    "detail": "до 2026-09-19T06:39:01.829Z"
+  },
+  {
+    "name": "AC8 приглашение ещё не использовано",
+    "ok": true,
+    "detail": "null"
+  },
+  {
+    "name": "AC8 аккаунт принадлежит клиенту, не партнёру",
+    "ok": true,
+    "detail": "e2e-owner-141220@example.com"
+  },
+  {
+    "name": "AC9 свой ИНН → 409 own_organization",
+    "ok": true,
+    "detail": "409 {\"error\":\"Это ИНН самого партнёра — собственная организация не может быть клиентом\",\"code\":\"own_organization\"}"
+  },
+  {
+    "name": "AC9 почта сотрудника партнёра → 409 partner_team_email",
+    "ok": true,
+    "detail": "409 {\"error\":\"Эта почта принадлежит сотруднику партнёра. Владельцем организации клиента он быть не может\",\"code\":\"partner_team_email\"}"
+  },
+  {
+    "name": "AC9 занятая почта → 409 email_taken",
+    "ok": true,
+    "detail": "409 {\"error\":\"У этой почты уже есть аккаунт в WeSetup. Создайте организацию без владельца и передайте позже — или попросите клиента подключить вас по ссылке из раздела «Приглашения»\",\"code\":\"email_taken\"}"
+  },
+  {
+    "name": "AC9 короткое название → 400",
+    "ok": true,
+    "detail": "400 {\"error\":\"Название — минимум 2 символа\",\"code\":null}"
+  },
+  {
+    "name": "AC9 кривой ИНН → 400",
+    "ok": true,
+    "detail": "400 {\"error\":\"ИНН — 10 или 12 цифр\",\"code\":null}"
+  },
+  {
+    "name": "AC9 после отказов организаций не создано",
+    "ok": true,
+    "detail": "0"
+  },
+  {
+    "name": "AC9 шестое создание за час → 429",
+    "ok": true,
+    "detail": "200, 200, 200, 429"
+  },
+  {
+    "name": "AC8 в списке клиентов есть пометка «не передана клиенту»",
+    "ok": true
+  }
+]

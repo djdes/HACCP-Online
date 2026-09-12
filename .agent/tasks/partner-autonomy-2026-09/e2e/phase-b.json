@@ -1,0 +1,86 @@
+[
+  {
+    "name": "AC4 пустой PATCH → 400",
+    "ok": true,
+    "detail": "400 {\"error\":\"Нечего менять\",\"code\":null}"
+  },
+  {
+    "name": "AC4 правка города → 200",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "name": "AC4 город записан в базу",
+    "ok": true,
+    "detail": "Тест-город 982026"
+  },
+  {
+    "name": "AC4 остальные поля не тронуты",
+    "ok": true,
+    "detail": "E2E Консалт"
+  },
+  {
+    "name": "AC4 аудит пишет «было → стало»",
+    "ok": true,
+    "detail": "Москва → Тест-город 982026"
+  },
+  {
+    "name": "AC5 занятый slug → 409",
+    "ok": true,
+    "detail": "409 {\"error\":\"Такая ссылка уже занята или зарезервирована\",\"code\":\"slug_taken\"}"
+  },
+  {
+    "name": "AC5 slug не изменился",
+    "ok": true,
+    "detail": "e2e-partner"
+  },
+  {
+    "name": "AC5 зарезервированный slug «blog» → 400/409",
+    "ok": true,
+    "detail": "400 {\"error\":\"Эта ссылка зарезервирована системой\",\"code\":null}"
+  },
+  {
+    "name": "AC6 правка реквизитов → 200",
+    "ok": true,
+    "detail": "200 {\"ok\":true,\"partner\":{\"companyName\":\"E2E Консалт\",\"brandName\":null,\"type\":\"consultant\",\"inn\":\"7700000001\",\"city\":\"Тест-город 982026\",\"phone\":\"+79990000001\",\"telegram\":null,\"contactEmail\":\"partner@e2e."
+  },
+  {
+    "name": "AC6 реквизиты записаны",
+    "ok": true,
+    "detail": "ip / 40802810000000012345"
+  },
+  {
+    "name": "AC6 счёт в аудите замаскирован",
+    "ok": true,
+    "detail": "••••2345"
+  },
+  {
+    "name": "AC6 кривые реквизиты → 400",
+    "ok": true,
+    "detail": "400 {\"error\":\"ИНН физлица/ИП — 12 цифр\",\"code\":null}"
+  },
+  {
+    "name": "AC7 смена уровня из админки → 200",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "name": "AC7 уровень записан",
+    "ok": true,
+    "detail": "view → edit"
+  },
+  {
+    "name": "AC7 аудит уровня записан",
+    "ok": true,
+    "detail": "{\"by\":\"partner\",\"to\":\"edit\",\"from\":\"view\",\"partnerId\":\"cmtlwmc5900003o9m45t64yfc\"}"
+  },
+  {
+    "name": "AC4 на карточке есть кнопки «Изменить»",
+    "ok": true,
+    "detail": "2 шт."
+  },
+  {
+    "name": "AC4 форма анкеты открылась",
+    "ok": true
+  }
+]

@@ -1,0 +1,61 @@
+[
+  {
+    "name": "подготовка: сотрудник партнёра заведён",
+    "ok": true,
+    "detail": "200 {\"ok\":true,\"userId\":\"cmty0qejx014ftrtste07s5sv\",\"created\":true}"
+  },
+  {
+    "name": "подготовка: телефона у сотрудника нет",
+    "ok": true,
+    "detail": "{\"id\":\"cmty0qejx014ftrtste07s5sv\",\"organizationId\":\"platform\",\"isActive\":true,\"phone\":null,\"isRoot\":false}"
+  },
+  {
+    "name": "подготовка: уровень доступа = edit",
+    "ok": true,
+    "detail": "edit"
+  },
+  {
+    "name": "вход сотрудником партнёра",
+    "ok": true,
+    "detail": "{\"name\":\"Сергей Консультант\",\"email\":\"e2e-consultant-379593@example.com\",\"id\":\"cmty0qejx014ftrtste07s5sv\",\"role\":\"cook\",\"organizationId\":\"platform\",\"organizationName\":\"WeSetup\",\"isRoot\":false,\"permissionPreset\":null,\"actingAsOrganizationId\":null,\"activeOrganizationId\":null,\"partnerAccess\":null,\"orgPresetOverrides\":null}"
+  },
+  {
+    "name": "это не ROOT",
+    "ok": true,
+    "detail": "false"
+  },
+  {
+    "name": "«Открыть кабинет» → 200",
+    "ok": true,
+    "detail": "200"
+  },
+  {
+    "name": "сессия в партнёрском режиме",
+    "ok": true,
+    "detail": "{\"partnerId\":\"cmtlwmc5900003o9m45t64yfc\",\"organizationId\":\"cmtjt28h20000t49mvzncgpte\",\"level\":\"edit\",\"brandName\":\"E2E Консалт\"}"
+  },
+  {
+    "name": "AC13 нет баннера «Завершите регистрацию»",
+    "ok": true
+  },
+  {
+    "name": "AC13 POST /api/profile/complete → 403",
+    "ok": true,
+    "detail": "403 {\"error\":\"Этот раздел недоступен консультанту — его меняет только клиент.\",\"code\":\"partner_access_denied\"}"
+  },
+  {
+    "name": "AC13 организация клиента не перезаписана",
+    "ok": true,
+    "detail": "Кафе «Проверка» / Кафе «Проверка»"
+  },
+  {
+    "name": "контроль: разрешённая правка при edit → 200",
+    "ok": true,
+    "detail": "200 {\"ok\":true,\"organization\":{\"name\":\"Кафе «Проверка»\",\"type\":\"cafe\",\"ownershipKind\":\"private\",\"locationsCount\":1,\"inn\":nul"
+  },
+  {
+    "name": "выход из кабинета клиента → 200",
+    "ok": true,
+    "detail": "200"
+  }
+]
