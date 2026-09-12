@@ -14,10 +14,24 @@
  * взяты короткие. На iOS `vibrate` не поддерживается вовсе, и это
  * осознанно оставлено без обходного пути: подделывать отклик там нечем.
  */
-type HapticType = "success" | "warning" | "error" | "light" | "medium" | "heavy";
+type HapticType =
+  | "success"
+  | "warning"
+  | "error"
+  | "light"
+  | "medium"
+  | "heavy"
+  /**
+   * Листание вариантов: переключение вкладки, прокрутка списка выбора.
+   * У Telegram для этого есть отдельный `selectionChanged` — он тише
+   * импульса, и без него переключение вкладок отзывалось бы тем же
+   * толчком, что и сохранение записи.
+   */
+  | "selection";
 
 /** Длительности подобраны так, чтобы отличать «принято» от «ошибка». */
 const VIBRATE_PATTERN: Record<HapticType, number | number[]> = {
+  selection: 5,
   light: 8,
   medium: 14,
   heavy: 22,
@@ -40,7 +54,19 @@ function vibrateFallback(type: HapticType): void {
 type TgHaptic = {
   notificationOccurred?: (type: "success" | "warning" | "error") => void;
   impactOccurred?: (style: "light" | "medium" | "heavy") => void;
+  /** Bot API 6.1 — на клиентах старее отсутствует, гасим `?.`. */
+  selectionChanged?: () => void;
 };
+
+/**
+ * Минимальный промежуток между откликами.
+ *
+ * Прокрутка списка выбора шлёт событие на каждый элемент: без порога
+ * Taptic Engine превращается в непрерывное жужжание, и человек начинает
+ * воспринимать отклик как помеху, а не как подсказку.
+ */
+const MIN_INTERVAL_MS = 40;
+let lastFiredAt = 0;
 
 function getHaptic(): TgHaptic | null {
   if (typeof window === "undefined") return null;
@@ -51,6 +77,10 @@ function getHaptic(): TgHaptic | null {
 }
 
 export function haptic(type: HapticType): void {
+  const now = Date.now();
+  if (now - lastFiredAt < MIN_INTERVAL_MS) return;
+  lastFiredAt = now;
+
   const h = getHaptic();
   if (!h) {
     vibrateFallback(type);
@@ -59,6 +89,11 @@ export function haptic(type: HapticType): void {
   try {
     if (type === "success" || type === "warning" || type === "error") {
       h.notificationOccurred?.(type);
+    } else if (type === "selection") {
+      // На старом клиенте `selectionChanged` нет — тогда самый тихий
+      // импульс из доступных, чтобы отклик всё же был.
+      if (h.selectionChanged) h.selectionChanged();
+      else h.impactOccurred?.("light");
     } else {
       h.impactOccurred?.(type);
     }
