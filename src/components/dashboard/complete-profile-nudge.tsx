@@ -52,6 +52,12 @@ export type CompleteProfileInitial = {
   locationsCount?: number | null;
   inn?: string | null;
   address?: string | null;
+  /**
+   * Имя человека, если оно уже известно. Без него поле стартует пустым, и
+   * подстановка из ЕГРЮЛ переименовывает владельца в руководителя юрлица
+   * по реестру — тому, кому консультант передал кабинет, это меняет имя.
+   */
+  personName?: string | null;
 };
 
 /**
@@ -230,7 +236,7 @@ function CompleteProfileModal({
       : 1,
   );
   const [inn, setInn] = useState(initial?.inn ?? "");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initial?.personName ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [asEmployee, setAsEmployee] = useState(true);
   const [positionName, setPositionName] = useState(DEFAULT_OWNER_POSITION);
@@ -254,6 +260,10 @@ function CompleteProfileModal({
   // консультант, и подстановка из ЕГРЮЛ не должна их перебивать.
   const sphereTouchedRef = useRef(Boolean(initial?.sphere));
   const ownershipTouchedRef = useRef(Boolean(initial?.ownershipKind));
+  // Адрес поля ввода не имеет — он заполняется только подстановкой из
+  // ЕГРЮЛ. Поэтому известный адрес перетирать нельзя молча: у заведения
+  // он обычно фактический, а в реестре лежит юридический.
+  const knownAddressRef = useRef(Boolean(initial?.address));
   const positionTouchedRef = useRef(false);
   useEffect(() => {
     const digits = innDigits(inn);
@@ -278,9 +288,7 @@ function CompleteProfileModal({
         if (found.ownershipKind && !ownershipTouchedRef.current) {
           setOwnershipKind(found.ownershipKind);
         }
-        // Пустой адрес из ЕГРЮЛ не стирает уже известный: у заведения он
-        // часто фактический, а не юридический.
-        setAddress((current) => found.address ?? current);
+        if (found.address && !knownAddressRef.current) setAddress(found.address);
         // Руководитель юрлица или сам ИП — почти всегда тот, кто регистрирует
         // организацию. Своё имя не перетираем.
         const person = found.personName ?? "";

@@ -310,6 +310,10 @@ export default async function DashboardLayout({
                   locationsCount: brandedOrg?.locationsCount ?? null,
                   inn: brandedOrg?.inn ?? null,
                   address: brandedOrg?.address ?? null,
+                  // Мгновенная регистрация кладёт в имя почту — это
+                  // маркер незаполненной анкеты, а не имя человека.
+                  personName:
+                    profile?.name && profile.name !== profile.email ? profile.name : null,
                 }}
               />
             </Suspense>
