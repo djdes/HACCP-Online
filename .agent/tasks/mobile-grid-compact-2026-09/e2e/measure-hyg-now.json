@@ -1,0 +1,38 @@
+{
+  "phone-landscape": {
+    "viewport": 932,
+    "tableWidth": null,
+    "sideScroll": null,
+    "panScroll": 32,
+    "sheetWidth": null,
+    "labelWidth": null,
+    "dayWidth": null
+  },
+  "phone-portrait": {
+    "viewport": 390,
+    "tableWidth": null,
+    "sideScroll": null,
+    "panScroll": 710,
+    "sheetWidth": null,
+    "labelWidth": null,
+    "dayWidth": null
+  },
+  "tablet": {
+    "viewport": 768,
+    "tableWidth": null,
+    "sideScroll": null,
+    "panScroll": 32,
+    "sheetWidth": null,
+    "labelWidth": null,
+    "dayWidth": null
+  },
+  "desktop": {
+    "viewport": 1440,
+    "tableWidth": null,
+    "sideScroll": null,
+    "panScroll": 32,
+    "sheetWidth": null,
+    "labelWidth": null,
+    "dayWidth": null
+  }
+}

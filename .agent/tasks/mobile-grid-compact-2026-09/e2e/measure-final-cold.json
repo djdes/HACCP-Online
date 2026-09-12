@@ -1,0 +1,38 @@
+{
+  "phone-landscape": {
+    "viewport": 932,
+    "tableWidth": 868,
+    "sideScroll": 0,
+    "panScroll": 32,
+    "sheetWidth": 868,
+    "labelWidth": 331,
+    "dayWidth": 34
+  },
+  "phone-portrait": {
+    "viewport": 390,
+    "tableWidth": 640,
+    "sideScroll": 250,
+    "panScroll": 250,
+    "sheetWidth": 640,
+    "labelWidth": 103,
+    "dayWidth": 34
+  },
+  "tablet": {
+    "viewport": 768,
+    "tableWidth": 704,
+    "sideScroll": 0,
+    "panScroll": 32,
+    "sheetWidth": 704,
+    "labelWidth": 167,
+    "dayWidth": 34
+  },
+  "desktop": {
+    "viewport": 1440,
+    "tableWidth": 1376,
+    "sideScroll": 0,
+    "panScroll": 32,
+    "sheetWidth": 1376,
+    "labelWidth": 540,
+    "dayWidth": 53
+  }
+}

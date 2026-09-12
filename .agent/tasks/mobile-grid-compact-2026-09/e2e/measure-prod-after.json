@@ -1,0 +1,29 @@
+{
+  "phone-landscape": {
+    "viewport": 932,
+    "pageOverflow": 0,
+    "panScroll": 32,
+    "blankWidth": 868,
+    "tableWidth": 868,
+    "nameWidth": 331,
+    "dayWidth": 34
+  },
+  "phone-portrait": {
+    "viewport": 390,
+    "pageOverflow": 0,
+    "panScroll": 250,
+    "blankWidth": 640,
+    "tableWidth": 640,
+    "nameWidth": 103,
+    "dayWidth": 34
+  },
+  "tablet": {
+    "viewport": 768,
+    "pageOverflow": 0,
+    "panScroll": 32,
+    "blankWidth": 704,
+    "tableWidth": 704,
+    "nameWidth": 167,
+    "dayWidth": 34
+  }
+}
