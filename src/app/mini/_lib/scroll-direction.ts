@@ -52,3 +52,17 @@ export function nextScrollHideState(
   if (hidden === prev.hidden) return { lastY: y, hidden };
   return { lastY: y, hidden };
 }
+
+/**
+ * Это тянут вниз, а не ведут вбок?
+ *
+ * «Потянуть, чтобы обновить» теперь стоит на всех экранах, а среди них
+ * есть таблица документа, которую водят вбок пальцем. Горизонтальное
+ * движение почти всегда идёт с небольшим сносом вниз, и без этой
+ * проверки жест обновления перехватывал бы его и гасил прокрутку
+ * таблицы — ровно та жалоба, с которой началась вся работа над жестами.
+ */
+export function isPullGesture(dx: number, dy: number): boolean {
+  if (dy <= 0) return false;
+  return Math.abs(dx) <= dy;
+}

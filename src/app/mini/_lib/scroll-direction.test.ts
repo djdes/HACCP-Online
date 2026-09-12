@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   INITIAL_SCROLL_HIDE_STATE,
   SCROLL_HIDE_AFTER_PX,
+  isPullGesture,
   nextScrollHideState,
   type ScrollHideState,
 } from "@/app/mini/_lib/scroll-direction";
@@ -53,5 +54,23 @@ describe("nextScrollHideState", () => {
     const state = run([-40], { lastY: 0, hidden: false });
     assert.equal(state.hidden, false);
     assert.equal(state.lastY, 0);
+  });
+});
+
+describe("isPullGesture", () => {
+  it("чистое движение вниз — это жест обновления", () => {
+    assert.equal(isPullGesture(0, 40), true);
+    assert.equal(isPullGesture(6, 40), true);
+  });
+
+  it("ведут вбок — не наш жест", () => {
+    // На экране документа таблицу водят вбок, и горизонталь почти
+    // всегда идёт с небольшим сносом вниз.
+    assert.equal(isPullGesture(60, 10), false);
+    assert.equal(isPullGesture(-60, 10), false);
+  });
+
+  it("движение вверх — это прокрутка", () => {
+    assert.equal(isPullGesture(0, -30), false);
   });
 });

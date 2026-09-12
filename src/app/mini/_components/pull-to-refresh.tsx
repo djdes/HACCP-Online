@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { haptic } from "./use-haptic";
+import { isPullGesture } from "../_lib/scroll-direction";
 
 /**
  * Pull-to-refresh для Mini App.
@@ -33,6 +34,7 @@ export function PullToRefresh({
   const [phase, setPhase] = useState<PullPhase>("idle");
   const [pull, setPull] = useState(0);
   const startY = useRef<number | null>(null);
+  const startX = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // Phase в ref'е — нужен в onTouchEnd, чтобы решать, активирован ли
   // pull. Раньше эффект перевешивал слушатели на каждое изменение
@@ -51,6 +53,7 @@ export function PullToRefresh({
     setPhase("idle");
     setPull(0);
     startY.current = null;
+    startX.current = null;
   }, []);
 
   useEffect(() => {
@@ -62,6 +65,7 @@ export function PullToRefresh({
       const t = e.touches[0];
       if (!t) return;
       startY.current = t.clientY;
+      startX.current = t.clientX;
       phaseRef.current = "pulling";
       setPhase("pulling");
     }
@@ -71,7 +75,11 @@ export function PullToRefresh({
       const t = e.touches[0];
       if (!t) return;
       const delta = t.clientY - startY.current;
-      if (delta <= 0) {
+      const sideways = t.clientX - (startX.current ?? t.clientX);
+      // Жест стоит на всех экранах, а среди них есть таблица
+      // документа, которую водят вбок. Без этой проверки обновление
+      // перехватывало бы горизонтальную прокрутку.
+      if (delta <= 0 || !isPullGesture(sideways, delta)) {
         reset();
         return;
       }
