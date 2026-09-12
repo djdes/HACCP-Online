@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, Package, Thermometer } from "lucide-react";
 
-import { MiniSearchField } from "../_components/mini-search-field";
+import {
+  MiniSearchField,
+  SEARCH_WORTH_IT_FROM,
+} from "../_components/mini-search-field";
 import { filterAndRank } from "../_lib/list-search";
 
 type EquipmentItem = {
@@ -108,7 +111,7 @@ export default function MiniEquipmentPage() {
         </h1>
       </header>
 
-      {state.items.length > 0 ? (
+      {state.items.length >= SEARCH_WORTH_IT_FROM || query.trim() ? (
         <MiniSearchField
           value={query}
           onChange={setQuery}

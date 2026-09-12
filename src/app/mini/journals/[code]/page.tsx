@@ -11,6 +11,7 @@ import { PhotoLightbox } from "../../_components/photo-lightbox";
 import { JournalTaskPool } from "../../_components/task-pool";
 import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
 import { fieldLabel, formatFieldValue } from "@/lib/field-labels";
+import { useScrollHide } from "../../_hooks/use-scroll-hide";
 
 /**
  * Журналы где работает task-pool с race-claim'ами. Если шаблон в этом
@@ -264,6 +265,8 @@ function FieldJournalBody({
   copying?: boolean;
   onCopyYesterday?: () => void;
 }) {
+  const hidden = useScrollHide(entries.length > 4);
+
   return (
     <>
       {onCopyYesterday ? (
@@ -304,18 +307,47 @@ function FieldJournalBody({
         )}
       </section>
 
-      <Link
-        href={`/mini/journals/${code}/new`}
-        className="fixed bottom-4 left-1/2 z-10 flex w-[calc(100%-24px)] max-w-lg -translate-x-1/2 items-center justify-center gap-2 rounded-2xl px-5 py-4 text-[15px] font-semibold shadow-lg active:scale-[0.98] sm:w-[calc(100%-32px)]"
+      {/* Место под кнопкой: без него последняя запись списка
+          остаётся под ней навсегда — до неё нельзя докрутить. */}
+      <div aria-hidden className="h-16 shrink-0" />
+
+      {/* Позиция и уезд вниз — на обёртке, нажатие — на самой кнопке.
+          Одним элементом нельзя: `.mini-press:active` тоже пишет
+          `transform`, и либо отклик на нажатие пропадает, либо кнопка
+          в момент нажатия прыгает вправо, теряя центровку. */}
+      <div
+        className="fixed left-1/2 w-[calc(100%-24px)] max-w-lg sm:w-[calc(100%-32px)]"
         style={{
-          background: "var(--mini-lime)",
-          color: "var(--mini-primary-contrast)",
-          boxShadow: "var(--mini-primary-shadow)",
+          // Над навигацией, а не под ней: на `bottom-4` кнопка
+          // полностью перекрывалась рейлом — у него z-слой выше.
+          bottom: "calc(var(--mini-safe-b) + var(--mini-nav-h) + 0.5rem)",
+          zIndex: "var(--mini-z-fab)",
+          // Пока читают список — кнопка уезжает вниз и не закрывает
+          // строки; движение вверх возвращает её сразу.
+          transform: hidden
+            ? "translate(-50%, calc(100% + var(--mini-safe-b) + var(--mini-nav-h)))"
+            : "translate(-50%, 0)",
+          opacity: hidden ? 0 : 1,
+          pointerEvents: hidden ? "none" : undefined,
+          transition:
+            "transform var(--mini-dur-screen) var(--mini-ease), opacity var(--mini-dur-fast) var(--mini-ease)",
         }}
+        aria-hidden={hidden}
       >
-        <Plus className="size-5" />
-        Новая запись
-      </Link>
+        <Link
+          href={`/mini/journals/${code}/new`}
+          tabIndex={hidden ? -1 : undefined}
+          className="mini-press flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-[15px] font-semibold shadow-lg"
+          style={{
+            background: "var(--mini-lime)",
+            color: "var(--mini-primary-contrast)",
+            boxShadow: "var(--mini-primary-shadow)",
+          }}
+        >
+          <Plus className="size-5" />
+          Новая запись
+        </Link>
+      </div>
     </>
   );
 }

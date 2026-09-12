@@ -5,6 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bell, Loader2, UserPlus } from "lucide-react";
 
+import {
+  MiniSearchField,
+  SEARCH_WORTH_IT_FROM,
+} from "../_components/mini-search-field";
+import { filterAndRank } from "../_lib/list-search";
+
 type Employee = {
   id: string;
   name: string;
@@ -35,6 +41,7 @@ export default function MiniStaffPage() {
   const { status } = useSession();
   const [state, setState] = useState<LocalState>({ kind: "loading" });
   const [showForm, setShowForm] = useState(false);
+  const [query, setQuery] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
   const [phone, setPhone] = useState("");
@@ -181,6 +188,11 @@ export default function MiniStaffPage() {
   }
 
   const { employees, positions } = state.data;
+  const shownEmployees = filterAndRank(employees, query, (emp) => [
+    emp.name,
+    emp.positionTitle,
+    emp.phone,
+  ]);
 
   return (
     <div className="flex flex-1 flex-col gap-4 pb-24">
@@ -310,6 +322,19 @@ export default function MiniStaffPage() {
         </form>
       ) : null}
 
+      {employees.length >= SEARCH_WORTH_IT_FROM ? (
+        <MiniSearchField
+          value={query}
+          onChange={setQuery}
+          placeholder="Имя, должность или телефон"
+          resultLabel={
+            query.trim()
+              ? `Найдено ${shownEmployees.length} из ${employees.length}`
+              : undefined
+          }
+        />
+      ) : null}
+
       <section className="space-y-2">
         {employees.length === 0 ? (
           <div
@@ -322,8 +347,19 @@ export default function MiniStaffPage() {
           >
             Пока нет сотрудников.
           </div>
+        ) : shownEmployees.length === 0 ? (
+          <div
+            className="rounded-2xl px-4 py-4 text-center text-[14px]"
+            style={{
+              background: "var(--mini-surface-1)",
+              border: "1px dashed var(--mini-divider-strong)",
+              color: "var(--mini-text-muted)",
+            }}
+          >
+            Никто не нашёлся по «{query.trim()}».
+          </div>
         ) : (
-          employees.map((emp: Employee) => (
+          shownEmployees.map((emp: Employee) => (
             <div
               key={emp.id}
               className="flex items-center justify-between rounded-2xl px-4 py-3"

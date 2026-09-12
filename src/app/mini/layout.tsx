@@ -10,6 +10,7 @@ import { ResumeHome } from "./_components/resume-home";
 import { MiniServiceWorkerRegister } from "./_components/mini-sw-register";
 import { MiniSessionProvider } from "./_components/mini-session-provider";
 import { MiniNav } from "./_components/mini-nav";
+import { EdgeBack } from "./_components/edge-back";
 import { OfflineIndicator } from "./_components/offline-indicator";
 import { LiveConnectionIndicator } from "@/components/live/live-connection-indicator";
 import { AnnouncementBanner } from "@/components/layout/announcement-banner";
@@ -214,6 +215,9 @@ export default async function MiniLayout({
                 поток и не должен открываться. */}
             {session?.user ? <LiveConnectionIndicator variant="mini" /> : null}
             <MiniNav />
+            {/* Жест «назад» от левого края — только внутри Telegram,
+                где своего системного нет. Решает сам компонент. */}
+            <EdgeBack />
             <MiniTour />
             {/* AI помощник и в Mini App (П-3: зеркало сайта). FAB поднят
                 над нижней навигацией. Показываем только авторизованным —
