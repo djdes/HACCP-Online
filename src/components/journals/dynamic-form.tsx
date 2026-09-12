@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useKeyboardInset } from "@/lib/use-keyboard-inset";
 import { noteEntrySaved } from "@/app/mini/_lib/install-prompt";
+import { isScannableField } from "@/lib/scannable-field";
+import { ScanToField } from "@/components/journals/scan-to-field";
 import { AlertTriangle, History, Wifi, Loader2 } from "lucide-react";
 import { describeDraftTime, draftStorageKey, filledCount } from "@/lib/form-draft";
 import { getJournalSpec } from "@/lib/journal-specs";
@@ -872,15 +874,24 @@ export function DynamicForm({
               )}
 
               {(field.type === "text" || field.type === "textarea") && (
-                <VoiceInput
-                  id={field.key}
-                  value={(formData[field.key] as string) ?? ""}
-                  onChange={(v) => updateField(field.key, v)}
-                  required={field.required}
-                  // Длинные поля жалоб и решений — выше по умолчанию: три
-                  // строки на «Содержание жалобы» заставляют печатать в щель.
-                  rows={field.type === "textarea" ? 5 : 3}
-                />
+                <div className="space-y-2">
+                  <VoiceInput
+                    id={field.key}
+                    value={(formData[field.key] as string) ?? ""}
+                    onChange={(v) => updateField(field.key, v)}
+                    required={field.required}
+                    // Длинные поля жалоб и решений — выше по умолчанию: три
+                    // строки на «Содержание жалобы» заставляют печатать в щель.
+                    rows={field.type === "textarea" ? 5 : 3}
+                  />
+                  {/* Номер партии и штрихкод набирают мокрыми руками
+                      на приёмке; ошибка в нём — это прослеживаемость. */}
+                  {isScannableField({ key: field.key, label: field.label }) ? (
+                    <ScanToField
+                      onScanned={(text) => updateField(field.key, text)}
+                    />
+                  ) : null}
+                </div>
               )}
 
               {field.type === "number" && (

@@ -8,6 +8,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+
+import { useIsNarrowViewport } from "@/lib/use-narrow-viewport";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import {
   CARD_MARGIN,
@@ -48,22 +50,11 @@ export type SpotlightStep = {
 export const PORTAL_FONT_FAMILY =
   "var(--font-manrope), Manrope, \"Segoe UI\", sans-serif";
 
-const NARROW_QUERY = "(max-width: 639px)";
-
-/** `true` на телефоне (< 640px): bottom-sheet вместо плавающей карточки. */
-export function useIsNarrowViewport(): boolean {
-  const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.matchMedia(NARROW_QUERY).matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia(NARROW_QUERY);
-    const update = () => setNarrow(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-  return narrow;
-}
+/**
+ * Жил здесь и тянул весь тур в пять чужих файлов ради двух строк.
+ * Реэкспорт оставлен, чтобы не править импорты в шести местах.
+ */
+export { useIsNarrowViewport } from "@/lib/use-narrow-viewport";
 
 function isVisible(el: HTMLElement): boolean {
   if (typeof el.checkVisibility === "function" && !el.checkVisibility()) return false;
