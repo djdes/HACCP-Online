@@ -125,6 +125,46 @@ export async function removeQueuedEntry(id: string): Promise<void> {
   await tx("readwrite", (store) => store.delete(id)).catch(() => {});
 }
 
+/**
+ * Записи без автора — те, что легли в очередь до появления поля.
+ * Отправить их «от текущего» нельзя, выбросить тоже: это чья-то работа.
+ * Поэтому они ждут человека, который подтвердит, что они его.
+ */
+export async function listOrphanQueuedEntries(): Promise<QueuedJournalEntry[]> {
+  const rows = await listQueuedEntries();
+  return rows.filter((entry) => !entry.ownerUserId);
+}
+
+/**
+ * Человек подтвердил, что запись его. Только после этого она может уйти.
+ * Спрашиваем явно и с показом содержимого — подпись в журнале ставится
+ * один раз, и переставить её потом нельзя.
+ */
+export async function claimQueuedEntry(
+  id: string,
+  userId: string,
+): Promise<void> {
+  const rows = await listQueuedEntries();
+  const entry = rows.find((row) => row.id === id);
+  if (!entry || entry.ownerUserId) return;
+  await tx("readwrite", (store) =>
+    store.put({ ...entry, ownerUserId: userId, nextAttemptAt: Date.now() }),
+  ).catch(() => {});
+}
+
+/**
+ * «Повторить сейчас» — сбрасывает выдержку до следующей попытки.
+ * Счётчик попыток не трогаем: он объясняет, почему выдержка выросла.
+ */
+export async function retryQueuedEntry(id: string): Promise<void> {
+  const rows = await listQueuedEntries();
+  const entry = rows.find((row) => row.id === id);
+  if (!entry) return;
+  await tx("readwrite", (store) =>
+    store.put({ ...entry, nextAttemptAt: Date.now(), lastError: null }),
+  ).catch(() => {});
+}
+
 const A_DAY_MS = 24 * 60 * 60 * 1000;
 
 async function markAttempt(

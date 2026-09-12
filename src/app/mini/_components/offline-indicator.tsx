@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 
 import { useNetwork } from "../_hooks/use-network";
@@ -98,13 +99,31 @@ export function OfflineIndicator() {
   // В body, а не в .mini-root: правило `.mini-root > *` в mini-theme.css
   // делает прямых детей position: relative, и «fixed» полоса уезжала в
   // конец потока — на длинной странице её не было видно вовсе.
+  // Полоса — ссылка на «Что не ушло», пока есть что показывать. Раньше
+  // она сообщала число и молчала: какие записи, почему не ушли и можно
+  // ли повторить — узнать было негде.
+  const body =
+    pending > 0 ? (
+      <Link
+        href="/mini/outbox"
+        role="status"
+        className={`fixed left-1/2 top-2 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-full px-4 py-1.5 text-center text-[12px] font-medium text-white shadow-lg transition-all ${tone}`}
+        style={{ zIndex: "var(--mini-z-overlay)" }}
+      >
+        {text}
+      </Link>
+    ) : (
+      <div
+        role="status"
+        className={`fixed left-1/2 top-2 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-full px-4 py-1.5 text-center text-[12px] font-medium text-white shadow-lg transition-all ${tone}`}
+        style={{ zIndex: "var(--mini-z-overlay)" }}
+      >
+        {text}
+      </div>
+    );
+
   return createPortal(
-    <div
-      role="status"
-      className={`fixed left-1/2 top-2 z-[60] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-full px-4 py-1.5 text-center text-[12px] font-medium text-white shadow-lg transition-all ${tone}`}
-    >
-      {text}
-    </div>,
+    body,
     document.body
   );
 }
