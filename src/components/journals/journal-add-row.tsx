@@ -70,13 +70,19 @@ export function JournalAddRow({
         disabled ? "opacity-50" : "cursor-pointer transition-colors duration-150 hover:bg-[#f5f6ff]"
       }`}
     >
+      {/* Маркеры колонок нужны компактной сетке на узком экране
+          (globals.css, `[data-journal-grid]`): без них ширину столбца
+          названия задавала бы эта строка, а закрепление левой колонки
+          теряло бы её при прокрутке. Вне такой сетки атрибуты ничего не
+          значат. */}
       {Array.from({ length: leading }).map((_, index) => (
-        <td key={`lead-${index}`} className={`${cellClassName} px-2 py-0.5`} />
+        <td key={`lead-${index}`} className={`${cellClassName} px-2 py-0.5`} data-grid-check />
       ))}
 
       <td
         colSpan={labelSpan}
         className={`${cellClassName} p-0 text-left align-middle leading-tight`}
+        data-grid-label
       >
         <button
           type="button"

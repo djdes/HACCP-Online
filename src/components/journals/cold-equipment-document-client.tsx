@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
@@ -1671,7 +1671,18 @@ export function ColdEquipmentDocumentClient({
          * `[data-journal-blank-column]` из app-theme.css. */}
         <div className={GRID_VIEWPORT_CLASS}>
           <div
-            style={{ minWidth: `max(100%, ${gridMinWidth}px)` }}
+            style={
+              {
+                minWidth: `max(100%, ${gridMinWidth}px)`,
+                // Число дней нужно CSS, чтобы посчитать компактную ширину
+                // листа на узком экране без участия JS.
+                "--jgrid-days": dateKeys.length,
+              } as CSSProperties
+            }
+            // На экране уже ноутбука минимум снимается правилом
+            // `[data-journal-grid-sheet]` из globals.css — иначе лист
+            // держал бы бумажную ширину и уезжал вбок вместе с подписями.
+            data-journal-grid-sheet
             // `w-max` — ширину колонки задаёт самая широкая таблица.
             // С `w-full` шапка вставала по ширине контейнера, а сетка
             // замеров распирала себя содержимым и была на ~70px шире:
@@ -1701,10 +1712,22 @@ export function ColdEquipmentDocumentClient({
             экземпляр кнопки «Добавить ХО». */}
         {equipmentAddBar}
         {selectionBar}
-          <table className="w-full border-collapse text-[13px]">
+          <table className="w-full border-collapse text-[13px]" data-journal-grid>
+            {/* Ширины колонок на узком экране задаются здесь: у таблицы
+                там `table-layout: fixed`, и без colgroup ширину диктовала
+                бы самая длинная ячейка столбца — из-за строки
+                «Ответственный за снятие показателей» колонка названия
+                разъезжалась до 477px, а дни уезжали за экран. */}
+            <colgroup>
+              <col data-grid-col-check />
+              <col data-grid-col-label />
+              {dateKeys.map((dateKey) => (
+                <col key={`col:${dateKey}`} data-grid-col-day />
+              ))}
+            </colgroup>
             <thead>
               <tr>
-                <th className={`${GRID_HEAD_CELL_CLASS} w-[40px] px-1 py-1 text-center leading-tight print:hidden`} rowSpan={2}>
+                <th className={`${GRID_HEAD_CELL_CLASS} w-[40px] px-1 py-1 text-center leading-tight print:hidden`} rowSpan={2} data-grid-check>
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={(checked) =>
@@ -1718,6 +1741,7 @@ export function ColdEquipmentDocumentClient({
                 <th
                   className={`${GRID_HEAD_CELL_CLASS} min-w-[300px] px-2 py-1.5 text-center text-[13px] font-semibold leading-tight`}
                   rowSpan={2}
+                  data-grid-label
                 >
                   Наименование или номер ХК
                 </th>
@@ -1735,6 +1759,7 @@ export function ColdEquipmentDocumentClient({
                 {dateKeys.map((dateKey) => (
                   <th
                     key={dateKey}
+                    data-grid-day
                     data-focus-today={dateKey === todayKey ? "" : undefined}
                     // X7: заливки выходных здесь нет — эталон
                     // cold_equipment_control-2-doc.png печатает сетку
@@ -1771,7 +1796,7 @@ export function ColdEquipmentDocumentClient({
                   нитки. Скрываем заглушку ровно там же, где скрыт
                   столбец — тогда colSpan (name + N дней) снова сходится. */}
               <tr>
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight print:hidden`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight print:hidden`} data-grid-check />
                 <td
                   className={`${GRID_CELL_CLASS} px-2 py-1 text-center text-[13px] font-semibold leading-tight`}
                   colSpan={dateKeys.length + 1}
@@ -1782,7 +1807,10 @@ export function ColdEquipmentDocumentClient({
 
               {config.equipment.map((item) => (
                 <tr key={item.id}>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}
+                    data-grid-check
+                  >
                     <Checkbox
                       checked={selectedEquipmentIds.includes(item.id)}
                       onCheckedChange={(checked) =>
@@ -1796,7 +1824,7 @@ export function ColdEquipmentDocumentClient({
                     />
                   </td>
 
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-middle leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-middle leading-tight`} data-grid-label>
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                       <span className="text-[13px] font-medium">{item.name}</span>
                       <span className="text-[12px] text-[#6f7282]">
@@ -1812,6 +1840,7 @@ export function ColdEquipmentDocumentClient({
                     return (
                       <td
                         key={`${item.id}:${dateKey}`}
+                        data-grid-day
                         className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                       >
                         {status === "active" ? (
@@ -1869,13 +1898,16 @@ export function ColdEquipmentDocumentClient({
 
               <tr>
                 {/* R5-2: та же заглушка колонки чекбоксов — тоже print:hidden. */}
-                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`} />
+                <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`} data-grid-check />
                 {/* Эталон делит эту строку на две ячейки: слева оранжевая
                     служебная метка, справа расшифровка кода «С1 - ФИО»,
                     который стоит в ячейках дней. */}
-                <td className={`${GRID_CELL_CLASS} p-0 align-middle leading-tight`}>
-                  <div className="flex items-stretch">
-                    <div className="flex w-[150px] shrink-0 items-center justify-center px-2 py-1 text-center">
+                <td className={`${GRID_CELL_CLASS} p-0 align-middle leading-tight`} data-grid-label>
+                  <div className="flex items-stretch max-sm:flex-col">
+                    <div
+                      className="flex w-[150px] shrink-0 items-center justify-center px-2 py-1 text-center"
+                      data-grid-service
+                    >
                       <span className={GRID_SERVICE_LABEL_CLASS}>
                         Ответственный за снятие показателей
                       </span>

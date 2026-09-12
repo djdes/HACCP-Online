@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Archive, ChevronDown, MousePointerSquareDashed, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus } from "lucide-react";
@@ -2484,7 +2484,12 @@ export function CleaningDocumentClient(props: Props) {
               сетка ниже, поэтому её ширина совпадает с шириной таблицы
               (раньше шапка была ~57% ширины сетки и центрировалась сама). */}
           <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
-            <div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>
+            <div
+              style={{ minWidth: `${gridMinWidth}px`, "--jgrid-days": dayKeys.length } as CSSProperties}
+              data-journal-blank-column
+              data-journal-grid-sheet
+              data-jgrid-labels="2"
+            >
             <JournalDocumentHeader
               orgName={props.organizationName}
               title={config.documentTitle || CLEANING_DOCUMENT_TITLE}
@@ -2504,14 +2509,19 @@ export function CleaningDocumentClient(props: Props) {
               экране всегда ровно один экземпляр. */}
           {cleaningAddToolbar}
           {cleaningRaceStrip}
-          <div className={GRID_VIEWPORT_CLASS}><div style={{ minWidth: `${gridMinWidth}px` }} data-journal-blank-column>
-          <table className="w-full border-collapse text-[13px] print:text-[11px]"><thead><tr><th rowSpan={2} className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-focus-today={dateKey === todayKey ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight ${dateKey === todayKey ? "bg-[#eef1ff] text-[#3848c7] print:bg-transparent print:text-inherit" : ""}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
+          <div className={GRID_VIEWPORT_CLASS}><div
+              style={{ minWidth: `${gridMinWidth}px`, "--jgrid-days": dayKeys.length } as CSSProperties}
+              data-journal-blank-column
+              data-journal-grid-sheet
+              data-jgrid-labels="2"
+            >
+          <table className="w-full border-collapse text-[13px] print:text-[11px]" data-journal-grid><colgroup><col data-grid-col-check /><col data-grid-col-label /><col data-grid-col-label2 />{dayKeys.map((dateKey) => <col key={`col:${dateKey}`} data-grid-col-day />)}</colgroup><thead><tr><th rowSpan={2} data-grid-check className={`w-12 px-2 py-1.5 align-middle ${GRID_HEAD_CELL_PLAIN_CLASS} print:hidden leading-tight`}><Checkbox checked={allRowsSelected} onCheckedChange={(checked) => setSelection(Boolean(checked) ? [...selectableRowIds] : [])} className="size-4" disabled={props.status !== "active"} aria-label="Выбрать все строки" /></th><th rowSpan={2} data-grid-label className={`w-[230px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Наименование помещения</th><th rowSpan={2} data-grid-label2 className={`w-[200px] px-2 py-1.5 align-middle font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`}>Моющие и дезинфицирующие средства</th><th className={`px-2 py-1.5 font-semibold text-[#3c4053] ${GRID_HEAD_CELL_CLASS} leading-tight`} colSpan={dayKeys.length}>Месяц {getCleaningGridMonthLabel(props.dateFrom, props.dateTo)}</th></tr><tr>{dayKeys.map((dateKey) => <th key={dateKey} data-grid-day data-focus-today={dateKey === todayKey ? "" : undefined} className={`px-2 py-1.5 text-[13px] font-semibold tabular-nums text-[#3c4053] ${GRID_HEAD_CELL_PLAIN_CLASS} leading-tight ${dateKey === todayKey ? "bg-[#eef1ff] text-[#3848c7] print:bg-transparent print:text-inherit" : ""}`}>{Number(dateKey.slice(-2))}</th>)}</tr></thead><tbody>
             {rows.map((row) => {
               const title = row.kind === "room" ? row.room.name : row.kind === "cleaning" ? CLEANING_ROW_LABELS.cleaning : CLEANING_ROW_LABELS.control;
               const secondColumn = row.kind === "room" ? row.room.detergent : `${row.responsible.code} - ${row.responsible.userName || "не назначен"}`;
               return <tr key={row.id} className="transition-colors hover:bg-[#fafbff] print:hover:bg-transparent">
-                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" disabled={props.status !== "active"} /></td>
-                <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
+                <td data-grid-check className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}><Checkbox checked={selection.includes(row.id)} onCheckedChange={(checked) => setSelection((current) => Boolean(checked) ? [...current, row.id].filter((value, index, list) => list.indexOf(value) === index) : current.filter((id) => id !== row.id))} className="size-4" disabled={props.status !== "active"} /></td>
+                <td data-grid-label className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <div className="flex items-center justify-between gap-3">
                     {/* S10: содержимое бумажных ячеек у эталона по центру.
                         `flex-1 text-center` центрирует название помещения,
@@ -2583,7 +2593,7 @@ export function CleaningDocumentClient(props: Props) {
                 {/* S10: «Моющие и дезинфицирующие средства» у эталона по
                     центру; подпись ответственного («С1 - ФИО») он же
                     оставляет по левому краю — так и держим. */}
-                <td className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight ${row.kind === "room" ? "text-center" : ""}`}>{secondColumn}</td>
+                <td data-grid-label2 className={`px-2 py-1 text-[#3c4053] ${GRID_CELL_CLASS} leading-tight ${row.kind === "room" ? "text-center" : ""}`}>{secondColumn}</td>
                 {dayKeys.map((dateKey) => {
                   const isSelected = selectedCells.has(cellKey(row.id, dateKey));
                   const dayKind = getCalendarDayKind(dateKey);
@@ -2607,6 +2617,7 @@ export function CleaningDocumentClient(props: Props) {
                   return (
                     <td
                       key={dateKey}
+                      data-grid-day
                       data-cell-key={cellKey(row.id, dateKey)}
                       data-print-keep-bg={dayBg ? "" : undefined}
                       title={dayKind.name ?? undefined}
@@ -2656,7 +2667,7 @@ export function CleaningDocumentClient(props: Props) {
                     «Ответственный за уборку», «Ответственный за контроль».
                     Здесь одна галочка отмечает сразу всех уборщиков строки:
                     дальше — обычная JournalSelectionBar. */}
-                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}>
+                <td data-grid-check className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}>
                   <Checkbox
                     checked={
                       cleaningResponsibleList.length > 0 &&
@@ -2676,7 +2687,7 @@ export function CleaningDocumentClient(props: Props) {
                     className="size-4"
                   />
                 </td>
-                <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
+                <td data-grid-label className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <button
                     type="button"
                     disabled={props.status !== "active"}
@@ -2757,7 +2768,7 @@ export function CleaningDocumentClient(props: Props) {
                     галочка отмечает всех контролёров строки. Удаление их
                     `deleteSelectedRows` умеет — без чекбокса эта ветка была
                     недостижима из UI. */}
-                <td className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}>
+                <td data-grid-check className={`px-2 py-1 text-center ${GRID_CELL_CLASS} print:hidden leading-tight`}>
                   <Checkbox
                     checked={
                       controlResponsibleList.length > 0 &&
@@ -2777,7 +2788,7 @@ export function CleaningDocumentClient(props: Props) {
                     className="size-4"
                   />
                 </td>
-                <td className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
+                <td data-grid-label className={`px-2 py-1 align-middle ${GRID_CELL_CLASS} leading-tight`}>
                   <button
                     type="button"
                     disabled={props.status !== "active"}
