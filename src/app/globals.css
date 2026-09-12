@@ -737,8 +737,29 @@
 /* Body не должен иметь horizontal scroll — даже если внутри какой-то
    широкий блок попытается выпрыгнуть. Обходное решение: clip body
    horizontally, отдельные блоки сами скроллятся через ds-table-scroll. */
+:root {
+  /* Безопасные поля экрана — один источник вместо копий по компонентам.
+     Mini App держит свои `--mini-safe-*` с тем же смыслом: у него своя
+     оболочка и свой минимум отступа. */
+  --safe-t: max(12px, env(safe-area-inset-top));
+  --safe-b: max(12px, env(safe-area-inset-bottom));
+}
+
 html, body {
   overflow-x: clip;
+
+  /* Прокрутка не «протекает» наружу: под открытой шторкой страница
+     перестаёт оттягиваться резинкой, а на Android глушится встроенный
+     браузерный pull-to-refresh — иначе он дерётся с нашим (см.
+     `mini/_components/pull-to-refresh.tsx`).
+     Именно на `html, body`: документный скролл живёт здесь, на
+     внутренних обёртках вроде `.mini-root` правило не сработает. */
+  overscroll-behavior-y: contain;
+
+  /* Safari на телефоне сам увеличивает шрифт в альбомной ориентации —
+     вёрстка бланка от этого разъезжается. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 @media (max-width: 767px) {

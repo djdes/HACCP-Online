@@ -90,7 +90,7 @@ export function BottomSheet({
           </div>
 
           {footer ? (
-            <div className="shrink-0 border-t border-[#f0f1f7] bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 border-t border-[#f0f1f7] bg-white px-3 py-2 pb-[var(--safe-b)]">
               {footer}
             </div>
           ) : (

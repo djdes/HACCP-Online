@@ -1,5 +1,7 @@
 "use client";
 
+import { MiniListSkeleton } from "@/app/mini/_components/mini-list-skeleton";
+
 import { use, useCallback, useEffect, useState } from "react";
 import { useLiveRefetch } from "@/lib/use-live-refetch";
 import Link from "next/link";
@@ -136,35 +138,10 @@ export default function MiniJournalPage({
     );
   }
   if (!payload) {
-    // Skeleton-каркас вместо plain "Загружаем…" — структурно зеркалит
-    // header (журнал-название) + 3 карточки entries.
-    return (
-      <div className="flex flex-1 flex-col gap-4 pb-28" aria-label="Загружаем журнал">
-        <div
-          className="mini-skeleton-bar"
-          style={{ width: 120, height: 13, borderRadius: 8 }}
-        />
-        <div className="space-y-2">
-          <div
-            className="mini-skeleton-bar"
-            style={{ width: "65%", height: 22, borderRadius: 11 }}
-          />
-          <div
-            className="mini-skeleton-bar"
-            style={{ width: "85%", height: 13, borderRadius: 7 }}
-          />
-        </div>
-        <div className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="mini-skeleton-bar"
-              style={{ width: "100%", height: 76, borderRadius: 16 }}
-            />
-          ))}
-        </div>
-      </div>
-    );
+    // Форма скелетона переехала в общий `MiniListSkeleton`: та же
+    // разметка теперь работает и как `loading.tsx`, то есть в момент
+    // навигации, а не только после монтирования клиента.
+    return <MiniListSkeleton label="Загружаем журнал" />;
   }
 
   return (

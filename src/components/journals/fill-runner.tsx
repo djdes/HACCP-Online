@@ -70,7 +70,7 @@ export function FillRunner({
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-white">
-      <header className="shrink-0 border-b border-[#ececf4] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="shrink-0 border-b border-[#ececf4] px-4 pb-3 pt-[max(0.75rem,var(--safe-t))]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="truncate text-[16px] font-semibold leading-tight text-[#0b1024]">

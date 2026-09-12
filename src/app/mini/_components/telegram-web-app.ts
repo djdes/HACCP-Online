@@ -19,6 +19,14 @@ export type TelegramWebApp = {
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
   enableClosingConfirmation?: () => void;
+  /**
+   * Свайп вниз по полотну сворачивает Mini App. Это поведение Telegram
+   * по умолчанию, и оно дерётся с нашим «потянуть, чтобы обновить»:
+   * жест перехватывает Telegram, а не страница. Метод с Bot API 7.7 —
+   * на старых клиентах его нет, поэтому вызов опциональный.
+   */
+  disableVerticalSwipes?: () => void;
+  enableVerticalSwipes?: () => void;
   showScanQrPopup(params: { text?: string }, callback: (text: string) => void | true): void;
   closeScanQrPopup(): void;
   showPopup(params: {

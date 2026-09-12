@@ -20,6 +20,31 @@
   --mini-font-body: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --mini-font-mono: "Geist Mono", "SF Mono", ui-monospace, Menlo, Monaco, monospace;
 
+  /* Безопасные поля экрана. Раньше `max(12px, env(safe-area-inset-*))`
+     жил двенадцатью копиями по компонентам — от нижней навигации до
+     листа сканера. Значение одно, а правились копии по отдельности, и
+     на iPhone с «чёлкой» они разъезжались. */
+  --mini-safe-t: max(12px, env(safe-area-inset-top));
+  --mini-safe-b: max(12px, env(safe-area-inset-bottom));
+  --mini-safe-l: env(safe-area-inset-left);
+  --mini-safe-r: env(safe-area-inset-right);
+
+  /* Слои. Шкала существовала де-факто (40 шапка, 50 навигация, 60 тур
+     и офлайн, 80 фото, 100 сканер), но числами в разных файлах — и
+     новый оверлей приходилось подбирать наугад. */
+  --mini-z-topbar: 40;
+  --mini-z-nav: 50;
+  --mini-z-overlay: 60;
+  --mini-z-photo: 80;
+  --mini-z-scanner: 100;
+
+  /* Движение. Эталон взят у `.mini-press` — он уже был в проекте и
+     ощущается правильно; остальные длительности выведены от него. */
+  --mini-ease: cubic-bezier(0.2, 0, 0, 1);
+  --mini-dur-press: 0.12s;
+  --mini-dur-fast: 0.18s;
+  --mini-dur-screen: 0.22s;
+
   font-family: var(--mini-font-body);
   font-feature-settings: "ss01", "ss02", "cv02";
   color: var(--mini-text);
@@ -158,6 +183,48 @@
 .mini-root > * {
   position: relative;
   z-index: 1;
+}
+
+/* --------------------------------------------------------------------
+ * Тактильность
+ *
+ * Три правила, каждое убирает свой признак «это сайт, а не приложение».
+ * Намеренно узкие селекторы: глобально их вешать нельзя.
+ * ------------------------------------------------------------------ */
+
+/* Задержка 300 мс и серый прямоугольник подсветки — то, по чему палец
+   отличает веб от приложения. `manipulation` отключает двойной тап для
+   зума, но оставляет прокрутку и пинч.
+   НЕ ставим на `[data-journal-doc-pan]` (там панорама бланка вбок) и
+   на строки со свайпом — у них свой `touch-action`. */
+.mini-root button,
+.mini-root a,
+.mini-root [role="button"],
+.mini-root summary {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Долгое нажатие на элементах управления поднимает системное меню
+   выделения в Safari. Только на них: значения журналов (температуру,
+   номер партии) человек должен иметь возможность выделить и скопировать. */
+.mini-press,
+.mini-nav-rail,
+.mini-topbar,
+.mini-pill {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-root *,
+  .mini-root *::before,
+  .mini-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* --------------------------------------------------------------------

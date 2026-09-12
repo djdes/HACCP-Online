@@ -195,9 +195,9 @@ export default async function MiniLayout({
             <main
               className="mx-auto flex min-h-[calc(100dvh-64px)] w-full max-w-lg flex-col px-4"
               style={{
-                paddingTop: "max(1rem, env(safe-area-inset-top))",
+                paddingTop: "max(1rem, var(--mini-safe-t))",
                 paddingBottom:
-                  "max(7rem, calc(env(safe-area-inset-bottom) + 6rem))",
+                  "max(7rem, calc(var(--mini-safe-b) + 6rem))",
               }}
             >
               <AnnouncementBanner announcement={announcement} variant="mini" />

@@ -292,7 +292,7 @@ export function SpotlightTour({
         }`}
         style={
           narrow
-            ? { bottom: "max(12px, env(safe-area-inset-bottom))" }
+            ? { bottom: "var(--safe-b)" }
             : { top: placement?.top ?? CARD_MARGIN, left: placement?.left ?? CARD_MARGIN }
         }
       >

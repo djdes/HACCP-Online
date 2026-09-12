@@ -73,7 +73,7 @@ export function MiniNav() {
     <nav
       className="mini-nav-rail fixed inset-x-3 z-50 rounded-3xl"
       style={{
-        bottom: "max(12px, env(safe-area-inset-bottom))",
+        bottom: "var(--mini-safe-b)",
       }}
     >
       <div className="mx-auto flex w-full max-w-lg items-stretch gap-1 overflow-x-auto px-1.5 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

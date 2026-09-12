@@ -41,7 +41,7 @@ export function BottomActionBar({
   return (
     <div
       className="sticky inset-x-0 bottom-0 z-30 -mx-4 mt-3 border-t border-[#ececf4] bg-white/95 px-4 pt-3 backdrop-blur sm:hidden print:hidden"
-      style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+      style={{ paddingBottom: "var(--safe-b)" }}
     >
       {hint ? (
         <div className="mb-2 text-center text-[12px] text-[#6f7282]">{hint}</div>

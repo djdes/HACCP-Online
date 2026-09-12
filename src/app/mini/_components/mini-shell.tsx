@@ -44,9 +44,24 @@ export function MiniTelegramRuntime() {
       tg.ready();
       tg.expand();
       tg.enableClosingConfirmation?.();
+      // Свайп вниз по полотну Telegram сворачивает Mini App — и делает
+      // это раньше, чем до жеста доберётся наш «потянуть, чтобы
+      // обновить» (`pull-to-refresh.tsx`). То есть главный мобильный
+      // жест сейчас закрывает приложение вместо обновления списка.
+      tg.disableVerticalSwipes?.();
     } catch {
       /* Older Telegram clients expose only part of the WebApp API. */
     }
+
+    return () => {
+      // Состояние живёт на уровне WebApp, а не страницы: не вернув его,
+      // мы бы оставили свайп выключенным и для следующего открытия.
+      try {
+        tg.enableVerticalSwipes?.();
+      } catch {
+        /* old client — silent */
+      }
+    };
   }, []);
 
   // Синхронизируем Telegram chrome с текущей темой Mini App. Без этого

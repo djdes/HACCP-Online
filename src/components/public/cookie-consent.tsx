@@ -96,7 +96,7 @@ export function CookieConsent() {
     <div
       role="region"
       aria-label="Уведомление об использовании cookies"
-      style={{ bottom: "max(12px, env(safe-area-inset-bottom))" }}
+      style={{ bottom: "var(--safe-b)" }}
       className={
         "fixed left-1/2 z-50 w-[calc(100%-24px)] max-w-[600px] -translate-x-1/2 " +
         "rounded-2xl border border-[#ececf4] bg-white/95 px-4 py-3 backdrop-blur " +
