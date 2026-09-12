@@ -32,6 +32,7 @@ import {
   WifiOff,
   X,
   MapPin,
+  Search,
   Smartphone,
   Zap,
 } from "lucide-react";
@@ -109,6 +110,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Работа без интернета": WifiOff,
   "Уведомления": BellRing,
   "Голосовой ввод": MicVocal,
+  "Жесты на телефоне": Smartphone,
+  "Поиск и навигация": Search,
 };
 
 function iconForCategory(name: string): LucideIcon {
