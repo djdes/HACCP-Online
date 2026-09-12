@@ -10,6 +10,7 @@ import { PhotoUploader, PhotoFile } from "../../_components/photo-uploader";
 import { PhotoLightbox } from "../../_components/photo-lightbox";
 import { JournalTaskPool } from "../../_components/task-pool";
 import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
+import { fieldLabel, formatFieldValue } from "@/lib/field-labels";
 
 /**
  * Журналы где работает task-pool с race-claim'ами. Если шаблон в этом
@@ -72,6 +73,8 @@ type Payload = {
   isDocument: boolean;
   entries: EntryItem[];
   documents?: DocItem[];
+  /** «ключ → подпись» из схемы шаблона; старый ответ API его не присылает. */
+  labels?: Record<string, string>;
 };
 
 export default function MiniJournalPage({
@@ -202,6 +205,7 @@ export default function MiniJournalPage({
         <FieldJournalBody
           code={code}
           entries={payload.entries}
+          labels={payload.labels}
           copying={copying}
           onCopyYesterday={async () => {
             setCopying(true);
@@ -250,11 +254,13 @@ function BackLink() {
 function FieldJournalBody({
   code,
   entries,
+  labels,
   copying,
   onCopyYesterday,
 }: {
   code: string;
   entries: EntryItem[];
+  labels?: Record<string, string>;
   copying?: boolean;
   onCopyYesterday?: () => void;
 }) {
@@ -294,7 +300,7 @@ function FieldJournalBody({
             Пока нет записей за 7 дней. Создайте первую.
           </div>
         ) : (
-          entries.map((e) => <EntryRow key={e.id} entry={e} />)
+          entries.map((e) => <EntryRow key={e.id} entry={e} labels={labels} />)
         )}
       </section>
 
@@ -400,14 +406,20 @@ function DocumentJournalBody({
   );
 }
 
-function EntryRow({ entry }: { entry: EntryItem }) {
+function EntryRow({
+  entry,
+  labels,
+}: {
+  entry: EntryItem;
+  labels?: Record<string, string>;
+}) {
   const dt = new Date(entry.createdAt).toLocaleString("ru-RU", {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
-  const preview = entryPreview(entry.data);
+  const preview = entryPreview(entry.data, labels);
   const [photos, setPhotos] = useState<{ url: string; filename: string }[]>(
     entry.attachments ?? []
   );
@@ -479,17 +491,36 @@ function EntryRow({ entry }: { entry: EntryItem }) {
   );
 }
 
-function entryPreview(data: Record<string, unknown>): string {
+/**
+ * Три первых поля записи одной строкой.
+ *
+ * Раньше здесь стояли сырые ключи («temperature: 4 · productName: Молоко») —
+ * повар видел дамп базы вместо своей же записи. Служебные ключи
+ * в превью не нужны вовсе: они одинаковы у всех записей и съедают
+ * все три места, не различая их между собой.
+ */
+const PREVIEW_SKIP_KEYS = new Set([
+  "source",
+  "templateCode",
+  "completedAt",
+  "pipeline",
+]);
+
+function entryPreview(
+  data: Record<string, unknown>,
+  labels?: Record<string, string>
+): string {
   const parts: string[] = [];
   for (const [key, value] of Object.entries(data)) {
     if (parts.length >= 3) break;
+    if (key.startsWith("_") || PREVIEW_SKIP_KEYS.has(key)) continue;
     if (value == null) continue;
-    if (typeof value === "boolean") {
-      parts.push(`${key}: ${value ? "да" : "нет"}`);
-    } else if (typeof value === "number" || typeof value === "string") {
-      const s = String(value).slice(0, 24);
-      if (s.length > 0) parts.push(`${key}: ${s}`);
+    if (typeof value !== "boolean" && typeof value !== "number" && typeof value !== "string") {
+      continue;
     }
+    const shown = formatFieldValue(value).slice(0, 24);
+    if (!shown || shown === "—") continue;
+    parts.push(`${fieldLabel(key, labels)}: ${shown}`);
   }
   return parts.join(" · ");
 }

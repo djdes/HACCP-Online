@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, Package, Thermometer } from "lucide-react";
+
+import { MiniSearchField } from "../_components/mini-search-field";
+import { filterAndRank } from "../_lib/list-search";
 
 type EquipmentItem = {
   id: string;
@@ -19,6 +23,11 @@ type State =
 export default function MiniEquipmentPage() {
   const { status } = useSession();
   const [state, setState] = useState<State>({ kind: "loading" });
+  // Наклейка на оборудовании ведёт сюда с `?q=<id>`. Раньше параметр
+  // молча терялся, и сканирование приводило в общий список из сорока
+  // строк — то есть ровно туда, откуда человек и хотел уйти.
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -69,6 +78,13 @@ export default function MiniEquipmentPage() {
     );
   }
 
+  const shown = filterAndRank(state.items, query, (item) => [
+    item.name,
+    item.type,
+    item.areaName,
+    item.id,
+  ]);
+
   return (
     <div className="flex flex-1 flex-col gap-4 pb-24">
       <header
@@ -92,6 +108,19 @@ export default function MiniEquipmentPage() {
         </h1>
       </header>
 
+      {state.items.length > 0 ? (
+        <MiniSearchField
+          value={query}
+          onChange={setQuery}
+          placeholder="Название, тип или цех"
+          resultLabel={
+            query.trim()
+              ? `Найдено ${shown.length} из ${state.items.length}`
+              : undefined
+          }
+        />
+      ) : null}
+
       <section className="space-y-2">
         {state.items.length === 0 ? (
           <div
@@ -104,8 +133,19 @@ export default function MiniEquipmentPage() {
           >
             Пока нет оборудования.
           </div>
+        ) : shown.length === 0 ? (
+          <div
+            className="rounded-3xl px-4 py-7 text-center text-[14px]"
+            style={{
+              background: "var(--mini-surface-1)",
+              border: "1px dashed var(--mini-divider-strong)",
+              color: "var(--mini-text-muted)",
+            }}
+          >
+            Ничего не нашлось по «{query.trim()}».
+          </div>
         ) : (
-          state.items.map((item: EquipmentItem) => (
+          shown.map((item: EquipmentItem) => (
             <div
               key={item.id}
               className="flex items-start gap-3 rounded-2xl px-4 py-3"

@@ -7,6 +7,8 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { getActiveBuildingId } from "@/lib/active-building";
 import { buildingWhere } from "@/lib/building-scope";
 import { isDocumentTemplate } from "@/lib/journal-document-helpers";
+import { buildFieldLabels } from "@/lib/field-labels";
+import { DEFAULT_PIPELINE_FIELDS } from "@/lib/journal-default-pipelines";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +45,7 @@ export async function GET(
 
   const template = await db.journalTemplate.findUnique({
     where: { code },
-    select: { id: true, name: true, description: true },
+    select: { id: true, name: true, description: true, fields: true },
   });
   if (!template) {
     return NextResponse.json({ error: "Шаблон не найден" }, { status: 404 });
@@ -114,5 +116,9 @@ export async function GET(
     template: { code, name: template.name, description: template.description },
     isDocument: false,
     entries,
+    // Без этого словаря список записей печатал ключи JSON'а
+    // («productName: Молоко»). Отдаём только пары «ключ → подпись»,
+    // а не все описания полей: остальное экрану списка не нужно.
+    labels: buildFieldLabels(template.fields, DEFAULT_PIPELINE_FIELDS[code]),
   });
 }

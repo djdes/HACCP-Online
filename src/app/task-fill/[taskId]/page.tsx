@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { prettifyKey, SYSTEM_FIELD_LABELS } from "@/lib/field-labels";
 import { verifyTaskFillToken } from "@/lib/task-fill-token";
 import { getAdapter } from "@/lib/tasksflow-adapters";
 import { extractEmployeeId } from "@/lib/tasksflow-adapters/row-key";
@@ -12,21 +13,6 @@ import { TaskVerifyClient } from "./task-verify-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/**
- * Last-resort key prettifier для verifier-view, когда ключ не нашёлся ни в
- * template.fields, ни в DEFAULT_PIPELINE_FIELDS, ни в SYSTEM_LABELS.
- * camelCase → "camel Case" → "Camel case". Лучше чем сырое
- * «damagesDetected» в шапке колонки.
- */
-function prettifyKey(key: string): string {
-  // camelCase → space-separated
-  const spaced = key.replace(/([a-zа-я])([A-ZА-Я])/g, "$1 $2");
-  // snake_case → space
-  const final = spaced.replace(/_/g, " ");
-  // Capitalize first letter
-  return final.charAt(0).toUpperCase() + final.slice(1);
-}
 
 // HMAC-signed token-based URL для конкретного worker'а — не индексировать.
 export const metadata = {
@@ -211,37 +197,7 @@ export default async function TaskFillPage({
       ingestFields(defaults);
     }
     // 3) Системные поля (присутствуют почти везде)
-    const SYSTEM_LABELS: Record<string, string> = {
-      comment: "Комментарий",
-      note: "Примечание",
-      notes: "Примечание",
-      responsiblePerson: "Ответственный",
-      responsibleTitle: "Должность ответственного",
-      employeeName: "Сотрудник",
-      employeeId: "ID сотрудника",
-      damagesDetected: "Повреждения обнаружены",
-      itemName: "Наименование",
-      quantity: "Количество",
-      damageInfo: "Информация о повреждениях",
-      checkDate: "Дата проверки",
-      arrivalDate: "Дата приёмки",
-      arrivalTime: "Время приёмки",
-      productName: "Наименование продукта",
-      productionDate: "Дата изготовления",
-      manufacturer: "Изготовитель",
-      supplier: "Поставщик",
-      packaging: "Упаковка",
-      documentNumber: "Номер документа",
-      organolepticResult: "Органолептика",
-      storageCondition: "Условия хранения",
-      expiryDate: "Срок годности",
-      actualSaleDate: "Дата фактической реализации",
-      actualSaleTime: "Время фактической реализации",
-      temperature: "Температура (°C)",
-      isWithinNorm: "В пределах нормы",
-      correctiveAction: "Корректирующее действие",
-    };
-    for (const [k, v] of Object.entries(SYSTEM_LABELS)) {
+    for (const [k, v] of Object.entries(SYSTEM_FIELD_LABELS)) {
       if (!labelByKey.has(k)) labelByKey.set(k, v);
     }
     // Common select-options:
