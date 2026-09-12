@@ -5,6 +5,8 @@ import { MiniOrgSwitcher } from "@/app/mini/_components/mini-org-switcher";
 import { MiniLocationSwitcher } from "@/app/mini/_components/mini-location-switcher";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+
+import { clearSnapshot } from "../_lib/snapshot-cache";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   ArrowLeft,
@@ -78,6 +80,7 @@ export function MiniMeClient({
         };
         throw new Error(body.error || `HTTP ${resp.status}`);
       }
+      clearSnapshot();
       await signOut({ redirect: false });
       window.location.href = "/mini";
     } catch (err) {
@@ -88,6 +91,10 @@ export function MiniMeClient({
 
   async function handleSignOut() {
     setBusy("signout");
+    // Снимок главной — чужие задачи для следующего вошедшего.
+    // Сверка владельца при чтении его бы отсекла, но держать
+    // чужой список на чужом телефоне незачем вовсе.
+    clearSnapshot();
     await signOut({ redirect: false });
     window.location.href = "/mini";
   }

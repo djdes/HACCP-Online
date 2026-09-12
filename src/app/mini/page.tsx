@@ -15,6 +15,13 @@ import {
   Zap,
 } from "lucide-react";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
+import {
+  clearSnapshot,
+  isSnapshotUsable,
+  readSnapshot,
+  snapshotAgeLabel,
+  writeSnapshot,
+} from "./_lib/snapshot-cache";
 import { InstallPrompt } from "./_components/install-prompt";
 import { JournalActionsSheet } from "./_components/journal-actions-sheet";
 import { MiniCard } from "./_components/mini-card";
@@ -115,6 +122,11 @@ export default function MiniHomePage() {
     code: string;
     name: string;
   } | null>(null);
+  // Снимок прошлого ответа: в подвале с одной палкой главная идёт
+  // секунды, и всё это время виден только скелетон. Пометка
+  // «данные на 08:12» обязательна: без неё старый список выдаётся
+  // за сегодняшний.
+  const [snapshotAt, setSnapshotAt] = useState<number | null>(null);
   const signInStarted = useRef(false);
   const fetchStarted = useRef(false);
   const redirectStarted = useRef(false);
@@ -233,6 +245,11 @@ export default function MiniHomePage() {
       }
       const data = (await homeResp.json()) as HomeData;
       setHome(data);
+      setSnapshotAt(null);
+      writeSnapshot(data, {
+        userId: session?.user?.id ?? null,
+        organizationId: session?.user?.organizationId ?? null,
+      });
       // На успешном refetch сбрасываем error-state — пользователь
       // вытянул вниз, мы заново вошли в norma flow.
       setLocalState((prev) => (prev.kind === "error" ? { kind: "init" } : prev));
@@ -242,7 +259,26 @@ export default function MiniHomePage() {
         message: err instanceof Error ? err.message : "Не удалось загрузить данные",
       });
     }
-  }, []);
+  }, [session?.user?.id, session?.user?.organizationId]);
+
+  // Снимок показываем до первого же ответа сервера и только свой:
+  // владелец и организация записаны внутри снимка и сверяются.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    if (home) return;
+    const scope = {
+      userId: session?.user?.id ?? null,
+      organizationId: session?.user?.organizationId ?? null,
+    };
+    const snapshot = readSnapshot<HomeData>();
+    if (!isSnapshotUsable(snapshot, scope, Date.now())) {
+      // Чужой или протухший — убираем, чтобы не лежал до следующего раза.
+      if (snapshot) clearSnapshot();
+      return;
+    }
+    setHome(snapshot!.data);
+    setSnapshotAt(snapshot!.savedAt);
+  }, [status, home, session?.user?.id, session?.user?.organizationId]);
 
   // Коллега отметился с другого телефона, руководитель закрыл день —
   // главная обновляется сама, без «потяните вниз». Поток открываем
@@ -449,6 +485,20 @@ export default function MiniHomePage() {
             <div className="mini-eyebrow">
               {greeting} · {formatDateRu()}
             </div>
+            {/* Честная пометка возраста: без неё вчерашний список
+                задач неотличим от сегодняшнего. */}
+            {snapshotAt !== null ? (
+              <div
+                className="mt-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px]"
+                style={{
+                  background: "var(--mini-amber-soft)",
+                  color: "var(--mini-amber)",
+                }}
+              >
+                <Loader2 className="size-3 animate-spin" />
+                {snapshotAgeLabel(snapshotAt, Date.now())} · обновляем
+              </div>
+            ) : null}
             <h1
               className="mini-display mt-2"
               style={{ fontSize: "42px", color: "var(--mini-text)" }}
