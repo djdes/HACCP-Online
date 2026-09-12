@@ -24,16 +24,33 @@ import {
 } from "@/components/journals/queued-photos";
 
 import { decideQueueOutcome, retryDelayMs } from "./queue-policy";
+import { canSendQueuedEntry } from "./queue-owner";
 
 export { QUEUED_PHOTO_PREFIX } from "./queued-photo-mark";
 
 const DB_NAME = "wesetup-mini";
-const DB_VERSION = 1;
+/**
+ * v2 — появилось поле `ownerUserId`. Записи, созданные до обновления,
+ * его не имеют; что с ними делать, описано у `flushJournalQueue`.
+ */
+const DB_VERSION = 2;
 const STORE = "journal-queue";
 
 export type QueuedJournalEntry = {
   /** Он же ключ идемпотентности — один на все попытки этой записи. */
   id: string;
+  /**
+   * Кто заполнил. Без этого поля запись уходила с той сессией, которая
+   * окажется активной в момент появления связи, — а на кухне «одна
+   * трубка на три смены»: повар А заполняет без связи, смену сдаёт,
+   * повар Б входит, и запись А уходит за подписью Б. В журнале —
+   * подпись под измерением, которого человек не делал.
+   *
+   * `null` — запись из очереди старее этого поля (версия базы 1).
+   * Такие не отправляются автоматически: угадывать автора доказательства
+   * нельзя.
+   */
+  ownerUserId: string | null;
   createdAt: number;
   /** Название журнала — чтобы человеку было что показать в списке. */
   journalName: string;
@@ -132,21 +149,44 @@ export type FlushResult = {
   sent: number;
   rejected: number;
   pending: number;
+  /** Записи чужого автора или без автора — ждут, а не отправляются. */
+  foreign: number;
 };
 
 /**
  * Пробует отправить всё, чему подошёл срок. Вызывается при появлении
  * связи и при открытии кабинета.
  */
-export async function flushJournalQueue(): Promise<FlushResult> {
-  if (!isQueueAvailable()) return { sent: 0, rejected: 0, pending: 0 };
+export async function flushJournalQueue(
+  /**
+   * Кто сейчас в приложении. Отправляем только его записи: запрос уходит
+   * с текущей кукой, и чужая запись получила бы чужую подпись.
+   * `null` (сессии нет) — не отправляем ничего.
+   */
+  currentUserId: string | null,
+): Promise<FlushResult> {
+  if (!isQueueAvailable()) return { sent: 0, rejected: 0, pending: 0, foreign: 0 };
+  if (!currentUserId) {
+    const all = await listQueuedEntries();
+    return { sent: 0, rejected: 0, pending: all.length, foreign: 0 };
+  }
 
   const entries = await listQueuedEntries();
   let sent = 0;
   let rejected = 0;
+  let foreign = 0;
 
   for (const entry of entries) {
     if (entry.nextAttemptAt > Date.now()) continue;
+    // Чужая запись и запись без автора ждут своего человека. Ни то ни
+    // другое не ошибка и не повод для повтора — поэтому и счётчик
+    // попыток не трогаем: он про связь, а не про то, кто держит телефон.
+    // Правило в `queue-owner.ts` и под тестом: здесь решается, чьей
+    // подписью будет подписан журнал.
+    if (!canSendQueuedEntry(entry.ownerUserId, currentUserId)) {
+      foreign++;
+      continue;
+    }
 
     try {
       // Снимки уходят ПЕРЕД записью: запись со ссылкой на файл,
@@ -195,5 +235,19 @@ export async function flushJournalQueue(): Promise<FlushResult> {
   }
 
   const left = await listQueuedEntries();
-  return { sent, rejected, pending: left.length };
+  return { sent, rejected, pending: left.length, foreign };
+}
+
+/**
+ * Записи текущего человека — для счётчика на экране.
+ *
+ * Считать всё подряд нельзя: повар увидел бы «ждёт отправки: 3», где
+ * все три принадлежат сменщику, и решил бы, что его работа не ушла.
+ */
+export async function listOwnQueuedEntries(
+  currentUserId: string | null,
+): Promise<QueuedJournalEntry[]> {
+  if (!currentUserId) return [];
+  const rows = await listQueuedEntries();
+  return rows.filter((entry) => canSendQueuedEntry(entry.ownerUserId, currentUserId));
 }

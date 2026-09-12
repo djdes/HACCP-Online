@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useSession } from "next-auth/react";
 
 import { useNetwork } from "../_hooks/use-network";
 import {
   flushJournalQueue,
-  listQueuedEntries,
+  listOwnQueuedEntries,
   type FlushResult,
 } from "../_lib/journal-queue";
 
@@ -23,6 +24,9 @@ import {
  */
 export function OfflineIndicator() {
   const isOnline = useNetwork();
+  // Записи отправляются только своим автором — см. `journal-queue.ts`.
+  const { data: session } = useSession();
+  const userId = session?.user?.id ?? null;
   const [pending, setPending] = useState(0);
   const [justSent, setJustSent] = useState(0);
   const flushing = useRef(false);
@@ -31,9 +35,11 @@ export function OfflineIndicator() {
   useEffect(() => setMounted(true), []);
 
   const refresh = useCallback(async () => {
-    const rows = await listQueuedEntries().catch(() => []);
+    // Считаем только свои: иначе повар видел бы «ждёт отправки: 3», где
+    // все три — записи сменщика, и решил бы, что его работа не ушла.
+    const rows = await listOwnQueuedEntries(userId).catch(() => []);
     setPending(rows.length);
-  }, []);
+  }, [userId]);
 
   const flush = useCallback(async () => {
     // Один проход за раз: параллельные отправки одной записи упёрлись бы
@@ -41,8 +47,10 @@ export function OfflineIndicator() {
     if (flushing.current) return;
     flushing.current = true;
     try {
-      const result: FlushResult = await flushJournalQueue();
-      setPending(result.pending);
+      const result: FlushResult = await flushJournalQueue(userId);
+      // `result.pending` — это вся очередь, включая записи сменщика.
+      // На экране показываем только свои, поэтому пересчитываем.
+      await refresh();
       if (result.sent > 0) {
         setJustSent(result.sent);
         setTimeout(() => setJustSent(0), 4000);
@@ -50,7 +58,7 @@ export function OfflineIndicator() {
     } finally {
       flushing.current = false;
     }
-  }, []);
+  }, [userId, refresh]);
 
   useEffect(() => {
     void refresh();

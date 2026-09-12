@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { AlertTriangle, History, Wifi, Loader2 } from "lucide-react";
 import { describeDraftTime, draftStorageKey, filledCount } from "@/lib/form-draft";
 import { getJournalSpec } from "@/lib/journal-specs";
@@ -165,6 +166,11 @@ export function DynamicForm({
   rollingDoneLabel = "Готово на сегодня",
 }: DynamicFormProps) {
   const router = useRouter();
+  // Автор записи. Нужен офлайн-очереди: она отправляет отложенное той
+  // сессией, которая окажется активной, а на кухне телефон за смену
+  // меняет хозяина. Без явного автора запись подписалась бы чужим
+  // именем — см. `journal-queue.ts`.
+  const { data: session } = useSession();
   // Phase B: Conditional required fields. Используем journal-spec для
   // поиска полей которые становятся обязательными при отклонении +
   // правила определения «отклонения» из journal-deviation-rules.
@@ -550,8 +556,16 @@ export function DynamicForm({
       if (!isQueueAvailable()) return false;
 
       const photos = collectQueuedPhotos(requestBody);
+      const ownerUserId = session?.user?.id ?? null;
+      if (!ownerUserId) {
+        // Без известного автора в очередь не кладём: такую запись потом
+        // нельзя отправить, не угадывая, кто её делал, а журнал —
+        // доказательство на проверке. Форма покажет обычную ошибку сети.
+        return false;
+      }
       await enqueueJournalEntry({
         id: idempotencyKey,
+        ownerUserId,
         createdAt: Date.now(),
         journalName: templateName || templateCode,
         payload: requestBody,
