@@ -11,6 +11,7 @@ import {
   listOwnQueuedEntries,
   type FlushResult,
 } from "../_lib/journal-queue";
+import { notifyQueueSent, updateAppBadge } from "../_lib/app-badge";
 
 /**
  * Полоса состояния отправки вверху экрана.
@@ -40,6 +41,9 @@ export function OfflineIndicator() {
     // все три — записи сменщика, и решил бы, что его работа не ушла.
     const rows = await listOwnQueuedEntries(userId).catch(() => []);
     setPending(rows.length);
+    // Цифра на иконке — единственный способ увидеть неотправленное,
+    // не открывая приложение. На iOS фоновой отправки нет вовсе.
+    updateAppBadge(rows.length);
   }, [userId]);
 
   const flush = useCallback(async () => {
@@ -55,6 +59,9 @@ export function OfflineIndicator() {
       if (result.sent > 0) {
         setJustSent(result.sent);
         setTimeout(() => setJustSent(0), 4000);
+        // Пока приложение открыто, об этом говорит полоса выше;
+        // уведомление — для случая «поймал сеть, приложение свёрнуто».
+        void notifyQueueSent(result.sent);
       }
     } finally {
       flushing.current = false;

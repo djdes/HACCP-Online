@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -11,6 +12,12 @@ import {
   Sparkles,
   UserCheck,
 } from "lucide-react";
+
+import { haptic } from "./use-haptic";
+import {
+  applyCompleted,
+  applyReleased,
+} from "../_lib/task-pool-optimistic";
 
 type Scope = {
   scopeKey: string;
@@ -133,33 +140,63 @@ export function JournalTaskPool({
     }
   }
 
-  async function release(claimId: string) {
+  /**
+   * Действие над своей задачей с мгновенной перерисовкой.
+   *
+   * Раньше здесь было два обращения к сети подряд — само действие
+   * и перечитывание списка. На кухонном 3G это пара секунд
+   * спиннера на действии, исход которого известен заранее.
+   *
+   * Откат громкий: тихая перерисовка обратно выглядит как
+   * «нажал, а ничего не произошло» — и человек жмёт снова.
+   */
+  async function actOnClaim(
+    claimId: string,
+    action: "release" | "complete"
+  ) {
+    if (!pool) return;
+    const snapshot = pool;
+    setPool(
+      action === "complete"
+        ? applyCompleted(pool, claimId)
+        : applyReleased(pool, claimId)
+    );
     setBusy(claimId);
     try {
-      await fetch(`/api/journal-task-claims/${claimId}`, {
+      const res = await fetch(`/api/journal-task-claims/${claimId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "release" }),
+        body: JSON.stringify({ action }),
       });
-      await load();
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        setPool(snapshot);
+        haptic("error");
+        toast.error(
+          data?.message ??
+            (action === "complete"
+              ? "Не удалось завершить"
+              : "Не удалось отпустить")
+        );
+        return;
+      }
+      haptic("success");
+      // Сверка с сервером всё равно нужна — соседние строки могли
+      // измениться чужими руками, но экран её уже не ждёт.
+      void load();
+    } catch {
+      setPool(snapshot);
+      haptic("error");
+      toast.error("Нет связи — действие не сохранилось");
     } finally {
       setBusy(null);
     }
   }
 
-  async function complete(claimId: string) {
-    setBusy(claimId);
-    try {
-      await fetch(`/api/journal-task-claims/${claimId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "complete" }),
-      });
-      await load();
-    } finally {
-      setBusy(null);
-    }
-  }
+  const release = (claimId: string) => actOnClaim(claimId, "release");
+  const complete = (claimId: string) => actOnClaim(claimId, "complete");
 
   if (!pool && !error) {
     return (

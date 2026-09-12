@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
+import { InstallPrompt } from "./_components/install-prompt";
 import { JournalActionsSheet } from "./_components/journal-actions-sheet";
 import { MiniCard } from "./_components/mini-card";
 import { MiniBonusCard } from "./_components/mini-bonus-card";
@@ -545,6 +546,10 @@ export default function MiniHomePage() {
       {home.areas && home.areas.length > 0 ? (
         <GeoReminder areas={home.areas} />
       ) : null}
+
+      {/* Показывается само и только когда уместно: iPhone, не Telegram,
+          не установлено, после второй записи и не чаще раза в месяц. */}
+      <InstallPrompt />
 
       {/* «Я вышел / закончил смену» — self-service для линейного
           сотрудника. Manager-режим тоже видит кнопку: иногда
