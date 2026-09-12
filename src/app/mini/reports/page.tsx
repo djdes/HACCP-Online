@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ChevronRight, FileSpreadsheet, FileText } from "lucide-react";
 import { buildMiniOpenBridgePath } from "@/lib/journal-obligation-links";
 
+import { ShareButton } from "../_components/share-button";
+
 const REPORT_LINKS = [
   { label: "Журналы в PDF", href: "/reports?format=pdf", icon: FileText },
   { label: "Журналы в Excel", href: "/reports?format=excel", icon: FileSpreadsheet },
@@ -17,18 +19,34 @@ const REPORT_LINKS = [
 
 export default function MiniReportsPage() {
   return (
+    /* Цвета — токенами Mini App, а не сайтовыми хардкодами. Раньше здесь
+       стояли `bg-white` и `text-[#0b1024]`: в тёмной теме страница
+       выглядела как белая заплата посреди приложения. */
     <div className="flex flex-1 flex-col gap-4 pb-24">
-      <header className="rounded-3xl border border-[#ececf4] bg-white px-5 py-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#6f7282]">
-          Отчёты
-        </p>
-        <h1 className="mt-1 text-[22px] font-semibold tracking-[-0.02em] text-[#0b1024]">
+      <header className="mini-card px-5 py-5">
+        <p className="mini-eyebrow">Отчёты</p>
+        <h1
+          className="mt-1 text-[22px] font-semibold tracking-[-0.02em]"
+          style={{ color: "var(--mini-text)" }}
+        >
           Экспорт и разделы
         </h1>
-        <p className="mt-2 text-[13px] leading-5 text-[#6f7282]">
+        <p
+          className="mt-2 text-[13px] leading-5"
+          style={{ color: "var(--mini-text-muted)" }}
+        >
           Mini App держит ежедневную работу внутри Telegram. Большие отчёты
           открываются через понятный переход в полный кабинет.
         </p>
+        {/* Инспектор просит журнал прямо на кухне — системное меню отдаёт
+            его быстрее, чем скачивание и поиск, чем открыть файл. */}
+        <div className="mt-3">
+          <ShareButton
+            title="Журналы СанПиН и ХАССП"
+            text="Отчёты по журналам"
+            url="/reports"
+          />
+        </div>
       </header>
 
       <section className="space-y-2">
@@ -38,20 +56,35 @@ export default function MiniReportsPage() {
             <Link
               key={link.href}
               href={buildMiniOpenBridgePath(link.href, link.label)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-[#ececf4] bg-white px-4 py-3 text-left shadow-[0_0_0_1px_rgba(240,240,250,0.45)] active:scale-[0.98]"
+              className="mini-card mini-press flex w-full items-center gap-3 px-4 py-3 text-left"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#eef1ff] text-[#5566f6]">
+              <span
+                className="flex size-10 shrink-0 items-center justify-center rounded-2xl"
+                style={{
+                  background: "var(--mini-lime-soft)",
+                  color: "var(--mini-lime)",
+                }}
+              >
                 <Icon className="size-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[15px] font-medium text-[#0b1024]">
+                <span
+                  className="block truncate text-[15px] font-medium"
+                  style={{ color: "var(--mini-text)" }}
+                >
                   {link.label}
                 </span>
-                <span className="mt-0.5 block text-[12px] text-[#6f7282]">
+                <span
+                  className="mt-0.5 block text-[12px]"
+                  style={{ color: "var(--mini-text-muted)" }}
+                >
                   Полная версия
                 </span>
               </span>
-              <ChevronRight className="size-4 shrink-0 text-[#9b9fb3]" />
+              <ChevronRight
+                className="size-4 shrink-0"
+                style={{ color: "var(--mini-text-faint)" }}
+              />
             </Link>
           );
         })}

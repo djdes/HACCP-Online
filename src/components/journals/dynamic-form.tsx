@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useKeyboardInset } from "@/lib/use-keyboard-inset";
 import { AlertTriangle, History, Wifi, Loader2 } from "lucide-react";
 import { describeDraftTime, draftStorageKey, filledCount } from "@/lib/form-draft";
 import { getJournalSpec } from "@/lib/journal-specs";
@@ -171,6 +172,10 @@ export function DynamicForm({
   // меняет хозяина. Без явного автора запись подписалась бы чужим
   // именем — см. `journal-queue.ts`.
   const { data: session } = useSession();
+  // Высота экранной клавиатуры. Без неё липкий подвал уезжает ровно под
+  // клавиатуру в тот момент, когда «Сохранить» и нужен: человек ввёл
+  // значение — и кнопки нет.
+  const keyboardInset = useKeyboardInset();
   // Phase B: Conditional required fields. Используем journal-spec для
   // поиска полей которые становятся обязательными при отклонении +
   // правила определения «отклонения» из journal-deviation-rules.
@@ -1091,7 +1096,16 @@ export function DynamicForm({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col-reverse gap-3 sm:flex-row">
+        /* Подвал липкий: на телефоне форма журнала длиннее экрана, и
+           кнопка в потоке оказывалась под клавиатурой или требовала
+           прокрутки вниз после каждого поля. На широком экране это
+           обычный блок — там прокрутки нет и липкость только мешала бы. */
+        <div
+          className="sticky bottom-0 z-10 -mx-4 flex flex-col-reverse gap-3 border-t border-[#ececf4] bg-white px-4 pt-3 sm:static sm:mx-0 sm:flex-row sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0"
+          style={{
+            paddingBottom: `max(0.75rem, calc(var(--safe-b) + ${keyboardInset}px))`,
+          }}
+        >
           <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? "Сохранение..." : "Сохранить запись"}
           </Button>

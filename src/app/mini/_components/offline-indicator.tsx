@@ -79,6 +79,26 @@ export function OfflineIndicator() {
     return () => clearInterval(id);
   }, [isOnline, pending, flush]);
 
+  useEffect(() => {
+    // Возврат в приложение — самый частый момент, когда связь уже есть, а
+    // событие `online` было пропущено: вкладка спала. Фоновой отправки на
+    // iOS не существует (Background Sync там не поддерживается), поэтому
+    // очередь уходит ровно тогда, когда человек открыл приложение, — и
+    // ждать до тридцати секунд таймера незачем.
+    //
+    // `pageshow` нужен отдельно от `visibilitychange`: возврат «назад» из
+    // кеша страниц Safari не меняет видимость.
+    const onWake = () => {
+      if (document.visibilityState === "visible") void flush();
+    };
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("pageshow", onWake);
+    return () => {
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("pageshow", onWake);
+    };
+  }, [flush]);
+
   const visible = !isOnline || pending > 0 || justSent > 0;
   if (!visible || !mounted) return null;
 
