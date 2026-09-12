@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { sanitizeMiniAppRedirectPath } from "@/lib/journal-obligation-links";
+import { JournalActionsSheet } from "./_components/journal-actions-sheet";
 import { MiniCard } from "./_components/mini-card";
 import { MiniBonusCard } from "./_components/mini-bonus-card";
 import { getTelegramWebApp } from "./_components/telegram-web-app";
@@ -108,6 +109,11 @@ export default function MiniHomePage() {
     today: string;
   } | null>(null);
   const [startingShift, setStartingShift] = useState(false);
+  // Журнал, у которого открыт лист быстрых действий (долгое нажатие).
+  const [journalActions, setJournalActions] = useState<{
+    code: string;
+    name: string;
+  } | null>(null);
   const signInStarted = useRef(false);
   const fetchStarted = useRef(false);
   const redirectStarted = useRef(false);
@@ -768,6 +774,11 @@ export default function MiniHomePage() {
             >
               <MiniCard
                 href={`/mini/journals/${journal.code}`}
+                // Удержание — быстрые действия прямо с главной: «как вчера»
+                // делается каждую смену, а стоит трёх касаний и двух переходов.
+                onLongPress={() =>
+                  setJournalActions({ code: journal.code, name: journal.name })
+                }
                 title={journal.name}
                 subtitle={journal.description}
                 status={
@@ -786,6 +797,11 @@ export default function MiniHomePage() {
           ))
         )}
       </section>
+
+      <JournalActionsSheet
+        journal={journalActions}
+        onClose={() => setJournalActions(null)}
+      />
     </div>
     </PullToRefresh>
   );

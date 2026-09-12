@@ -44,6 +44,35 @@ export type TelegramWebApp = {
    * вложенных экранах /mini/* кроме корня. Пользователь привычно
    * жмёт её на iOS (где нет системной back-кнопки внутри WebApp).
    */
+  /**
+   * Главная кнопка Telegram внизу окна.
+   *
+   * Состояние глобальное, на уровне WebApp, а не страницы: не сняв
+   * обработчик и не спрятав кнопку при уходе с экрана, мы оставим
+   * её на следующем — с чужой надписью и действием в никуда.
+   */
+  MainButton?: {
+    text: string;
+    isVisible: boolean;
+    isActive: boolean;
+    isProgressVisible: boolean;
+    setText(text: string): void;
+    setParams(params: {
+      text?: string;
+      color?: string;
+      text_color?: string;
+      is_active?: boolean;
+      is_visible?: boolean;
+    }): void;
+    show(): void;
+    hide(): void;
+    enable(): void;
+    disable(): void;
+    showProgress(leaveActive?: boolean): void;
+    hideProgress(): void;
+    onClick(callback: () => void): void;
+    offClick(callback: () => void): void;
+  };
   BackButton?: {
     isVisible: boolean;
     show(): void;

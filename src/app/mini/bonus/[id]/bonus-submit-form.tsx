@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useMainButton } from "@/app/mini/_components/use-main-button";
 import { useRouter } from "next/navigation";
 import { Camera, Check, Loader2 } from "lucide-react";
 
@@ -36,6 +37,15 @@ export function BonusSubmitForm({
     minimumFractionDigits: amountKopecks % 100 === 0 ? 0 : 2,
   });
 
+  const mainButtonTaken = useMainButton({
+    text: submitting ? "Отправляем…" : "Готово, забрать премию",
+    enabled: Boolean(photoUrl) && !uploading,
+    loading: submitting,
+    onClick: () => {
+      void handleSubmit();
+    },
+  });
+
   async function handleFileChange(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
@@ -68,8 +78,8 @@ export function BonusSubmitForm({
     }
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function handleSubmit(event?: React.FormEvent) {
+    event?.preventDefault();
     if (!photoUrl) {
       setError("Прикрепи фото-доказательство — это обязательно");
       return;
@@ -237,8 +247,13 @@ export function BonusSubmitForm({
         </div>
       ) : null}
 
+      {/* Внутри Telegram отправка живёт в родной кнопке клиента — она
+          ниже нашего полотна и не уезжает под клавиатуру. Две кнопки
+          «Готово» на одном экране хуже любой одной, поэтому свою прячем.
+          В браузере и на старых клиентах остаётся эта. */}
       <button
         type="submit"
+        hidden={mainButtonTaken}
         disabled={submitting || uploading || !photoUrl}
         className="mini-press inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[15px] font-semibold disabled:opacity-50"
         style={{

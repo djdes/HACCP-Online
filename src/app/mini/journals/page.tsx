@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ScanLine } from "lucide-react";
 
+import { JournalActionsSheet } from "../_components/journal-actions-sheet";
 import { MiniCard } from "../_components/mini-card";
 import { MiniListSkeleton } from "../_components/mini-list-skeleton";
 import { MiniSearchField } from "../_components/mini-search-field";
@@ -42,6 +43,8 @@ export default function MiniJournalsIndexPage() {
   const unknownQr = searchParams.get("qr");
   const [state, setState] = useState<State>({ kind: "loading" });
   const [query, setQuery] = useState("");
+  // Удержание карточки — быстрые действия без захода в журнал.
+  const [actionsFor, setActionsFor] = useState<Journal | null>(null);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -179,10 +182,16 @@ export default function MiniJournalsIndexPage() {
               subtitle={journal.description}
               index={idx + 1}
               prefetch={idx < 5}
+              onLongPress={() => setActionsFor(journal)}
             />
           ))
         )}
       </section>
+
+      <JournalActionsSheet
+        journal={actionsFor}
+        onClose={() => setActionsFor(null)}
+      />
     </div>
   );
 }

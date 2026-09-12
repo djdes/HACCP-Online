@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+
+import { useLongPress } from "./use-long-press";
 import { ArrowUpRight } from "lucide-react";
 
 /**
@@ -13,6 +17,7 @@ export function MiniCard({
   status,
   index,
   prefetch = true,
+  onLongPress,
 }: {
   href: string;
   title: string;
@@ -28,7 +33,13 @@ export function MiniCard({
    * конце длинного списка.
    */
   prefetch?: boolean;
+  /**
+   * Удержание карточки — быстрые действия без перехода внутрь.
+   * Не задано — карточка ведёт себя как обычная ссылка.
+   */
+  onLongPress?: () => void;
 }) {
+  const longPress = useLongPress(onLongPress);
   const tone =
     status?.kind === "todo"
       ? "amber"
@@ -41,6 +52,7 @@ export function MiniCard({
       href={href}
       prefetch={prefetch}
       className="mini-press mini-card group flex items-stretch gap-3 px-3.5 py-3"
+      {...longPress}
     >
       {/* Vertical index numeral — mono */}
       {typeof index === "number" ? (
