@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,14 +16,17 @@ import {
   Save,
   Settings2,
   ShieldAlert,
+  Search,
   ShieldCheck,
   UserRound,
   Users,
+  X,
   Wifi,
   ZoomIn,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
+import { journalMatchesQuery, normalizeJournalSearch } from "@/lib/journal-search";
 import {
   Dialog,
   DialogContent,
@@ -109,6 +112,14 @@ export function JournalsSettingsClient({
     Object.fromEntries(paperItems.map((journal) => [journal.id, journal.enabled]))
   );
   const [saving, setSaving] = useState(false);
+  /**
+   * Поиск по набору. Ищет и по отключённым: именно их обычно и приходят
+   * включать, а листать тридцать пять карточек глазами — это и есть
+   * причина, по которой набор не настраивают.
+   */
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const normalizedQuery = normalizeJournalSearch(deferredQuery);
   const [highlightCode, setHighlightCode] = useState<string | null>(null);
   /** Код журнала, для которого открыта модалка распределения. */
   const [distDialogCode, setDistDialogCode] = useState<string | null>(null);
@@ -602,17 +613,33 @@ export function JournalsSettingsClient({
     () => new Set(rules.electronicRecommended),
     [rules],
   );
+  const foundItems = useMemo(
+    () =>
+      items.filter((item) =>
+        journalMatchesQuery([item.name, item.description, item.code], normalizedQuery),
+      ),
+    [items, normalizedQuery],
+  );
+  const foundPaper = useMemo(
+    () =>
+      paperItems.filter((journal) =>
+        journalMatchesQuery([journal.name, journal.id], normalizedQuery),
+      ),
+    [paperItems, normalizedQuery],
+  );
+  const foundCount = foundItems.length + foundPaper.length;
+
   const groups = useMemo(() => {
     const required: Item[] = [];
     const recommended: Item[] = [];
     const rest: Item[] = [];
-    for (const item of items) {
+    for (const item of foundItems) {
       if (requiredMap.has(item.code)) required.push(item);
       else if (recommendedSet.has(item.code)) recommended.push(item);
       else rest.push(item);
     }
     return { required, recommended, rest };
-  }, [items, requiredMap, recommendedSet]);
+  }, [foundItems, requiredMap, recommendedSet]);
 
   /** Сколько журналов включим/выключим, если применить набор сферы. */
   function diffFor(nextSphere: OrgSphere) {
@@ -801,10 +828,53 @@ export function JournalsSettingsClient({
         </span>
       </div>
 
+      {/* Поиск стоит над списком, а не в шапке: шапка про сферу и
+          счётчик, а это инструмент для самого набора. Ищет и по
+          отключённым — их чаще всего и приходят включать. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-[420px]">
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#9b9fb3]" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Поиск по названию, описанию или коду"
+            aria-label="Поиск по набору журналов"
+            className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white pl-11 pr-11 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Очистить поиск"
+              className="absolute right-2 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-[#9b9fb3] transition-colors hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+            >
+              <X className="size-4" />
+            </button>
+          ) : null}
+        </div>
+        <div className="text-[13px] text-[#6f7282] sm:whitespace-nowrap">
+          {normalizedQuery
+            ? `Найдено ${foundCount} из ${totalCount}`
+            : `Всего журналов: ${totalCount}`}
+        </div>
+      </div>
+
+      {normalizedQuery && foundCount === 0 ? (
+        <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center">
+          <div className="text-[15px] font-medium text-[#0b1024]">Ничего не нашли</div>
+          <p className="mx-auto mt-1.5 max-w-[360px] text-[13px] text-[#6f7282]">
+            Попробуйте другое слово — поиск идёт по названию, описанию и коду
+            журнала, включая отключённые.
+          </p>
+        </div>
+      ) : null}
+
+      {groups.required.length + foundPaper.length > 0 ? (
+        <>
       <GroupHeading
         title="Обязательные"
         hint="электронные — зелёные, бумажные бланки — жёлтые, в конце"
-        count={groups.required.length + paperItems.length}
+        count={groups.required.length + foundPaper.length}
         tone="required"
       />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -812,10 +882,12 @@ export function JournalsSettingsClient({
         {/* Бумажные идут в конце той же сетки: набор у заведения один,
             и делить его на «наши» и «не наши» журналы бессмысленно —
             инспектор спросит и те, и другие. */}
-        {paperItems.map((journal, index) =>
+        {foundPaper.map((journal, index) =>
           renderPaperCard(journal, index === 0)
         )}
       </div>
+        </>
+      ) : null}
 
       {groups.recommended.length > 0 ? (
         <>
@@ -832,6 +904,7 @@ export function JournalsSettingsClient({
 
       {/* open по умолчанию: свёрнутый список читался как «тут ничего
           нет», и половина набора журналов оставалась незамеченной. */}
+      {groups.rest.length > 0 ? (
       <details open className="group rounded-2xl border border-[#ececf4] bg-white">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
           <span className="text-[15px] font-semibold text-[#0b1024]">
@@ -856,6 +929,7 @@ export function JournalsSettingsClient({
           </button>
         </div>
       </details>
+      ) : null}
 
       <ConfirmDialog
         open={requiredOffCode !== null}

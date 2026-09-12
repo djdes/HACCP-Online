@@ -13,6 +13,8 @@ import { FillGuideLauncher } from "@/components/journals/fill-guide-launcher";
 import { TOUR } from "@/lib/tour-anchors";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { LinkPendingSpinner } from "@/components/ui/link-pending";
+import { JournalEnabledIndicatorSlot } from "@/components/journals/journal-enabled-indicator";
+import { cn } from "@/lib/utils";
 
 export function JournalTopBar(props: {
   heading: string;
@@ -57,9 +59,19 @@ export function JournalTopBar(props: {
     // документ» центрируются по высоте блока заголовка, а не липнут к первой
     // строке (P4 сводной таблицы аудита).
     <div className="flex flex-wrap items-start justify-between gap-4 sm:items-center">
-      <h1 className={JOURNAL_LIST_HEADING_CLASS}>
-        {props.heading}
-      </h1>
+      {/* Индикатор «журнал включён» — вплотную к заголовку: решение
+          «этот журнал нам не нужен» принимают, когда открыли его и
+          посмотрели. Данные приходят контекстом из страницы раздела;
+          в Mini App провайдера нет, и слот ничего не рисует. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 sm:max-w-[70%]">
+        {/* Ограничение ширины переехало с заголовка на эту строку: с
+            `w-full` на h1 индикатор всегда переносился под него, а
+            просили рядом. */}
+        <h1 className={cn(JOURNAL_LIST_HEADING_CLASS, "w-auto max-w-full sm:max-w-none")}>
+          {props.heading}
+        </h1>
+        <JournalEnabledIndicatorSlot />
+      </div>
       <div className={JOURNAL_LIST_ACTIONS_CLASS}>
         {/* Одна кнопка «Инструкция»: открывает окно с двумя вкладками —
             «Куда нажимать» (шаги по интерфейсу) и «Правила» (что и как

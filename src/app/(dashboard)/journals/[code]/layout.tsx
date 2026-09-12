@@ -1,5 +1,4 @@
 import { JournalDocGuideOverlay } from "@/components/journals/journal-doc-guide";
-import { PageBackLink } from "@/components/layout/page-nav";
 
 /**
  * Shared layout for the `/journals/<code>` subtree.
@@ -10,12 +9,13 @@ import { PageBackLink } from "@/components/layout/page-nav";
  * `(dashboard)/layout.tsx`. `bg-white` намеренно — в тёмной теме он
  * автоматически мапится в `--app-surface` (см. `app-theme.css`).
  *
- * Навигация вверх — «← Назад» из этого layout'а плюс хлебные крошки
- * (`JournalBreadcrumbs`), которые рендерятся серверно на самих страницах.
- * Кнопка живёт здесь, а не на страницах: так она гарантированно есть на
- * каждом экране раздела, включая те, что появятся позже. Глобальный
- * `PageNav` в этом поддереве отключён — его место снаружи белой подложки,
- * на сером фоне, а навигация должна стоять внутри неё.
+ * Навигация вверх — хлебные крошки (`JournalBreadcrumbs`), которые
+ * рендерятся серверно на самих страницах; кнопка «назад» встроена в них
+ * первой в строке. Раньше кнопка жила здесь отдельной строкой над
+ * крошками — одинаковый серый текст в 6px друг над другом читался как
+ * две строки одного текста. Глобальный `PageNav` в этом поддереве
+ * отключён: его место снаружи белой подложки, на сером фоне, а навигация
+ * должна стоять внутри неё.
  *
  * `JournalDocGuideOverlay` рендерит floating-кнопку «Как заполнять» —
  * сама компонента детектит по URL, что мы на странице документа, и
@@ -59,7 +59,6 @@ export default function JournalCodeLayout({ children }: { children: React.ReactN
           середине второй, а хвостовой padding дотягивал высоту до
           следующего листа. Кнопок в печати нет — запас под них не нужен. */}
       <div className="mx-auto w-full max-w-[1800px] space-y-3 px-4 pb-28 md:px-8 print:pb-0">
-        <PageBackLink fallbackHref="/journals" className="-mb-1.5" />
         {children}
         <JournalDocGuideOverlay />
       </div>

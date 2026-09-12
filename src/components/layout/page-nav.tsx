@@ -85,10 +85,11 @@ export function PageBackLink({
     <button
       type="button"
       onClick={goBack}
-      className={`-ml-3 inline-flex h-9 w-fit items-center gap-2 rounded-2xl px-3 text-[14px] text-[#6f7282] transition-colors hover:bg-[#f5f6ff] hover:text-[#0b1024] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden ${className}`}
+      title="Назад"
+      aria-label="Назад"
+      className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#ececf4] bg-white text-[#6f7282] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#5566f6] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 print:hidden ${className}`}
     >
       <ArrowLeft className="size-4" />
-      Назад
     </button>
   );
 }
@@ -161,10 +162,13 @@ export function PageNav({ organizationName }: { organizationName: string }) {
   // остальное — включая `/settings` — навигация есть всегда.
   if (pathname === "/dashboard" || isJournalCodeSubtree(pathname)) return null;
 
+  // Кнопка и крошки — одной строкой. Раньше они стояли друг под другом в
+  // 6px и одинаковым серым: читались как две строки одного текста, а не
+  // как «кнопка» и «где я». Круглая кнопка слева задаёт строке начало.
   return (
-    <div className="mb-4 flex flex-col gap-1.5 print:hidden">
+    <div className="mb-5 flex min-w-0 items-center gap-3 print:hidden">
       <PageBackLink fallbackHref={parentHref} />
-      <Breadcrumbs items={crumbs} />
+      <Breadcrumbs items={crumbs} className="min-w-0 flex-1" />
     </div>
   );
 }

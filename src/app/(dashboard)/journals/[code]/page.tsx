@@ -20,6 +20,10 @@ import { HealthDocumentsClient } from "@/components/journals/health-documents-cl
 import { readControlPeriodicity } from "@/lib/control-periodicity";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
+  JournalEnabledIndicator,
+  JournalToggleProvider,
+} from "@/components/journals/journal-enabled-indicator";
+import {
   getJournalAutomation,
   isAutomationSupported,
   isJournalAutomationEnabled,
@@ -1363,15 +1367,25 @@ export default async function JournalDocumentsPage({
           Этот журнал отключён
         </div>
         <p className="text-[14px] leading-[1.6] text-[#6f7282]">
-          «{template.name}» отключён для вашей организации. Чтобы вернуть его
-          в дашборд и список, включите журнал в настройках.
+          «{template.name}» отключён для вашей организации: он не показывается
+          на дашборде и сотрудникам. Включите его здесь же — записи и
+          документы за прошлые периоды никуда не делись.
         </p>
-        <a
-          href="/settings/journals"
-          className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors hover:bg-[#4a5bf0]"
-        >
-          Открыть настройки набора журналов
-        </a>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <JournalEnabledIndicator
+            code={resolvedCode}
+            name={template.name}
+            disabled
+            disabledCodes={disabledCodes}
+            canToggle={hasFullWorkspaceAccess(session.user)}
+          />
+          <a
+            href="/settings/journals"
+            className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          >
+            Весь набор журналов
+          </a>
+        </div>
       </div>
     );
   }
@@ -1430,7 +1444,18 @@ export default async function JournalDocumentsPage({
             autofillSupported={isAutomationSupported(resolvedCode)}
           />
         ) : null}
-        {children}
+        {/* Индикатор «включён / отключён» рисует общая шапка документных
+            журналов; данные о наборе и правах она получает отсюда. */}
+        <JournalToggleProvider
+          value={{
+            code: resolvedCode,
+            name: journalTitle,
+            disabledCodes,
+            canToggle: hasFullWorkspaceAccess(session.user),
+          }}
+        >
+          {children}
+        </JournalToggleProvider>
       </div>
     );
   }
@@ -4061,6 +4086,13 @@ export default async function JournalDocumentsPage({
         description={template.description ?? undefined}
         actions={
           <>
+            <JournalEnabledIndicator
+              code={resolvedCode}
+              name={template.name}
+              disabled={false}
+              disabledCodes={disabledCodes}
+              canToggle={hasFullWorkspaceAccess(session.user)}
+            />
             <PageHeaderStat>
               {entries.length} {entries.length === 1 ? "запись" : "записей"}
             </PageHeaderStat>

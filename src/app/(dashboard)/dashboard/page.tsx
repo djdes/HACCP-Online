@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   ArrowRight,
   BookOpen,
-  CheckCircle2,
   ClipboardList,
   Coins,
   FileDown,
@@ -26,7 +25,6 @@ import {
   User as UserIcon,
   Users,
   Wifi,
-  XCircle,
 } from "lucide-react";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -35,6 +33,7 @@ import { hasCapability } from "@/lib/permission-presets";
 import { TemperatureChart } from "@/components/charts/temperature-chart";
 import { CloseDayCard } from "@/components/dashboard/close-day-card";
 import { SAMPLE_JOURNAL_CODES } from "@/lib/journal-sample-fixtures";
+import { DashboardJournalsGrid } from "@/components/dashboard/dashboard-journals-grid";
 import { getJournalPreviewMap } from "@/lib/journal-preview/service";
 import { LiveClaimsCard } from "@/components/dashboard/live-claims-card";
 import { MedBooksExpiryCard } from "@/components/dashboard/med-books-expiry-card";
@@ -255,6 +254,11 @@ export default async function DashboardPage() {
     isHaccp: t.isMandatoryHaccp,
     previewUrl: previewUrls.get(t.code) ?? null,
   }));
+  // Отключённые журналы нужны только поиску на дашборде: без запроса они
+  // не рисуются, но найти и включить их надо уметь отсюда.
+  const disabledItems = templates
+    .filter((t) => disabledCodes.has(t.code))
+    .map((t) => ({ id: t.id, name: t.name, code: t.code, description: t.description }));
   const unfilledCount = complianceItems.filter((c) => !c.filled).length;
   const filledCount = complianceItems.length - unfilledCount;
   // Точки: сводка по точкам — заполнено сегодня на каждой, клик переключает.
@@ -356,140 +360,17 @@ export default async function DashboardPage() {
                   : { text: "все ✓", tone: "ok" }
               }
             >
-              {/* На телефоне один столбец, а не два. Две колонки
-                  оставляли названию около 110 px, и «Гигиенический
-                  журнал» рвался посреди слова: «Гигиеническ / ий». Во
-                  всю ширину название помещается целиком, и список из
-                  тридцати четырёх журналов становится короче: строка
-                  вместо карточки с превью. */}
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {complianceItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/journals/${item.code}`}
-                    className={cn(
-                      "group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border transition-colors duration-150",
-                      // Без свечения и подпрыгивания: статус читается по
-                      // цвету рамки и подложки, hover — только рамка.
-                      item.filled
-                        ? "border-[#c8f0d5] hover:border-[#7cf5c0]"
-                        : "border-[#ffd2cd] hover:border-[#ff8d7d]"
-                    )}
-                  >
-                    {/* Превью: снимок первой страницы своего документа,
-                        если cron уже отрисовал, иначе стандартный образец
-                        бланка — по названию вроде «Чек-лист (памятка)
-                        проведения санитарного дня» невозможно вспомнить,
-                        что там за форма.
-                        
-                        На телефоне превью скрыто: в карточке шириной
-                        165 px бумажный бланк с пропорциями 1228×862
-                        превращается в нечитаемую полоску 119 px, а
-                        тридцать четыре таких полоски растягивали
-                        дашборд на семь экранов. */}
-                    {item.previewUrl || SAMPLE_CODES.has(item.code) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.previewUrl ?? `/journal-samples/${item.code}.webp`}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                        width={768}
-                        height={539}
-                        className="hidden aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top sm:block"
-                      />
-                    ) : null}
-
-                    <span
-                      className={cn(
-                        // flex-1: в ряду карточки одной высоты, но у одних
-                        // заголовок в строку, у других в две. Без растяжения
-                        // цветная полоса кончалась по тексту и под ней
-                        // оставалась белая щель до низа карточки.
-                        "flex min-w-0 flex-1 items-center gap-2.5 px-3.5 py-3 text-[14px]",
-                        item.filled ? "bg-[#effaf1]" : "bg-[#fff4f2]"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex size-7 shrink-0 items-center justify-center rounded-lg",
-                          item.filled
-                            ? "bg-[#d9f4e1] text-[#136b2a]"
-                            : "bg-[#ffe1dc] text-[#d2453d]"
-                        )}
-                      >
-                        {item.filled ? (
-                          <CheckCircle2 className="size-4" />
-                        ) : (
-                          <XCircle className="size-4" />
-                        )}
-                      </span>
-                      <span
-                        className={cn(
-                          // Кегль вернулся к 15px: с одной колонкой на
-                          // телефоне названию хватает ширины, и мельчить
-                          // ради «Гигиени…» больше не нужно.
-                          "line-clamp-2 min-w-0 flex-1 break-words text-[15px] font-semibold leading-snug tracking-[-0.01em]",
-                          item.filled ? "text-[#136b2a]" : "text-[#a1362f]"
-                        )}
-                      >
-                        {item.name}
-                      </span>
-                      {/* Стрелка вернулась и на телефон: раньше эти
-                          16px забирали последнее слово названия, но с
-                          одной колонкой места достаточно, а строка без
-                          стрелки хуже читается как ссылка. */}
-                      <ArrowRight
-                        className={cn(
-                          "size-4 shrink-0 transition-transform group-hover:translate-x-0.5",
-                          item.filled ? "text-[#7cf5c0]" : "text-[#ffb0a6]"
-                        )}
-                      />
-                    </span>
-                  </Link>
-                ))}
-
-                {/* Бумажные журналы. Та же геометрия, но нейтральные и без
-                    статуса: отметить «заполнено» в системе нельзя —
-                    подпись ставится ручкой на распечатанном листе. Цвет
-                    (зелёный/красный) остаётся только у электронных, где он
-                    что-то значит; янтарный «третий статус» читался как
-                    предупреждение. */}
-                {paperItems.map((paper) => (
-                  <Link
-                    key={paper.id}
-                    href={`/settings/journals/paper/${paper.id}`}
-                    className="group flex w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#ececf4] bg-[#fafbff] transition-colors duration-150 hover:border-[#5566f6]/40"
-                  >
-                    {/* Превью настоящего бланка — тот же конвейер, что у
-                        электронных образцов (paper_<id>.png). Скелет-заглушка
-                        не давала понять, что за форма распечатается. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/journal-samples/paper_${paper.id}.webp`}
-                      alt=""
-                      loading="lazy"
-                      className="aspect-[1228/862] w-full border-b border-[#ececf4] bg-white object-cover object-top"
-                    />
-                    <span className="flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 py-3">
-                      <span className="inline-flex w-fit items-center gap-1 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-medium text-[#3848c7]">
-                        <Printer className="size-3" />
-                        {/* На телефоне полная подпись «Бумажный ·
-                            распечатать» переносилась в две строки внутри
-                            пилюли и выглядела сломанной. */}
-                        <span className="sm:hidden">Бумажный</span>
-                        <span className="hidden sm:inline">
-                          Бумажный · распечатать
-                        </span>
-                      </span>
-                      <span className="line-clamp-3 break-words text-[13px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024] sm:line-clamp-2 sm:text-[15px]">
-                        {paper.name}
-                      </span>
-                    </span>
-                  </Link>
-                ))}
-              </div>
+              {/* Сетка и поиск над ней — клиентский компонент: фильтрация
+                  идёт на месте, и в результатах показываются в том числе
+                  отключённые журналы с кнопкой «Включить». */}
+              <DashboardJournalsGrid
+                items={complianceItems}
+                paperItems={paperItems.map((paper) => ({ id: paper.id, name: paper.name }))}
+                disabledItems={disabledItems}
+                disabledCodes={[...disabledCodes]}
+                sampleCodes={[...SAMPLE_CODES]}
+                canToggle={hasFullWorkspaceAccess(session.user)}
+              />
             </DashboardSection>
           )}
 

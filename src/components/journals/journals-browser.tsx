@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { journalMatchesQuery, normalizeJournalSearch } from "@/lib/journal-search";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ALL_DAILY_JOURNAL_CODES } from "@/lib/daily-journal-codes";
@@ -120,10 +121,6 @@ const JOURNAL_ICONS: Record<string, LucideIcon> = {
   pest_control: Bug,
 };
 
-function normalizeSearchValue(value: string) {
-  return value.toLocaleLowerCase("ru-RU").trim();
-}
-
 export function JournalsBrowser({
   templates,
   canBulkCreate = false,
@@ -141,15 +138,15 @@ export function JournalsBrowser({
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const deferredQuery = useDeferredValue(query);
-  const normalizedQuery = normalizeSearchValue(deferredQuery);
+  const normalizedQuery = normalizeJournalSearch(deferredQuery);
 
   const filteredTemplates = useMemo(() => {
     if (!normalizedQuery) return templates;
     return templates.filter((template) => {
-      const searchableText = normalizeSearchValue(
-        [template.name, template.description, template.code].filter(Boolean).join(" ")
+      return journalMatchesQuery(
+        [template.name, template.description, template.code],
+        normalizedQuery,
       );
-      return searchableText.includes(normalizedQuery);
     });
   }, [templates, normalizedQuery]);
 
