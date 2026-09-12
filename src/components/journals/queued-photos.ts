@@ -78,12 +78,40 @@ export function hasQueuedPhotos(payload: unknown): boolean {
  * если бы снимок не загрузился из-за обрыва, а связь вернулась до
  * нажатия «Сохранить».
  */
+export class MissingQueuedPhotoError extends Error {
+  constructor() {
+    super("queued photo blob is gone");
+    this.name = "MissingQueuedPhotoError";
+  }
+}
+
+/**
+ * Защёлка: в теле запроса не осталось меток.
+ *
+ * Метка без снимка — самый неприятный исход из возможных: запись
+ * уйдёт и будет выглядеть заполненной, а в поле фото будет строка
+ * «queued-photo:…» вместо доказательства. На проверке это хуже пустого
+ * поля: пустое видно сразу, а битую ссылку заметят через полгода.
+ *
+ * Дойти сюда можно: `collectQueuedPhotos` собирает снимки из памяти
+ * страницы, и если страница перезагрузилась или снимок уже отпущен,
+ * он вернёт пустоту — а метка в теле останется.
+ */
+export function assertNoQueuedPhotoMarks(payload: unknown): void {
+  if (hasQueuedPhotos(payload)) throw new MissingQueuedPhotoError();
+}
+
 export async function uploadAndSubstitutePhotos<T>(
   payload: T,
   photos: Record<string, Blob>,
 ): Promise<T> {
   const marks = Object.keys(photos);
-  if (marks.length === 0) return payload;
+  if (marks.length === 0) {
+    // Нечего загружать — но если метки всё же есть, значит снимки
+    // потеряны, и отправлять такую запись нельзя.
+    assertNoQueuedPhotoMarks(payload);
+    return payload;
+  }
 
   let serialized = JSON.stringify(payload);
   for (const mark of marks) {
@@ -101,7 +129,11 @@ export async function uploadAndSubstitutePhotos<T>(
     // фото в каждом из тридцати пяти журналов.
     serialized = serialized.split(mark).join(data.url);
   }
-  return JSON.parse(serialized) as T;
+  const substituted = JSON.parse(serialized) as T;
+  // Часть меток могла не найтись в памяти — тогда они остались
+  // в теле и уехали бы в журнал строкой.
+  assertNoQueuedPhotoMarks(substituted);
+  return substituted;
 }
 
 export function releaseQueuedPhoto(mark: string): void {

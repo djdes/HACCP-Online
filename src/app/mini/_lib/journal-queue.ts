@@ -21,6 +21,7 @@
 import {
   PhotoRejectedError,
   uploadAndSubstitutePhotos,
+  MissingQueuedPhotoError,
 } from "@/components/journals/queued-photos";
 
 import { decideQueueOutcome, retryDelayMs } from "./queue-policy";
@@ -262,7 +263,13 @@ export async function flushJournalQueue(
         await markAttempt(entry, null);
       }
     } catch (error) {
-      if (error instanceof PhotoRejectedError) {
+      if (error instanceof MissingQueuedPhotoError) {
+        // Снимка больше нет — связь его не вернёт. Повторять такую
+        // запись бессмысленно, а отправить нельзя: в журнал уйдёт
+        // строка вместо доказательства. Оставляем видимой в «Что не ушло».
+        rejected++;
+        await markAttempt(entry, "Фото потеряно — запишите заново со снимком", true);
+      } else if (error instanceof PhotoRejectedError) {
         // Сервер снимок не принял (например, слишком большой). Повторять
         // бессмысленно — отказ тот же. Запись оставляем и помечаем: она
         // видна в счётчике, и молчаливой пропажи не будет.

@@ -30,6 +30,7 @@ import {
   isQueueAvailable,
 } from "@/app/mini/_lib/journal-queue";
 import {
+  MissingQueuedPhotoError,
   PhotoRejectedError,
   collectQueuedPhotos,
   hasQueuedPhotos,
@@ -456,6 +457,13 @@ export function DynamicForm({
         } catch (photoError) {
           // Сервер снимок отверг — очередь не поможет, отказ повторится.
           if (photoError instanceof PhotoRejectedError) serverAnswered = true;
+          // Снимка больше нет в памяти страницы — в очередь тоже нельзя:
+          // связь его не вернёт, а запись ушла бы со строкой
+          // «queued-photo:…» вместо доказательства.
+          if (photoError instanceof MissingQueuedPhotoError) {
+            serverAnswered = true;
+            throw new Error("Фото потерялось — снимите его заново");
+          }
           throw photoError instanceof PhotoRejectedError
             ? new Error("Фото не принято сервером — снимите другое")
             : photoError;
