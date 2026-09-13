@@ -16,6 +16,7 @@ import {
   getAllowedJournalCodes,
 } from "@/lib/journal-acl";
 import { getUserPermissions } from "@/lib/permissions-server";
+import { isManagerLikePermissions } from "@/lib/permissions";
 import { getServerSession } from "@/lib/server-session";
 import { getManagerScope, getAssignableJournalCodes } from "@/lib/manager-scope";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
@@ -54,11 +55,13 @@ export async function GET() {
 
   const assignableCodes = getAssignableJournalCodes(scope, allowedCodes);
 
-  // Permission-based mode detection (mirrors start-home.ts logic).
+  // Признак руководителя — общий с ботом и /api/mini/session
+  // (`isManagerLikePermissions`). Здесь раньше стояла своя копия через
+  // `dashboard.view`, и она отдавала экран руководителя линейному
+  // персоналу: это право есть у всех по умолчанию.
   const isManagerLike =
     session.user.isRoot === true ||
-    perms.has("dashboard.view") ||
-    perms.has("staff.manage");
+    isManagerLikePermissions(perms, session.user.role);
   const canFillJournals =
     session.user.isRoot === true || perms.has("journals.fill");
 

@@ -22,6 +22,8 @@
  *   - конкретный человек (permissionsJson на User)
  */
 
+import { isManagementRole } from "@/lib/user-roles";
+
 export const PERMISSIONS = [
   "dashboard.view",
   "journals.view",
@@ -209,6 +211,49 @@ export function getDefaultPermissionsForCategory(
 ): ReadonlyArray<Permission> {
   if (categoryKey === "staff") return DEFAULT_STAFF_PERMISSIONS;
   return DEFAULT_MANAGEMENT_PERMISSIONS;
+}
+
+/**
+ * Права, которых заведомо НЕТ у линейного персонала (сверено с
+ * `DEFAULT_STAFF_PERMISSIONS`). По ним и опознаётся руководитель.
+ *
+ * Список, а не одно право: должность настраивают вручную, и заведующая
+ * без «управления сотрудниками», но с приёмкой задач — всё равно
+ * руководитель.
+ */
+export const MANAGER_PERMISSIONS: ReadonlyArray<Permission> = [
+  "staff.view",
+  "staff.manage",
+  "reports.view",
+  "audit.view",
+  "settings.permissions",
+];
+
+/**
+ * Показывать ли человеку экран руководителя (сводка по заведению)
+ * вместо своего списка задач — в Mini App и в ответе бота.
+ *
+ * Раньше каждое из трёх мест спрашивало это само, и все три спрашивали
+ * `dashboard.view`. А он есть у линейного персонала по умолчанию: это
+ * «можно открыть главную», а не «начальник». В результате повар,
+ * открывший приложение, видел сводку по всему кафе вместо своих задач.
+ *
+ * Роль учитывается наравне с правами: у части руководителей должность
+ * заведена в категории «персонал» (шеф-повар, управляющий-бариста), и по
+ * одним правам они выглядели бы линейным сотрудником, хотя на сайте
+ * система считает их руководством. Линейного персонала это не задевает —
+ * управленческой роли у него нет.
+ *
+ * Держим признак здесь, чтобы копии снова не разъехались.
+ */
+export function isManagerLikePermissions(
+  perms: ReadonlySet<Permission> | Set<string>,
+  role?: string | null,
+): boolean {
+  if (isManagementRole(role)) return true;
+  return MANAGER_PERMISSIONS.some((permission) =>
+    (perms as Set<string>).has(permission),
+  );
 }
 
 function parsePermissionsJson(value: unknown): Permission[] | null {

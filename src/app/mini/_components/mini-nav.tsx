@@ -30,7 +30,11 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: "/mini/staff", label: "Сотрудники", icon: Users, requires: ["staff.view"] },
   { href: "/mini/equipment", label: "Оборуд.", icon: Package, requires: ["equipment.view"] },
   { href: "/mini/reports", label: "Отчёты", icon: FileText, requires: ["reports.view"] },
-  { href: "/mini/audit", label: "Аудит", icon: ShieldCheck, requires: ["dashboard.view"] },
+  // «Аудит» — журнал действий заведения. Требование совпадает с тем,
+  // что проверяет `/api/mini/audit`: раньше вкладка висела на
+  // `dashboard.view`, который есть у любого сотрудника, и повар видел
+  // вкладку, за которой его ждал отказ.
+  { href: "/mini/audit", label: "Аудит", icon: ShieldCheck, requires: ["audit.view"] },
   { href: "/mini/iot", label: "IoT", icon: Cpu, requires: ["equipment.view"] },
   { href: "/mini/shift-handover", label: "Смены", icon: ClipboardList },
   { href: "/mini/me", label: "Профиль", icon: UserRound },

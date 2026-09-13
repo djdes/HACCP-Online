@@ -8,6 +8,7 @@ import {
   type OpenJournalObligation,
 } from "@/lib/journal-obligations";
 import { getUserPermissions } from "@/lib/permissions-server";
+import { isManagerLikePermissions } from "@/lib/permissions";
 import { getManagerScope, canAssignJournal, type ManagerScope } from "@/lib/manager-scope";
 
 type LinkedTelegramUser = {
@@ -143,7 +144,7 @@ async function isManagerLike(
 ): Promise<boolean> {
   if (user.isRoot === true) return true;
   const perms = await deps.getUserPermissions(user.id);
-  return perms.has("dashboard.view") || perms.has("staff.manage");
+  return isManagerLikePermissions(perms, user.role);
 }
 
 /**

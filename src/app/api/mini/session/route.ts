@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getUserPermissions } from "@/lib/permissions-server";
+import { isManagerLikePermissions } from "@/lib/permissions";
 import { getServerSession } from "@/lib/server-session";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +15,7 @@ export async function GET() {
   const perms = await getUserPermissions(session.user.id);
   const isManagerLike =
     session.user.isRoot === true ||
-    perms.has("dashboard.view") ||
-    perms.has("staff.manage");
+    isManagerLikePermissions(perms, session.user.role);
 
   return NextResponse.json({
     user: {
