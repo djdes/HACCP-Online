@@ -103,6 +103,7 @@ import {
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
 import { useTodayKey } from "@/lib/use-today-key";
+import { NO_ROW_EMPLOYEE_MESSAGE, useRosterViewerId } from "@/components/journals/use-roster-viewer";
 import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 type UserItem = {
   id: string;
@@ -692,6 +693,7 @@ export function CleaningVentilationChecklistDocumentClient({
   // «Сегодня» считаем после mount (см. useTodayKey): new Date() в
   // рендере давал hydration mismatch и подсветку не того дня.
   const todayKey = useTodayKey();
+  const viewerId = useRosterViewerId(users);
   const [config, setConfig] = useState(() =>
     normalizeCleaningVentilationConfig(initialConfig, users)
   );
@@ -827,9 +829,14 @@ export function CleaningVentilationChecklistDocumentClient({
     nextData: CleaningVentilationChecklistEntryData,
     options?: { silent?: boolean }
   ) => {
+    // Запись — на выбранного ответственного, иначе на вошедшего. «Первого
+    // в списке» не берём: запись ушла бы от случайного человека.
     const employeeId =
-      nextData.responsibleUserId || config.mainResponsibleUserId || users[0]?.id;
-    if (!employeeId) return;
+      nextData.responsibleUserId || config.mainResponsibleUserId || viewerId;
+    if (!employeeId) {
+      toast.error(NO_ROW_EMPLOYEE_MESSAGE);
+      return;
+    }
 
     const previousData: CleaningVentilationChecklistEntryData =
       entryMap[dateKey]?.data ?? { procedures: {} };

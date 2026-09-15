@@ -22,7 +22,8 @@ import {
   normalizeAcceptanceDocumentConfig,
   type AcceptanceDocumentConfig,
 } from "@/lib/acceptance-document";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel } from "@/lib/user-roles";
+import { getUserRoleLabel } from "@/lib/user-roles";
+import { useJournalCreateDefaults } from "@/components/journals/journal-create-defaults";
 import {
   EMPTY_STATE_CREATE_BUTTON_CLASS,
   EmptyDocumentsState,
@@ -100,16 +101,14 @@ function formatRuDate(value: string) {
   return year && month && day ? `${day}-${month}-${year}` : value;
 }
 
-function getUsersForRole(users: User[], roleLabel: string) {
-  return users.filter((user) => getUserRoleLabel(user.role) === roleLabel);
-}
-
 function getDefaultDialogState(
   templateCode: string,
   users: User[],
   availableProducts: string[],
   availableManufacturers: string[],
-  availableSuppliers: string[]
+  availableSuppliers: string[],
+  /** Основной ответственный из «Ответственные за журналы» или null. */
+  defaultResponsibleUserId: string | null
 ): DialogState {
   const config = buildAcceptanceDocumentConfigFromData({
     users,
@@ -125,8 +124,17 @@ function getDefaultDialogState(
     title: "",
     startDate: localDayKey(),
     expiryFieldLabel: config.expiryFieldLabel,
-    responsibleTitle: config.defaultResponsibleTitle || USER_ROLE_LABEL_VALUES[0],
-    responsibleUserId: config.defaultResponsibleUserId || users[0]?.id || "",
+    // Предвыбор — только человек из «Ответственных за журналы». Первого
+    // по списку не подставляем: сервер не отличил бы его от выбора.
+    ...(() => {
+      const preset = defaultResponsibleUserId
+        ? users.find((user) => user.id === defaultResponsibleUserId) ?? null
+        : null;
+      return {
+        responsibleTitle: preset ? getUserRoleLabel(preset.role) : "",
+        responsibleUserId: preset?.id ?? "",
+      };
+    })(),
     controlPeriodicity: getDefaultControlPeriodicity(templateCode),
     showPackagingCompliance: config.showPackagingCompliance,
   };
@@ -338,6 +346,7 @@ export function IncomingControlDocumentsClient({
   const defaultDocumentTitle = getAcceptanceDocumentTitle(templateCode);
   const pageTitle = getAcceptancePageTitle(templateCode);
   const isProductAcceptance = templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE;
+  const createDefaults = useJournalCreateDefaults();
   const createState = useMemo(
     () =>
       getDefaultDialogState(
@@ -345,9 +354,17 @@ export function IncomingControlDocumentsClient({
         users,
         availableProducts,
         availableManufacturers,
-        availableSuppliers
+        availableSuppliers,
+        createDefaults.defaultResponsibleUserId
       ),
-    [availableManufacturers, availableProducts, availableSuppliers, templateCode, users]
+    [
+      availableManufacturers,
+      availableProducts,
+      availableSuppliers,
+      createDefaults.defaultResponsibleUserId,
+      templateCode,
+      users,
+    ]
   );
 
   function buildConfigFromPayload(payload: DialogState, includeSampleRows = false) {
@@ -364,13 +381,12 @@ export function IncomingControlDocumentsClient({
   }
 
   async function createDocument(payload: DialogState) {
-    const responsibleUserId =
-      payload.responsibleUserId ||
-      getUsersForRole(users, payload.responsibleTitle)[0]?.id ||
-      users[0]?.id ||
-      "";
+    // Человека не выбрали — не подставляем первого по роли или списку:
+    // сервер возьмёт «Ответственных за журналы» или оставит «не назначен».
+    const responsibleUserId = payload.responsibleUserId || "";
     const config = {
-      ...buildConfigFromPayload({ ...payload, responsibleUserId }, true),
+      // Без строк-образцов: новый документ реальной организации пустой.
+      ...buildConfigFromPayload({ ...payload, responsibleUserId }, false),
       expiryFieldLabel: payload.expiryFieldLabel,
       showPackagingCompliance: payload.showPackagingCompliance,
     };
@@ -598,10 +614,8 @@ export function IncomingControlDocumentsClient({
                   const config = normalizeAcceptanceDocumentConfig(settingsDocument.config, users);
                   return {
                     expiryFieldLabel: config.expiryFieldLabel,
-                    responsibleTitle:
-                      config.defaultResponsibleTitle || USER_ROLE_LABEL_VALUES[0],
-                    responsibleUserId:
-                      config.defaultResponsibleUserId || users[0]?.id || "",
+                    responsibleTitle: config.defaultResponsibleTitle || "",
+                    responsibleUserId: config.defaultResponsibleUserId || "",
                     controlPeriodicity: readControlPeriodicity(
                       settingsDocument.config,
                       templateCode

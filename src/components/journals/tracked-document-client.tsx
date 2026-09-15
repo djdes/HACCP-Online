@@ -52,6 +52,7 @@ import { toast } from "sonner";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useRosterViewerId } from "@/components/journals/use-roster-viewer";
 type EmployeeItem = {
   id: string;
   name: string;
@@ -141,14 +142,17 @@ function TrackedDocumentClientImpl({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [titleInput, setTitleInput] = useState(title);
+  // Ни ответственного, ни новую строку не записываем на «первого в списке»:
+  // строку по умолчанию — на вошедшего, если он в ростере документа.
+  const viewerId = useRosterViewerId(employees);
   const [responsibleUserIdInput, setResponsibleUserIdInput] = useState(
-    responsibleUserId || employees[0]?.id || ""
+    responsibleUserId || ""
   );
   const [responsibleTitleInput, setResponsibleTitleInput] = useState(
     responsibleTitle || ""
   );
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
-  const [newEmployeeId, setNewEmployeeId] = useState(employees[0]?.id || "");
+  const [newEmployeeId, setNewEmployeeId] = useState(viewerId);
   const [newDate, setNewDate] = useState(localDayKey());
 
   useEffect(() => {
@@ -158,15 +162,15 @@ function TrackedDocumentClientImpl({
   useEffect(() => {
     if (!settingsOpen) return;
     setTitleInput(title);
-    setResponsibleUserIdInput(responsibleUserId || employees[0]?.id || "");
+    setResponsibleUserIdInput(responsibleUserId || "");
     setResponsibleTitleInput(responsibleTitle || "");
-  }, [settingsOpen, title, responsibleUserId, responsibleTitle, employees]);
+  }, [settingsOpen, title, responsibleUserId, responsibleTitle]);
 
   useEffect(() => {
     if (!addRowOpen) return;
-    setNewEmployeeId(employees[0]?.id || "");
+    setNewEmployeeId(viewerId);
     setNewDate(localDayKey());
-  }, [addRowOpen, employees]);
+  }, [addRowOpen, viewerId]);
 
   const { mobileView, switchMobileView } = useMobileView(templateCode);
   // Generic-клиент обслуживает все документные журналы без своей

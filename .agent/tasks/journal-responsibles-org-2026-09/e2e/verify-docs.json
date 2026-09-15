@@ -2,8 +2,8 @@
   "checks": [
     {
       "name": "в организации A есть документы (создание + пересоздание + cron)",
-      "ok": false,
-      "detail": 21
+      "ok": true,
+      "detail": 60
     },
     {
       "name": "ответственные всех документов — сотрудники A",
@@ -32,8 +32,8 @@
     },
     {
       "name": "пересоздание/cron создали документы без «E2E» в названии",
-      "ok": false,
-      "detail": 0
+      "ok": true,
+      "detail": 39
     },
     {
       "name": "hygiene: applyRemoteCompletion с сотрудником B → false",
@@ -129,7 +129,7 @@
     {
       "name": "ремонт --apply: заглушка «имя = почта» заменена",
       "ok": true,
-      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+      "detail": "cmu2stncc0008wk9m2yu67ip7"
     },
     {
       "name": "ремонт --apply: стоковые холодильники убраны",

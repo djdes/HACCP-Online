@@ -182,6 +182,32 @@ async function main() {
     });
     check("PATCH с чужим ответственным → 400", patchForeign.status() === 400, await patchForeign.json().catch(() => null));
 
+    // Смена ответственного через PATCH — в шапке должность из карточки.
+    const toHead = await api.patch(`${BASE}/api/journal-documents/${hygieneId}`, {
+      data: { responsibleUserId: U.headA.id },
+    });
+    const afterHead = await db.journalDocument.findUnique({ where: { id: hygieneId }, select: { responsibleUserId: true, responsibleTitle: true } });
+    check(
+      "PATCH смены ответственного → должность из карточки сотрудника",
+      toHead.ok() && afterHead?.responsibleUserId === U.headA.id && afterHead?.responsibleTitle === "Заведующая производством",
+      afterHead
+    );
+
+    // Уволенный ответственный не блокирует сохранение ячеек: клиенты шлют
+    // текущего ответственного при каждом сохранении.
+    await db.journalDocument.update({ where: { id: hygieneId }, data: { responsibleUserId: U.archivedA.id } });
+    const archivedConfig = await db.journalDocument.findUnique({ where: { id: hygieneId }, select: { config: true } });
+    const keepArchived = await api.patch(`${BASE}/api/journal-documents/${hygieneId}`, {
+      data: { config: archivedConfig?.config ?? {}, responsibleUserId: U.archivedA.id },
+    });
+    const afterArchived = await db.journalDocument.findUnique({ where: { id: hygieneId }, select: { responsibleUserId: true } });
+    check(
+      "сохранение с прежним (уволенным) ответственным → 200, ответственный прежний",
+      keepArchived.ok() && afterArchived?.responsibleUserId === U.archivedA.id,
+      { status: keepArchived.status(), after: afterArchived }
+    );
+    await db.journalDocument.update({ where: { id: hygieneId }, data: { responsibleUserId: U.cleanerA.id } });
+
     // ── Страницы документа, Mini App, PDF ─────────────────────────────
     const page = await manager.newPage();
     const settle = () => page.waitForTimeout(2500);
@@ -201,12 +227,56 @@ async function main() {
     await page.screenshot({ path: path.join(SHOTS, "mini-hygiene.png"), fullPage: false });
     check("Mini App документ без «Тест»", !/ООО\s*["«]Тест/.test(await page.content()), page.url());
 
+    // ── Входной контроль: документ из диалога без строк-образцов ─────
+    const incomingBefore = await db.journalDocument.findMany({
+      where: { organizationId: state.orgA, template: { code: "incoming_control" } },
+      select: { id: true },
+    });
+    await page.goto(`${BASE}/journals/incoming_control`, { waitUntil: "load", timeout: 300_000 });
+    await settle();
+    // «Как заполнить?» открывается сам при первом визите журнала — закрываем.
+    const fillGuide = page.locator('[role="dialog"][aria-labelledby="fill-guide-title"]');
+    if (await fillGuide.isVisible().catch(() => false)) {
+      await fillGuide.getByRole("button", { name: "Понятно" }).first().click().catch(() => page.keyboard.press("Escape"));
+      await fillGuide.waitFor({ state: "hidden", timeout: 15_000 }).catch(() => null);
+    }
+    await page.getByRole("button", { name: "Создать документ" }).first().click();
+    const createDialog = page.getByRole("dialog");
+    await createDialog.waitFor({ timeout: 60_000 });
+    await createDialog.getByRole("button", { name: "Создать", exact: true }).click();
+    await page.waitForURL(/\/journals\/incoming_control\/documents\//, { timeout: 180_000 }).catch(() => null);
+    const incomingCreated = await db.journalDocument.findFirst({
+      where: {
+        organizationId: state.orgA,
+        template: { code: "incoming_control" },
+        id: { notIn: incomingBefore.map((doc) => doc.id) },
+      },
+      select: { id: true, responsibleUserId: true, config: true },
+    });
+    const incomingConfig = (incomingCreated?.config ?? {}) as { rows?: unknown[]; defaultResponsibleUserId?: string | null };
+    check("входной контроль: документ из диалога создан", Boolean(incomingCreated), page.url());
+    check(
+      "входной контроль: новый документ без строк-образцов",
+      Array.isArray(incomingConfig.rows) && incomingConfig.rows.length === 0,
+      incomingConfig.rows?.length
+    );
+    check(
+      "входной контроль: ответственный — сотрудник A, не аккаунт «имя = почта»",
+      incomingCreated?.responsibleUserId !== U.ownerA.id &&
+        incomingConfig.defaultResponsibleUserId !== U.ownerA.id &&
+        (incomingCreated?.responsibleUserId == null || [U.managerA.id, U.headA.id, U.cookA.id, U.cleanerA.id].includes(incomingCreated.responsibleUserId)),
+      { responsible: incomingCreated?.responsibleUserId, config: incomingConfig.defaultResponsibleUserId }
+    );
+
     // ── Демо-гейт: страницы списков не сеют документы ────────────────
-    const listCodes = ["disinfectant_usage", "sanitary_day_control", "equipment_cleaning", "med_books", "perishable_rejection"];
+    // pest_control: образцы раньше создавал сам клиент после загрузки.
+    const listCodes = ["disinfectant_usage", "sanitary_day_control", "equipment_cleaning", "med_books", "perishable_rejection", "pest_control"];
     const before = await db.journalDocument.count({ where: { organizationId: state.orgA } });
     for (const code of listCodes) {
       await page.goto(`${BASE}/journals/${code}`, { waitUntil: "load", timeout: 300_000 });
+      await settle();
     }
+    await page.waitForTimeout(5000);
     const after = await db.journalDocument.count({ where: { organizationId: state.orgA } });
     check("страницы журналов реальной организации не создают образцов", before === after, { before, after });
 

@@ -48,6 +48,7 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { NO_ROW_EMPLOYEE_MESSAGE, useRosterViewerId } from "@/components/journals/use-roster-viewer";
 type UserItem = {
   id: string;
   name: string;
@@ -660,7 +661,10 @@ function RowDialog(props: {
 export function GlassControlDocumentClient(props: Props) {
   const router = useRouter();
   const config = useMemo(() => normalizeGlassControlConfig(props.config), [props.config]);
-  const fallbackEmployeeId = props.responsibleUserId || props.users[0]?.id || "";
+  // Строки без автора записываются на ответственного, иначе на вошедшего —
+  // не на «первого в списке».
+  const viewerId = useRosterViewerId(props.users);
+  const fallbackEmployeeId = props.responsibleUserId || viewerId;
   const [rows, setRows] = useState(() =>
     buildRows({
       dateFrom: props.dateFrom,
@@ -814,6 +818,11 @@ export function GlassControlDocumentClient(props: Props) {
 
     if (!patchResponse.ok) {
       toast.error("Не удалось обновить автозаполнение");
+      return;
+    }
+
+    if (nextValue && !fallbackEmployeeId) {
+      toast.error(NO_ROW_EMPLOYEE_MESSAGE);
       return;
     }
 

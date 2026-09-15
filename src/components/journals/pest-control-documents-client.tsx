@@ -22,7 +22,6 @@ import {
   formatPestControlDate,
 } from "@/lib/pest-control-document";
 import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
-import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 import { toast } from "sonner";
@@ -226,7 +225,6 @@ export function PestControlDocumentsClient(props: Props) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [deleting, setDeleting] = useState<DocumentItem | null>(null);
-  const [seeding, setSeeding] = useState(false);
 
   // useMemo: раньше объект пересоздавался каждый рендер, и `useEffect`
   // в SettingsDialog перетирал набранный текст. Название подставляется
@@ -241,126 +239,10 @@ export function PestControlDocumentsClient(props: Props) {
     []
   );
 
-  useEffect(() => {
-    if (props.activeTab !== "active" || props.documents.length > 0 || seeding) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function ensureSampleDocuments() {
-      setSeeding(true);
-
-      try {
-        const createResponse = await fetch("/api/journal-documents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateCode: props.templateCode,
-            title: PEST_CONTROL_DOCUMENT_TITLE,
-            dateFrom: "2025-03-05",
-            dateTo: "2025-03-05",
-          }),
-        });
-
-        if (!createResponse.ok) return;
-
-        const created = (await createResponse.json()) as { document: { id: string } };
-        const acceptedUser = props.users[0];
-        const acceptedRole = acceptedUser
-          ? getHygienePositionLabel(acceptedUser.role)
-          : "Управляющий";
-
-        if (acceptedUser) {
-          const firstEntryResponse = await fetch(`/api/journal-documents/${created.document.id}/pest-control-entries`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              performedDate: "2025-03-17",
-              performedHour: "18",
-              performedMinute: "00",
-              timeSpecified: true,
-              event: "Дезинсекция",
-              areaOrVolume: "200",
-              treatmentProduct: "Раствор",
-              note: "Не мыть полы 24 -48 часов. Добавочно расставить ловушки.",
-              performedBy: "ИП",
-              acceptedRole,
-              acceptedEmployeeId: acceptedUser.id,
-            }),
-          });
-          if (!firstEntryResponse.ok) {
-            throw new Error("Не удалось создать первую строку журнала");
-          }
-
-          const secondEntryResponse = await fetch(`/api/journal-documents/${created.document.id}/pest-control-entries`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              performedDate: "2025-03-25",
-              performedHour: "11",
-              performedMinute: "00",
-              timeSpecified: true,
-              event: "Дезинсекция",
-              areaOrVolume: "84,9",
-              treatmentProduct: "пропан",
-              note: "",
-              performedBy: "ИП Хижняк",
-              acceptedRole,
-              acceptedEmployeeId: acceptedUser.id,
-            }),
-          });
-          if (!secondEntryResponse.ok) {
-            throw new Error("Не удалось создать вторую строку журнала");
-          }
-        }
-
-        const closedResponse = await fetch("/api/journal-documents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateCode: props.templateCode,
-            title: PEST_CONTROL_DOCUMENT_TITLE,
-            dateFrom: "2025-02-05",
-            dateTo: "2025-02-05",
-          }),
-        });
-
-        if (closedResponse.ok) {
-          const closed = (await closedResponse.json()) as { document: { id: string } };
-          const patchResponse = await fetch(`/api/journal-documents/${closed.document.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              status: "closed",
-              dateTo: "2025-02-28",
-            }),
-          });
-          if (!patchResponse.ok) {
-            throw new Error("Не удалось подготовить закрытый документ журнала");
-          }
-        }
-
-        if (!cancelled) {
-          router.refresh();
-        }
-      } catch (error) {
-        if (!cancelled) {
-          toast.error(error instanceof Error ? error.message : "Не удалось подготовить тестовые документы");
-        }
-      } finally {
-        if (!cancelled) {
-          setSeeding(false);
-        }
-      }
-    }
-
-    void ensureSampleDocuments();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [props.activeTab, props.documents.length, props.templateCode, props.users, router, seeding]);
+  // Образцы документов (дезинсекция «ИП Хижняк» 2025 года) раньше создавал
+  // сам клиент — в любой организации, открывшей пустой журнал. Образцы
+  // теперь сеет только сервер и только в демо-организации
+  // (`ensurePestControlSampleDocuments` на странице журнала).
 
   async function createDocument(payload: { title: string; dateFrom: string }) {
     const response = await fetch("/api/journal-documents", {

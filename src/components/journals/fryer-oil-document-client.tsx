@@ -204,9 +204,7 @@ function EntryDialog(props: {
    * в журнале оказывался не тот, кто реально менял жир.
    */
   const defaultControllerName =
-    props.users.find((user) => user.id === props.currentUserId)?.name ||
-    props.users[0]?.name ||
-    "";
+    props.users.find((user) => user.id === props.currentUserId)?.name || "";
 
   /**
    * Значения по умолчанию: дата, время и контролёр.

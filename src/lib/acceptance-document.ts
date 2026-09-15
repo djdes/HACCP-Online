@@ -1,6 +1,6 @@
 ﻿import { getUserRoleLabel } from "@/lib/user-roles";
 
-import { pickPrimaryManager } from "@/lib/user-roles";
+import { rankRosterForSlot } from "@/lib/journal-roster";
 export const ACCEPTANCE_DOCUMENT_TEMPLATE_CODE = "incoming_control";
 export const RAW_MATERIAL_ACCEPTANCE_TEMPLATE_CODE =
   "incoming_raw_materials_control";
@@ -313,11 +313,12 @@ function normalizeStringList(value: unknown) {
 }
 
 export function getAcceptanceDocumentDefaultConfig(
-  users: Array<{ id: string; role?: string | null }>
+  users: AcceptanceUser[]
 ): AcceptanceDocumentConfig {
-  // Первого по списку не подставляем: это случайный человек. Нет
-  // управляющего — ответственный не назначен, его выберут в документе.
-  const defaultResponsibleUserId = pickPrimaryManager(users)?.id || null;
+  // Первого по списку не подставляем: это случайный человек. Правила
+  // ростера: без ROOT и аккаунтов-заглушек («имя = почта»), линейный
+  // персонал раньше руководства. Никого нет — ответственный не назначен.
+  const defaultResponsibleUserId = pickAcceptanceResponsibleUser(users)?.id || null;
 
   return {
     rows: [],
@@ -332,8 +333,16 @@ export function getAcceptanceDocumentDefaultConfig(
   };
 }
 
-function pickAcceptanceResponsibleUser(users: AcceptanceUser[]) {
-  return pickPrimaryManager(users);
+/**
+ * Ответственный за приёмку по умолчанию. Раньше — первый управляющий, и им
+ * оказывался аккаунт мгновенной регистрации, названный почтой.
+ */
+function pickAcceptanceResponsibleUser(users: AcceptanceUser[]): AcceptanceUser | null {
+  const ranked = rankRosterForSlot(
+    users.map((user) => ({ ...user, name: user.name ?? "" })),
+    { kind: "filler" }
+  );
+  return ranked ? users.find((user) => user.id === ranked.id) ?? null : null;
 }
 
 function addDays(date: string, delta: number) {

@@ -6,7 +6,7 @@
 Проблем не найдено.
 
 Найдено (исправится при --apply):
-  documentsChecked: 25
+  documentsChecked: 62
   responsibleFixed: 0
   verifierFixed: 0
   configRefsCleared: 0

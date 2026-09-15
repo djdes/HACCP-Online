@@ -44,6 +44,7 @@ import {
   RESPONSIBLE_NOT_IN_ORG_ERROR,
   resolveResponsibleChoice,
 } from "@/lib/journal-roster";
+import { findOrgUser } from "@/lib/journal-roster-db";
 
 function isValidDate(value: Date) {
   return Number.isFinite(value.getTime());
@@ -140,9 +141,18 @@ export async function PATCH(
         })
       : [];
 
-  // Явно присланный ответственный обязан быть сотрудником организации.
+  // Выбор ответственного — только если прислали ДРУГОГО человека. Часть
+  // клиентов (уборка, контроль стекла) шлёт текущего ответственного при
+  // каждом сохранении: это не выбор, и уволенный ответственный не должен
+  // блокировать сохранение ячеек.
+  const bodyResponsibleId =
+    typeof body.responsibleUserId === "string" ? body.responsibleUserId.trim() : "";
+  const responsibleChosen =
+    body.responsibleUserId !== undefined && bodyResponsibleId !== (doc.responsibleUserId ?? "");
+
+  // Явно выбранный ответственный обязан быть сотрудником организации.
   // Пустая строка / null — «снять ответственного», это законно.
-  if (body.responsibleUserId !== undefined) {
+  if (responsibleChosen) {
     const choice = resolveResponsibleChoice({
       bodyUserId: body.responsibleUserId,
       orgUserIds: new Set(allUsers.map((user) => user.id)),
@@ -332,7 +342,7 @@ export async function PATCH(
             users: allUsers,
           })
         : null;
-    if (body.responsibleUserId !== undefined) {
+    if (responsibleChosen) {
       data.responsibleUserId = normalizedDocumentState.responsibleUserId;
       data.responsibleTitle = normalizedDocumentState.responsibleTitle;
     } else if (configChoice && configChoice.responsibleUserId !== doc.responsibleUserId) {
@@ -340,6 +350,18 @@ export async function PATCH(
       data.responsibleTitle = configChoice.responsibleTitle;
     } else if (body.responsibleTitle !== undefined) {
       data.responsibleTitle = normalizedDocumentState.responsibleTitle;
+    }
+
+    // Новый ответственный — в шапке его должность из карточки сотрудника,
+    // как при создании документа, а не название роли («Шеф-повар»).
+    if (
+      typeof data.responsibleUserId === "string" &&
+      data.responsibleUserId &&
+      data.responsibleUserId !== doc.responsibleUserId
+    ) {
+      const chosen = await findOrgUser(getActiveOrgId(session), data.responsibleUserId);
+      const positionName = chosen?.jobPositionName || chosen?.positionTitle || "";
+      if (positionName) data.responsibleTitle = positionName;
     }
   }
 

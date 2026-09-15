@@ -101,14 +101,14 @@ export function StaffTrainingDocumentClient({
   } | null>(null);
   const [cellEditValue, setCellEditValue] = useState("");
 
+  // Сотрудника в новой строке выбирают сами: «первый в списке» —
+  // случайный человек, и инструктаж записывался бы не на того.
   const [draftRow, setDraftRow] = useState<StaffTrainingRow>(() =>
     createStaffTrainingRow({
       date: nowDate(),
-      employeeId: users[0]?.id || null,
-      employeeName: users[0]?.name || "",
-      employeePosition: users[0]
-        ? getHygienePositionLabel(users[0].role)
-        : "",
+      employeeId: null,
+      employeeName: "",
+      employeePosition: "",
     })
   );
   const draftCascade = usePositionEmployeeCascade({
@@ -288,11 +288,9 @@ export function StaffTrainingDocumentClient({
     setDraftRow(
       createStaffTrainingRow({
         date: nowDate(),
-        employeeId: users[0]?.id || null,
-        employeeName: users[0]?.name || "",
-        employeePosition: users[0]
-          ? getHygienePositionLabel(users[0].role)
-          : "",
+        employeeId: null,
+        employeeName: "",
+        employeePosition: "",
       })
     );
     setAddModalOpen(false);

@@ -3,9 +3,19 @@ import test from "node:test";
 
 import {
   createAcceptanceRow,
+  getAcceptanceDocumentDefaultConfig,
   getIncomingControlRowValues,
   normalizeAcceptanceDocumentConfig,
 } from "@/lib/acceptance-document";
+
+test("ответственный за приёмку по умолчанию — по правилам ростера, не аккаунт-почта", () => {
+  const owner = { id: "owner", name: "boss@mail.ru", role: "owner" };
+  const manager = { id: "mgr", name: "Анна Управляющая", role: "manager" };
+  const cook = { id: "cook", name: "Борис Повар", role: "cook" };
+  assert.equal(getAcceptanceDocumentDefaultConfig([owner, manager, cook]).defaultResponsibleUserId, "cook");
+  assert.equal(getAcceptanceDocumentDefaultConfig([owner, manager]).defaultResponsibleUserId, "mgr");
+  assert.equal(getAcceptanceDocumentDefaultConfig([]).defaultResponsibleUserId, null);
+});
 
 /**
  * Журнал `incoming_control` перестроен на таблицу эталона (11 колонок).

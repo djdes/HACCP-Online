@@ -41,6 +41,21 @@ test("в src нет литералов ООО \"Тест\" / ООО \"Орган
   assert.deepEqual(offenders, []);
 });
 
+test("клиенты журналов не подставляют «первого сотрудника в списке»", () => {
+  // Предвыбранный первый человек неотличим от выбора: документ или строка
+  // уходили на случайного сотрудника (часто — на аккаунт владельца).
+  const offenders = walk("src/components/journals").filter((file) =>
+    /\b(users|employees)\[0\](\?\.|\.|\s*\|\|)/.test(read(file))
+  );
+  assert.deepEqual(offenders, []);
+});
+
+test("клиентские компоненты не сеют документы-образцы", () => {
+  // Образцы сеет только сервер и только в демо-организации.
+  const offenders = walk("src/components").filter((file) => /\bensureSample\w*\(/.test(read(file)));
+  assert.deepEqual(offenders, []);
+});
+
 const ORG_SCOPED_FILES = [
   ...walk("src/lib/tasksflow-adapters"),
   "src/lib/journal-auto-create.ts",

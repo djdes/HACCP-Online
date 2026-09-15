@@ -45,6 +45,8 @@ import { toast } from "sonner";
 import { PublishUndoToHeader } from "@/components/journals/journal-undo-slot";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { PositionNativeOptions } from "@/components/shared/position-select";
+import { useRosterViewerId } from "@/components/journals/use-roster-viewer";
+import { rankRosterForSlot } from "@/lib/journal-roster";
 type UserItem = {
   id: string;
   name: string;
@@ -122,6 +124,7 @@ export function EquipmentCleaningDocumentClient({
 }: Props) {
   const router = useRouter();
   const journalRouteCode = routeCode || templateCode;
+  const viewerId = useRosterViewerId(users);
   const [rows, setRows] = useState(initialRows);
   // История отмены: только правки этого человека в этой вкладке.
   const undoStack = useJournalUndo({ enabled: status === "active" });
@@ -192,12 +195,11 @@ export function EquipmentCleaningDocumentClient({
   }));
 
   function openCreateRow() {
-    const washer = users[0] || null;
-    const controller =
-      users.find((user) => user.role === "owner") ||
-      users.find((user) => user.role === "technologist") ||
-      users[0] ||
-      null;
+    // Мойщик — вошедший, если он в ростере; контроль — руководство по
+    // правилам ростера (без аккаунтов-заглушек «имя = почта»). Раньше —
+    // первый в списке и владелец.
+    const washer = users.find((user) => user.id === viewerId) || null;
+    const controller = rankRosterForSlot(users, { kind: "verifier" });
 
     setDraft({
       id: null,

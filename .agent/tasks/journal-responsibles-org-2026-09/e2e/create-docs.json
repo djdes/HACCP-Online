@@ -1,36 +1,36 @@
 {
   "created": {
     "hygiene": {
-      "auto": "cmu2wtyk606gox09me4u1lj32",
-      "explicit": "cmu2wtype06k1x09mkib3z86g"
+      "auto": "cmu2y9asn028hkw9m121gbbv3",
+      "explicit": "cmu2y9azs02bukw9mcd1d7ic5"
     },
     "climate_control": {
-      "auto": "cmu2wtytz06nex09m53894opt",
-      "explicit": "cmu2wtyz906o9x09m2u7maaes"
+      "auto": "cmu2y9b5u02f7kw9mr9221hpc",
+      "explicit": "cmu2y9bb802g2kw9mnk9kxum2"
     },
     "cold_equipment_control": {
-      "auto": "cmu2wtz3306p4x09ma2h5fxi6",
-      "explicit": "cmu2wtz6m06pzx09mvh9qwtxv"
+      "auto": "cmu2y9bfs02gxkw9mque2renw",
+      "explicit": "cmu2y9bk802hskw9mejlbgafe"
     },
     "cleaning": {
-      "auto": "cmu2wtza706qux09mzxyagi8v",
-      "explicit": "cmu2wtzeh06qvx09mwwd8b7vm"
+      "auto": "cmu2y9bpm02inkw9m0rswfdsg",
+      "explicit": "cmu2y9btk02iokw9mushly6tx"
     },
     "uv_lamp_runtime": {
-      "auto": "cmu2wtzha06qwx09mu87n7lk1",
-      "explicit": "cmu2wtzk906qxx09mq2f68nv2"
+      "auto": "cmu2y9bxg02ipkw9mo6d19oa2",
+      "explicit": "cmu2y9c1m02iqkw9m52rw1yxo"
     },
     "disinfectant_usage": {
-      "auto": "cmu2wtzn306qyx09mwil3rqcr",
-      "explicit": "cmu2wtzq506rtx09moi38ik1k"
+      "auto": "cmu2y9c5h02irkw9mnylxky5m",
+      "explicit": "cmu2y9c9n02jmkw9mwzk3y7sa"
     },
     "finished_product": {
-      "auto": "cmu2wtztj06sox09mw3ju0kxa",
-      "explicit": "cmu2wtzw306spx09md06w2aip"
+      "auto": "cmu2y9cfn02khkw9mvfaj1com",
+      "explicit": "cmu2y9cjw02kikw9mcoxcnh0g"
     },
     "perishable_rejection": {
-      "auto": "cmu2wtzys06sqx09mvp7kwhcp",
-      "explicit": "cmu2wu01x06srx09mocto374q"
+      "auto": "cmu2y9cnw02kjkw9mu4cge4k1",
+      "explicit": "cmu2y9crb02kkkw9msbupku9t"
     }
   },
   "checks": [
@@ -39,7 +39,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtyk606gox09me4u1lj32",
+          "id": "cmu2y9asn028hkw9m121gbbv3",
           "templateId": "cmu2pwdrt0004t49ms0wwx89n",
           "organizationId": "e2e-org-a",
           "title": "E2E hygiene авто",
@@ -59,8 +59,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:38.070Z",
-          "updatedAt": "2026-09-15T16:52:38.070Z"
+          "createdAt": "2026-09-15T17:32:33.383Z",
+          "updatedAt": "2026-09-15T17:32:33.383Z"
         }
       }
     },
@@ -69,7 +69,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtype06k1x09mkib3z86g",
+          "id": "cmu2y9azs02bukw9mcd1d7ic5",
           "templateId": "cmu2pwdrt0004t49ms0wwx89n",
           "organizationId": "e2e-org-a",
           "title": "E2E hygiene явный",
@@ -89,8 +89,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:38.258Z",
-          "updatedAt": "2026-09-15T16:52:38.258Z"
+          "createdAt": "2026-09-15T17:32:33.640Z",
+          "updatedAt": "2026-09-15T17:32:33.640Z"
         }
       }
     },
@@ -114,7 +114,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtytz06nex09m53894opt",
+          "id": "cmu2y9b5u02f7kw9mr9221hpc",
           "templateId": "cmu2pwdst000at49miodjcqqb",
           "organizationId": "e2e-org-a",
           "title": "E2E climate_control авто",
@@ -155,8 +155,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:38.422Z",
-          "updatedAt": "2026-09-15T16:52:38.422Z"
+          "createdAt": "2026-09-15T17:32:33.858Z",
+          "updatedAt": "2026-09-15T17:32:33.858Z"
         }
       }
     },
@@ -165,7 +165,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtyz906o9x09m2u7maaes",
+          "id": "cmu2y9bb802g2kw9mnk9kxum2",
           "templateId": "cmu2pwdst000at49miodjcqqb",
           "organizationId": "e2e-org-a",
           "title": "E2E climate_control явный",
@@ -206,8 +206,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:38.613Z",
-          "updatedAt": "2026-09-15T16:52:38.613Z"
+          "createdAt": "2026-09-15T17:32:34.052Z",
+          "updatedAt": "2026-09-15T17:32:34.052Z"
         }
       }
     },
@@ -226,7 +226,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtz3306p4x09ma2h5fxi6",
+          "id": "cmu2y9bfs02gxkw9mque2renw",
           "templateId": "cmu2pwdsx000bt49m7jpdf4eq",
           "organizationId": "e2e-org-a",
           "title": "E2E cold_equipment_control авто",
@@ -248,8 +248,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:38.751Z",
-          "updatedAt": "2026-09-15T16:52:38.751Z"
+          "createdAt": "2026-09-15T17:32:34.216Z",
+          "updatedAt": "2026-09-15T17:32:34.216Z"
         }
       }
     },
@@ -258,7 +258,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtz6m06pzx09mvh9qwtxv",
+          "id": "cmu2y9bk802hskw9mejlbgafe",
           "templateId": "cmu2pwdsx000bt49m7jpdf4eq",
           "organizationId": "e2e-org-a",
           "title": "E2E cold_equipment_control явный",
@@ -280,8 +280,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:38.878Z",
-          "updatedAt": "2026-09-15T16:52:38.878Z"
+          "createdAt": "2026-09-15T17:32:34.376Z",
+          "updatedAt": "2026-09-15T17:32:34.376Z"
         }
       }
     },
@@ -300,7 +300,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtza706qux09mzxyagi8v",
+          "id": "cmu2y9bpm02inkw9m0rswfdsg",
           "templateId": "cmu2pwdrx0005t49m4ywlw7sn",
           "organizationId": "e2e-org-a",
           "title": "E2E cleaning авто",
@@ -443,7 +443,7 @@
             ],
             "responsiblePairs": [
               {
-                "id": "cleaning-pair-c73307e5-86bc-49ab-8d3f-0bc98f117518",
+                "id": "cleaning-pair-03ef1c43-5b78-48dc-9ea6-502139fdeae5",
                 "controlTitle": "Управляющий",
                 "cleaningTitle": "Повар",
                 "controlUserId": "cmu2stnbo0005wk9me2bn3w8b",
@@ -467,7 +467,7 @@
             "cleaningSubtaskMode": "perRoom",
             "controlResponsibles": [
               {
-                "id": "cleaning-control-3ee7952e-e2a8-49ae-90ef-b83e429a49d6",
+                "id": "cleaning-control-942b82b7-265e-4b33-8d52-7c3507ee580a",
                 "code": "C1",
                 "kind": "control",
                 "name": "Мария Руководитель",
@@ -478,7 +478,7 @@
             ],
             "cleaningResponsibles": [
               {
-                "id": "cleaning-cleaning-2a7bbe0c-d938-42bd-9d96-f544b058b969",
+                "id": "cleaning-cleaning-25318540-cfc5-43ab-a5a9-2ceb80dda6a4",
                 "code": "C1",
                 "kind": "cleaning",
                 "name": "Ольга Уборщица",
@@ -504,8 +504,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.007Z",
-          "updatedAt": "2026-09-15T16:52:39.007Z"
+          "createdAt": "2026-09-15T17:32:34.570Z",
+          "updatedAt": "2026-09-15T17:32:34.570Z"
         }
       }
     },
@@ -514,7 +514,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtzeh06qvx09mwwd8b7vm",
+          "id": "cmu2y9btk02iokw9mushly6tx",
           "templateId": "cmu2pwdrx0005t49m4ywlw7sn",
           "organizationId": "e2e-org-a",
           "title": "E2E cleaning явный",
@@ -657,7 +657,7 @@
             ],
             "responsiblePairs": [
               {
-                "id": "cleaning-pair-c73307e5-86bc-49ab-8d3f-0bc98f117518",
+                "id": "cleaning-pair-03ef1c43-5b78-48dc-9ea6-502139fdeae5",
                 "controlTitle": "Управляющий",
                 "cleaningTitle": "Повар",
                 "controlUserId": "cmu2stnbo0005wk9me2bn3w8b",
@@ -681,7 +681,7 @@
             "cleaningSubtaskMode": "perRoom",
             "controlResponsibles": [
               {
-                "id": "cleaning-control-3ee7952e-e2a8-49ae-90ef-b83e429a49d6",
+                "id": "cleaning-control-942b82b7-265e-4b33-8d52-7c3507ee580a",
                 "code": "C1",
                 "kind": "control",
                 "name": "Мария Руководитель",
@@ -692,7 +692,7 @@
             ],
             "cleaningResponsibles": [
               {
-                "id": "cleaning-cleaning-2a7bbe0c-d938-42bd-9d96-f544b058b969",
+                "id": "cleaning-cleaning-25318540-cfc5-43ab-a5a9-2ceb80dda6a4",
                 "code": "C1",
                 "kind": "cleaning",
                 "name": "Ольга Уборщица",
@@ -718,8 +718,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.161Z",
-          "updatedAt": "2026-09-15T16:52:39.161Z"
+          "createdAt": "2026-09-15T17:32:34.712Z",
+          "updatedAt": "2026-09-15T17:32:34.712Z"
         }
       }
     },
@@ -738,7 +738,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtzha06qwx09mu87n7lk1",
+          "id": "cmu2y9bxg02ipkw9mo6d19oa2",
           "templateId": "cmu2pwdua000nt49m4r0u818q",
           "organizationId": "e2e-org-a",
           "title": "E2E uv_lamp_runtime авто",
@@ -773,8 +773,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.262Z",
-          "updatedAt": "2026-09-15T16:52:39.262Z"
+          "createdAt": "2026-09-15T17:32:34.852Z",
+          "updatedAt": "2026-09-15T17:32:34.852Z"
         }
       }
     },
@@ -783,7 +783,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtzk906qxx09mq2f68nv2",
+          "id": "cmu2y9c1m02iqkw9m52rw1yxo",
           "templateId": "cmu2pwdua000nt49m4r0u818q",
           "organizationId": "e2e-org-a",
           "title": "E2E uv_lamp_runtime явный",
@@ -818,8 +818,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.369Z",
-          "updatedAt": "2026-09-15T16:52:39.369Z"
+          "createdAt": "2026-09-15T17:32:35.002Z",
+          "updatedAt": "2026-09-15T17:32:35.002Z"
         }
       }
     },
@@ -838,7 +838,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtzn306qyx09mwil3rqcr",
+          "id": "cmu2y9c5h02irkw9mnylxky5m",
           "templateId": "cmu2pwdtj000gt49mu3qrb3y4",
           "organizationId": "e2e-org-a",
           "title": "E2E disinfectant_usage авто",
@@ -863,8 +863,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.471Z",
-          "updatedAt": "2026-09-15T16:52:39.471Z"
+          "createdAt": "2026-09-15T17:32:35.141Z",
+          "updatedAt": "2026-09-15T17:32:35.141Z"
         }
       }
     },
@@ -873,7 +873,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtzq506rtx09moi38ik1k",
+          "id": "cmu2y9c9n02jmkw9mwzk3y7sa",
           "templateId": "cmu2pwdtj000gt49mu3qrb3y4",
           "organizationId": "e2e-org-a",
           "title": "E2E disinfectant_usage явный",
@@ -898,8 +898,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.581Z",
-          "updatedAt": "2026-09-15T16:52:39.581Z"
+          "createdAt": "2026-09-15T17:32:35.291Z",
+          "updatedAt": "2026-09-15T17:32:35.291Z"
         }
       }
     },
@@ -918,14 +918,14 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtztj06sox09mw3ju0kxa",
+          "id": "cmu2y9cfn02khkw9mvfaj1com",
           "templateId": "cmu2pwdro0003t49mw2klzjfs",
           "organizationId": "e2e-org-a",
           "title": "E2E finished_product авто",
           "config": {
             "rows": [
               {
-                "id": "finished-product-row-6bc36adf-fdb1-42d1-a9d8-9f2f674596b9",
+                "id": "finished-product-row-560cf993-58be-4985-828b-8e1785c49e8a",
                 "oxygenLevel": "",
                 "productName": "",
                 "productTemp": "",
@@ -954,7 +954,7 @@
             ],
             "productLists": [
               {
-                "id": "finished-product-list-f70c98d1-f064-4084-b52c-a7718c1e42e3",
+                "id": "finished-product-list-522ba6fb-9f1a-4ed9-8565-a43862db21bc",
                 "name": "Основной список",
                 "items": [
                   "Сметана 20 %",
@@ -962,7 +962,7 @@
                 ]
               },
               {
-                "id": "finished-product-list-5113f1f1-ede0-4e8d-a8a3-6eb1cdbed8ae",
+                "id": "finished-product-list-a81a92f5-2329-462d-b028-f1b8fde3f446",
                 "name": "Сезонные позиции",
                 "items": []
               }
@@ -988,8 +988,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.703Z",
-          "updatedAt": "2026-09-15T16:52:39.703Z"
+          "createdAt": "2026-09-15T17:32:35.507Z",
+          "updatedAt": "2026-09-15T17:32:35.507Z"
         }
       }
     },
@@ -998,14 +998,14 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtzw306spx09md06w2aip",
+          "id": "cmu2y9cjw02kikw9mcoxcnh0g",
           "templateId": "cmu2pwdro0003t49mw2klzjfs",
           "organizationId": "e2e-org-a",
           "title": "E2E finished_product явный",
           "config": {
             "rows": [
               {
-                "id": "finished-product-row-3de23e37-b4b3-4ca8-9e99-5dd9277b9fe8",
+                "id": "finished-product-row-d835ea0b-807e-4512-a12b-b6c1c83fa18c",
                 "oxygenLevel": "",
                 "productName": "",
                 "productTemp": "",
@@ -1034,7 +1034,7 @@
             ],
             "productLists": [
               {
-                "id": "finished-product-list-314b6240-3279-41fa-b62f-83951a077e01",
+                "id": "finished-product-list-68156163-e78d-4861-b430-ed77a95ec6ec",
                 "name": "Основной список",
                 "items": [
                   "Сметана 20 %",
@@ -1042,7 +1042,7 @@
                 ]
               },
               {
-                "id": "finished-product-list-bb52df00-67e0-4073-86a2-0e0c18cfe0f3",
+                "id": "finished-product-list-bedde87b-cdfc-4196-8405-60147fdcfb60",
                 "name": "Сезонные позиции",
                 "items": []
               }
@@ -1068,8 +1068,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.795Z",
-          "updatedAt": "2026-09-15T16:52:39.795Z"
+          "createdAt": "2026-09-15T17:32:35.660Z",
+          "updatedAt": "2026-09-15T17:32:35.660Z"
         }
       }
     },
@@ -1088,7 +1088,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wtzys06sqx09mvp7kwhcp",
+          "id": "cmu2y9cnw02kjkw9mu4cge4k1",
           "templateId": "cmu2pwdv7000wt49m4u1rakb6",
           "organizationId": "e2e-org-a",
           "title": "E2E perishable_rejection авто",
@@ -1100,7 +1100,7 @@
             ],
             "productLists": [
               {
-                "id": "perishable-list-d18ead5d-91ad-4202-bb8e-5ee735b515e1",
+                "id": "perishable-list-f9e3ee90-c441-44b7-9859-eb34b4048237",
                 "name": "Изделия",
                 "items": [
                   "Сметана 20 %",
@@ -1124,8 +1124,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:39.892Z",
-          "updatedAt": "2026-09-15T16:52:39.892Z"
+          "createdAt": "2026-09-15T17:32:35.804Z",
+          "updatedAt": "2026-09-15T17:32:35.804Z"
         }
       }
     },
@@ -1134,7 +1134,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wu01x06srx09mocto374q",
+          "id": "cmu2y9crb02kkkw9msbupku9t",
           "templateId": "cmu2pwdv7000wt49m4u1rakb6",
           "organizationId": "e2e-org-a",
           "title": "E2E perishable_rejection явный",
@@ -1146,7 +1146,7 @@
             ],
             "productLists": [
               {
-                "id": "perishable-list-f19032df-93b4-4ad6-9a17-283422f72306",
+                "id": "perishable-list-ced0e6cc-5592-4e1b-bde6-5df7e7300cc4",
                 "name": "Изделия",
                 "items": [
                   "Сметана 20 %",
@@ -1170,8 +1170,8 @@
           "autoFill": false,
           "createdById": "cmu2stnbo0005wk9me2bn3w8b",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:52:40.005Z",
-          "updatedAt": "2026-09-15T16:52:40.005Z"
+          "createdAt": "2026-09-15T17:32:35.927Z",
+          "updatedAt": "2026-09-15T17:32:35.927Z"
         }
       }
     },
@@ -1230,7 +1230,7 @@
       "name": "только должность «Повар» → ответственный Повар",
       "ok": true,
       "detail": {
-        "id": "cmu2wu0bj06ssx09mmrq2g9ev",
+        "id": "cmu2y9d4802klkw9meq6f19fm",
         "templateId": "cmu2pwdst000at49miodjcqqb",
         "organizationId": "e2e-org-a",
         "title": "E2E по должности",
@@ -1271,8 +1271,8 @@
         "autoFill": false,
         "createdById": "cmu2stnbo0005wk9me2bn3w8b",
         "buildingId": null,
-        "createdAt": "2026-09-15T16:52:40.351Z",
-        "updatedAt": "2026-09-15T16:52:40.351Z"
+        "createdAt": "2026-09-15T17:32:36.392Z",
+        "updatedAt": "2026-09-15T17:32:36.392Z"
       }
     },
     {
@@ -1313,6 +1313,24 @@
       "detail": {
         "error": "Сотрудник не найден в организации",
         "code": "responsible-not-in-org"
+      }
+    },
+    {
+      "name": "PATCH смены ответственного → должность из карточки сотрудника",
+      "ok": true,
+      "detail": {
+        "responsibleUserId": "cmu2stnc80007wk9mhv7i9h0s",
+        "responsibleTitle": "Заведующая производством"
+      }
+    },
+    {
+      "name": "сохранение с прежним (уволенным) ответственным → 200, ответственный прежний",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "after": {
+          "responsibleUserId": "cmu2stncv000awk9m4frvt0p4"
+        }
       }
     },
     {
@@ -1393,14 +1411,32 @@
     {
       "name": "Mini App документ без «Тест»",
       "ok": true,
-      "detail": "http://localhost:3020/mini/documents/cmu2wtyk606gox09me4u1lj32"
+      "detail": "http://localhost:3020/mini/documents/cmu2y9asn028hkw9m121gbbv3"
+    },
+    {
+      "name": "входной контроль: документ из диалога создан",
+      "ok": true,
+      "detail": "http://localhost:3020/journals/incoming_control/documents/cmu2ya8mg02oukw9moxy4x2aj"
+    },
+    {
+      "name": "входной контроль: новый документ без строк-образцов",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "name": "входной контроль: ответственный — сотрудник A, не аккаунт «имя = почта»",
+      "ok": true,
+      "detail": {
+        "responsible": "cmu2stncc0008wk9m2yu67ip7",
+        "config": "cmu2stncc0008wk9m2yu67ip7"
+      }
     },
     {
       "name": "страницы журналов реальной организации не создают образцов",
       "ok": true,
       "detail": {
-        "before": 19,
-        "after": 19
+        "before": 20,
+        "after": 20
       }
     },
     {
@@ -1410,9 +1446,14 @@
     },
     {
       "name": "пересоздание документов → 200",
-      "ok": false,
+      "ok": true,
       "detail": {
-        "error": "Лимит пересоздания: 2 раза в час. Подождите 31 мин."
+        "ok": true,
+        "closed": 20,
+        "created": 35,
+        "skipped": 0,
+        "errors": [],
+        "errorsTotal": 0
       }
     },
     {
@@ -1421,8 +1462,8 @@
       "detail": {
         "ok": true,
         "organizationsProcessed": 1,
-        "currentDocumentsCreated": 0,
-        "nextPeriodDocumentsCreated": 0,
+        "currentDocumentsCreated": 8,
+        "nextPeriodDocumentsCreated": 3,
         "expiredDocumentsClosed": 0,
         "brokenChainsRestored": 0,
         "brokenChainCodes": [],
@@ -1445,7 +1486,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wv74p06x3x09mzlxalutw",
+          "id": "cmu2yb8j003x5kw9m5z0tt66y",
           "templateId": "cmu2pwdrt0004t49ms0wwx89n",
           "organizationId": "e2e-org-a",
           "title": "E2E ROOT авто",
@@ -1465,8 +1506,8 @@
           "autoFill": false,
           "createdById": "cmu2pwdqi0000t49mgwc4jat9",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:53:35.833Z",
-          "updatedAt": "2026-09-15T16:53:35.833Z"
+          "createdAt": "2026-09-15T17:34:03.756Z",
+          "updatedAt": "2026-09-15T17:34:03.756Z"
         }
       }
     },
@@ -1480,7 +1521,7 @@
       "ok": true,
       "detail": {
         "document": {
-          "id": "cmu2wv78t070gx09mq7dfl6lo",
+          "id": "cmu2yb8ms040ikw9mv0qzietz",
           "templateId": "cmu2pwdv7000wt49m4u1rakb6",
           "organizationId": "e2e-org-a",
           "title": "E2E ROOT явный",
@@ -1492,7 +1533,7 @@
             ],
             "productLists": [
               {
-                "id": "perishable-list-3b959534-3568-4c57-8024-c712e2d8d014",
+                "id": "perishable-list-36eb588a-a706-4ace-9ded-90a0f8d09456",
                 "name": "Изделия",
                 "items": [
                   "Сметана 20 %",
@@ -1516,8 +1557,8 @@
           "autoFill": false,
           "createdById": "cmu2pwdqi0000t49mgwc4jat9",
           "buildingId": null,
-          "createdAt": "2026-09-15T16:53:35.981Z",
-          "updatedAt": "2026-09-15T16:53:35.981Z"
+          "createdAt": "2026-09-15T17:34:03.891Z",
+          "updatedAt": "2026-09-15T17:34:03.891Z"
         }
       }
     },

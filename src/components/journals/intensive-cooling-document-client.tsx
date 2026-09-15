@@ -66,6 +66,7 @@ import {
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+import { useRosterViewerId } from "@/components/journals/use-roster-viewer";
 
 type UserItem = {
   id: string;
@@ -112,6 +113,7 @@ function RowDialog(props: {
 }) {
   const [row, setRow] = useState<IntensiveCoolingRow>(() => createIntensiveCoolingRow());
   const [submitting, setSubmitting] = useState(false);
+  const viewerId = useRosterViewerId(props.users);
 
   useEffect(() => {
     if (!props.open) return;
@@ -119,9 +121,10 @@ function RowDialog(props: {
       setRow(props.initialRow);
       return;
     }
+    // Ответственный журнала, иначе вошедший — не «первый в списке».
     const fallbackUser =
       props.users.find((user) => user.id === props.config.defaultResponsibleUserId) ||
-      props.users[0] ||
+      props.users.find((user) => user.id === viewerId) ||
       null;
     // A7 — auto-fill current HH:MM для новой строки. Минуты — точные
     // (шаг select'а = 1), юзер всегда может перевыбрать.
@@ -138,7 +141,7 @@ function RowDialog(props: {
         productionMinute: mm,
       })
     );
-  }, [props.config, props.initialRow, props.open, props.users]);
+  }, [props.config, props.initialRow, props.open, props.users, viewerId]);
 
   function setValue<K extends keyof IntensiveCoolingRow>(
     key: K,
