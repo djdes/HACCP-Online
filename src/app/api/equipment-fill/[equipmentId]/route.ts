@@ -13,6 +13,21 @@ import {
   normalizeColdEquipmentEntryData,
   type ColdEquipmentEntryData,
 } from "@/lib/cold-equipment-document";
+import { normalizeClimateDocumentConfig } from "@/lib/climate-document";
+import {
+  findClimateRowForEquipment,
+  mergeClimateMeasurement,
+  pickNearestControlTime,
+} from "@/lib/climate-fill";
+import { clientIp } from "@/lib/client-ip";
+import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
+import {
+  QR_FILL_RATE_LIMIT_ERROR,
+  qrFillRateKey,
+  recordQrFillAudit,
+} from "@/lib/qr-fill-audit";
+import { qrFillRateLimiter } from "@/lib/rate-limit";
+import { orgTodayKey } from "@/lib/timezone";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,17 +60,15 @@ function toPrismaJsonValue(
   return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
 }
 
-function utcDayStart(now: Date): Date {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
-}
-
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ equipmentId: string }> }
 ) {
   const { equipmentId } = await params;
+
+  if (!qrFillRateLimiter.consume(qrFillRateKey(clientIp(request), "equipment", equipmentId))) {
+    return NextResponse.json({ error: QR_FILL_RATE_LIMIT_ERROR }, { status: 429 });
+  }
 
   let parsed: z.infer<typeof bodySchema>;
   try {
@@ -81,7 +94,14 @@ export async function POST(
   const equipment = await db.equipment.findUnique({
     where: { id: equipmentId },
     include: {
-      area: { select: { organizationId: true, name: true } },
+      area: {
+        select: {
+          id: true,
+          organizationId: true,
+          name: true,
+          organization: { select: { timezone: true } },
+        },
+      },
     },
   });
   if (!equipment) {
@@ -95,8 +115,7 @@ export async function POST(
     where: {
       id: parsed.employeeId,
       organizationId,
-      isActive: true,
-      archivedAt: null,
+      ...ORG_ROSTER_WHERE,
     },
     select: { id: true, name: true },
   });
@@ -108,7 +127,11 @@ export async function POST(
   }
 
   const now = new Date();
-  const todayStart = utcDayStart(now);
+  // «Сегодня» — в зоне организации: на проде процесс живёт в UTC, и ночной
+  // замер до 03:00 МСК уходил во вчерашнюю строку.
+  const timezone = equipment.area.organization.timezone || "Europe/Moscow";
+  const dateKey = orgTodayKey(timezone, now);
+  const todayStart = new Date(`${dateKey}T00:00:00.000Z`);
 
   const docs = await db.journalDocument.findMany({
     where: {
@@ -122,6 +145,7 @@ export async function POST(
   });
 
   let touched = 0;
+  const touchedDocumentIds: string[] = [];
   for (const doc of docs) {
     const config = normalizeColdEquipmentDocumentConfig(doc.config);
     const matching = config.equipment.filter(
@@ -168,6 +192,7 @@ export async function POST(
       update: { data: toPrismaJsonValue(nextData) },
     });
     touched += 1;
+    touchedDocumentIds.push(doc.id);
   }
 
   // Если юзер ввёл humidity И у equipment есть climate-mapping — пишем
@@ -195,87 +220,65 @@ export async function POST(
         select: { id: true, config: true },
       });
       if (climateDoc) {
-        const cfg = (climateDoc.config as { controlTimes?: unknown }) ?? {};
-        const controlTimes = Array.isArray(cfg.controlTimes)
-          ? (cfg.controlTimes as unknown[]).filter(
-              (t): t is string => typeof t === "string"
-            )
-          : [];
-        // Ближайшее controlTime к текущему часу — куда логично записать
-        // показание с QR-сканирования. Если controlTimes пусто — fallback
-        // на "now-rounded" "HH:MM".
-        const nowMin = now.getHours() * 60 + now.getMinutes();
-        let slot: string;
-        if (controlTimes.length > 0) {
-          let best = controlTimes[0];
-          let bestDelta = Number.POSITIVE_INFINITY;
-          for (const t of controlTimes) {
-            const m = /^(\d{1,2}):(\d{2})$/.exec(t);
-            if (!m) continue;
-            const v = Number(m[1]) * 60 + Number(m[2]);
-            const d = Math.abs(v - nowMin);
-            if (d < bestDelta) {
-              best = t;
-              bestDelta = d;
-            }
-          }
-          slot = best;
-        } else {
-          slot = `${String(now.getHours()).padStart(2, "0")}:00`;
-        }
-
-        const existing = await db.journalDocumentEntry.findUnique({
-          where: {
-            documentId_employeeId_date: {
-              documentId: climateDoc.id,
-              employeeId: employee.id,
-              date: todayStart,
-            },
-          },
-          select: { data: true },
+        const climateConfig = normalizeClimateDocumentConfig(climateDoc.config);
+        // Строка климата — цех оборудования (`room-area-<areaId>` или
+        // совпадение названия). Раньше ключом был id самого оборудования:
+        // такой строки в бланке нет, и влажность пропадала.
+        const climateRow = findClimateRowForEquipment(climateConfig, {
+          areaId: equipment.area.id,
+          areaName: equipment.area.name,
         });
-        const baseData =
-          (existing?.data as Record<string, unknown>) ?? {};
-        const prevMeasurements =
-          (baseData.measurements as
-            | Record<string, Record<string, Record<string, unknown>>>
-            | undefined) ?? {};
-        const prevRoom = prevMeasurements[equipment.id] ?? {};
-        const prevSlot = prevRoom[slot] ?? {};
-        const nextData = {
-          ...baseData,
-          measurements: {
-            ...prevMeasurements,
-            [equipment.id]: {
-              ...prevRoom,
-              [slot]: {
-                ...prevSlot,
-                temperature: parsed.temperature,
-                humidity: parsed.humidity,
+        if (climateRow) {
+          const slot = pickNearestControlTime(climateConfig.controlTimes, now, timezone);
+          const existing = await db.journalDocumentEntry.findUnique({
+            where: {
+              documentId_employeeId_date: {
+                documentId: climateDoc.id,
+                employeeId: employee.id,
+                date: todayStart,
               },
             },
-          },
-        };
+            select: { data: true },
+          });
+          const nextData = mergeClimateMeasurement(existing?.data ?? null, climateRow.id, slot, {
+            temperature: parsed.temperature,
+            humidity: parsed.humidity,
+          });
 
-        await db.journalDocumentEntry.upsert({
-          where: {
-            documentId_employeeId_date: {
+          await db.journalDocumentEntry.upsert({
+            where: {
+              documentId_employeeId_date: {
+                documentId: climateDoc.id,
+                employeeId: employee.id,
+                date: todayStart,
+              },
+            },
+            create: {
               documentId: climateDoc.id,
               employeeId: employee.id,
               date: todayStart,
+              data: toPrismaJsonValue(nextData),
             },
-          },
-          create: {
-            documentId: climateDoc.id,
-            employeeId: employee.id,
-            date: todayStart,
-            data: toPrismaJsonValue(nextData),
-          },
-          update: { data: toPrismaJsonValue(nextData) },
-        });
-        humidityTouched = 1;
+            update: { data: toPrismaJsonValue(nextData) },
+          });
+          humidityTouched = 1;
+          touchedDocumentIds.push(climateDoc.id);
+        }
       }
     }
+  }
+
+  // Показание не легло ни в один активный журнал на сегодня — раньше
+  // отвечали «ok» с touched: 0, и сотрудник думал, что замер записан.
+  if (touched === 0 && humidityTouched === 0) {
+    return NextResponse.json(
+      {
+        code: "no-active-document",
+        error:
+          "Сегодня это оборудование не входит ни в один активный журнал температуры. Попросите управляющего создать документ или добавить в него оборудование.",
+      },
+      { status: 409 }
+    );
   }
 
   // Отклонение → тот же обработчик, что у датчиков: ответственному за
@@ -292,6 +295,20 @@ export async function POST(
     tempMax: equipment.tempMax,
     equipmentId: equipment.id,
     source: `${employee.name} (QR)`,
+  });
+
+  await recordQrFillAudit({
+    request,
+    organizationId,
+    kind: "equipment",
+    objectId: equipment.id,
+    objectName: equipment.name,
+    employee,
+    documentIds: touchedDocumentIds,
+    dateKey,
+    temperature: parsed.temperature,
+    humidity: parsed.humidity,
+    outOfRange: isOutOfRange,
   });
 
   return NextResponse.json({

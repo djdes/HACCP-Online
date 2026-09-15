@@ -4,6 +4,8 @@ import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { db } from "@/lib/db";
 import { BuildingsClient } from "./buildings-client";
 import { PageGuide } from "@/components/ui/page-guide";
+import Link from "next/link";
+import { QrCode } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +68,7 @@ export default async function BuildingsPage() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-[clamp(1.75rem,2vw+1rem,2rem)] leading-tight font-bold tracking-[-0.02em] text-[#0b1024]">
           Точки и помещения
@@ -76,6 +79,17 @@ export default async function BuildingsPage() {
           помещение в день. Если точек несколько, журналы можно вести
           отдельно по каждой: включается тумблером ниже.
         </p>
+      </div>
+      {buildings.some((building) => building.rooms.length > 0) ? (
+        <Link
+          href="/settings/qr-posters?kind=rooms"
+          className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#dcdfed] bg-white px-4 text-[14px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+          title="Плакат A4 с QR-кодом на каждое помещение: сотрудник сканирует и вносит температуру и влажность без входа"
+        >
+          <QrCode className="size-4 text-[#5566f6]" />
+          QR-плакаты помещений
+        </Link>
+      ) : null}
       </div>
       <PageGuide
         title="Как настроить точки и помещения"

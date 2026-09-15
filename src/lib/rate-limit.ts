@@ -69,6 +69,16 @@ export const aiHeavyRateLimiter = createRateLimiter({
   intervalMs: 60_000,
 });
 
+/**
+ * Ввод показаний по QR без входа (`/room-fill`, `/equipment-fill`): 30
+ * записей в минуту на пару «адрес + объект». Смене хватает с запасом, а
+ * утёкшая ссылка не превращается в поток мусорных строк.
+ */
+export const qrFillRateLimiter = createRateLimiter({
+  tokensPerInterval: 30,
+  intervalMs: 60_000,
+});
+
 export const loginRateLimiter = createRateLimiter({
   // 5 попыток за 5 минут на IP — защита от brute-force.
   tokensPerInterval: 5,

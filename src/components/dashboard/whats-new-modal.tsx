@@ -19,6 +19,7 @@ import {
   Building2,
   Moon,
   Plug,
+  QrCode,
   ScrollText,
   Settings2,
   ShieldCheck,
@@ -115,6 +116,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Поиск и навигация": Search,
   "Ответственные в журналах": UserCheck,
   "Шапка журналов": SquarePen,
+  "Температура по QR": QrCode,
 };
 
 function iconForCategory(name: string): LucideIcon {

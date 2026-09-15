@@ -1,0 +1,226 @@
+{
+  "checks": [
+    {
+      "name": "плакаты помещений: есть хотя бы один",
+      "ok": true,
+      "detail": 1
+    },
+    {
+      "name": "у плаката склада есть data-qr-url/kind",
+      "ok": true,
+      "detail": "http://localhost:3020/room-fill/cmu2stnhd000jwk9me7z5o3hs?token=room%3Acmu2stnhd000jwk9me7z5o3hs.1789500898624.z2WtEJq8SWnTdiAhvqHFT40k26eH-7WzgDPcUw6CmE0"
+    },
+    {
+      "name": "плакат: название, три шага, срок действия",
+      "ok": true,
+      "detail": "ТЕМПЕРАТУРА И ВЛАЖНОСТЬ\nСклад сухих продуктов\nОсновная точка · норма 15…25 °C, 40…70 %\n1.\nНаведите камеру телефона на код.\n2.\nВыберите своё имя и введите показания.\n3.\nНажмите «Сохранить» — запись попадёт в журнал за сегодня.\nКод действует до 15.09.2027"
+    },
+    {
+      "name": "печать: QR около 110 мм",
+      "ok": true,
+      "detail": 415.734375
+    },
+    {
+      "name": "?doc= ограничивает список строками документа",
+      "ok": true,
+      "detail": [
+        "cmu32lpar0000pg9mh9kvyjlc"
+      ]
+    },
+    {
+      "name": "/settings/equipment: кнопка «Плакаты A4»",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "/settings/buildings: кнопка «QR-плакаты помещений»",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "climate_control: пункт меню «QR-плакаты» ведёт на плакаты этого документа",
+      "ok": true,
+      "detail": "http://localhost:3020/settings/qr-posters?kind=rooms&doc=cmu32lpf70002pg9m1zptk62t"
+    },
+    {
+      "name": "cold_equipment_control: пункт меню «QR-плакаты» ведёт на плакаты этого документа",
+      "ok": true,
+      "detail": "http://localhost:3020/settings/qr-posters?kind=equipment&doc=cmu32lpfd0003pg9mvrs9qdce"
+    },
+    {
+      "name": "ссылка плаката открывает форму без входа",
+      "ok": true,
+      "detail": "http://localhost:3020/room-fill/cmu2stnhd000jwk9me7z5o3hs?token=room%3Acmu2stnhd000jwk9me7z5o3hs.1789500898624.z2WtEJq8SWnTdiAhvqHFT40k26eH-7WzgDPcUw6CmE0"
+    },
+    {
+      "name": "замер в норме → 200, слот в ответе",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "json": {
+          "ok": true,
+          "documentId": "cmu32lpf70002pg9m1zptk62t",
+          "dateKey": "2026-09-15",
+          "slot": "17:00",
+          "temperatureOutOfRange": false,
+          "humidityOutOfRange": false
+        }
+      }
+    },
+    {
+      "name": "экран успеха: «Записано в бланк за сегодня, <срок>»",
+      "ok": true,
+      "detail": "ТЕМПЕРАТУРА И ВЛАЖНОСТЬ\nСклад сухих продуктов\n\nКафе «Альфа» · Основная точка\n\nнорма 15…25 °C · норма 40…70 %\n\nЗаписано\n\nЗаписано в бланк за сегодня, 17:00 — на имя Иван Повар.\n\nЗаписать ещё замер"
+    },
+    {
+      "name": "имя запомнено на телефоне",
+      "ok": true,
+      "detail": "cmu2stncc0008wk9m2yu67ip7"
+    },
+    {
+      "name": "запись легла в строку склада и срок контроля",
+      "ok": true,
+      "detail": {
+        "room-cmu2stnhd000jwk9me7z5o3hs": {
+          "17:00": {
+            "humidity": 55,
+            "temperature": 20
+          }
+        }
+      }
+    },
+    {
+      "name": "отклонение → флаги вне нормы",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "json": {
+          "ok": true,
+          "documentId": "cmu32lpf70002pg9m1zptk62t",
+          "dateKey": "2026-09-15",
+          "slot": "17:00",
+          "temperatureOutOfRange": true,
+          "humidityOutOfRange": true
+        }
+      }
+    },
+    {
+      "name": "инцидент отклонения открыт",
+      "ok": true,
+      "detail": {
+        "id": "cmu32pjf0011j8s9m5326kr3n",
+        "organizationId": "e2e-org-a",
+        "subjectKey": "doc:cmu32lpf70002pg9m1zptk62t:room-cmu2stnhd000jwk9me7z5o3hs",
+        "subjectName": "Склад сухих продуктов",
+        "equipmentId": null,
+        "documentId": "cmu32lpf70002pg9m1zptk62t",
+        "responsibleUserId": null,
+        "firstValue": 31,
+        "lastValue": 31,
+        "tempMin": 15,
+        "tempMax": 25,
+        "notifiedAt": null,
+        "escalatedAt": "2026-09-15T19:37:09.478Z",
+        "resolvedAt": null,
+        "resolvedReason": null,
+        "lastSeenAt": "2026-09-15T19:37:09.478Z",
+        "createdAt": "2026-09-15T19:37:09.516Z",
+        "updatedAt": "2026-09-15T19:37:10.176Z"
+      }
+    },
+    {
+      "name": "журнал действий: 2 записи journal.qr_fill",
+      "ok": true,
+      "detail": 2
+    },
+    {
+      "name": "испорченный токен → 401",
+      "ok": true,
+      "detail": {
+        "error": "QR-код недействителен для этого помещения.",
+        "code": "bad-sig"
+      }
+    },
+    {
+      "name": "просроченный токен → 401",
+      "ok": true,
+      "detail": 401
+    },
+    {
+      "name": "токен другого помещения → 401",
+      "ok": true,
+      "detail": 401
+    },
+    {
+      "name": "токен помещения на маршруте оборудования → 401",
+      "ok": true,
+      "detail": 401
+    },
+    {
+      "name": "сотрудник другой организации → 404",
+      "ok": true,
+      "detail": 404
+    },
+    {
+      "name": "нет активного журнала → 409 no-active-document",
+      "ok": true,
+      "detail": {
+        "code": "no-active-document",
+        "error": "На сегодня нет активного журнала температуры. Попросите управляющего создать документ."
+      }
+    },
+    {
+      "name": "QR холодильника → 200",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "touched": 1,
+        "humidityTouched": 1,
+        "outOfRange": false
+      }
+    },
+    {
+      "name": "температура холодильника в журнале",
+      "ok": true,
+      "detail": {
+        "temperatures": {
+          "cold-item-qr": 4
+        },
+        "responsibleTitle": null
+      }
+    },
+    {
+      "name": "влажность с QR холодильника — в строке цеха, не под id оборудования",
+      "ok": true,
+      "detail": {
+        "room-cmu2stnhd000jwk9me7z5o3hs": {
+          "17:00": {
+            "humidity": 90,
+            "temperature": 31
+          }
+        },
+        "room-area-cmu2stnek000dwk9mgkz5j72o": {
+          "17:00": {
+            "humidity": 50,
+            "temperature": 4
+          }
+        }
+      }
+    },
+    {
+      "name": "холодильник вне журналов → 409",
+      "ok": true,
+      "detail": 409
+    },
+    {
+      "name": "журнал действий: запись QR холодильника",
+      "ok": true,
+      "detail": 1
+    },
+    {
+      "name": "31-й запрос за минуту → 429",
+      "ok": true,
+      "detail": 429
+    }
+  ]
+}

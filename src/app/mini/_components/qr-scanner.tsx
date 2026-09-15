@@ -23,6 +23,16 @@ import { QrCameraSheet } from "./qr-camera-sheet";
 function resolveQrDestination(text: string): string | null {
   const trimmed = text.trim();
 
+  // QR-наклейка холодильника и A4-плакат склада: публичные страницы
+  // замера с подписанным токеном. Открываем их как есть — форма работает
+  // и внутри Telegram, вход не нужен.
+  const fillMatch = trimmed.match(
+    /(?:https?:\/\/[^/]+)?(\/(?:room-fill|equipment-fill)\/[^?\s#]+(?:\?[^\s#]*)?)/i
+  );
+  if (fillMatch?.[1]) {
+    return fillMatch[1];
+  }
+
   // Direct Mini App URL
   if (trimmed.includes("/mini/")) {
     try {

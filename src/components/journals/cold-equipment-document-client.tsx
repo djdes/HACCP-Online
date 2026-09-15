@@ -39,6 +39,7 @@ import {
   ChevronUp,
   Copy,
   Plus,
+  QrCode,
   UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -1318,6 +1319,14 @@ export function ColdEquipmentDocumentClient({
                       "Создать сегодняшние строки по вчерашним значениям — удобно, когда ничего не поменялось.",
                     onSelect: () => void copyYesterday.run(false),
                     disabled: copyYesterday.busy,
+                  },
+                  {
+                    // Лист A4 с QR на каждый холодильник этого бланка.
+                    key: "qr-posters",
+                    label: "QR-плакаты",
+                    icon: <QrCode className="size-4" />,
+                    title: "Распечатать A4-плакаты с QR-кодом для холодильников этого журнала",
+                    onSelect: () => router.push(`/settings/qr-posters?kind=equipment&doc=${documentId}`),
                   },
                   {
                     key: "close-journal",

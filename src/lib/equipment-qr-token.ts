@@ -1,5 +1,3 @@
-import crypto from "node:crypto";
-
 /**
  * Long-lived HMAC token for physical QR stickers on equipment.
  * Format: `<equipmentId>.<issuedAtMs>.<sig>`.
@@ -15,61 +13,25 @@ import crypto from "node:crypto";
  *     log).
  *
  * TTL: 60 days. Regenerate the sticker if the manager fears abuse.
+ *
+ * Реализация общая с плакатами помещений — `src/lib/qr-fill-token.ts`.
+ * Здесь обёртки со старыми именами: токен помещения (`room:<id>…`)
+ * этой проверкой не принимается.
  */
 
-const TTL_MS = 60 * 24 * 60 * 60 * 1000;
-
-function getSecret(): string {
-  const raw =
-    process.env.EQUIPMENT_QR_TOKEN_SECRET ||
-    process.env.TELEGRAM_LINK_TOKEN_SECRET ||
-    process.env.NEXTAUTH_SECRET;
-  if (!raw || raw.length < 16) {
-    throw new Error(
-      "EQUIPMENT_QR_TOKEN_SECRET не настроен (или слишком короткий)."
-    );
-  }
-  return raw;
-}
+import { mintQrFillToken, verifyQrFillToken } from "@/lib/qr-fill-token";
 
 export function mintEquipmentQrToken(equipmentId: string): string {
-  const issued = Date.now();
-  const payload = `${equipmentId}.${issued}`;
-  const sig = crypto
-    .createHmac("sha256", getSecret())
-    .update(payload)
-    .digest("base64url");
-  return `${payload}.${sig}`;
+  return mintQrFillToken("equipment", equipmentId);
 }
 
 export type EquipmentTokenVerification =
   | { ok: true; equipmentId: string }
   | { ok: false; reason: "bad-format" | "bad-sig" | "expired" };
 
-export function verifyEquipmentQrToken(
-  token: string
-): EquipmentTokenVerification {
-  const parts = token.split(".");
-  if (parts.length !== 3) return { ok: false, reason: "bad-format" };
-  const [equipmentId, issuedRaw, sig] = parts;
-  if (!equipmentId || !issuedRaw || !sig) {
-    return { ok: false, reason: "bad-format" };
-  }
-  const issued = Number(issuedRaw);
-  if (!Number.isFinite(issued)) return { ok: false, reason: "bad-format" };
-  if (Date.now() - issued > TTL_MS) return { ok: false, reason: "expired" };
-
-  const expected = crypto
-    .createHmac("sha256", getSecret())
-    .update(`${equipmentId}.${issuedRaw}`)
-    .digest("base64url");
-  const expectedBuf = Buffer.from(expected, "base64url");
-  const sigBuf = Buffer.from(sig, "base64url");
-  if (expectedBuf.length !== sigBuf.length) {
-    return { ok: false, reason: "bad-sig" };
-  }
-  if (!crypto.timingSafeEqual(expectedBuf, sigBuf)) {
-    return { ok: false, reason: "bad-sig" };
-  }
-  return { ok: true, equipmentId };
+export function verifyEquipmentQrToken(token: string): EquipmentTokenVerification {
+  const result = verifyQrFillToken(token);
+  if (!result.ok) return result;
+  if (result.kind !== "equipment") return { ok: false, reason: "bad-sig" };
+  return { ok: true, equipmentId: result.id };
 }

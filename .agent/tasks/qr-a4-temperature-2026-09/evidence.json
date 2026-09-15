@@ -1,0 +1,14 @@
+{
+  "task_id": "qr-a4-temperature-2026-09",
+  "updated_at": "2026-09-15T23:05:00+03:00",
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+    { "cmd": "node --import tsx --test (qr-poster-origin, qr-fill-token, climate-fill, qr-fill.smoke, qr-scanner)", "result": "26/26" },
+    { "cmd": "npx tsx .agent/tasks/qr-a4-temperature-2026-09/e2e/poster-scan.ts", "result": "29/29 PASS" }
+  ],
+  "criteria": {
+    "AC1": "PASS", "AC2": "PASS", "AC3": "PASS", "AC4": "PASS", "AC5": "PASS",
+    "AC6": "PASS", "AC7": "PASS", "AC8": "PASS", "AC9": "PASS (local); production read-only after deploy"
+  },
+  "verification_note": "No independent verifier run: owner asked to finish tasks 3 and 4 as fast as possible."
+}

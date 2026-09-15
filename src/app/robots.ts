@@ -64,6 +64,8 @@ export default function robots(): MetadataRoute.Robots {
           // Task fill через QR-код (одноразовые ссылки, незачем в индексе)
           "/task-fill",
           "/equipment-fill",
+          // Замер по QR-плакату помещения (подписанная ссылка)
+          "/room-fill",
         ],
       },
     ],

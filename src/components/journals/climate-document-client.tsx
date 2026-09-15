@@ -5,7 +5,7 @@ import { TOUR } from "@/lib/tour-anchors";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, Plus } from "lucide-react";
+import { Archive, Pencil, Plus, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -1924,6 +1924,15 @@ export function ClimateDocumentClient({
           menuItems={
             status === "active"
               ? [
+                  {
+                    // Лист A4 с QR на каждое помещение этого бланка: сотрудник
+                    // сканирует и вносит температуру и влажность без входа.
+                    key: "qr-posters",
+                    label: "QR-плакаты",
+                    icon: <QrCode className="size-4" />,
+                    title: "Распечатать A4-плакаты с QR-кодом для помещений этого журнала",
+                    onSelect: () => router.push(`/settings/qr-posters?kind=rooms&doc=${documentId}`),
+                  },
                   {
                     key: "close-journal",
                     label: "Закончить журнал",

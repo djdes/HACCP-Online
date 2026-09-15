@@ -76,3 +76,14 @@ test("returns null for unrecognised text", () => {
     null
   );
 });
+
+test("opens QR poster and sticker links for readings without login", () => {
+  assert.equal(
+    resolveQrDestination("https://wesetup.ru/room-fill/cmroom1?token=room%3Acmroom1.1789.sig"),
+    "/room-fill/cmroom1?token=room%3Acmroom1.1789.sig"
+  );
+  assert.equal(
+    resolveQrDestination("http://localhost:3020/equipment-fill/eq-42?token=eq-42.1789.sig"),
+    "/equipment-fill/eq-42?token=eq-42.1789.sig"
+  );
+});
