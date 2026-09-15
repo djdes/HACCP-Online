@@ -453,6 +453,7 @@ async function executeFillCells(
       ? await loadStaffScheduleMap(db, {
           employeeIds: input.employeeIds,
           dateKeys: input.dates,
+          organizationId: ctx.orgId,
         })
       : null;
 

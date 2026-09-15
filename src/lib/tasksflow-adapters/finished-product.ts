@@ -19,6 +19,7 @@ import {
   type FinishedProductDocumentRow,
   normalizeFinishedProductDocumentConfig,
 } from "@/lib/finished-product-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -168,21 +169,15 @@ export const finishedProductAdapter: JournalAdapter = {
   },
 
   async getTaskForm({ documentId, rowKey }) {
-    const [doc, employee] = await Promise.all([
-      db.journalDocument.findUnique({
-        where: { id: documentId },
-        select: { config: true },
-      }),
-      (async () => {
-        const empId = employeeIdFromRowKey(rowKey);
-        if (!empId) return null;
-        return db.user.findUnique({
-          where: { id: empId },
-          select: { name: true },
-        });
-      })(),
-    ]);
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { config: true, organizationId: true },
+    });
     if (!doc) return null;
+    const employee = await findTaskEmployee({
+      employeeId: employeeIdFromRowKey(rowKey),
+      organizationId: doc.organizationId,
+    });
     const config = normalizeFinishedProductDocumentConfig(doc.config);
     return buildForm(config, employee?.name ?? null);
   },
@@ -194,14 +189,22 @@ export const finishedProductAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: {
+        config: true,
+        organizationId: true,
+        verifierUserId: true,
+        template: { select: { code: true } },
+      },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
-    const currentConfig = normalizeFinishedProductDocumentConfig(doc.config);
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true, positionTitle: true },
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
+    // Бракераж проводит проверяющий документа, а не сам исполнитель.
+    const inspector = await findTaskEmployee({
+      employeeId: doc.verifierUserId,
+      organizationId: doc.organizationId,
     });
+    const currentConfig = normalizeFinishedProductDocumentConfig(doc.config);
 
     const productionTime =
       typeof values?.productionTime === "string"
@@ -242,7 +245,7 @@ export const finishedProductAdapter: JournalAdapter = {
       courierTransferTime: "",
       oxygenLevel: "",
       responsiblePerson: employee?.name ?? "",
-      inspectorName: employee?.name ?? "",
+      inspectorName: inspector?.name ?? "",
       organolepticValue: "",
       organolepticResult: "",
       releaseAllowed:

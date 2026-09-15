@@ -38,6 +38,11 @@ import { isJournalSupported } from "@/lib/tasksflow-adapters";
 import { syncTodayMatrixChanges } from "@/lib/cleaning-cell-override-sync";
 import { isManagementRole } from "@/lib/user-roles";
 import { hasJournalAccess } from "@/lib/journal-acl";
+import {
+  ORG_ROSTER_WHERE,
+  RESPONSIBLE_NOT_IN_ORG_ERROR,
+  resolveResponsibleChoice,
+} from "@/lib/journal-roster";
 
 function isValidDate(value: Date) {
   return Number.isFinite(value.getTime());
@@ -120,17 +125,31 @@ export async function PATCH(
         select: { code: true },
       })
     : null;
+  // Ростер документа — живые сотрудники этой организации без ROOT: только
+  // их можно поставить ответственным и подставить в поля бланка.
   const allUsers =
     needsTemplateLookup
       ? await db.user.findMany({
           where: {
             organizationId: getActiveOrgId(session),
-            isActive: true,
+            ...ORG_ROSTER_WHERE,
           },
           select: { id: true, name: true, role: true, positionTitle: true },
           orderBy: [{ role: "asc" }, { name: "asc" }],
         })
       : [];
+
+  // Явно присланный ответственный обязан быть сотрудником организации.
+  // Пустая строка / null — «снять ответственного», это законно.
+  if (body.responsibleUserId !== undefined) {
+    const choice = resolveResponsibleChoice({
+      bodyUserId: body.responsibleUserId,
+      orgUserIds: new Set(allUsers.map((user) => user.id)),
+    });
+    if ("error" in choice) {
+      return NextResponse.json(RESPONSIBLE_NOT_IN_ORG_ERROR, { status: 400 });
+    }
+  }
 
   if (
     doc.status === "closed" &&
@@ -253,7 +272,11 @@ export async function PATCH(
             ? body.responsibleTitle
             : doc.responsibleTitle,
       },
-      allUsers
+      allUsers,
+      // Раньше при каждом сохранении ячейки, если ответственный документа
+      // не находился в ростере, сюда подставлялся «кто-нибудь» (владелец),
+      // и он молча становился ответственным журнала.
+      { allowFallbackUser: false }
     );
 
     if (body.config !== undefined) {
@@ -290,8 +313,22 @@ export async function PATCH(
       data.config = normalizedDocumentState.config;
     }
 
-    data.responsibleUserId = normalizedDocumentState.responsibleUserId;
-    data.responsibleTitle = normalizedDocumentState.responsibleTitle;
+    // Ответственного меняем, только когда о нём спросили:
+    //   • пришёл `responsibleUserId` (выбор в настройках документа) —
+    //     пишем то, что выбрали (id уже проверен выше);
+    //   • у документа ответственного нет, а в конфиге он указан явно
+    //     (например, `defaultResponsibleUserId` журнала-реестра) — берём
+    //     из конфига.
+    // Сохранение строк/ячеек без этих полей ответственного не трогает.
+    if (body.responsibleUserId !== undefined) {
+      data.responsibleUserId = normalizedDocumentState.responsibleUserId;
+      data.responsibleTitle = normalizedDocumentState.responsibleTitle;
+    } else if (!doc.responsibleUserId && normalizedDocumentState.responsibleUserId) {
+      data.responsibleUserId = normalizedDocumentState.responsibleUserId;
+      data.responsibleTitle = normalizedDocumentState.responsibleTitle;
+    } else if (body.responsibleTitle !== undefined) {
+      data.responsibleTitle = normalizedDocumentState.responsibleTitle;
+    }
   }
 
   if (body.title !== undefined) data.title = body.title;

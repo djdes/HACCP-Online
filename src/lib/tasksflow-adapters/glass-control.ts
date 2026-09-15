@@ -18,6 +18,7 @@ import {
   GLASS_CONTROL_TEMPLATE_CODE,
   type GlassControlEntryData,
 } from "@/lib/glass-control-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -198,23 +199,23 @@ export const glassControlAdapter: JournalAdapter = {
   async getTaskForm({ documentId, rowKey }) {
     // Org-настройка фото-доказательства на каждом шаге.
     let requirePhoto = false;
+    let organizationId: string | null = null;
     try {
       const doc = await db.journalDocument.findUnique({
         where: { id: documentId },
         select: {
+          organizationId: true,
           organization: { select: { requirePhotoOnTaskFillStep: true } },
         },
       });
       requirePhoto = Boolean(doc?.organization?.requirePhotoOnTaskFillStep);
+      organizationId = doc?.organizationId ?? null;
     } catch {
       requirePhoto = false;
     }
     const employeeId = employeeIdFromRowKey(rowKey);
     if (!employeeId) return buildGlassControlForm(null, requirePhoto);
-    const emp = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
-    });
+    const emp = await findTaskEmployee({ employeeId, organizationId });
     return buildGlassControlForm(emp?.name ?? null, requirePhoto);
   },
 
@@ -231,6 +232,14 @@ export const glassControlAdapter: JournalAdapter = {
 
     const dateObj = new Date(`${todayKey}T00:00:00.000Z`);
     if (Number.isNaN(dateObj.getTime())) return false;
+
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { organizationId: true },
+    });
+    if (!doc) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     // Извлекаем значения из pipeline'а (они в общих values, не отдельно).
     const damagesRaw = values?.damagesDetected;

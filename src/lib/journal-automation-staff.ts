@@ -21,6 +21,7 @@
  */
 import type { PrismaClient } from "@prisma/client";
 import type { JournalAutomationStaff } from "@/lib/journal-automation";
+import { filterRoster } from "@/lib/journal-roster";
 
 export type AutomationStaffSource = "custom" | "inherit" | "legacy";
 
@@ -102,15 +103,16 @@ export async function loadLegacyEligibleEmployees(
       organizationId: args.organizationId,
       isActive: true,
       archivedAt: null,
+      isRoot: false,
       ...(allowedPositionIds.length > 0
         ? { jobPositionId: { in: allowedPositionIds } }
         : {}),
     },
-    select: { id: true },
+    select: { id: true, name: true, email: true },
     orderBy: { name: "asc" },
   });
   if (employees.length > 0 || allowedPositionIds.length === 0) {
-    return employees.map((employee) => employee.id);
+    return filterRoster(employees).map((employee) => employee.id);
   }
 
   const fallback = await db.user.findMany({
@@ -118,11 +120,14 @@ export async function loadLegacyEligibleEmployees(
       organizationId: args.organizationId,
       isActive: true,
       archivedAt: null,
+      isRoot: false,
     },
-    select: { id: true },
+    select: { id: true, name: true, email: true },
     orderBy: { name: "asc" },
   });
-  return fallback.map((employee) => employee.id);
+  // Аккаунт «имя = почта» (мгновенная регистрация) — не человек из штата:
+  // строки на него заводим, только если больше некому.
+  return filterRoster(fallback).map((employee) => employee.id);
 }
 
 async function loadAliveIds(

@@ -13,6 +13,7 @@
  */
 import { db } from "@/lib/db";
 import type { HealthEntryData } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -110,10 +111,11 @@ export const healthCheckAdapter: JournalAdapter = {
     const employeeId = employeeIdFromRowKey(rowKey);
     if (!employeeId) return HEALTH_TASK_FORM;
     const [employee, yesterday] = await Promise.all([
-      db.user.findUnique({
-        where: { id: employeeId },
-        select: { name: true },
-      }),
+      db.journalDocument
+        .findUnique({ where: { id: documentId }, select: { organizationId: true } })
+        .then((doc) =>
+          findTaskEmployee({ employeeId, organizationId: doc?.organizationId })
+        ),
       // Smart-default: подтянуть «signed» и «measures» из вчерашней
       // записи. См. src/lib/smart-defaults.ts.
       (async () => {
@@ -152,6 +154,14 @@ export const healthCheckAdapter: JournalAdapter = {
     if (!employeeId) return false;
     const dateObj = new Date(`${todayKey}T00:00:00.000Z`);
     if (Number.isNaN(dateObj.getTime())) return false;
+
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { organizationId: true },
+    });
+    if (!doc) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     const signed =
       typeof values?.signed === "boolean"

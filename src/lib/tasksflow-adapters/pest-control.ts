@@ -15,6 +15,7 @@ import {
   PEST_CONTROL_TEMPLATE_CODE,
   type PestControlEntryData,
 } from "@/lib/pest-control-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -162,12 +163,16 @@ export const pestControlAdapter: JournalAdapter = {
     return EMPTY_SYNC_REPORT;
   },
 
-  async getTaskForm({ rowKey }) {
+  async getTaskForm({ documentId, rowKey }) {
     const employeeId = employeeIdFromRowKey(rowKey);
     if (!employeeId) return buildPestForm(null);
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { organizationId: true },
+    });
+    const employee = await findTaskEmployee({
+      employeeId,
+      organizationId: doc?.organizationId,
     });
     return buildPestForm(employee?.name ?? null);
   },
@@ -179,11 +184,15 @@ export const pestControlAdapter: JournalAdapter = {
     const dateObj = new Date(`${todayKey}T00:00:00.000Z`);
     if (Number.isNaN(dateObj.getTime())) return false;
 
-    const { hour, minute } = splitTime(values?.performedTime);
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { organizationId: true },
     });
+    if (!doc) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
+
+    const { hour, minute } = splitTime(values?.performedTime);
 
     const eventRaw =
       typeof values?.event === "string" ? values.event : "disinfection";

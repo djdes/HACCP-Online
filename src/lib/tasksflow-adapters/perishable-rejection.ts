@@ -22,6 +22,7 @@ import {
   type PerishableRejectionConfig,
   type PerishableRejectionRow,
 } from "@/lib/perishable-rejection-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -165,12 +166,16 @@ export const perishableRejectionAdapter: JournalAdapter = {
     return EMPTY_SYNC_REPORT;
   },
 
-  async getTaskForm({ rowKey }) {
+  async getTaskForm({ documentId, rowKey }) {
     const employeeId = employeeIdFromRowKey(rowKey);
     if (!employeeId) return buildPerishableForm(null);
-    const emp = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { organizationId: true },
+    });
+    const emp = await findTaskEmployee({
+      employeeId,
+      organizationId: doc?.organizationId,
     });
     return buildPerishableForm(emp?.name ?? null);
   },
@@ -182,18 +187,15 @@ export const perishableRejectionAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
     const currentConfig = (doc.config ?? {}) as PerishableRejectionConfig;
     const existingRows = Array.isArray(currentConfig.rows)
       ? currentConfig.rows
       : [];
-
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true, positionTitle: true },
-    });
 
     // Upsert-by-sourceRowKey: re-completion of the same TF task updates
     // the existing row instead of appending a duplicate. Manual admin

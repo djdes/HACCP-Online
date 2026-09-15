@@ -13,6 +13,7 @@ import {
   normalizeBreakdownHistoryDocumentConfig,
 } from "@/lib/breakdown-history-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -101,12 +102,13 @@ export const breakdownHistoryAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
     const currentConfig = normalizeBreakdownHistoryDocumentConfig(doc.config) as BreakdownHistoryDocumentConfig;
-    const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true } });
 
     const newRow: BreakdownRow = {
       id: `breakdown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

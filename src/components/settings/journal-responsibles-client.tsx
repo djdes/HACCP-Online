@@ -30,6 +30,7 @@ import {
   type JournalCategory,
 } from "@/lib/journal-responsible-presets";
 import { getSchemaForJournal } from "@/lib/journal-responsible-schemas";
+import { isPlaceholderStaffUser } from "@/lib/journal-roster";
 import {
   calculateUserWorkloads,
   getJournalMonthlyWeight,
@@ -55,7 +56,8 @@ type UserItem = {
 
 /**
  * Tier — числовой ранг должности для умного пресета:
- *   3 = admin (isRoot или legacy "owner")
+ *   3 = admin (legacy "owner")
+ *  -1 = заглушка (имя = почта, «Иванов И.И.»)
  *   2 = manager
  *   1 = head_chef / technologist
  *   0 = cook / waiter / operator
@@ -65,7 +67,10 @@ type UserItem = {
  * "менеджер/управляющ") — менеджера/заведующую, а не уборщика.
  */
 function userTier(u: UserItem): number {
-  if (u.isRoot) return 3;
+  // ROOT сюда не приходит (страница отдаёт только сотрудников), а аккаунт
+  // «имя = почта» — техническая запись мгновенной регистрации, не человек
+  // из штата: в пресетах он идёт последним.
+  if (isPlaceholderStaffUser(u)) return -1;
   switch (u.role) {
     case "owner":
       return 3;

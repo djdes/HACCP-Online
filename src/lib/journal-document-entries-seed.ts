@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { loadLegacyEligibleEmployees } from "@/lib/journal-automation-staff";
+import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 
 /**
  * Per-journal seeder для JournalDocumentEntry — создаёт «строки» на
@@ -120,7 +121,15 @@ export async function seedEntriesForDocument(input: {
 
   // PER_DAY: одна entry на день, employeeId = responsibleUserId.
   if (PER_DAY_JOURNALS.has(journalCode)) {
-    if (!responsibleUserId) {
+    // Строка на каждый день пишется на ответственного — поэтому он обязан
+    // быть сотрудником этой организации (не ROOT, не чужой, не архивный).
+    const responsible = responsibleUserId
+      ? await db.user.findFirst({
+          where: { id: responsibleUserId, organizationId, ...ORG_ROSTER_WHERE },
+          select: { id: true },
+        })
+      : null;
+    if (!responsible) {
       // Нет ответственного — без него мы не можем сидеть entry
       // (employeeId is non-null FK на User).
       return { created: 0, skipped: dates.length };
@@ -128,7 +137,7 @@ export async function seedEntriesForDocument(input: {
     const result = await db.journalDocumentEntry.createMany({
       data: dates.map((date) => ({
         documentId,
-        employeeId: responsibleUserId,
+        employeeId: responsible.id,
         date,
         // Маркер «авто-сид»: эта entry создана при создании документа,
 // чтобы у журнала появилась структура rows. Заполненной её

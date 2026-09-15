@@ -13,6 +13,7 @@ import {
   createPpeIssuanceRow,
 } from "@/lib/ppe-issuance-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -110,9 +111,11 @@ export const ppeIssuanceAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     // Защита от пустого doc.config — без `?? {}` `[...currentConfig.rows]`
     // падает с null.
@@ -121,7 +124,6 @@ export const ppeIssuanceAdapter: JournalAdapter = {
       ...rawConfig,
       rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
     } as PpeIssuanceConfig;
-    const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true, positionTitle: true } });
 
     const newRow: PpeIssuanceRow = createPpeIssuanceRow({
       issueDate: todayKey,

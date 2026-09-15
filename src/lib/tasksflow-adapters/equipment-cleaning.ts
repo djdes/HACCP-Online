@@ -19,6 +19,7 @@ import {
   type EquipmentCleaningRowData,
   normalizeEquipmentCleaningConfig,
 } from "@/lib/equipment-cleaning-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -184,20 +185,16 @@ export const equipmentCleaningAdapter: JournalAdapter = {
   },
 
   async getTaskForm({ documentId, rowKey }) {
-    const [doc, employee] = await Promise.all([
-      db.journalDocument.findUnique({
-        where: { id: documentId },
-        select: { config: true },
-      }),
-      (async () => {
-        const empId = employeeIdFromRowKey(rowKey);
-        if (!empId) return null;
-        return db.user.findUnique({
-          where: { id: empId },
-          select: { name: true },
-        });
-      })(),
-    ]);
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { config: true, organizationId: true },
+    });
+    const employee = doc
+      ? await findTaskEmployee({
+          employeeId: employeeIdFromRowKey(rowKey),
+          organizationId: doc.organizationId,
+        })
+      : null;
     const fieldVariant = doc
       ? normalizeEquipmentCleaningConfig(doc.config).fieldVariant
       : "rinse_temperature";
@@ -211,10 +208,13 @@ export const equipmentCleaningAdapter: JournalAdapter = {
     const dateObj = new Date(`${todayKey}T00:00:00.000Z`);
     if (Number.isNaN(dateObj.getTime())) return false;
 
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true, positionTitle: true },
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { organizationId: true },
     });
+    if (!doc) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     const rinseTempRaw = values?.rinseTemperature;
     const rinseTemperature =

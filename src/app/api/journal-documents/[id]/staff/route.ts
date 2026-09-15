@@ -8,6 +8,7 @@ import {
   getDefaultEntryDataForTemplate,
 } from "@/lib/hygiene-document";
 import { applyStaffJournalAutoFill } from "@/lib/staff-journal-autofill";
+import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
   getJournalAutomation,
@@ -74,10 +75,11 @@ export async function POST(
     return NextResponse.json({ error: "Не указано действие" }, { status: 400 });
   }
 
+  // Ростер документа — живые сотрудники этой организации, без ROOT.
   const users = await db.user.findMany({
     where: {
       organizationId: getActiveOrgId(session),
-      isActive: true,
+      ...ORG_ROSTER_WHERE,
     },
     select: { id: true, role: true },
   });
@@ -132,6 +134,7 @@ export async function POST(
     });
     const result = await applyStaffJournalAutoFill(db, {
       documentId,
+      organizationId,
       templateCode: document.template.code,
       employeeIds: await resolveTargetUserIds(),
       dateKeys,

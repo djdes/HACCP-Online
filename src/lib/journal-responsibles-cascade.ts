@@ -12,6 +12,43 @@ import {
   type DefaultConfigOrgData,
   getDefaultConfigForJournal,
 } from "@/lib/journal-default-configs";
+import {
+  ORG_ROSTER_WHERE,
+  rankRosterForSlot,
+  type RosterUser,
+} from "@/lib/journal-roster";
+
+/** Ростер для авто-подбора слотов (опционально — только выбранные должности). */
+async function loadSlotRoster(
+  organizationId: string,
+  positionIds: string[]
+): Promise<RosterUser[]> {
+  const users = await db.user.findMany({
+    where: {
+      organizationId,
+      ...ORG_ROSTER_WHERE,
+      ...(positionIds.length > 0 ? { jobPositionId: { in: positionIds } } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      positionTitle: true,
+      jobPosition: { select: { name: true, categoryKey: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    positionTitle: user.positionTitle,
+    jobPositionName: user.jobPosition?.name ?? null,
+    jobPositionCategory: user.jobPosition?.categoryKey ?? null,
+  }));
+}
 
 /**
  * Подтягивает org-данные (areas + equipment + users + products) для
@@ -22,10 +59,10 @@ import {
 async function fetchOrgDataForDefaults(
   organizationId: string
 ): Promise<DefaultConfigOrgData> {
-  const [org, areas, rooms, equipment, users, products] = await Promise.all([
+  const [org, areas, rooms, equipment, users, products, supplierRows] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { name: true },
+      select: { name: true, isDemo: true },
     }),
     db.area.findMany({
       where: { organizationId },
@@ -51,7 +88,7 @@ async function fetchOrgDataForDefaults(
       orderBy: { name: "asc" },
     }),
     db.user.findMany({
-      where: { organizationId, isActive: true, archivedAt: null },
+      where: { organizationId, ...ORG_ROSTER_WHERE },
       // Должность нужна, чтобы бланк печатался с «Иванова · Повар», а не
       // с одним ФИО: иначе человеку всё равно приходится вписывать её
       // рукой в каждую строку.
@@ -69,6 +106,15 @@ async function fetchOrgDataForDefaults(
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    // Поставщики из принятых партий — справочник для бракеража
+    // скоропорта вместо демо-«ИП Бубнов».
+    db.batch.findMany({
+      where: { organizationId, supplier: { not: null } },
+      select: { supplier: true },
+      orderBy: { supplier: "asc" },
+      distinct: ["supplier"],
+      take: 100,
+    }),
   ]);
   return {
     areas,
@@ -82,7 +128,11 @@ async function fetchOrgDataForDefaults(
       jobPositionName: u.jobPosition?.name ?? null,
     })),
     products,
+    suppliers: supplierRows
+      .map((row) => row.supplier?.trim() ?? "")
+      .filter((supplier) => supplier.length > 0),
     organizationName: org?.name ?? undefined,
+    isDemo: org?.isDemo === true,
   };
 }
 
@@ -147,48 +197,23 @@ export async function cascadeResponsibleToActiveDocuments(input: {
     Object.values(slotUsers).filter((v): v is string => Boolean(v))
   );
 
+  const cascadeRoster = schema.slots.some((slot) => !slotUsers[slot.id])
+    ? await loadSlotRoster(organizationId, positionIds)
+    : [];
   for (const slot of schema.slots) {
     if (slotUsers[slot.id]) continue;
-    const keywords = slot.positionKeywords ?? null;
-    const where: Record<string, unknown> = {
-      organizationId,
-      isActive: true,
-      archivedAt: null,
-    };
-    if (positionIds.length > 0) {
-      where.jobPositionId = { in: positionIds };
-    }
-    const candidates = await db.user.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        jobPosition: { select: { name: true } },
-      },
-      orderBy: { name: "asc" },
-    });
-    const matched = keywords
-      ? candidates.filter((u) => {
-          const positionName = (u.jobPosition?.name ?? "").toLowerCase();
-          return keywords.some((kw) => positionName.includes(kw));
-        })
-      : candidates;
-    let pick = matched.find((u) => !usedUserIds.has(u.id));
-    // Для verifier-слота разрешаем повторное использование (часто
-    // контролёр и верификатор — один человек).
-    if (!pick && slot.kind === "verifier" && matched.length > 0) {
-      pick = matched[0];
-    }
+    // Общее правило ростера: подходящая должность → персонал/руководство
+    // по типу слота; ROOT и аккаунты-заглушки — никогда не раньше людей.
+    // Проверяющий может совпадать с исполнителем.
+    const pick = rankRosterForSlot(
+      cascadeRoster,
+      { kind: slot.kind ?? "filler", positionKeywords: slot.positionKeywords },
+      usedUserIds
+    );
     if (pick) {
       slotUsers[slot.id] = pick.id;
       if (slot.kind !== "verifier") {
         usedUserIds.add(pick.id);
-      }
-    } else if (slot.primary || slot.id === primarySlotId) {
-      const fallback = candidates.find((u) => !usedUserIds.has(u.id));
-      if (fallback) {
-        slotUsers[slot.id] = fallback.id;
-        usedUserIds.add(fallback.id);
       }
     }
   }
@@ -230,8 +255,7 @@ export async function cascadeResponsibleToActiveDocuments(input: {
       where: {
         id: { in: userIdsToValidate },
         organizationId,
-        isActive: true,
-        archivedAt: null,
+        ...ORG_ROSTER_WHERE,
       },
       select: { id: true, name: true, jobPosition: { select: { name: true } } },
     });
@@ -275,7 +299,7 @@ export async function cascadeResponsibleToActiveDocuments(input: {
     // scope === "all" — без дополнительных where-клозов.
     const docs = await db.journalDocument.findMany({
       where: docWhere,
-      select: { id: true, config: true },
+      select: { id: true, config: true, _count: { select: { entries: true } } },
     });
 
     // Если есть пустые конфиги — нужны org-данные для enriched дефолта
@@ -285,7 +309,7 @@ export async function cascadeResponsibleToActiveDocuments(input: {
         d.config && typeof d.config === "object" && !Array.isArray(d.config)
           ? (d.config as Record<string, unknown>)
           : {};
-      return Object.keys(cfg).length === 0;
+      return Object.keys(cfg).length === 0 && d._count.entries === 0;
     });
     const cascadeOrgData = hasEmptyConfigs
       ? await fetchOrgDataForDefaults(organizationId)
@@ -302,7 +326,11 @@ export async function cascadeResponsibleToActiveDocuments(input: {
         doc.config && typeof doc.config === "object" && !Array.isArray(doc.config)
           ? (doc.config as Record<string, unknown>)
           : {};
-      const isEmpty = Object.keys(cfgObj).length === 0;
+      // Документ с записями, но пустым конфигом, не «досеиваем»: его уже
+      // вели, и подсунутые строки дефолта перемешались бы с реальными
+      // данными. Такому документу только проставляем людей.
+      const isEmpty =
+        Object.keys(cfgObj).length === 0 && doc._count.entries === 0;
       const baseCfg = isEmpty
         ? getDefaultConfigForJournal(journalCode, cascadeOrgData)
         : cfgObj;
@@ -459,39 +487,22 @@ export async function prefillResponsiblesForNewDocument(input: {
   const usedIds = new Set<string>(
     Object.values(slots).filter((v): v is string => Boolean(v))
   );
+  const prefillRoster = schema.slots.some((slot) => !slots[slot.id])
+    ? await loadSlotRoster(organizationId, [])
+    : [];
   for (const slot of schema.slots) {
     if (slots[slot.id]) continue;
-    const where: Record<string, unknown> = {
-      organizationId,
-      isActive: true,
-      archivedAt: null,
-    };
-    const candidates = await db.user.findMany({
-      where,
-      select: { id: true, jobPosition: { select: { name: true } } },
-      orderBy: { name: "asc" },
-    });
-    const byKeywords = slot.positionKeywords?.length
-      ? candidates.filter((u) => {
-          const n = (u.jobPosition?.name ?? "").toLowerCase();
-          return slot.positionKeywords!.some((kw) => n.includes(kw));
-        })
-      : candidates;
     // C3 аудита журналов: если по ключевым словам должности не нашёлся
-    // НИКТО (типовой случай — у сотрудников ещё не проставлен
-    // jobPosition), берём весь ростер. Иначе слот оставался пустым и
-    // журнал уборки показывал «Ответственный за уборку: С1 - —»,
-    // а печатный бланк уходил инспектору без ФИО. Тот же fallback уже
-    // применяется при посеве строк (journal-document-entries-seed.ts).
-    const matched = byKeywords.length > 0 ? byKeywords : candidates;
-    let pick = matched.find((u) => !usedIds.has(u.id));
-    // Для verifier-слота разрешаем повторное использование: контролёр и
-    // верификатор часто один и тот же человек (заведующая = контролёр
-    // уборки = верификатор гигиенического и т.д.). Без этого fallback'а
-    // _verifier оставался null и двухступенчатая проверка не работала.
-    if (!pick && slot.kind === "verifier" && matched.length > 0) {
-      pick = matched[0];
-    }
+    // НИКТО (у сотрудников ещё не проставлен jobPosition), берём остальной
+    // ростер — иначе бланк уходил инспектору без ФИО. Но не «по алфавиту»:
+    // исполнитель — сначала линейный персонал, проверяющий — сначала
+    // руководство; ROOT и аккаунт «имя = почта» не выбираются, пока есть
+    // живые сотрудники. Проверяющий может совпадать с исполнителем.
+    const pick = rankRosterForSlot(
+      prefillRoster,
+      { kind: slot.kind ?? "filler", positionKeywords: slot.positionKeywords },
+      usedIds
+    );
     if (pick) {
       slots[slot.id] = pick.id;
       // Не добавляем в usedIds для verifier — это позволяет другим
@@ -519,8 +530,7 @@ export async function prefillResponsiblesForNewDocument(input: {
       where: {
         id: { in: userIdsToCheck },
         organizationId,
-        isActive: true,
-        archivedAt: null,
+        ...ORG_ROSTER_WHERE,
       },
       select: { id: true, name: true, jobPosition: { select: { name: true } } },
     });

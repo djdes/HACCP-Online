@@ -14,6 +14,7 @@ import {
   createMetalImpurityRow,
 } from "@/lib/metal-impurity-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -132,9 +133,11 @@ export const metalImpurityAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     // Защита от пустого doc.config — при auto-create rows/materials/suppliers
     // отсутствуют, и .find() / spread падают.
@@ -147,7 +150,6 @@ export const metalImpurityAdapter: JournalAdapter = {
       responsiblePosition:
         rawConfig.responsiblePosition ?? "Сотрудник",
     } as MetalImpurityDocumentConfig;
-    const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true } });
 
     const material = currentConfig.materials.find((m) => m.id === (values?.materialId as string));
     const supplier = currentConfig.suppliers.find((s) => s.id === (values?.supplierId as string));

@@ -23,6 +23,7 @@ import {
   type IntensiveCoolingRow,
   type IntensiveCoolingRowHistoryEntry,
 } from "@/lib/intensive-cooling-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -182,15 +183,14 @@ export const intensiveCoolingAdapter: JournalAdapter = {
 
   async getTaskForm({ documentId, rowKey }) {
     const employeeId = employeeIdFromRowKey(rowKey);
-    const [emp, doc] = await Promise.all([
-      employeeId
-        ? db.user.findUnique({ where: { id: employeeId }, select: { name: true } })
-        : Promise.resolve(null),
-      db.journalDocument.findUnique({
-        where: { id: documentId },
-        select: { config: true },
-      }),
-    ]);
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { config: true, organizationId: true },
+    });
+    const emp = await findTaskEmployee({
+      employeeId,
+      organizationId: doc?.organizationId,
+    });
     // Подтягиваем previously saved row (если задачу выполняли раньше),
     // чтобы форма открылась с теми же значениями. UX «нажал на круг
     // выполненной → редактирую данные».
@@ -208,18 +208,15 @@ export const intensiveCoolingAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
     const currentConfig = (doc.config as { rows?: IntensiveCoolingRow[] }) ?? {};
     const existingRows = Array.isArray(currentConfig.rows)
       ? currentConfig.rows
       : [];
-
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true, role: true, positionTitle: true },
-    });
 
     const { hour, minute } = splitTime(values?.productionTime);
     // Upsert-by-sourceRowKey: if this TF task already produced a row

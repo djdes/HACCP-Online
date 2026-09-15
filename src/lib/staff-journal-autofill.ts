@@ -29,6 +29,7 @@ import {
   dayOffOverrideKey,
   isStaffDayOff,
 } from "@/lib/staff-days-off";
+import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 
 export const HYGIENE_TEMPLATE_CODE = "hygiene";
 export const HEALTH_CHECK_TEMPLATE_CODE = "health_check";
@@ -66,7 +67,16 @@ function utcDate(dateKey: string) {
  */
 export async function loadStaffScheduleMap(
   db: ScheduleDb,
-  params: { employeeIds: string[]; dateKeys: string[] }
+  params: {
+    employeeIds: string[];
+    dateKeys: string[];
+    /**
+     * Организация документа. id сотрудников приходят снаружи (строки
+     * документа, выбор ассистента), поэтому недельные правила выходных
+     * читаем только у людей этой организации.
+     */
+    organizationId?: string;
+  }
 ): Promise<StaffScheduleMap> {
   const map: StaffScheduleMap = new Map();
   const { employeeIds } = params;
@@ -88,7 +98,10 @@ export async function loadStaffScheduleMap(
     // Недельное правило выходных: без него в журнал попадали только те
     // дни, которые управляющая успела прокликать руками.
     db.user.findMany({
-      where: { id: { in: employeeIds } },
+      where: {
+        id: { in: employeeIds },
+        ...(params.organizationId ? { organizationId: params.organizationId } : {}),
+      },
       select: { id: true, weeklyDaysOff: true },
     }),
     db.staffVacation.findMany({
@@ -180,18 +193,37 @@ export async function applyStaffJournalAutoFill(
   db: EntryDb & ScheduleDb,
   params: {
     documentId: string;
+    /** Организация документа: строки заводим только на её сотрудников. */
+    organizationId: string;
     templateCode: string;
     employeeIds: string[];
     dateKeys: string[];
     entries: StaffAutoFillEntry[];
   }
 ): Promise<{ created: number; updated: number }> {
-  const { documentId, templateCode, employeeIds, dateKeys, entries } = params;
+  const { documentId, organizationId, templateCode, dateKeys, entries } = params;
   if (dateKeys.length === 0) return { created: 0, updated: 0 };
+
+  // Новые строки — только живым сотрудникам этой организации. Список
+  // приходит из политики автоматики и строк документа; пользователь другой
+  // организации (партнёр, ROOT) или уволенный строку в журнале не получает.
+  const allowedEmployees =
+    params.employeeIds.length > 0
+      ? await db.user.findMany({
+          where: {
+            id: { in: params.employeeIds },
+            organizationId,
+            ...ORG_ROSTER_WHERE,
+          },
+          select: { id: true },
+        })
+      : [];
+  const allowedIds = new Set(allowedEmployees.map((user) => user.id));
+  const employeeIds = params.employeeIds.filter((id) => allowedIds.has(id));
 
   const schedule =
     templateCode === HYGIENE_TEMPLATE_CODE
-      ? await loadStaffScheduleMap(db, { employeeIds, dateKeys })
+      ? await loadStaffScheduleMap(db, { employeeIds, dateKeys, organizationId })
       : (new Map() as StaffScheduleMap);
 
   const dateKeySet = new Set(dateKeys);

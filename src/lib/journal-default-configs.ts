@@ -98,7 +98,16 @@ export type DefaultConfigOrgData = {
     jobPositionName?: string | null;
   }>;
   products?: Array<{ id: string; name: string }>;
+  /** Поставщики из принятых партий организации (без повторов). */
+  suppliers?: string[];
   organizationName?: string;
+  /**
+   * Демо-организация (или витрина лендинга). Только ей достаются
+   * образцы-фикстуры: «Пельмени», стоковые холодильники, приходы
+   * дезсредств. Реальная организация получает пустые таблицы или данные
+   * своих справочников.
+   */
+  isDemo?: boolean;
 };
 
 /**

@@ -23,6 +23,7 @@ import {
   type CleaningVentilationChecklistConfig,
   type CleaningVentilationChecklistEntryData,
 } from "@/lib/cleaning-ventilation-checklist-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -146,21 +147,15 @@ export const cleaningVentilationChecklistAdapter: JournalAdapter = {
   },
 
   async getTaskForm({ documentId, rowKey }) {
-    const [doc, employee] = await Promise.all([
-      db.journalDocument.findUnique({
-        where: { id: documentId },
-        select: { config: true },
-      }),
-      (async () => {
-        const empId = employeeIdFromRowKey(rowKey);
-        if (!empId) return null;
-        return db.user.findUnique({
-          where: { id: empId },
-          select: { name: true },
-        });
-      })(),
-    ]);
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { config: true, organizationId: true },
+    });
     if (!doc) return null;
+    const employee = await findTaskEmployee({
+      employeeId: employeeIdFromRowKey(rowKey),
+      organizationId: doc.organizationId,
+    });
     const config = normalizeConfig(doc.config);
     return buildForm(config, employee?.name ?? null);
   },
@@ -174,9 +169,11 @@ export const cleaningVentilationChecklistAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true },
+      select: { config: true, organizationId: true },
     });
     if (!doc) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
     const config = normalizeConfig(doc.config);
 
     const procedures: CleaningVentilationChecklistEntryData["procedures"] = {};

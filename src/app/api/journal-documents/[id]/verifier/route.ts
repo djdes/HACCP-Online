@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getActiveOrgId, requireApiAuth } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { logAudit } from "@/lib/audit";
+import { findOrgUser } from "@/lib/journal-roster-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,10 +85,15 @@ export async function POST(
   // Доступ: verifier документа ИЛИ admin.full орги. Если у документа
   // нет verifier'а — fallback на responsibleUserId, чтобы legacy
   // documents можно было закрывать.
+  //
+  // Совпадения id мало: в чужой организации работают партнёры, ROOT и
+  // люди из мульти-орг, а в старых документах проверяющим мог остаться
+  // пользователь другой организации. Проверяющий «по назначению» — только
+  // живой сотрудник этой организации; остальным нужны права руководства.
+  const assignedVerifierId = doc.verifierUserId ?? doc.responsibleUserId;
   const isVerifier =
-    session.user.id === doc.verifierUserId ||
-    (doc.verifierUserId === null &&
-      session.user.id === doc.responsibleUserId);
+    assignedVerifierId === session.user.id &&
+    (await findOrgUser(orgId, session.user.id)) !== null;
   const isAdmin = hasFullWorkspaceAccess({
     role: session.user.role,
     isRoot: session.user.isRoot === true,

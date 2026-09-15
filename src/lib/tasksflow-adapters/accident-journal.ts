@@ -13,6 +13,7 @@ import {
   normalizeAccidentDocumentConfig,
 } from "@/lib/accident-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -100,12 +101,13 @@ export const accidentJournalAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
     const currentConfig = normalizeAccidentDocumentConfig(doc.config) as AccidentDocumentConfig;
-    const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true } });
 
     const now = new Date();
     const newRow: AccidentRow = {

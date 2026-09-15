@@ -23,6 +23,7 @@ import {
   type JournalPeriodOverrideMap,
 } from "@/lib/journal-period";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
+import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 import {
   getPrimarySlotId,
@@ -319,6 +320,7 @@ async function inheritResponsiblesFromLastDocument(
       // рождаться с ссылкой на него (раньше фильтра не было, и
       // наследование протаскивало архив).
       archivedAt: null,
+      isRoot: false,
     },
     select: { id: true },
   });
@@ -373,6 +375,7 @@ async function resolveDesiredResponsibles(
               organizationId: args.organizationId,
               isActive: true,
               archivedAt: null,
+              isRoot: false,
             },
             select: { id: true },
           })
@@ -422,11 +425,12 @@ function buildSlotOverrides(
  */
 async function loadResponsibleTitle(
   db: PrismaClient,
+  organizationId: string,
   responsibleUserId: string | null
 ): Promise<string | null> {
   if (!responsibleUserId) return null;
-  const user = await db.user.findUnique({
-    where: { id: responsibleUserId },
+  const user = await db.user.findFirst({
+    where: { id: responsibleUserId, organizationId, ...ORG_ROSTER_WHERE },
     select: {
       id: true,
       name: true,
@@ -612,7 +616,7 @@ export async function ensureActiveDocument(
   const responsibleUserId =
     prefill.responsibleUserId ?? inherited.responsibleUserId;
   const [responsibleTitle, seedEmployeeIds] = await Promise.all([
-    loadResponsibleTitle(db, responsibleUserId),
+    loadResponsibleTitle(db, args.organizationId, responsibleUserId),
     resolveSeedEmployeeIds(db, {
       organizationId: args.organizationId,
       templateCode: args.templateCode,
@@ -842,7 +846,7 @@ export async function ensureNextPeriodDocument(
     now,
   );
   const [responsibleTitleNext, seedEmployeeIdsNext] = await Promise.all([
-    loadResponsibleTitle(db, prefillNext.responsibleUserId),
+    loadResponsibleTitle(db, args.organizationId, prefillNext.responsibleUserId),
     resolveSeedEmployeeIds(db, {
       organizationId: args.organizationId,
       templateCode: args.templateCode,

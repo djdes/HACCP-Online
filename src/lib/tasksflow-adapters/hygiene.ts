@@ -19,6 +19,7 @@ import {
   type HygieneEntryData,
   type HygieneStatus,
 } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -148,10 +149,11 @@ export const hygieneAdapter: JournalAdapter = {
     const employeeId = employeeIdFromRowKey(rowKey);
     if (!employeeId) return HYGIENE_TASK_FORM;
     const [employee, yesterday] = await Promise.all([
-      db.user.findUnique({
-        where: { id: employeeId },
-        select: { name: true },
-      }),
+      db.journalDocument
+        .findUnique({ where: { id: documentId }, select: { organizationId: true } })
+        .then((doc) =>
+          findTaskEmployee({ employeeId, organizationId: doc?.organizationId })
+        ),
       // Smart-default из вчерашней entry: если повар вчера ставил
       // «healthy», скорее всего и сегодня то же. Pre-fill экономит
       // тап и не блокирует «осознанное подтверждение submit'ом».
@@ -221,6 +223,14 @@ export const hygieneAdapter: JournalAdapter = {
     const data: HygieneEntryData = { status, temperatureAbove37 };
     const dateObj = new Date(`${todayKey}T00:00:00.000Z`);
     if (Number.isNaN(dateObj.getTime())) return false;
+
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { organizationId: true },
+    });
+    if (!doc) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     await db.journalDocumentEntry.upsert({
       where: {

@@ -32,7 +32,7 @@ export default async function JournalResponsiblesPage() {
       },
     }),
     db.user.findMany({
-      where: { organizationId, isActive: true, archivedAt: null },
+      where: { organizationId, isActive: true, archivedAt: null, isRoot: false },
       orderBy: { name: "asc" },
       select: {
         id: true,

@@ -15,6 +15,7 @@ import {
   createAcceptanceRow,
 } from "@/lib/acceptance-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -101,9 +102,11 @@ function makeAdapter(templateCode: string, label: string, description: string, i
 
       const doc = await db.journalDocument.findUnique({
         where: { id: documentId },
-        select: { config: true, template: { select: { code: true } } },
+        select: { config: true, organizationId: true, template: { select: { code: true } } },
       });
       if (!doc || !TEMPLATE_CODES.includes(doc.template.code)) return false;
+      const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+      if (!employee) return false;
 
       // Защита от пустого doc.config — без `?? {}` `currentConfig.rows`
       // падает с «Cannot read properties of null».
@@ -112,7 +115,6 @@ function makeAdapter(templateCode: string, label: string, description: string, i
         ...rawConfig,
         rows: Array.isArray(rawConfig.rows) ? rawConfig.rows : [],
       } as AcceptanceDocumentConfig;
-      const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true } });
 
       const newRow: AcceptanceRow = createAcceptanceRow({
         deliveryDate: todayKey,

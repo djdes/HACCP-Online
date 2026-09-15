@@ -1,4 +1,5 @@
 import { getUserDisplayTitle } from "@/lib/user-roles";
+import { rankRosterForSlot } from "@/lib/journal-roster";
 import {
   AUDIT_PLAN_TEMPLATE_CODE,
   normalizeAuditPlanConfig,
@@ -62,9 +63,14 @@ function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/**
+ * Имя-заглушка из старых образцов бланка («Иванов И.И.»). Пустое имя
+ * заглушкой НЕ считается: это «никого не выбрали», и подставлять туда
+ * человека при каждом сохранении документа нельзя.
+ */
 function isPlaceholderStaffName(value: unknown) {
   const name = normalizeText(value).toLowerCase();
-  return name.length === 0 || STAFF_PLACEHOLDER_NAMES.has(name);
+  return name.length > 0 && STAFF_PLACEHOLDER_NAMES.has(name);
 }
 
 export function getDbStaffTitle(
@@ -178,6 +184,11 @@ export function reconcileNamedStaffSelection(
     fallbackTitle?: unknown;
     allowFallbackUser?: boolean | "placeholder-only";
     fallbackUser?: StaffBindingUser | null;
+    /**
+     * Кого подбирать вместо заглушки: исполнителя (линейный персонал
+     * раньше руководства) или утверждающего (руководство раньше).
+     */
+    fallbackKind?: "filler" | "verifier";
   }
 ) {
   const resolved = resolveStaffUser(users, {
@@ -198,8 +209,12 @@ export function reconcileNamedStaffSelection(
     params.allowFallbackUser === true ||
     (params.allowFallbackUser === "placeholder-only" &&
       isPlaceholderStaffName(params.userName));
-  const fallbackUser =
-    allowFallbackUser ? params.fallbackUser || pickFallbackResponsibleUser(users) : null;
+  const fallbackUser = allowFallbackUser
+    ? params.fallbackUser ||
+      (params.fallbackKind === "verifier"
+        ? rankRosterForSlot(users, { kind: "verifier" })
+        : pickFallbackResponsibleUser(users))
+    : null;
 
   if (fallbackUser) {
     return {
@@ -225,13 +240,15 @@ export function buildStaffOptionLabel(user: StaffBindingUser) {
   return `${getDbStaffTitle(user)} - ${user.name}`;
 }
 
+/**
+ * Кого поставить, когда человека не выбрали. Раньше это был владелец →
+ * технолог → первый в списке, и в журнал заказчика попадал аккаунт
+ * мгновенной регистрации (имя = почта), которого нет среди сотрудников.
+ * Теперь — общее правило ростера: линейный персонал раньше руководства,
+ * ROOT и заглушки только если больше некого.
+ */
 export function pickFallbackResponsibleUser(users: StaffBindingUser[]) {
-  return (
-    users.find((user) => normalizeText(user.role) === "owner") ||
-    users.find((user) => normalizeText(user.role) === "technologist") ||
-    users[0] ||
-    null
-  );
+  return rankRosterForSlot(users, { kind: "filler" });
 }
 
 function getRecordText(record: Record<string, unknown>, key: string) {
@@ -407,6 +424,7 @@ function reconcileAuditPlanConfigUsers(users: StaffBindingUser[], value: unknown
     title: config.approveRole,
     fallbackTitle: config.approveRole,
     allowFallbackUser: "placeholder-only",
+    fallbackKind: "verifier",
   });
 
   return {
@@ -425,6 +443,7 @@ function reconcileTrainingPlanConfigUsers(users: StaffBindingUser[], value: unkn
     title: config.approveRole,
     fallbackTitle: config.approveRole,
     allowFallbackUser: "placeholder-only",
+    fallbackKind: "verifier",
   });
 
   return {
@@ -453,6 +472,7 @@ function reconcileSanitationDayConfigUsers(
     title: config.approveRole,
     fallbackTitle: config.approveRole,
     allowFallbackUser: "placeholder-only",
+    fallbackKind: "verifier",
   });
   const responsible = reconcileNamedStaffSelection(users, {
     userId: raw?.responsibleEmployeeId,
@@ -562,6 +582,7 @@ function reconcileEquipmentMaintenanceConfigUsers(
     title: config.approveRole,
     fallbackTitle: config.approveRole,
     allowFallbackUser: "placeholder-only",
+    fallbackKind: "verifier",
   });
   const responsible = reconcileNamedStaffSelection(users, {
     userId: raw?.responsibleEmployeeId,
@@ -593,6 +614,7 @@ function reconcileEquipmentCalibrationConfigUsers(
     title: config.approveRole,
     fallbackTitle: config.approveRole,
     allowFallbackUser: "placeholder-only",
+    fallbackKind: "verifier",
   });
 
   return {
@@ -769,14 +791,24 @@ export function normalizeJournalDocumentStaffState(
     responsibleUserName?: unknown;
     responsibleTitle?: unknown;
   },
-  users: StaffBindingUser[]
+  users: StaffBindingUser[],
+  options: {
+    /**
+     * Подставлять ли «кого-нибудь», если ответственный не задан. `true`
+     * оставлен для разового `scripts/backfill-journal-staff-bindings.ts`;
+     * создание и сохранение документа передают `false` — иначе каждое
+     * сохранение ячейки ставило ответственным владельца.
+     */
+    allowFallbackUser?: boolean;
+  } = {}
 ) {
   const normalizedConfig = normalizeJournalEntryStaffData(
     normalizeJournalStaffBoundConfig(templateCode, params.config, users),
     users
   );
   const inferred = inferResponsibleSelectionFromConfig(normalizedConfig);
-  const fallbackUser = pickFallbackResponsibleUser(users);
+  const fallbackUser =
+    options.allowFallbackUser === false ? null : pickFallbackResponsibleUser(users);
   const fallbackTitle = inferred.title || (fallbackUser ? getDbStaffTitle(fallbackUser) : null);
 
   const responsible = reconcileResponsibleAssignment(users, {

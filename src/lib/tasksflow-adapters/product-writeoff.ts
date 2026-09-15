@@ -14,6 +14,7 @@ import {
   normalizeProductWriteoffConfig,
 } from "@/lib/product-writeoff-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -146,15 +147,13 @@ export const productWriteoffAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
 
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
     const currentConfig = normalizeProductWriteoffConfig(doc.config) as ProductWriteoffConfig;
-    const employee = await db.user.findUnique({
-      where: { id: employeeId },
-      select: { name: true },
-    });
 
     const newRow: ProductWriteoffRow = {
       id: `writeoff-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

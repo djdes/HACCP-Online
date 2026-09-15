@@ -15,6 +15,7 @@ import {
   type MeasureUnit,
 } from "@/lib/disinfectant-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -114,9 +115,11 @@ export const disinfectantUsageAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     // Документ может быть создан с пустым `config` (auto-create cron
     // или ручное создание без формы). В этом случае спрэд `[...currentConfig.receipts]`
@@ -127,7 +130,6 @@ export const disinfectantUsageAdapter: JournalAdapter = {
       receipts: Array.isArray(rawConfig.receipts) ? rawConfig.receipts : [],
       responsibleRole: rawConfig.responsibleRole ?? "Сотрудник",
     } as DisinfectantDocumentConfig;
-    const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true, positionTitle: true } });
 
     const newRow: ReceiptRow = createEmptyReceipt(
       employee?.positionTitle ?? currentConfig.responsibleRole,

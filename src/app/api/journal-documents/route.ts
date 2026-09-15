@@ -99,7 +99,11 @@ import {
   defaultSdcConfig,
   isSanitaryDayChecklistTemplate,
 } from "@/lib/sanitary-day-checklist-document";
-import { isManagementRole, pickPrimaryManager } from "@/lib/user-roles";
+import {
+  getUserPositionLabel,
+  isManagementRole,
+  pickPrimaryManager,
+} from "@/lib/user-roles";
 import { aclActorFromSession, canWriteJournal, hasJournalAccess } from "@/lib/journal-acl";
 import {
   normalizeJournalStaffBoundConfig,
@@ -107,6 +111,14 @@ import {
 } from "@/lib/journal-staff-binding";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { prefillResponsiblesForNewDocument } from "@/lib/journal-responsibles-cascade";
+import { getPrimarySlotId, getVerifierSlotId } from "@/lib/journal-responsible-schemas";
+import {
+  ORG_ROSTER_WHERE,
+  RESPONSIBLE_NOT_IN_ORG_ERROR,
+  rankRosterForSlot,
+  resolveResponsibleChoice,
+} from "@/lib/journal-roster";
+import { findOrgUser } from "@/lib/journal-roster-db";
 import { seedEntriesForDocument } from "@/lib/journal-document-entries-seed";
 
 export async function GET(request: Request) {
@@ -229,7 +241,7 @@ export async function POST(request: Request) {
       ? await db.user.findMany({
           where: {
             organizationId: getActiveOrgId(session),
-            isActive: true,
+            ...ORG_ROSTER_WHERE,
           },
           select: {
             id: true,
@@ -241,19 +253,40 @@ export async function POST(request: Request) {
         })
       : [];
 
+  // Ростер журнала: только живые сотрудники этой организации. ROOT,
+  // архивные и пользователи других организаций (партнёр, мульти-орг)
+  // ответственными документа быть не могут.
   const allUsers = await db.user.findMany({
     where: {
       organizationId: getActiveOrgId(session),
-      isActive: true,
+      ...ORG_ROSTER_WHERE,
     },
     select: {
       id: true,
       name: true,
       role: true,
       positionTitle: true,
+      jobPosition: { select: { name: true, categoryKey: true } },
     },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
+  const orgUserIds = new Set(allUsers.map((user) => user.id));
+
+  // Явный выбор в диалоге создания проверяем сразу: чужой, архивный или
+  // ROOT id — это ошибка клиента, а не повод молча поставить другого.
+  const responsibleChoice = resolveResponsibleChoice({
+    bodyUserId: responsibleUserId,
+    orgUserIds,
+  });
+  const verifierChoice = resolveResponsibleChoice({
+    bodyUserId: body?.verifierUserId,
+    orgUserIds,
+  });
+  if ("error" in responsibleChoice || "error" in verifierChoice) {
+    return NextResponse.json(RESPONSIBLE_NOT_IN_ORG_ERROR, { status: 400 });
+  }
+  const bodyResponsibleUserId = responsibleChoice.userId;
+  const bodyVerifierUserId = verifierChoice.userId;
 
   const allProducts =
     resolvedTemplateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE ||
@@ -749,57 +782,92 @@ export async function POST(request: Request) {
     resolvedTemplateCode,
     {
       config: configForDocument,
-      responsibleUserId: responsibleUserId || fallbackResponsibleUserId,
+      responsibleUserId: bodyResponsibleUserId || fallbackResponsibleUserId,
       responsibleTitle: fallbackResponsibleTitle,
     },
-    allUsers
+    allUsers,
+    { allowFallbackUser: false }
   );
 
   // Prefill from /settings/journal-responsibles (Organization
-  // .journalResponsibleUsersJson). Это закрывает gap'ы:
-  //   • Если пользователь НЕ передал responsibleUserId/Title в body —
-  //     подставляем из глобальных настроек ответственных журнала.
-  //   • Phase C verifier (verifierUserId) — у нас раньше всегда был
-  //     null при manual create. Теперь читается из глобальных слотов.
-  //   • Per-journal config patcher (cleaningResponsibles[],
-  //     approveEmployeeId и т.д.) — патчит config теми же глобальными
-  //     юзерами, чтобы документ был полностью pre-filled.
-  // Body values имеют приоритет: если manager явно выбрал юзера в
-  // диалоге создания — его выбор сохраняется.
+  // .journalResponsibleUsersJson): слоты заполняют то, что человек в
+  // диалоге НЕ выбрал (проверяющий, члены комиссии, конфиг-поля журнала).
+  //
+  // Приоритет: явный выбор в диалоге → слоты настроек → то, что вывели из
+  // конфига (cleaning/glass) → никто. Раньше слоты перебивали выбор, а
+  // диалог всегда присылал авто-предвыбранного «первого» — и сервер не
+  // отличал «выбрал» от «так получилось». Выбранного человека передаём
+  // как override слота, чтобы и шапка, и поля конфига получили его.
+  //
+  // Выбрали только должность, а человека нет (в должности несколько
+  // сотрудников, список закрыли) — ответственный берётся из этой
+  // должности: сохранённый в настройках, если он в ней, иначе по общему
+  // правилу ростера. Раньше это делал клиент — «первый попавшийся по роли».
+  const primarySlotId = getPrimarySlotId(resolvedTemplateCode);
+  const requestedTitle =
+    typeof responsibleTitle === "string" ? responsibleTitle.trim() : "";
+  let titleResponsibleUserId: string | null = null;
+  if (!bodyResponsibleUserId && requestedTitle) {
+    const titleCandidates = allUsers.filter(
+      (user) => getUserPositionLabel(user) === requestedTitle
+    );
+    if (titleCandidates.length > 0) {
+      const savedSlots = await db.organization.findUnique({
+        where: { id: getActiveOrgId(session) },
+        select: { journalResponsibleUsersJson: true },
+      });
+      const savedPrimary = (
+        (savedSlots?.journalResponsibleUsersJson ?? {}) as Record<
+          string,
+          Record<string, string | null> | undefined
+        >
+      )[resolvedTemplateCode]?.[primarySlotId];
+      titleResponsibleUserId =
+        titleCandidates.find((user) => user.id === savedPrimary)?.id ??
+        rankRosterForSlot(titleCandidates, { kind: "filler" })?.id ??
+        null;
+    }
+  }
+  const explicitResponsibleUserId = bodyResponsibleUserId || titleResponsibleUserId;
+
+  const slotOverrides: Record<string, string> = {};
+  if (explicitResponsibleUserId) {
+    slotOverrides[primarySlotId] = explicitResponsibleUserId;
+  }
+  if (bodyVerifierUserId) {
+    slotOverrides[getVerifierSlotId(resolvedTemplateCode)] = bodyVerifierUserId;
+  }
   const prefilled = await prefillResponsiblesForNewDocument({
     organizationId: getActiveOrgId(session),
     journalCode: resolvedTemplateCode,
     baseConfig:
       (normalizedDocumentState.config as Record<string, unknown> | undefined) ??
       undefined,
+    slotOverrides,
   });
 
-  // Slots из /settings/journal-responsibles — приоритет над body.
-  // Раньше body.responsibleUserId побеждал prefilled, и настройки
-  // ответственных каждый раз переопределялись авто-выбором первого
-  // подходящего юзера в диалоге создания. Теперь settings-slot'ы
-  // имеют приоритет; если их нет — fallback на body.
   const finalResponsibleUserId =
-    prefilled.responsibleUserId || normalizedDocumentState.responsibleUserId;
-  // Если responsibleUserId пришёл из prefilled (из настроек journal-
-  // responsibles), берём ТИТУЛ из job position юзера, а не из
-  // fallback-логики (которая для cleaning возвращала «Управляющий»,
-  // для других тоже невпопад). Body title уважается только если
-  // пользователь явно его передал и prefilled не выставил юзера.
+    explicitResponsibleUserId ||
+    prefilled.responsibleUserId ||
+    (normalizedDocumentState.responsibleUserId &&
+    orgUserIds.has(normalizedDocumentState.responsibleUserId)
+      ? normalizedDocumentState.responsibleUserId
+      : null);
+  // Должность в шапке — должность того, кто реально стал ответственным.
+  // Присланный титул уважаем, только если у человека должность не указана.
   let finalResponsibleTitle = normalizedDocumentState.responsibleTitle ?? null;
-  if (
-    prefilled.responsibleUserId &&
-    finalResponsibleUserId === prefilled.responsibleUserId
-  ) {
-    const primaryUserPos = await db.user.findUnique({
-      where: { id: prefilled.responsibleUserId },
-      select: { jobPosition: { select: { name: true } }, positionTitle: true },
-    });
+  const finalResponsibleUser = finalResponsibleUserId
+    ? await findOrgUser(getActiveOrgId(session), finalResponsibleUserId)
+    : null;
+  if (finalResponsibleUser) {
     const positionName =
-      primaryUserPos?.jobPosition?.name || primaryUserPos?.positionTitle || null;
-    if (positionName) {
-      finalResponsibleTitle = positionName;
-    }
+      finalResponsibleUser.jobPositionName || finalResponsibleUser.positionTitle || null;
+    finalResponsibleTitle =
+      positionName ||
+      (typeof responsibleTitle === "string" && responsibleTitle.trim()) ||
+      getHygienePositionLabel(finalResponsibleUser.role || "cook");
+  } else if (!finalResponsibleUserId && typeof responsibleTitle === "string") {
+    finalResponsibleTitle = responsibleTitle.trim() || finalResponsibleTitle;
   }
   // ВСЕГДА используем prefilled.config — patcher уже сделал merge:
   // body fields сохранил, slot-user'ов из настроек проставил поверх.
@@ -913,7 +981,7 @@ export async function POST(request: Request) {
       dateTo: new Date(dateTo),
       responsibleUserId: finalResponsibleUserId,
       responsibleTitle: finalResponsibleTitle,
-      verifierUserId: prefilled.verifierUserId,
+      verifierUserId: bodyVerifierUserId || prefilled.verifierUserId,
       createdById: session.user.id,
     },
   });

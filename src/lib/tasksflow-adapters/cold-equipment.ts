@@ -22,6 +22,7 @@ import {
   type ColdEquipmentDocumentConfig,
   type ColdEquipmentEntryData,
 } from "@/lib/cold-equipment-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -139,21 +140,15 @@ export const coldEquipmentAdapter: JournalAdapter = {
   },
 
   async getTaskForm({ documentId, rowKey }) {
-    const [doc, employee] = await Promise.all([
-      db.journalDocument.findUnique({
-        where: { id: documentId },
-        select: { config: true },
-      }),
-      (async () => {
-        const empId = employeeIdFromRowKey(rowKey);
-        if (!empId) return null;
-        return db.user.findUnique({
-          where: { id: empId },
-          select: { name: true },
-        });
-      })(),
-    ]);
+    const doc = await db.journalDocument.findUnique({
+      where: { id: documentId },
+      select: { config: true, organizationId: true },
+    });
     if (!doc) return null;
+    const employee = await findTaskEmployee({
+      employeeId: employeeIdFromRowKey(rowKey),
+      organizationId: doc.organizationId,
+    });
     const config = normalizeColdEquipmentDocumentConfig(doc.config);
     return buildFormFromConfig(config, employee?.name ?? null);
   },
@@ -167,9 +162,11 @@ export const coldEquipmentAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true },
+      select: { config: true, organizationId: true },
     });
     if (!doc) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
     const config = normalizeColdEquipmentDocumentConfig(doc.config);
 
     // Walk config.equipment, pick matching `t_<equipmentId>` value

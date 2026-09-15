@@ -13,6 +13,7 @@ import {
   createTraceabilityRow,
 } from "@/lib/traceability-document";
 import { toDateKey } from "@/lib/hygiene-document";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   EMPTY_SYNC_REPORT,
   type AdapterDocument,
@@ -147,9 +148,11 @@ export const traceabilityAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
+    const employee = await findTaskEmployee({ employeeId, organizationId: doc.organizationId });
+    if (!employee) return false;
 
     // Защита от пустого doc.config — иначе spread `[...currentConfig.rows]`
     // падает с «rows is not iterable». Document может быть auto-create'нут без формы.
@@ -160,7 +163,6 @@ export const traceabilityAdapter: JournalAdapter = {
       defaultResponsibleRole:
         rawConfig.defaultResponsibleRole ?? "Сотрудник",
     } as TraceabilityDocumentConfig;
-    const employee = await db.user.findUnique({ where: { id: employeeId }, select: { name: true, positionTitle: true } });
 
     const newRow: TraceabilityRow = createTraceabilityRow({
       date: todayKey,

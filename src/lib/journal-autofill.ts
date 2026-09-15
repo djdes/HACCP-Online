@@ -467,6 +467,7 @@ async function applyStaffCapability(
   });
   const filled = await applyStaffJournalAutoFill(db, {
     documentId: params.document.id,
+    organizationId: params.document.organizationId,
     templateCode: params.document.templateCode,
     employeeIds,
     dateKeys: params.dateKeys,

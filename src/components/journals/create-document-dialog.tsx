@@ -57,10 +57,9 @@ import {
   getRegisterDocumentCreatePeriodBounds,
   isRegisterDocumentTemplate,
 } from "@/lib/register-document";
-import {
-  getHygieneCreatePeriodBounds,
-  getHygienePositionLabel,
-} from "@/lib/hygiene-document";
+import { getHygieneCreatePeriodBounds } from "@/lib/hygiene-document";
+import { getUserPositionLabel } from "@/lib/user-roles";
+import { useJournalCreateDefaults } from "@/components/journals/journal-create-defaults";
 import { isStaffDocumentTemplate } from "@/lib/journal-document-helpers";
 import { buildDocumentAutoTitle } from "@/lib/journal-document-title";
 import { ControlPeriodicityField } from "@/components/journals/control-periodicity-field";
@@ -140,6 +139,31 @@ interface Props {
    * Считается на списке документов журнала — диалог сам список не видит.
    */
   nextLampNumber?: string;
+  /**
+   * Ответственный, который стоит в диалоге сразу после открытия. Если не
+   * передан — берётся из контекста страницы журнала (основной ответственный
+   * из «Ответственные за журналы»). Подставляется только туда, где выбор
+   * ответственного виден: запрос всегда содержит ровно то, что человек
+   * видел в окне.
+   */
+  defaultResponsibleUserId?: string | null;
+}
+
+/**
+ * Показывает ли диалог каскад «Должность → Сотрудник». Журналы, у которых
+ * ответственный задаётся не при создании (медкнижки, списания, обучение,
+ * ТО/поверка, уборка, уборка оборудования), каскад не показывают.
+ */
+function showResponsiblePickerFor(templateCode: string): boolean {
+  return ![
+    MED_BOOK_TEMPLATE_CODE,
+    PRODUCT_WRITEOFF_TEMPLATE_CODE,
+    STAFF_TRAINING_TEMPLATE_CODE,
+    EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
+    EQUIPMENT_CALIBRATION_TEMPLATE_CODE,
+    CLEANING_DOCUMENT_TEMPLATE_CODE,
+    EQUIPMENT_CLEANING_TEMPLATE_CODE,
+  ].includes(templateCode);
 }
 
 export function CreateDocumentDialog({
@@ -151,6 +175,7 @@ export function CreateDocumentDialog({
   triggerIcon,
   triggerDataTour,
   nextLampNumber = "1",
+  defaultResponsibleUserId: defaultResponsibleUserIdProp,
 }: Props) {
   const router = useRouter();
   const formId = useId();
@@ -267,14 +292,29 @@ export function CreateDocumentDialog({
     setTitleTouched(true);
     if (titleError) setTitleError("");
   }
-  const [responsibleUserId, setResponsibleUserId] = useState("");
   /**
-   * Должность НЕ предзаполняем: раньше сюда падала первая должность из
-   * списка (в uv_lamp_runtime это был «Кондитер»), и владелец создавал
-   * документ на случайного человека, не заметив подстановки.
-   * Дефолт селекта — «Выберите должность».
+   * Ответственный по умолчанию — только тот, кого руководитель сам
+   * назначил в «Ответственные за журналы» (и только если он есть в списке
+   * сотрудников окна). «Первого попавшегося» не подставляем: раньше сюда
+   * падала первая должность из списка (в uv_lamp_runtime это был
+   * «Кондитер»), и владелец создавал документ на случайного человека, не
+   * заметив подстановки. Никого не назначили — «Выберите должность».
    */
-  const [responsibleTitle, setResponsibleTitle] = useState("");
+  const createDefaults = useJournalCreateDefaults();
+  const defaultResponsibleUser = useMemo(() => {
+    if (!showResponsiblePickerFor(templateCode)) return null;
+    const id =
+      defaultResponsibleUserIdProp !== undefined
+        ? defaultResponsibleUserIdProp
+        : createDefaults.defaultResponsibleUserId;
+    return id ? users.find((user) => user.id === id) ?? null : null;
+  }, [createDefaults.defaultResponsibleUserId, defaultResponsibleUserIdProp, templateCode, users]);
+  const [responsibleUserId, setResponsibleUserId] = useState(
+    () => defaultResponsibleUser?.id ?? ""
+  );
+  const [responsibleTitle, setResponsibleTitle] = useState(() =>
+    defaultResponsibleUser ? getUserPositionLabel(defaultResponsibleUser) : ""
+  );
   const [trackedAreaName, setTrackedAreaName] = useState("");
   /**
    * Номер бактерицидной установки — СЛЕДУЮЩИЙ СВОБОДНЫЙ (U7 аудита).
@@ -333,14 +373,10 @@ export function CreateDocumentDialog({
     setError("");
 
     try {
-      const selectedResponsibleUser =
-        (isAcceptanceJournal ? responsibleUserId : "") ||
-        responsibleUserId ||
-        users.find((user) =>
-          isStaffJournal || isSourceStyleTrackedJournal || isCleaningJournal
-            ? getHygienePositionLabel(user.role) === responsibleTitle
-            : false
-        )?.id;
+      // Уходит ровно выбранный человек. Если выбрали только должность —
+      // сервер сам возьмёт сотрудника этой должности (с проверкой, что он из
+      // организации); «первого по роли» здесь больше не подставляем.
+      const selectedResponsibleUser = showResponsiblePicker ? responsibleUserId : "";
 
       const res = await fetch("/api/journal-documents", {
         method: "POST",
@@ -481,14 +517,7 @@ export function CreateDocumentDialog({
    * perishable_rejection каскад ПОКАЗЫВАЕТ: в карточке списка и в шапке
    * документа есть «Ответственный», а задать его было негде.
    */
-  const showResponsiblePicker =
-    !isMedBookJournal &&
-    !isProductWriteoffJournal &&
-    !isStaffTrainingJournal &&
-    !isEquipmentMaintenanceJournal &&
-    !isEquipmentCalibrationJournal &&
-    !isCleaningJournal &&
-    !isEquipmentCleaningJournal;
+  const showResponsiblePicker = showResponsiblePickerFor(templateCode);
   const showDateTo =
     !isClimateJournal && !isColdEquipmentJournal && !isGeneralCleaningJournal;
   /**

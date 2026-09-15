@@ -265,6 +265,9 @@ import {
   toCanonicalUserRole,
 } from "@/lib/user-roles";
 import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
+import { JournalCreateDefaultsProvider } from "@/components/journals/journal-create-defaults";
+import { getPrimarySlotId } from "@/lib/journal-responsible-schemas";
+import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 
 export const dynamic = "force-dynamic";
 const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
@@ -1348,6 +1351,7 @@ export default async function JournalDocumentsPage({
       disabledJournalCodes: true,
       journalAutomationJson: true,
       autoJournalCodes: true,
+      journalResponsibleUsersJson: true,
     },
   });
   // Набор журналов для выпадающего списка в крошке «журнал»:
@@ -1394,10 +1398,12 @@ export default async function JournalDocumentsPage({
   // Точки: списки документов — активная точка + общие документы без точки.
   const activeBuildingId = await getActiveBuildingId(session);
 
+  // Ростер журнала: живые сотрудники этой организации без ROOT — из них
+  // выбирают ответственного при создании документа.
   const orgUsers = await db.user.findMany({
     where: {
       organizationId: getActiveOrgId(session),
-      isActive: true,
+      ...ORG_ROSTER_WHERE,
     },
     select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
     orderBy: [{ role: "asc" }, { name: "asc" }],
@@ -1418,6 +1424,23 @@ export default async function JournalDocumentsPage({
   // «выключено» на включённом журнале).
   const journalAutomation = getJournalAutomation(orgSettings, resolvedCode);
   const canManageAutomation = hasFullWorkspaceAccess(session.user);
+
+  // Ответственный по умолчанию в диалоге создания — основной слот из
+  // «Ответственные за журналы», если этот человек всё ещё в ростере.
+  const savedPrimaryResponsibleId =
+    (
+      (orgSettings?.journalResponsibleUsersJson ?? {}) as Record<
+        string,
+        Record<string, string | null> | undefined
+      >
+    )[resolvedCode]?.[getPrimarySlotId(resolvedCode)] ?? null;
+  const journalCreateDefaults = {
+    defaultResponsibleUserId:
+      savedPrimaryResponsibleId &&
+      orgUsers.some((user) => user.id === savedPrimaryResponsibleId)
+        ? savedPrimaryResponsibleId
+        : null,
+  };
 
   function withBanner(children: React.ReactNode) {
     return (
@@ -1454,7 +1477,9 @@ export default async function JournalDocumentsPage({
             canToggle: hasFullWorkspaceAccess(session.user),
           }}
         >
-          {children}
+          <JournalCreateDefaultsProvider value={journalCreateDefaults}>
+            {children}
+          </JournalCreateDefaultsProvider>
         </JournalToggleProvider>
       </div>
     );
