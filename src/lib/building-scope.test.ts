@@ -110,6 +110,12 @@ test("подписи: организация с точкой и адресом, 
     "Кафе «Ромашка» · Точка 1, ул. Ленина, 5",
   );
   assert.equal(withBuildingLabel("Кафе", B), "Кафе · Точка 2");
+  // Наименование для журналов заменяет короткое название и адрес точки в шапке.
+  assert.equal(
+    withBuildingLabel("ООО «Ромашка»", { ...A, journalName: "  Кафе «Ромашка»,  г. Казань, ул. Баумана, 12 " }),
+    "ООО «Ромашка» · Кафе «Ромашка», г. Казань, ул. Баумана, 12",
+  );
+  assert.equal(withBuildingLabel("Кафе", { ...B, journalName: "   " }), "Кафе · Точка 2");
   assert.equal(withBuildingSuffix("Уборка · Кухня", "Точка 2"), "Уборка · Кухня · Точка 2");
   assert.equal(withBuildingSuffix("Уборка · Кухня", null), "Уборка · Кухня");
   assert.equal(withBuildingSuffix("Уборка", "  "), "Уборка");

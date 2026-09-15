@@ -114,11 +114,17 @@ export function buildingWhere(buildingId: string | null | undefined): BuildingWh
   return buildingId ? { OR: [{ buildingId }, { buildingId: null }] } : {};
 }
 
-/** Подпись точки: «Точка 2, ул. Ленина, 5» или просто «Точка 2». */
+/**
+ * Подпись точки в шапке журнала: наименование для журналов, если задано
+ * (точное юридическое по месту деятельности), иначе «Точка 2, ул. Ленина, 5»
+ * или просто «Точка 2». В интерфейсе точка остаётся под коротким `name`.
+ */
 export function buildingLabel(
-  building: { name: string; address?: string | null } | null | undefined,
+  building: { name: string; address?: string | null; journalName?: string | null } | null | undefined,
 ): string {
   if (!building) return "";
+  const journalName = building.journalName?.replace(/\s+/g, " ").trim();
+  if (journalName) return journalName;
   const address = building.address?.trim();
   return address ? `${building.name}, ${address}` : building.name;
 }
@@ -126,7 +132,7 @@ export function buildingLabel(
 /** Название организации с точкой для шапки документа и PDF. */
 export function withBuildingLabel(
   organizationName: string,
-  building: { name: string; address?: string | null } | null | undefined,
+  building: { name: string; address?: string | null; journalName?: string | null } | null | undefined,
 ): string {
   const label = buildingLabel(building);
   return label ? `${organizationName} · ${label}` : organizationName;

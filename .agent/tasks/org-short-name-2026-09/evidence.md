@@ -70,3 +70,12 @@
 
 `shots/settings-short-name.png`, `shots/header-hover-pencil.png`, `shots/header-scope-dialog.png`,
 `shots/header-scope-dialog-head.png` (заведующая: «во всех» недоступно), `shots/mini-header.png`.
+
+## Пояснение владельца к ТЗ п.4 (2026-09-15): название в интерфейсе ≠ название в шапке
+
+- Организация: «Название организации» — в меню и списках, «Сокращённое название для журналов» — в шапке (было).
+- Точка: новое поле `Building.journalName` — «Наименование в шапке журналов» (точное юридическое по месту деятельности).
+  В «Точках и помещениях» заголовок остаётся коротким, под ним «В шапке журналов: «…»»; в шапке документа и PDF вместо
+  «название, адрес» печатается это наименование; пусто — как раньше. Права — как у правки точки (повар → 403).
+- Проверки: `building-scope.test.ts` 7/7, typecheck чисто, `e2e/building-journal-name.ts` 10/10
+  (`e2e/building-journal-name.json`, `shots/building-journal-name-form.png`, `shots/building-journal-name-header.png`).

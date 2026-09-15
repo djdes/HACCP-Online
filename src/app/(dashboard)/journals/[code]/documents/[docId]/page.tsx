@@ -310,7 +310,7 @@ async function JournalDocumentBody({
         where: { id: docId },
         include: {
           template: true,
-          building: { select: { name: true, address: true } },
+          building: { select: { name: true, address: true, journalName: true } },
           entries: {
             orderBy: [{ employeeId: "asc" }, { date: "asc" }],
           },

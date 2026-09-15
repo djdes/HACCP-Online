@@ -5977,7 +5977,7 @@ export type JournalDocumentForPdf = Prisma.JournalDocumentGetPayload<{
       };
     };
     /// Точка документа — печатается под названием организации.
-    building: { select: { name: true; address: true } };
+    building: { select: { name: true; address: true; journalName: true } };
     entries: true;
   };
 }>;
@@ -6048,7 +6048,7 @@ export async function loadJournalDocumentPdfInput(params: {
           phone: true,
         },
       },
-      building: { select: { name: true, address: true } },
+      building: { select: { name: true, address: true, journalName: true } },
       // ВАЖНО: берём ВСЕ строки, включая `_autoSeeded` плейсхолдеры.
       // Экран документа (page.tsx) рендерит их как структуру таблицы
       // (ростер сотрудников в гигиене/здоровье, дневные строки в

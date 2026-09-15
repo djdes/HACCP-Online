@@ -44,6 +44,8 @@ type Building = {
   /** Точки: реквизиты для шапки PDF. */
   kpp?: string | null;
   phone?: string | null;
+  /** Наименование в шапке журналов; в интерфейсе — короткое `name`. */
+  journalName?: string | null;
   sortOrder: number;
   rooms: Room[];
 };
@@ -381,6 +383,7 @@ function BuildingCard({
   const [draftAddress, setDraftAddress] = useState(building.address ?? "");
   const [draftKpp, setDraftKpp] = useState(building.kpp ?? "");
   const [draftPhone, setDraftPhone] = useState(building.phone ?? "");
+  const [draftJournalName, setDraftJournalName] = useState(building.journalName ?? "");
   // Сотрудники точки: кто работает здесь (User.buildingIds содержит точку).
   const staffHere = users.filter((u) => (userBuildingIds[u.id] ?? []).includes(building.id));
   const staffEverywhere = users.filter((u) => (userBuildingIds[u.id] ?? []).length === 0);
@@ -427,6 +430,7 @@ function BuildingCard({
           address: draftAddress.trim() || null,
           kpp: draftKpp.trim() || null,
           phone: draftPhone.trim() || null,
+          journalName: draftJournalName.trim() || null,
         }),
       });
       const d = await res.json().catch(() => ({}));
@@ -526,6 +530,21 @@ function BuildingCard({
               aria-label="Адрес точки"
               className="h-10 w-full rounded-xl border border-[#dcdfed] px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
             />
+            <div className="space-y-1">
+              <input
+                type="text"
+                value={draftJournalName}
+                maxLength={200}
+                onChange={(e) => setDraftJournalName(e.target.value)}
+                placeholder="Наименование в шапке журналов — точное юридическое"
+                aria-label="Наименование в шапке журналов"
+                className="h-10 w-full rounded-xl border border-[#dcdfed] px-3 text-[14px] text-[#0b1024] placeholder:text-[#9b9fb3] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
+              />
+              <p className="px-1 text-[12px] leading-[1.45] text-[#6f7282]">
+                Печатается в шапке журналов и PDF вместо названия и адреса точки. В меню и списках остаётся короткое
+                название. Пусто — «название, адрес».
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
@@ -563,6 +582,7 @@ function BuildingCard({
                   setDraftAddress(building.address ?? "");
                   setDraftKpp(building.kpp ?? "");
                   setDraftPhone(building.phone ?? "");
+                  setDraftJournalName(building.journalName ?? "");
                 }}
                 className="inline-flex h-9 items-center rounded-xl px-3 text-[13px] text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#0b1024]"
               >
@@ -583,6 +603,11 @@ function BuildingCard({
             ) : (
               <div className="mt-0.5 text-[13px] text-[#9b9fb3]">Адрес не указан</div>
             )}
+            {building.journalName ? (
+              <div className="mt-0.5 text-[12px] text-[#6f7282]">
+                В шапке журналов: <span className="text-[#3848c7]">«{building.journalName}»</span>
+              </div>
+            ) : null}
             {building.kpp || building.phone ? (
               <div className="mt-0.5 text-[12px] text-[#9b9fb3]">
                 {[building.kpp ? `КПП ${building.kpp}` : null, building.phone ? `тел. ${building.phone}` : null]

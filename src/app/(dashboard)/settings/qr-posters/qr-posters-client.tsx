@@ -107,10 +107,30 @@ export function QrPostersClient({
       {posters.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center print:hidden">
           <div className="text-[15px] font-medium text-[#0b1024]">
-            {kind === "rooms" ? "Помещений пока нет" : "Оборудования пока нет"}
+            {documentTitle
+              ? kind === "rooms"
+                ? "В документе нет помещений из «Точек и помещений»"
+                : "В документе нет оборудования из «Оборудования»"
+              : kind === "rooms"
+                ? "Помещений пока нет"
+                : "Оборудования пока нет"}
           </div>
           <p className="mx-auto mt-1.5 max-w-[420px] text-[13px] text-[#6f7282]">
-            {kind === "rooms" ? (
+            {documentTitle ? (
+              // Плакаты открыты из журнала: список ограничен строками документа,
+              // а объекты в справочнике при этом могут быть.
+              <>
+                Плакаты открыты из документа «{documentTitle}»: показываются только его строки, связанные со
+                справочником, а таких нет. Добавьте объект в документ из справочника или{" "}
+                <Link
+                  href={`/settings/qr-posters?kind=${kind}`}
+                  className="font-medium text-[#3848c7] underline underline-offset-2"
+                >
+                  {kind === "rooms" ? "откройте плакаты всех помещений" : "откройте плакаты всего оборудования"}
+                </Link>
+                .
+              </>
+            ) : kind === "rooms" ? (
               <>
                 Добавьте склады и цеха в{" "}
                 <Link href="/settings/buildings" className="font-medium text-[#3848c7] underline underline-offset-2">
