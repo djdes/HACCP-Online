@@ -23,6 +23,8 @@ export type PartnerClientCard = {
   organization: {
     id: string;
     name: string;
+    /** Сокращённое название для шапки журналов; null — из ЕГРЮЛ или полное. */
+    journalShortName: string | null;
     type: string;
     ownershipKind: string;
     inn: string | null;
@@ -60,6 +62,7 @@ export async function getPartnerClientCard(partnerId: string, organizationId: st
         select: {
           id: true,
           name: true,
+          journalShortName: true,
           type: true,
           ownershipKind: true,
           inn: true,
@@ -102,6 +105,7 @@ export async function getPartnerClientCard(partnerId: string, organizationId: st
     organization: {
       id: link.organization.id,
       name: link.organization.name,
+      journalShortName: link.organization.journalShortName,
       type: link.organization.type,
       ownershipKind: link.organization.ownershipKind,
       inn: link.organization.inn,

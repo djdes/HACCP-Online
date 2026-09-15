@@ -1,0 +1,25 @@
+{
+  "task_id": "org-short-name-2026-09",
+  "updated_at": "2026-09-15T21:20:00+03:00",
+  "stand": {
+    "database": "postgresql://localhost:5432/wesetup_e2e (never .env / 127.0.0.1:5433)",
+    "dev_server": "next dev -p 3020 from d:/www/Wesetup.ru, NEXT_DIST_DIR=.next-e2e"
+  },
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+    { "cmd": "node --import tsx --test src/lib/journal-header-carry.test.ts src/lib/organization-profile-patch.test.ts src/lib/org-journal-name.test.ts", "result": "17/17" },
+    { "cmd": "npx eslint <task files>", "result": "0 errors, 12 pre-existing warnings" },
+    { "cmd": "npx tsx .agent/tasks/journal-responsibles-org-2026-09/e2e/setup-db.ts", "result": "exit 0" },
+    { "cmd": "npx tsx .agent/tasks/org-short-name-2026-09/e2e/header-name.ts", "result": "55/55 PASS (after verdict round 1 fixes)" }
+  ],
+  "criteria": {
+    "AC1": { "status": "PASS", "evidence": ["e2e/header-name.json: settings field, EGRUL button, save/clear, partner PATCH", "src/lib/organization-profile-patch.test.ts"] },
+    "AC2": { "status": "PASS", "evidence": ["src/lib/org-journal-name.test.ts"] },
+    "AC3": { "status": "PASS", "evidence": ["e2e: header on 3 journals + Mini App, 3 PDFs, compliance bundle manifest, inspector portal, paper blank; /api/reports/pdf 200 with DB name (code review: resolver)", "e2e: cabinet shows full name"] },
+    "AC4": { "status": "PASS", "evidence": ["e2e: pencil on hover, hidden in print, document scope, organization scope, override cleared from its document, cook without pencils and 403, head chef without admin: organization scope disabled, closed document read-only"] },
+    "AC5": { "status": "PASS", "evidence": ["e2e: row save without header keys, stale client config, TasksFlow adapter write keep header fields", "src/lib/journal-header-carry.test.ts"] },
+    "AC6": { "status": "PASS", "evidence": ["e2e: config.headerTitle on page and in PDF, config.controlPeriodicity"] },
+    "AC7": { "status": "PENDING", "evidence": ["local checks above; production read-only check after deploy"] }
+  },
+  "artifacts": ["e2e/header-name.ts", "e2e/header-name.json", "shots/*.png"]
+}

@@ -29,6 +29,8 @@ import type { JournalDocumentPdfInput } from "@/lib/document-pdf";
 /** Организация-витрина. Совпадает с мокапом бланка в шапке лендинга. */
 export const SAMPLE_ORGANIZATION = {
   name: "ООО «Ромашка»",
+  journalShortName: null,
+  legalProfileJson: null,
   inn: "7701234567",
   address: "г. Москва, ул. Пищевая, д. 12",
   phone: "+7 495 000-00-00",

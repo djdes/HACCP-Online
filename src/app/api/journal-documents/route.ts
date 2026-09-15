@@ -35,6 +35,8 @@ import {
 } from "@/lib/cleaning-document";
 import { buildDateKeys } from "@/lib/hygiene-document";
 import { buildDocumentAutoTitle } from "@/lib/journal-document-title";
+import { HEADER_TITLE_CONFIG_KEY, sanitizeHeaderTitle } from "@/lib/journal-header-title";
+import { ORG_HEADER_NAME_CONFIG_KEY, sanitizeOrgJournalName } from "@/lib/org-journal-name";
 import {
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   buildFinishedProductConfigFromUsers,
@@ -919,10 +921,24 @@ export async function POST(request: Request) {
    * ЗДЕСЬ, в единственной серверной точке создания, и только если поле
    * действительно пустое — явный выбор пользователя не перетираем.
    */
+  // Название организации и документа «только в этом документе» — так же
+  // отдельными полями тела, как периодичность. Пустое значение не пишем:
+  // шапка возьмёт общее название организации и стандартное — бланка.
+  const headerOrgName = sanitizeOrgJournalName(body.headerOrgName);
+  const headerTitle = sanitizeHeaderTitle(body.headerTitle);
+  const finalConfigWithHeader =
+    headerOrgName || headerTitle
+      ? {
+          ...(finalConfig ?? {}),
+          ...(headerOrgName ? { [ORG_HEADER_NAME_CONFIG_KEY]: headerOrgName } : {}),
+          ...(headerTitle ? { [HEADER_TITLE_CONFIG_KEY]: headerTitle } : {}),
+        }
+      : finalConfig;
+
   const finalConfigWithUvDefaults =
     resolvedTemplateCode === UV_LAMP_RUNTIME_TEMPLATE_CODE
-      ? withUvCommissioningDate(finalConfig, dateFrom)
-      : finalConfig;
+      ? withUvCommissioningDate(finalConfigWithHeader, dateFrom)
+      : finalConfigWithHeader;
 
   /**
    * Не заводим второй бланк на тот же период молча.

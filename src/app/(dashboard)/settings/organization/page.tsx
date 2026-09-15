@@ -22,6 +22,7 @@ export default async function OrganizationInfoPage() {
     where: { id: organizationId },
     select: {
       name: true,
+      journalShortName: true,
       type: true,
       ownershipKind: true,
       locationsCount: true,
@@ -74,6 +75,7 @@ export default async function OrganizationInfoPage() {
       <OrganizationInfoForm
         initial={{
           name: org.name,
+          journalShortName: org.journalShortName,
           type: org.type,
           ownershipKind: org.ownershipKind,
           inn: org.inn,

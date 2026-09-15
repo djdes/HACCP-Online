@@ -135,6 +135,7 @@ export default async function PartnerClientPage({ params }: { params: Promise<{ 
             createdAt={formatDate(organization.createdAt)}
             initial={{
               name: organization.name,
+              journalShortName: organization.journalShortName ?? "",
               type: organization.type,
               ownershipKind: organization.ownershipKind,
               inn: organization.inn ?? "",

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { requireAuth, getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
@@ -52,6 +53,11 @@ import { isRegisterDocumentTemplate } from "@/lib/register-document";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 import { withBuildingLabel } from "@/lib/building-scope";
+import { JournalHeaderEditProvider } from "@/components/journals/journal-header-edit";
+import { readHeaderTitleOverride } from "@/lib/journal-header-title";
+import { readHeaderOrgNameOverride, resolveOrgJournalName } from "@/lib/org-journal-name";
+import { hasCapability } from "@/lib/permission-presets";
+import { isManagementRole } from "@/lib/user-roles";
 import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { SANITATION_DAY_TEMPLATE_CODE } from "@/lib/sanitation-day-document";
@@ -208,15 +214,81 @@ export default async function JournalDocumentPage(props: {
   chrome?: "mini";
 }) {
   if (props.chrome === "mini") {
-    return <JournalDocumentBody {...props} />;
+    return (
+      <JournalHeaderEditBoundary params={props.params}>
+        <JournalDocumentBody {...props} />
+      </JournalHeaderEditBoundary>
+    );
   }
 
   // Крошки и маркер печати переехали в layout.tsx: они обязаны быть ВНЕ
   // зоны горизонтальной прокрутки бланка, иначе уезжают вместе с ним.
   return (
-    <>
+    <JournalHeaderEditBoundary params={props.params}>
       <JournalDocumentBody {...props} />
-    </>
+    </JournalHeaderEditBoundary>
+  );
+}
+
+/**
+ * Правка шапки прямо в документе: название организации (во всех журналах
+ * или только здесь), название документа и периодичность контроля.
+ *
+ * Один провайдер на все ~35 клиентов журналов — сами клиенты про правку
+ * не знают, ячейки шапки читают контекст. Mini App зовёт эту страницу как
+ * функцию и получает то же самое. Лёгкий отдельный запрос, чтобы не
+ * трогать ветки диспетчера ниже.
+ */
+async function JournalHeaderEditBoundary({
+  params,
+  children,
+}: {
+  params: Promise<{ code: string; docId: string }>;
+  children: ReactNode;
+}) {
+  const { docId } = await params;
+  const session = await requireAuth();
+  const organizationId = getActiveOrgId(session);
+  const [document, organization] = await Promise.all([
+    db.journalDocument.findUnique({
+      where: { id: docId },
+      select: {
+        id: true,
+        organizationId: true,
+        status: true,
+        config: true,
+        template: { select: { code: true } },
+      },
+    }),
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true, journalShortName: true, legalProfileJson: true },
+    }),
+  ]);
+  if (!document || document.organizationId !== organizationId) return <>{children}</>;
+
+  // Те же права, что у PATCH документа (управление журналами), и общее
+  // название — у PATCH /api/settings/organization (администратор).
+  const canManageJournals =
+    isManagementRole(session.user.role) && hasCapability(session.user, "journals.manage");
+  return (
+    <JournalHeaderEditProvider
+      value={{
+        documentId: document.id,
+        canEditDocument: canManageJournals && document.status !== "closed",
+        canEditOrganization: hasCapability(session.user, "admin.full"),
+        organizationJournalName: resolveOrgJournalName(organization),
+        organizationDefaultName: resolveOrgJournalName({
+          ...(organization ?? {}),
+          journalShortName: null,
+        }),
+        documentOrgName: readHeaderOrgNameOverride(document.config),
+        headerTitle: readHeaderTitleOverride(document.config),
+        controlPeriodicity: readControlPeriodicity(document.config, document.template.code),
+      }}
+    >
+      {children}
+    </JournalHeaderEditProvider>
   );
 }
 
@@ -248,6 +320,8 @@ async function JournalDocumentBody({
         where: { id: getActiveOrgId(session) },
         select: {
           name: true,
+          journalShortName: true,
+          legalProfileJson: true,
           isDemo: true,
           timezone: true,
           disabledJournalCodes: true,
@@ -310,8 +384,10 @@ async function JournalDocumentBody({
   }
 
   // Точки: в шапке бланка под организацией — точка с адресом.
+  // Название — сокращённое для журналов (своё у документа → общее →
+  // ЕГРЮЛ → полное), см. src/lib/org-journal-name.ts.
   const organizationName = withBuildingLabel(
-    organization?.name || ORG_NAME_FALLBACK,
+    resolveOrgJournalName(organization, document.config),
     document.building,
   );
 

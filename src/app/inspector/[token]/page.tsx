@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ClipboardCheck, Download, Calendar, Building2, ShieldCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { hashInspectorToken } from "@/lib/inspector-tokens";
+import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 
 export const runtime = "nodejs";
@@ -37,7 +38,9 @@ export default async function InspectorLandingPage({
   const record = await db.inspectorToken.findUnique({
     where: { tokenHash },
     include: {
-      organization: { select: { id: true, name: true } },
+      organization: {
+        select: { id: true, name: true, journalShortName: true, legalProfileJson: true },
+      },
     },
   });
 
@@ -138,7 +141,7 @@ export default async function InspectorLandingPage({
                   Портал инспектора · только просмотр
                 </div>
                 <h1 className="mt-1 text-[clamp(1.5rem,2vw+1rem,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">
-                  {record.organization.name}
+                  {resolveOrgJournalName(record.organization)}
                 </h1>
                 <div className="mt-3 flex flex-wrap items-center gap-3 text-[14px] text-white/80">
                   <span className="inline-flex items-center gap-2">

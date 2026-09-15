@@ -1,5 +1,6 @@
 import type { jsPDF } from "jspdf";
 import autoTable, { type RowInput } from "jspdf-autotable";
+import { readHeaderTitleOverride } from "@/lib/journal-header-title";
 import { registerPageLabelSlot } from "@/lib/pdf-page-labels";
 import {
   getItemNumber,
@@ -82,7 +83,10 @@ export function drawSanitaryDayChecklistPdf(
       ],
       [
         {
-          content: "ЧЕК-ЛИСТ (ПАМЯТКА) ПРОВЕДЕНИЯ САНИТАРНОГО ДНЯ",
+          // Название документа, заданное в шапке документа, — как на экране.
+          content: (
+            readHeaderTitleOverride(params.config) ?? "ЧЕК-ЛИСТ (ПАМЯТКА) ПРОВЕДЕНИЯ САНИТАРНОГО ДНЯ"
+          ).toUpperCase(),
           styles: { fontStyle: "italic" },
         },
       ],

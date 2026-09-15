@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { db } from "@/lib/db";
 import { hashInspectorToken } from "@/lib/inspector-tokens";
+import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 
@@ -28,7 +29,11 @@ export async function GET(
   const tokenHash = hashInspectorToken(token);
   const record = await db.inspectorToken.findUnique({
     where: { tokenHash },
-    include: { organization: { select: { id: true, name: true } } },
+    include: {
+      organization: {
+        select: { id: true, name: true, journalShortName: true, legalProfileJson: true },
+      },
+    },
   });
   if (!record) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -107,7 +112,7 @@ export async function GET(
   // Title page
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text(record.organization.name, 20, 30);
+  doc.text(resolveOrgJournalName(record.organization), 20, 30);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.text(

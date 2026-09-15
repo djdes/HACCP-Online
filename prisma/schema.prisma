@@ -80,6 +80,9 @@ model Organization {
   /// SERIAL: последовательность не выдаёт одно значение дважды.
   orgNo                          Int                            @default(autoincrement())
   name                           String
+  /// Сокращённое название для шапки журналов и печатных форм. null —
+  /// краткое название из ЕГРЮЛ или полное (см. src/lib/org-journal-name.ts).
+  journalShortName               String?
   /// Сфера заведения: restaurant | cafe | education | bakery | fastfood |
   /// production | other. Колонка переиспользована — раньше здесь лежал
   /// «тип производства» (meat/dairy/…), старые значения переводит

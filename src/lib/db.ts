@@ -2,12 +2,41 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
+import { carryDocumentHeaderFields, DOCUMENT_HEADER_CONFIG_KEYS } from "@/lib/journal-header-carry";
 import { notifyJournalWrite } from "@/lib/journal-change-events";
 import { resolvePartnerAuditMarker } from "@/lib/partners/audit-marker";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
+
+/**
+ * Поля бумажной шапки документа (периодичность, название организации и
+ * документа) не должны пропадать, когда конфиг перезаписывает нормализатор
+ * журнала — адаптер TasksFlow, каскад ответственных, автозаполнение. Ключа
+ * нет в новом конфиге — берём из текущего. Перенос — страховка: если
+ * прочитать не удалось, запись идёт как есть.
+ */
+async function carryHeaderFieldsOnUpdate(base: PrismaClient, args: unknown): Promise<void> {
+  const update = args as { where?: object; data?: Record<string, unknown> };
+  const nextConfig = update.data?.config;
+  if (!update.where || !update.data || !nextConfig || typeof nextConfig !== "object") return;
+  // Только обычный объект: Prisma.JsonNull/DbNull — экземпляры классов.
+  if (Object.getPrototypeOf(nextConfig) !== Object.prototype) return;
+  const next = nextConfig as Record<string, unknown>;
+  if (DOCUMENT_HEADER_CONFIG_KEYS.every((key) => next[key] !== undefined)) return;
+  try {
+    const current = await base.journalDocument.findUnique({
+      where: update.where as { id: string },
+      select: { config: true },
+    });
+    if (!current) return;
+    const carried = carryDocumentHeaderFields(current.config, next);
+    if (carried !== next) update.data = { ...update.data, config: carried };
+  } catch (err) {
+    console.error("[journal-header-carry] read failed", err);
+  }
+}
 
 function createPrismaClient(): PrismaClient {
   const connectionString =
@@ -76,6 +105,7 @@ function createPrismaClient(): PrismaClient {
       },
       journalDocument: {
         async $allOperations({ operation, args, query }) {
+          if (operation === "update") await carryHeaderFieldsOnUpdate(base, args);
           const result = await query(args);
           notifyJournalWrite(base, "journalDocument", operation, args, result);
           return result;

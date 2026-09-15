@@ -6,6 +6,8 @@ import autoTable, { type CellDef, type CellHookData, type RowInput } from "jspdf
 import { getCalendarDayKind } from "@/lib/production-calendar-data";
 import { db } from "@/lib/db";
 import { withBuildingLabel } from "@/lib/building-scope";
+import { readHeaderTitleOverride } from "@/lib/journal-header-title";
+import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import { isAutoSeededEntry } from "@/lib/journal-entry-filters";
 import {
   CLIMATE_DOCUMENT_TEMPLATE_CODE,
@@ -288,7 +290,6 @@ import {
   VACCINATION_REFERENCE_DATA,
   VACCINATION_TYPE_LABELS,
 } from "@/lib/med-book-document";
-import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 
 /**
  * Шрифт для PDF. Первым идёт свой, лежащий в репозитории: раньше список
@@ -676,6 +677,18 @@ let activeControlPeriodicity = "";
 let activeDocumentStatus = "";
 
 /**
+ * Название документа, заданное в шапке документа (`config.headerTitle`).
+ * Пусто — у каждого бланка своё стандартное название. Выставляется там же,
+ * где `activeControlPeriodicity`.
+ */
+let activeHeaderTitle = "";
+
+/** Название бланка в шапке: своё из шапки документа или стандартное. */
+function headerTitleOr(standard: string): string {
+  return activeHeaderTitle.trim() || standard;
+}
+
+/**
  * Поля «Начат … / Окончен …» шапки ХАССП передаются ТОЛЬКО явными
  * параметрами `drawJournalHeader`/`drawClimateMetaTable`. Модульных
  * дефолтов (`activeDocumentDateFrom/To`) больше нет: они «залипали»
@@ -832,7 +845,7 @@ function drawJournalHeader(doc: jsPDF, params: {
   doc.setFont("JournalUnicode", "italic");
   drawCenteredText(
     doc,
-    journalLabel.toUpperCase(),
+    headerTitleOr(journalLabel).toUpperCase(),
     x + leftWidth,
     y + topHeight,
     middleWidth,
@@ -3396,7 +3409,7 @@ function drawGlassListPdf(doc: jsPDF, params: {
   doc.setFont("JournalUnicode", "italic");
   drawCenteredText(
     doc,
-    "ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА",
+    headerTitleOr("ПЕРЕЧЕНЬ ИЗДЕЛИЙ ИЗ СТЕКЛА И ХРУПКОГО ПЛАСТИКА").toUpperCase(),
     x + leftWidth,
     y + 11,
     middleWidth,
@@ -3518,7 +3531,7 @@ function drawBreakdownHistoryPdf(doc: jsPDF, params: {
   drawCenteredText(doc, "СИСТЕМА ХАССП", x + leftWidth, y, middleWidth, topHeight, middleWidth - 10);
 
   doc.setFont("JournalUnicode", "italic");
-  drawCenteredText(doc, "КАРТОЧКА ИСТОРИИ ПОЛОМОК", x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 10);
+  drawCenteredText(doc, headerTitleOr("КАРТОЧКА ИСТОРИИ ПОЛОМОК").toUpperCase(), x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 10);
 
   const dateFromStr = params.dateFrom instanceof Date
     ? formatBreakdownDateRu(params.dateFrom.toISOString().slice(0, 10))
@@ -3631,7 +3644,7 @@ function drawAccidentPdf(doc: jsPDF, params: {
   drawCenteredText(doc, "СИСТЕМА ХАССП", x + leftWidth, y, middleWidth, topHeight, middleWidth - 10);
 
   doc.setFont("JournalUnicode", "italic");
-  drawCenteredText(doc, "ЖУРНАЛ УЧЕТА АВАРИЙ", x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 10);
+  drawCenteredText(doc, headerTitleOr("ЖУРНАЛ УЧЕТА АВАРИЙ").toUpperCase(), x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 10);
 
   const dateFromStr = params.dateFrom instanceof Date
     ? formatBreakdownDateRu(params.dateFrom.toISOString().slice(0, 10))
@@ -4227,7 +4240,7 @@ function drawPestControlPdf(doc: jsPDF, params: {
   drawCenteredText(doc, "СИСТЕМА ХАССП", x + leftWidth, y, middleWidth, topHeight, middleWidth - 10);
 
   doc.setFont("JournalUnicode", "italic");
-  drawCenteredText(doc, (params.title || PEST_CONTROL_DOCUMENT_TITLE).toUpperCase(), x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 12);
+  drawCenteredText(doc, headerTitleOr(params.title || PEST_CONTROL_DOCUMENT_TITLE).toUpperCase(), x + leftWidth, y + topHeight, middleWidth, secondHeight, middleWidth - 12);
 
   doc.setFont("JournalUnicode", "bold");
   doc.setFontSize(9);
@@ -4386,7 +4399,7 @@ function drawEquipmentCleaningPdf(doc: jsPDF, params: {
         },
       ],
       [
-        { content: "ЖУРНАЛ МОЙКИ И ДЕЗИНФЕКЦИИ ОБОРУДОВАНИЯ", styles: { fontStyle: "italic" } },
+        { content: headerTitleOr("ЖУРНАЛ МОЙКИ И ДЕЗИНФЕКЦИИ ОБОРУДОВАНИЯ").toUpperCase(), styles: { fontStyle: "italic" } },
         // Пусто: «СТР. i ИЗ N» штампуется stampJournalPageNumbers по слоту,
         // который регистрируем в didDrawCell — иначе N всегда «1».
         { content: "" },
@@ -5434,7 +5447,7 @@ function drawIntensiveCoolingPdf(doc: jsPDF, params: {
   doc.setFont("JournalUnicode", "italic");
   drawCenteredText(
     doc,
-    INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase(),
+    headerTitleOr(INTENSIVE_COOLING_DOCUMENT_TITLE).toUpperCase(),
     x + leftWidth,
     y + topHeight,
     middleWidth,
@@ -5890,7 +5903,16 @@ function drawGlassControlPdf(doc: jsPDF, params: {
 export type JournalDocumentForPdf = Prisma.JournalDocumentGetPayload<{
   include: {
     template: true;
-    organization: { select: { name: true; inn: true; address: true; phone: true } };
+    organization: {
+      select: {
+        name: true;
+        journalShortName: true;
+        legalProfileJson: true;
+        inn: true;
+        address: true;
+        phone: true;
+      };
+    };
     /// Точка документа — печатается под названием организации.
     building: { select: { name: true; address: true } };
     entries: true;
@@ -5954,7 +5976,14 @@ export async function loadJournalDocumentPdfInput(params: {
     include: {
       template: true,
       organization: {
-        select: { name: true, inn: true, address: true, phone: true },
+        select: {
+          name: true,
+          journalShortName: true,
+          legalProfileJson: true,
+          inn: true,
+          address: true,
+          phone: true,
+        },
       },
       building: { select: { name: true, address: true } },
       // ВАЖНО: берём ВСЕ строки, включая `_autoSeeded` плейсхолдеры.
@@ -6087,8 +6116,10 @@ export function renderJournalDocumentPdf(
   // должны быть реквизиты прямо на печатной форме без дополнительной
   // сверки. Если что-то не задано — просто пропускаем разделитель.
   // Точки: под названием организации печатается точка с адресом.
+  // Название — сокращённое для журналов (своё у документа → общее → ЕГРЮЛ
+  // → полное), как в шапке на экране.
   const orgName = withBuildingLabel(
-    document.organization?.name || ORG_NAME_FALLBACK,
+    resolveOrgJournalName(document.organization, document.config),
     document.building,
   );
   const orgInn = document.organization?.inn ?? null;
@@ -6155,6 +6186,7 @@ export function renderJournalDocumentPdf(
   // в середине отрисовки не «протекает» в следующий PDF.
   activeControlPeriodicity = readControlPeriodicity(document.config, templateCode);
   activeDocumentStatus = document.status ?? "";
+  activeHeaderTitle = readHeaderTitleOverride(document.config) ?? "";
   activePageHeaderPainter = null;
   activePageHeaderHeight = 0;
   pagesWithJournalHeader.clear();
@@ -6606,6 +6638,7 @@ export function renderJournalDocumentPdf(
 
   activeControlPeriodicity = "";
   activeDocumentStatus = "";
+  activeHeaderTitle = "";
   activePageHeaderPainter = null;
   activePageHeaderHeight = 0;
   pagesWithJournalHeader.clear();

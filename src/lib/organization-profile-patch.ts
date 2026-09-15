@@ -11,10 +11,12 @@
  * трогаем; пустая строка у необязательного поля означает «очистить».
  */
 
+import { sanitizeOrgJournalName } from "@/lib/org-journal-name";
 import { normalizeOwnership, normalizeSphere } from "@/lib/org-profile";
 
 export const ORG_PROFILE_FIELDS = [
   "name",
+  "journalShortName",
   "type",
   "ownershipKind",
   "inn",
@@ -61,6 +63,11 @@ export function parseOrganizationProfilePatch(
     if (!name) errors.push("Название обязательно");
     else if (name.length > 200) errors.push("Название слишком длинное");
     else data.name = name;
+  }
+  // Сокращённое название для шапки журналов: пусто — «как в ЕГРЮЛ или
+  // полное», поэтому очищаем в null, а не в пустую строку.
+  if (has("journalShortName")) {
+    data.journalShortName = sanitizeOrgJournalName(body.journalShortName) || null;
   }
   // `type` — сфера заведения. Не валидируем перечислением, а
   // нормализуем: старые значения из базы (meat, dairy…) должны

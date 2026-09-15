@@ -30,9 +30,16 @@ import {
 } from "@/lib/org-profile";
 import { planLabel } from "@/lib/plan-limits";
 import type { LegalProfile } from "@/lib/org-legal-profile";
+import {
+  ORG_JOURNAL_NAME_MAX,
+  resolveOrgJournalName,
+  suggestOrgJournalName,
+} from "@/lib/org-journal-name";
 
 type Form = {
   name: string;
+  /// Сокращённое название для шапки журналов; null — из ЕГРЮЛ или полное.
+  journalShortName: string | null;
   /// Сфера заведения (в БД колонка называется `type`).
   type: string;
   ownershipKind: string;
@@ -123,6 +130,7 @@ export function OrganizationInfoForm({
 
   const dirty =
     form.name !== initial.name ||
+    form.journalShortName !== initial.journalShortName ||
     form.type !== initial.type ||
     form.inn !== initial.inn ||
     form.address !== initial.address ||
@@ -135,6 +143,15 @@ export function OrganizationInfoForm({
     form.shiftEndHour !== initial.shiftEndHour ||
     form.lockPastDayEdits !== initial.lockPastDayEdits ||
     form.requireAdminForJournalEdit !== initial.requireAdminForJournalEdit;
+
+  // Что увидит шапка журналов при текущем вводе — те же правила, что у
+  // страницы документа и PDF.
+  const legalShortName = suggestOrgJournalName(legal.profile);
+  const journalNamePreview = resolveOrgJournalName({
+    name: form.name,
+    journalShortName: form.journalShortName,
+    legalProfileJson: legal.profile,
+  });
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -149,6 +166,8 @@ export function OrganizationInfoForm({
       // в валидатор и блокируют сохранение остальных полей.
       const payload: Record<string, unknown> = {};
       if (form.name !== initial.name) payload.name = form.name;
+      if (form.journalShortName !== initial.journalShortName)
+        payload.journalShortName = form.journalShortName ?? "";
       if (form.type !== initial.type) payload.type = form.type;
       if (form.inn !== initial.inn) payload.inn = form.inn ?? "";
       if (form.address !== initial.address)
@@ -284,6 +303,38 @@ export function OrganizationInfoForm({
             placeholder='ООО "Пекарня"'
             maxLength={200}
           />
+        </FormRow>
+        <FormRow
+          label="Сокращённое название для журналов"
+          hint="Печатается в шапке каждого журнала и в PDF; пусто — краткое название из ЕГРЮЛ или полное"
+          icon={<FileText className="size-4" />}
+        >
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={form.journalShortName ?? ""}
+              onChange={(e) => set("journalShortName", e.target.value || null)}
+              className="form-input"
+              placeholder={legalShortName ?? (form.name || "Кафе «Ромашка»")}
+              maxLength={ORG_JOURNAL_NAME_MAX}
+            />
+            <div className="flex flex-wrap items-center gap-2 text-[12px] leading-snug text-[#6f7282]">
+              <span>
+                В шапке журналов:{" "}
+                <b className="font-semibold text-[#0b1024]">«{journalNamePreview}»</b>
+              </span>
+              {legalShortName && legalShortName !== (form.journalShortName ?? "").trim() ? (
+                <button
+                  type="button"
+                  onClick={() => set("journalShortName", legalShortName)}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[#dcdfed] bg-white px-3 text-[12.5px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                >
+                  <ShieldCheck className="size-3.5 text-[#5566f6]" />
+                  Взять из ЕГРЮЛ: {legalShortName}
+                </button>
+              ) : null}
+            </div>
+          </div>
         </FormRow>
         <FormRow label="Сфера" hint="Влияет на пресеты журналов и pipelines">
           <select

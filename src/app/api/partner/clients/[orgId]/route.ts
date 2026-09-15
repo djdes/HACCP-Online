@@ -37,6 +37,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ orgId: str
  */
 const PARTNER_EDITABLE_FIELDS: readonly OrgProfileField[] = [
   "name",
+  "journalShortName",
   "type",
   "ownershipKind",
   "inn",
@@ -107,6 +108,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ orgId: st
     where: { id: orgId },
     select: {
       name: true,
+      journalShortName: true,
       type: true,
       ownershipKind: true,
       inn: true,
@@ -122,6 +124,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ orgId: st
     data,
     select: {
       name: true,
+      journalShortName: true,
       type: true,
       ownershipKind: true,
       inn: true,

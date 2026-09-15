@@ -3,6 +3,7 @@ import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { renderPaperJournalPdf } from "@/lib/paper-journal-pdf";
+import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import { getVisibleOrgBranding } from "@/lib/partners/branding";
 import { paperJournalById } from "@/lib/sphere-journal-rules";
 
@@ -42,14 +43,25 @@ async function build(
   const [organization, branding] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { name: true, inn: true, address: true },
+      select: {
+        name: true,
+        journalShortName: true,
+        legalProfileJson: true,
+        inn: true,
+        address: true,
+      },
     }),
     getVisibleOrgBranding(organizationId),
   ]);
 
   const pdf = renderPaperJournalPdf({
     journal,
-    organization: organization ?? { name: "Организация" },
+    // Название — как в шапке журналов (сокращённое → ЕГРЮЛ → полное).
+    organization: {
+      name: resolveOrgJournalName(organization),
+      inn: organization?.inn ?? null,
+      address: organization?.address ?? null,
+    },
     rows,
     period,
     branding: branding ? { brandName: branding.brandName, pdfSignature: branding.pdfSignature } : null,

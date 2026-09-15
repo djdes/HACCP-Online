@@ -1,0 +1,92 @@
+{
+  "task_id": "org-short-name-2026-09",
+  "role": "task-verifier (fresh pass on current working tree)",
+  "round": 2,
+  "verified_at": "2026-09-15T23:00:00+03:00",
+  "overall": "UNKNOWN",
+  "overall_note": "Every locally verifiable criterion passes (AC1-AC6, and the local part of AC7). The only open item is AC7's production read-only check, which is possible only after deploy.",
+  "stand": {
+    "database": "postgresql://localhost:5432/wesetup_e2e (DATABASE_URL and DATABASE_URL_DIRECT exported for every DB command; .env / 127.0.0.1:5433 never used)",
+    "dev_server": "existing next dev on http://localhost:3020 (not restarted)",
+    "production": "not contacted"
+  },
+  "commands": {
+    "round_1": [
+      { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+      { "cmd": "node --import tsx --test src/lib/journal-header-carry.test.ts src/lib/organization-profile-patch.test.ts src/lib/org-journal-name.test.ts", "result": "17/17 pass" },
+      { "cmd": "npm run test:gate (e2e DB env)", "result": "pass=1281 fail=0, exit 0" },
+      { "cmd": "npx eslint <29 task files>", "result": "0 errors, 12 warnings; every flagged identifier already exists at HEAD" },
+      { "cmd": "setup-db.ts, then e2e/header-name.ts", "result": "exit 0; 52/52 PASS" },
+      { "cmd": "verifier probe db-hook-probe.ts (extended client from src/lib/db.ts)", "result": "all pass (status-only update, JsonNull/DbNull, interactive and batch transactions, extra where filter, P2025, array config); probe doc deleted" },
+      { "cmd": "verifier probe http-probe.ts", "result": "25 pass / 3 fail: paper blank on-screen header, headerTitle missing in cleaning_ventilation_checklist and sanitary_day_control PDFs" }
+    ],
+    "round_2": [
+      { "cmd": "git diff HEAD on the 4 fixed files", "result": "both paper pages select journalShortName/legalProfileJson and pass resolveOrgJournalName(organization); both checklist PDF stamps use (readHeaderTitleOverride(params.config) ?? standard).toUpperCase()" },
+      { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+      { "cmd": "npm run test:gate (e2e DB env)", "result": "pass=1281 fail=0, exit 0" },
+      { "cmd": "npx eslint on the 4 fixed files", "result": "exit 0, no output" },
+      { "cmd": "setup-db.ts, then e2e/header-name.ts (second and last allowed run)", "result": "exit 0; 55/55 PASS, 0 FAIL (includes the new checks: cleaning_ventilation_checklist and sanitary_day_control header title in PDF, paper blank on-screen short name)" },
+      { "cmd": "verifier probe http-probe.ts (rerun, unchanged script)", "result": "28 pass / 0 fail, exit 0; probe documents deleted (count 0); org A presetCapabilitiesJson back to {}; no inspector tokens left" }
+    ]
+  },
+  "criteria": {
+    "AC1": {
+      "status": "PASS",
+      "evidence": [
+        "e2e: field on /settings/organization, «Взять из ЕГРЮЛ» fills nameShort, preview, save writes journalShortName, blank PATCH clears to null, partner PATCH /api/partner/clients/[orgId] sets and clears",
+        "code: FormRow directly under «Название организации», hint matches spec verbatim, maxLength 120; parseOrganizationProfilePatch sanitizes and maps empty to null (unit test)"
+      ]
+    },
+    "AC2": {
+      "status": "PASS",
+      "evidence": [
+        "src/lib/org-journal-name.ts order: config.headerOrgName, journalShortName, legalProfileJson.nameShort, orgDisplayName(name, «Организация»)",
+        "org-journal-name.test.ts passes: chain, blank override, e-mail placeholder, «никогда не «Тест»»"
+      ]
+    },
+    "AC3": {
+      "status": "PASS",
+      "evidence": [
+        "e2e 55/55: document page header (hygiene, climate_control, finished_product), Mini App, server document PDFs, compliance bundle ОТЧЁТ.txt, inspector portal page, paper blank PDF, paper blank on-screen header, cabinet keeps full name",
+        "probe round 2: /settings/journals/paper/ot_intro header cell shows «Альфа (общее)», matching its PDF; Mini App HTML shows the same resolved name as the site; org override appears in intensive_cooling, cleaning_ventilation_checklist and sanitary_day_control PDFs",
+        "code: /settings/journals/paper/[id]/documents/[docId] uses the same resolveOrgJournalName fix; /api/reports/pdf and inspector PDF pass resolveOrgJournalName (jsPDF helvetica, text not extractable)"
+      ]
+    },
+    "AC4": {
+      "status": "PASS",
+      "evidence": [
+        "e2e: pencil on hover and hidden under print media; «Где поменять название?» dialog; document scope writes config.headerOrgName; organization scope writes journalShortName and clears the current document's override; cook sees no pencils; head chef without admin.full gets the organization option disabled; closed document has no pencils",
+        "probe: head chef PATCH /api/settings/organization gives 403 with org unchanged (server-side); head chef document-scope PATCH gives 200; cook document and org PATCH give 403; cook site + Mini App HTML have no pencils; PATCH of a closed document with headerOrgName/headerTitle/controlPeriodicity gives 400 with config unchanged"
+      ]
+    },
+    "AC5": {
+      "status": "PASS",
+      "evidence": [
+        "e2e: row save without header keys and stale client config keep all header fields; complaint_register TasksFlow adapter write keeps header",
+        "probe: finished_product TasksFlow adapter keeps headerOrgName/headerTitle/controlPeriodicity; db.ts hook matrix (null values, status-only update, transactions) passes",
+        "unit: journal-header-carry.test.ts"
+      ]
+    },
+    "AC6": {
+      "status": "PASS",
+      "evidence": [
+        "e2e 55/55: title edit writes config.headerTitle and shows on the page and in the hygiene PDF; periodicity edit writes config.controlPeriodicity; new checks «cleaning_ventilation_checklist: название документа из шапки в PDF» and «sanitary_day_control: название документа из шапки в PDF» pass",
+        "probe round 2: header title override shows on the page (with pencil) and in the PDF for intensive_cooling, cleaning_ventilation_checklist and sanitary_day_control"
+      ]
+    },
+    "AC7": {
+      "status": "UNKNOWN",
+      "evidence": [
+        "local part PASS: typecheck exit 0, ESLint 0 errors (12 warnings pre-existing), unit 17/17, test:gate 1281/0, e2e 55/55",
+        "production read-only check (form and header) needs a deploy; the verifier must not contact production"
+      ]
+    }
+  },
+  "observations_non_blocking": [
+    "db.ts carry hook covers only `update`; updateMany/upsert with config are not carried, but no current code path writes config that way",
+    "some big title lines below the PDF header stamp still use the standard title (e.g. document-pdf.ts «КАРТОЧКА ИСТОРИИ ПОЛОМОК», «ЖУРНАЛ УЧЕТА АВАРИЙ»); they are outside the header stamp",
+    "PATCH /api/journal-documents/[id] still authorizes by isManagementRole only (pre-existing); the UI additionally requires journals.manage",
+    "the new e2e paper-screen check matches the short name anywhere in <main>; the verifier probe checks the header cell itself"
+  ],
+  "problems_file": "problems.md (only AC7 production check remains)"
+}

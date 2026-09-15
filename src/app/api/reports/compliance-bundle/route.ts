@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { generateJournalDocumentPdf } from "@/lib/document-pdf";
+import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import {
   buildCapaSummaryPdf,
   buildRegulatorCoverPdf,
@@ -133,14 +134,16 @@ export async function GET(request: Request) {
   const [organization] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { name: true },
+      select: { name: true, journalShortName: true, legalProfileJson: true },
     }),
   ]);
 
   const zip = new JSZip();
   const manifestLines: string[] = [];
   manifestLines.push(`СВОДНЫЙ ОТЧЁТ ПО ЖУРНАЛАМ`);
-  manifestLines.push(`Организация: ${organization?.name ?? "—"}`);
+  // Название — как в шапке журналов внутри архива.
+  const organizationName = resolveOrgJournalName(organization);
+  manifestLines.push(`Организация: ${organizationName}`);
   manifestLines.push(`Период: ${ymd(from)} — ${ymd(to)}`);
   manifestLines.push(`Собран: ${now.toLocaleString("ru-RU")}`);
   manifestLines.push(``);
@@ -251,7 +254,7 @@ export async function GET(request: Request) {
 
   try {
     const capaPdf = buildCapaSummaryPdf({
-      organizationName: organization?.name ?? "—",
+      organizationName,
       periodFrom: from,
       periodTo: to,
       rows: capaRows,
@@ -263,7 +266,7 @@ export async function GET(request: Request) {
 
   try {
     const cover = buildRegulatorCoverPdf({
-      organizationName: organization?.name ?? "—",
+      organizationName,
       periodFrom: from,
       periodTo: to,
       generatedAt: now,

@@ -20,6 +20,11 @@ import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
 } from "@/components/journals/journal-grid";
+import {
+  HeaderOrgName,
+  HeaderPeriodicity,
+  HeaderTitle,
+} from "@/components/journals/journal-header-edit";
 
 type Props = {
   /** Название организации (ООО «Кухня» / ИП Иванов и т.п.). */
@@ -117,9 +122,10 @@ export function JournalPaperHeaderRows({
       <tr>
         <td
           rowSpan={2}
-          className={`${orgCellClass} ${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] font-semibold leading-tight`}
+          className={`group/header-org ${orgCellClass} ${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] font-semibold leading-tight`}
         >
-          {orgName}
+          {/* Карандаш правки — только на странице документа (контекст), в печать не идёт. */}
+          <HeaderOrgName orgName={orgName} />
         </td>
         <td
           className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] uppercase leading-tight`}
@@ -141,9 +147,9 @@ export function JournalPaperHeaderRows({
       </tr>
       <tr>
         <td
-          className={`${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] uppercase italic leading-tight`}
+          className={`group/header-title ${GRID_CELL_CLASS} px-3 py-2 text-center text-[13px] uppercase italic leading-tight`}
         >
-          {title}
+          <HeaderTitle title={title} />
         </td>
         {/*
           S11 аудита: «СТР. 1 ИЗ 1» читалось как «СТР. 1ИЗ 1» — цифра «1»
@@ -251,9 +257,9 @@ export function JournalPeriodicityHeaderRow({
       </td>
       <td
         colSpan={valueColSpan}
-        className={`px-3 py-2 text-[12.5px] leading-[1.4] ${valueClass}`}
+        className={`group/header-periodicity px-3 py-2 text-[12.5px] leading-[1.4] ${valueClass}`}
       >
-        {value}
+        <HeaderPeriodicity text={value} />
       </td>
     </tr>
   );

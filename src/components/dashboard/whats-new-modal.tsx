@@ -114,6 +114,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Жесты на телефоне": Smartphone,
   "Поиск и навигация": Search,
   "Ответственные в журналах": UserCheck,
+  "Шапка журналов": SquarePen,
 };
 
 function iconForCategory(name: string): LucideIcon {

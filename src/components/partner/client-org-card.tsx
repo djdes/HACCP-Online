@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CalendarDays, Loader2, MapPin, Phone, Save, Search, Users } from "lucide-react";
+import { Building2, CalendarDays, FileText, Loader2, MapPin, Phone, Save, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, Field, btnOutline, btnPrimary, inputClass, readError } from "@/components/partner/ui";
@@ -40,6 +40,8 @@ const TIMEZONES: Array<{ value: string; label: string }> = [
 
 export type ClientOrgFields = {
   name: string;
+  /** Название в шапке журналов; пусто — краткое из ЕГРЮЛ или полное. */
+  journalShortName: string;
   type: string;
   ownershipKind: string;
   inn: string;
@@ -145,6 +147,9 @@ export function ClientOrgCard({
         }
       >
         <dl className="space-y-3 text-[14px]">
+          {form.journalShortName ? (
+            <Row icon={FileText} label="В шапке журналов" value={form.journalShortName} />
+          ) : null}
           <Row icon={Building2} label="Сфера" value={sphereLabel(form.type)} />
           <Row icon={Phone} label="Телефон" value={form.phone || "—"} />
           <Row icon={Building2} label="ИНН" value={form.inn || "—"} />
@@ -174,6 +179,19 @@ export function ClientOrgCard({
             onChange={(e) => set("name", e.target.value)}
             className={inputClass}
             maxLength={200}
+          />
+        </Field>
+        <Field
+          label="Название в журналах"
+          optional
+          hint="Короткое название для шапки журналов и PDF. Пусто — краткое из ЕГРЮЛ или полное"
+        >
+          <input
+            value={form.journalShortName}
+            onChange={(e) => set("journalShortName", e.target.value)}
+            className={inputClass}
+            maxLength={120}
+            placeholder={form.name}
           />
         </Field>
         <Field label="ИНН" optional hint="Подставим название и адрес из реестра">

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getActiveOrgId, requireAuth } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { paperJournalById } from "@/lib/sphere-journal-rules";
 import { PageCrumbs } from "@/components/layout/page-nav";
@@ -34,7 +35,7 @@ export default async function PaperDocumentPage({
   const [organization, document, employees] = await Promise.all([
     db.organization.findUnique({
       where: { id: organizationId },
-      select: { name: true, inn: true, address: true },
+      select: { name: true, journalShortName: true, legalProfileJson: true, inn: true, address: true },
     }),
     db.paperJournalDocument.findFirst({
       where: { id: docId, journalId: id, organizationId },
@@ -84,7 +85,8 @@ export default async function PaperDocumentPage({
         mode="document"
         journal={journal}
         organization={{
-          name: organization?.name ?? "Организация",
+          // Как в шапке журналов и в PDF бланка: сокращённое → ЕГРЮЛ → полное.
+          name: resolveOrgJournalName(organization),
           inn: organization?.inn ?? null,
           address: organization?.address ?? null,
         }}

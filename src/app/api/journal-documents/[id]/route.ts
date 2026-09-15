@@ -34,6 +34,12 @@ import {
   sanitizeControlPeriodicity,
 } from "@/lib/control-periodicity";
 import { applyRoomResponsiblesToConfig } from "@/lib/cleaning-room-responsibles";
+import {
+  carryDocumentHeaderFields,
+  withoutDocumentHeaderFields,
+} from "@/lib/journal-header-carry";
+import { HEADER_TITLE_CONFIG_KEY, sanitizeHeaderTitle } from "@/lib/journal-header-title";
+import { ORG_HEADER_NAME_CONFIG_KEY, sanitizeOrgJournalName } from "@/lib/org-journal-name";
 import { syncDocumentToTasksFlow } from "@/lib/tasksflow-sync";
 import { isJournalSupported } from "@/lib/tasksflow-adapters";
 import { syncTodayMatrixChanges } from "@/lib/cleaning-cell-override-sync";
@@ -171,6 +177,8 @@ export async function PATCH(
       "responsibleUserId",
       "config",
       "controlPeriodicity",
+      "headerOrgName",
+      "headerTitle",
       "dateFrom",
       "dateTo",
     ].some((key) => body[key] !== undefined)
@@ -370,54 +378,55 @@ export async function PATCH(
   if (body.autoFill !== undefined) data.autoFill = body.autoFill;
   if (body.config !== undefined && data.config === undefined) data.config = body.config;
 
-  // «Периодичность контроля» живёт в config.controlPeriodicity, но НЕ проходит
-  // через per-journal нормализаторы: почти каждый из них собирает свежий
-  // объект и выкинул бы незнакомый ключ. Поэтому здесь два независимых шага.
+  // Поля бумажной шапки — периодичность контроля, название организации и
+  // название документа «только в этом документе» — живут в config, но
+  // принадлежат шапке, а не журналу:
   //
-  //   1. carry-over: клиент прислал `config` без ключа (обычное сохранение
-  //      строки/матрицы) — переносим ранее сохранённое значение, иначе
-  //      каждое редактирование документа стирало бы шапку.
-  //   2. explicit: пришло top-level `controlPeriodicity` (модалка «Настройки
-  //      журнала») — оно перебивает всё.
+  //   1. копию из присланного `config` не берём: клиент держит конфиг,
+  //      загруженный до правки шапки, и вернул бы старый текст; прежние
+  //      значения переносятся из документа (тот же перенос страхует все
+  //      остальные записи конфига — хук в src/lib/db.ts);
+  //   2. меняют их только явные поля тела: `controlPeriodicity` (модалка
+  //      «Настройки журнала», шапка), `headerOrgName`, `headerTitle`
+  //      (шапка документа). Пустая строка — «убрать»: у периодичности это
+  //      скрытая строка шапки, у названий — возврат к общему.
   //
   // Обратная совместимость: если ключа нет ни там, ни там — ничего не пишем,
-  // а на чтении `readControlPeriodicity()` вернёт дефолт шаблона.
+  // на чтении `readControlPeriodicity()` вернёт дефолт шаблона.
   {
     const previousConfig =
       doc.config && typeof doc.config === "object" && !Array.isArray(doc.config)
         ? (doc.config as Record<string, unknown>)
         : null;
-    const previousPeriodicity = previousConfig?.[CONTROL_PERIODICITY_CONFIG_KEY];
 
-    if (
-      data.config !== undefined &&
-      data.config &&
-      typeof data.config === "object" &&
-      !Array.isArray(data.config) &&
-      typeof previousPeriodicity === "string" &&
-      (data.config as Record<string, unknown>)[CONTROL_PERIODICITY_CONFIG_KEY] === undefined
-    ) {
-      data.config = {
-        ...(data.config as Record<string, unknown>),
-        [CONTROL_PERIODICITY_CONFIG_KEY]: previousPeriodicity,
-      };
+    if (data.config !== undefined) {
+      data.config = carryDocumentHeaderFields(
+        previousConfig,
+        withoutDocumentHeaderFields(data.config)
+      );
     }
 
+    const headerEdits: Record<string, string> = {};
     if (body.controlPeriodicity !== undefined) {
-      const baseConfigForPeriodicity =
+      headerEdits[CONTROL_PERIODICITY_CONFIG_KEY] = sanitizeControlPeriodicity(
+        body.controlPeriodicity
+      );
+    }
+    if (body.headerOrgName !== undefined) {
+      headerEdits[ORG_HEADER_NAME_CONFIG_KEY] = sanitizeOrgJournalName(body.headerOrgName);
+    }
+    if (body.headerTitle !== undefined) {
+      headerEdits[HEADER_TITLE_CONFIG_KEY] = sanitizeHeaderTitle(body.headerTitle);
+    }
+    if (Object.keys(headerEdits).length > 0) {
+      const baseConfig =
         data.config !== undefined &&
         data.config &&
         typeof data.config === "object" &&
         !Array.isArray(data.config)
           ? (data.config as Record<string, unknown>)
           : previousConfig ?? {};
-
-      data.config = {
-        ...baseConfigForPeriodicity,
-        [CONTROL_PERIODICITY_CONFIG_KEY]: sanitizeControlPeriodicity(
-          body.controlPeriodicity
-        ),
-      };
+      data.config = { ...baseConfig, ...headerEdits };
     }
   }
 

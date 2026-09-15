@@ -56,6 +56,7 @@ export async function PATCH(request: Request) {
     data,
     select: {
       name: true,
+      journalShortName: true,
       type: true,
       ownershipKind: true,
       locationsCount: true,

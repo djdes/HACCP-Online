@@ -29,6 +29,7 @@ function ensureUnicodeFont(doc: jsPDF): string {
   return "JournalUnicode";
 }
 import { readControlPeriodicity } from "@/lib/control-periodicity";
+import { readHeaderTitleOverride } from "@/lib/journal-header-title";
 import { registerPageLabelSlot } from "@/lib/pdf-page-labels";
 import { getUserDisplayTitle } from "@/lib/user-roles";
 import {
@@ -119,7 +120,10 @@ export function drawCleaningVentilationChecklistPdf(
         // colSpan=2: справа от названия журнала лишней пустой ячейки нет
         // (правый столбец шапки занят слотом «СТР. i ИЗ N» с rowSpan=2).
         {
-          content: "ЧЕК-ЛИСТ УБОРКИ И ПРОВЕТРИВАНИЯ ПОМЕЩЕНИЙ",
+          // Название документа, заданное в шапке документа, — как на экране.
+          content: (
+            readHeaderTitleOverride(params.config) ?? "ЧЕК-ЛИСТ УБОРКИ И ПРОВЕТРИВАНИЯ ПОМЕЩЕНИЙ"
+          ).toUpperCase(),
           colSpan: 2,
           styles: { fontStyle: "italic" as const },
         },

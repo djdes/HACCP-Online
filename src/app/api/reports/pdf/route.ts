@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
+import { db } from "@/lib/db";
+import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import { generateJournalPDF } from "@/lib/pdf";
 import { isManagementRole } from "@/lib/user-roles";
 
@@ -63,10 +65,16 @@ export async function GET(request: Request) {
       );
     }
 
+    // Название — из базы и как в шапке журналов, а не снимок из сессии:
+    // в JWT оно устаревает до перелогина, у ROOT в чужой организации — своё.
+    const organization = await db.organization.findUnique({
+      where: { id: getActiveOrgId(session) },
+      select: { name: true, journalShortName: true, legalProfileJson: true },
+    });
     const pdfBuffer = await generateJournalPDF({
       templateCode,
       organizationId: getActiveOrgId(session),
-      organizationName: session.user.organizationName,
+      organizationName: resolveOrgJournalName(organization),
       dateFrom,
       dateTo,
       areaId,
