@@ -90,6 +90,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { NO_ROW_EMPLOYEE_MESSAGE, useRosterViewerId } from "@/components/journals/use-roster-viewer";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { useTodayKey } from "@/lib/use-today-key";
@@ -1088,6 +1089,12 @@ function MonthlySummaryTable({ monthlyData }: { monthlyData: { month: string; ho
 
 /* ─── Main Document Client ─── */
 
+function rowSaveErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message === NO_ROW_EMPLOYEE_MESSAGE
+    ? NO_ROW_EMPLOYEE_MESSAGE
+    : "Не удалось сохранить строку";
+}
+
 export function UvLampRuntimeDocumentClient(props: Props) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1100,7 +1107,11 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   const [autoFill, setAutoFill] = useState(props.autoFill === true);
 
   const [config, setConfig] = useState(() => normalizeUvRuntimeDocumentConfig(props.config));
-  const fallbackEmployeeId = props.responsibleUserId || props.users[0]?.id || "";
+  // На кого записывать строку без выбранного сотрудника: ответственный
+  // документа, иначе вошедший (если он в ростере). «Первого в списке» не
+  // берём — запись уходила от случайного человека.
+  const viewerId = useRosterViewerId(props.users);
+  const fallbackEmployeeId = props.responsibleUserId || viewerId || "";
   const [rows, setRows] = useState(() =>
     buildRows({
       dateFrom: props.dateFrom,
@@ -1161,6 +1172,9 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     options?: { silent?: boolean }
   ) => {
     const previousSaved = savedRows.get(row.date);
+    if (!(row.employeeId || fallbackEmployeeId)) {
+      throw new Error(NO_ROW_EMPLOYEE_MESSAGE);
+    }
     const response = await fetch(`/api/journal-documents/${props.documentId}/entries`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -1295,8 +1309,8 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
     try {
       await saveRow(newRow);
-    } catch {
-      toast.error("Не удалось сохранить строку");
+    } catch (error) {
+      toast.error(rowSaveErrorMessage(error));
     }
   }
 
@@ -1319,8 +1333,8 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
     try {
       await saveRow(updated);
-    } catch {
-      toast.error("Не удалось сохранить строку");
+    } catch (error) {
+      toast.error(rowSaveErrorMessage(error));
     }
   }
 
@@ -1736,7 +1750,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                           )
                         }
                         onBlur={() => {
-                          saveRow(row).catch(() => toast.error("Не удалось сохранить строку"));
+                          saveRow(row).catch((error) => toast.error(rowSaveErrorMessage(error)));
                         }}
                         className="mx-auto h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
                       />
@@ -1760,7 +1774,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                           )
                         }
                         onBlur={() => {
-                          saveRow(row).catch(() => toast.error("Не удалось сохранить строку"));
+                          saveRow(row).catch((error) => toast.error(rowSaveErrorMessage(error)));
                         }}
                         className="mx-auto h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
                       />
@@ -1780,8 +1794,8 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                             current.map((item) => (item.id === row.id ? { ...item, employeeId: value } : item))
                           );
                           const updated = { ...row, employeeId: value };
-                          saveRow(updated, { id: row.id, employeeId: row.employeeId }).catch(() =>
-                            toast.error("Не удалось сохранить строку")
+                          saveRow(updated, { id: row.id, employeeId: row.employeeId }).catch((error) =>
+                            toast.error(rowSaveErrorMessage(error))
                           );
                           return;
                         }}

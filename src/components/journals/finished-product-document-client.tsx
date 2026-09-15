@@ -83,6 +83,10 @@ type Props = {
   status: string;
   initialConfig: FinishedProductDocumentConfig;
   users: { id: string; name: string; role: string }[];
+  /** Ответственный документа — «Ответственный исполнитель» новой строки. */
+  responsibleUserId?: string | null;
+  /** Проверяющий документа — «ФИО лица, проводившего бракераж». */
+  verifierUserId?: string | null;
   /** Design v2 toggle. */
   useV2?: boolean;
 };
@@ -159,15 +163,26 @@ function mergeDateTime(date: string, time: string) {
   return `${date} ${time}`;
 }
 
-function createDraft(users: Props["users"], productName = ""): FinishedProductDocumentRow {
+/**
+ * Новая строка. Люди — только назначенные в документе: ответственный и
+ * проверяющий. Раньше сюда вписывались первые два сотрудника по алфавиту,
+ * и в бланке оказывались случайные люди.
+ */
+function createDraft(
+  users: Props["users"],
+  productName = "",
+  people: { responsibleUserId?: string | null; verifierUserId?: string | null } = {}
+): FinishedProductDocumentRow {
+  const nameOf = (id: string | null | undefined) =>
+    (id && users.find((user) => user.id === id)?.name) || "";
   return createFinishedProductRow({
     productName,
     productionDateTime: mergeDateTime(nowDate(), nowTime()),
     rejectionTime: mergeDateTime(nowDate(), nowTime()),
     releasePermissionTime: mergeDateTime(nowDate(), nowTime()),
     courierTransferTime: mergeDateTime(nowDate(), nowTime()),
-    responsiblePerson: users[0]?.name || "",
-    inspectorName: users[1]?.name || users[0]?.name || "",
+    responsiblePerson: nameOf(people.responsibleUserId),
+    inspectorName: nameOf(people.verifierUserId),
     releaseAllowed: "yes",
   });
 }
@@ -182,9 +197,12 @@ export function FinishedProductDocumentClient({
   status,
   initialConfig,
   users,
+  responsibleUserId = null,
+  verifierUserId = null,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const draftPeople = { responsibleUserId, verifierUserId };
   const [isSaving, setIsSaving] = useState(false);
   const [config, setConfig] = useState(() => normalizeFinishedProductDocumentConfig(initialConfig));
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -199,7 +217,7 @@ export function FinishedProductDocumentClient({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [newItemName, setNewItemName] = useState("");
-  const [draftRow, setDraftRow] = useState<FinishedProductDocumentRow>(() => createDraft(users));
+  const [draftRow, setDraftRow] = useState<FinishedProductDocumentRow>(() => createDraft(users, "", draftPeople));
   const [guideOpen, setGuideOpen] = useState(false);
   const readOnly = status === "closed";
   const { mobileView, switchMobileView } = useMobileView("finished_product");
@@ -471,7 +489,7 @@ export function FinishedProductDocumentClient({
     commitConfig(
       {
         ...config,
-        rows: [...config.rows, ...Array.from({ length: count }, () => createDraft(users))],
+        rows: [...config.rows, ...Array.from({ length: count }, () => createDraft(users, "", draftPeople))],
       },
       true
     );
@@ -485,7 +503,7 @@ export function FinishedProductDocumentClient({
       .filter(Boolean);
     if (items.length === 0) return;
     commitConfig(
-      { ...config, rows: [...config.rows, ...items.map((item) => createDraft(users, item))] },
+      { ...config, rows: [...config.rows, ...items.map((item) => createDraft(users, item, draftPeople))] },
       true
     );
     setBulkText("");
@@ -495,7 +513,7 @@ export function FinishedProductDocumentClient({
 
   function openAddRow() {
     setEditingRowId(null);
-    setDraftRow(createDraft(users));
+    setDraftRow(createDraft(users, "", draftPeople));
     setAddModalOpen(true);
   }
 
@@ -521,7 +539,7 @@ export function FinishedProductDocumentClient({
     };
     setConfig(nextConfig);
     await saveConfig(nextConfig);
-    setDraftRow(createDraft(users));
+    setDraftRow(createDraft(users, "", draftPeople));
     setEditingRowId(null);
     setAddModalOpen(false);
   }

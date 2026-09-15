@@ -313,7 +313,31 @@ function buildPerishableConfig(ctx: DemoJournalContext) {
       });
     });
   });
-  return { ...config, rows };
+  // Справочники документа — из тех же образцов, что и строки: пустой
+  // конфиг по умолчанию больше не приносит «Пельмени» и «Ромашку».
+  const unique = (values: string[]) => [...new Set(values.filter(Boolean))];
+  return {
+    ...config,
+    productLists:
+      config.productLists.some((list) => list.items.length > 0)
+        ? config.productLists
+        : [
+            {
+              id: config.productLists[0]?.id ?? "perishable-list-demo",
+              name: config.productLists[0]?.name ?? "Изделия",
+              items: unique(items.map((item) => item.product)),
+            },
+          ],
+    manufacturers:
+      config.manufacturers.length > 0
+        ? config.manufacturers
+        : unique(items.map((item) => item.supplier.manufacturer)),
+    suppliers:
+      config.suppliers.length > 0
+        ? config.suppliers
+        : unique(items.map((item) => item.supplier.name)),
+    rows,
+  };
 }
 
 function buildProductWriteoffConfig(ctx: DemoJournalContext) {
@@ -433,6 +457,14 @@ function buildTraceabilityConfig(ctx: DemoJournalContext) {
   });
   return {
     ...config,
+    rawMaterialList:
+      config.rawMaterialList.length > 0
+        ? config.rawMaterialList
+        : [...new Set(samples.map((sample) => sample.raw))],
+    productList:
+      config.productList.length > 0
+        ? config.productList
+        : [...new Set(samples.map((sample) => sample.out))],
     defaultResponsibleRole: ctx.technologist.position,
     defaultResponsibleEmployeeId: ctx.technologist.id,
     defaultResponsibleEmployee: ctx.technologist.name,

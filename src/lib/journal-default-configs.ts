@@ -28,9 +28,13 @@ import {
 } from "./climate-document";
 import {
   buildColdEquipmentConfigFromEquipment,
+  getColdEquipmentSampleConfig,
   getDefaultColdEquipmentDocumentConfig,
 } from "./cold-equipment-document";
-import { getDisinfectantDefaultConfig } from "./disinfectant-document";
+import {
+  getDisinfectantDefaultConfig,
+  getDisinfectantSampleConfig,
+} from "./disinfectant-document";
 import {
   buildEquipmentCalibrationConfigFromEquipment,
   getDefaultEquipmentCalibrationConfig,
@@ -42,6 +46,7 @@ import {
 } from "./equipment-maintenance-document";
 import {
   buildFinishedProductConfigFromUsers,
+  buildFinishedProductSampleConfig,
   getDefaultFinishedProductDocumentConfig,
 } from "./finished-product-document";
 import { getDefaultGlassControlConfig } from "./glass-control-document";
@@ -52,7 +57,10 @@ import {
 import { getDefaultIntensiveCoolingConfig } from "./intensive-cooling-document";
 import { getDefaultMedBookConfig } from "./med-book-document";
 import { getDefaultMetalImpurityConfig } from "./metal-impurity-document";
-import { getDefaultPerishableRejectionConfig } from "./perishable-rejection-document";
+import {
+  buildPerishableRejectionConfigFromOrgData,
+  getPerishableRejectionSampleConfig,
+} from "./perishable-rejection-document";
 import { getPpeIssuanceDefaultConfig } from "./ppe-issuance-document";
 import { getDefaultProductWriteoffConfig } from "./product-writeoff-document";
 import {
@@ -65,7 +73,12 @@ import {
   getSanitationDayDefaultConfig,
 } from "./sanitation-day-document";
 import { defaultSdcConfig } from "./sanitary-day-checklist-document";
+import {
+  getDefaultTraceabilityDocumentConfig,
+  getTraceabilitySampleConfig,
+} from "./traceability-document";
 import { getTrainingPlanDefaultConfig } from "./training-plan-document";
+import { defaultUvSpecification } from "./uv-lamp-runtime-document";
 
 /**
  * Org-данные, которые провайдер может опционально использовать для
@@ -167,14 +180,15 @@ const PROVIDERS: Record<string, Provider> = {
   },
   cold_equipment_control: (orgData) => {
     if (orgData?.equipment && orgData.equipment.length > 0) {
-      return buildColdEquipmentConfigFromEquipment(
-        orgData.equipment
-      ) as unknown as Record<string, unknown>;
+      return buildColdEquipmentConfigFromEquipment(orgData.equipment, {
+        sampleFallback: orgData.isDemo === true,
+      }) as unknown as Record<string, unknown>;
     }
-    return getDefaultColdEquipmentDocumentConfig() as unknown as Record<
-      string,
-      unknown
-    >;
+    return (
+      orgData?.isDemo
+        ? getColdEquipmentSampleConfig()
+        : getDefaultColdEquipmentDocumentConfig()
+    ) as unknown as Record<string, unknown>;
   },
   intensive_cooling: (orgData) =>
     getDefaultIntensiveCoolingConfig(
@@ -212,34 +226,53 @@ const PROVIDERS: Record<string, Provider> = {
       unknown
     >;
   },
-  uv_lamp_runtime: (orgData) => registerConfig(orgData),
-  disinfectant_usage: () =>
-    getDisinfectantDefaultConfig() as unknown as Record<string, unknown>,
+  // Бактерицидная установка — не реестр: у документа номер установки,
+  // цех и спецификация лампы. Раньше сюда отдавался конфиг реестра с
+  // «первым сотрудником» ответственным, и форма расходилась с
+  // `normalizeUvRuntimeDocumentConfig`.
+  uv_lamp_runtime: () => ({
+    lampNumber: "1",
+    areaName: "",
+    spec: defaultUvSpecification(),
+  }),
+  disinfectant_usage: (orgData) =>
+    (orgData?.isDemo
+      ? getDisinfectantSampleConfig()
+      : getDisinfectantDefaultConfig()) as unknown as Record<string, unknown>,
   sanitary_day_control: () =>
     defaultSdcConfig() as unknown as Record<string, unknown>,
   equipment_cleaning: () =>
     getDefaultEquipmentCleaningConfig() as unknown as Record<string, unknown>,
 
   // ═══ ПРИЁМКА ═══
+  // Ответственного приёмки проставляет слот «Ответственные за журналы»;
+  // здесь его не угадываем (раньше — управляющий или первый по алфавиту).
   incoming_control: (orgData) =>
     getAcceptanceDocumentDefaultConfig(
-      orgData?.users ?? []
+      orgData?.isDemo ? orgData.users ?? [] : []
     ) as unknown as Record<string, unknown>,
   incoming_raw_materials_control: (orgData) =>
     getAcceptanceDocumentDefaultConfig(
-      orgData?.users ?? []
+      orgData?.isDemo ? orgData.users ?? [] : []
     ) as unknown as Record<string, unknown>,
-  perishable_rejection: () =>
-    getDefaultPerishableRejectionConfig() as unknown as Record<string, unknown>,
+  perishable_rejection: (orgData) =>
+    (orgData?.isDemo
+      ? getPerishableRejectionSampleConfig()
+      : buildPerishableRejectionConfigFromOrgData({
+          products: (orgData?.products ?? []).map((product) => product.name),
+          suppliers: orgData?.suppliers,
+        })) as unknown as Record<string, unknown>,
   metal_impurity: () =>
     getDefaultMetalImpurityConfig() as unknown as Record<string, unknown>,
 
   // ═══ ПРОИЗВОДСТВО / БРАКЕРАЖ ═══
   finished_product: (orgData) => {
     if (orgData?.users?.length) {
-      return buildFinishedProductConfigFromUsers(
-        orgData.users,
-        (orgData.products ?? []).map((p) => p.name)
+      const productNames = (orgData.products ?? []).map((p) => p.name);
+      return (
+        orgData.isDemo
+          ? buildFinishedProductSampleConfig(orgData.users, productNames)
+          : buildFinishedProductConfigFromUsers(orgData.users, productNames)
       ) as unknown as Record<string, unknown>;
     }
     return getDefaultFinishedProductDocumentConfig() as unknown as Record<
@@ -335,7 +368,12 @@ const PROVIDERS: Record<string, Provider> = {
     getDefaultAuditProtocolConfig() as unknown as Record<string, unknown>,
   audit_report: () =>
     getDefaultAuditReportConfig() as unknown as Record<string, unknown>,
-  traceability_test: (orgData) => registerConfig(orgData),
+  // Раньше — конфиг реестра, а нормализатор журнала добавлял к нему
+  // «Муку» и «Пельмени». Теперь — родная форма журнала.
+  traceability_test: (orgData) =>
+    (orgData?.isDemo
+      ? getTraceabilitySampleConfig()
+      : getDefaultTraceabilityDocumentConfig()) as unknown as Record<string, unknown>,
 };
 
 export function getDefaultConfigForJournal(

@@ -127,19 +127,22 @@ export function getDefaultFinishedProductDocumentConfig(): FinishedProductDocume
   };
 }
 
+/**
+ * Конфиг нового документа по справочнику продуктов организации.
+ *
+ * Людей в строку НЕ вписываем: раньше «Исполнитель» и «Провёл бракераж»
+ * брались строкой из первых двух сотрудников по алфавиту — без сверки, кто
+ * это, — и в журнале заказчика стояли случайные люди. Кто заполняет и кто
+ * проверяет, решают ответственные документа.
+ *
+ * `users` оставлен в сигнатуре ради совместимости вызовов.
+ */
 export function buildFinishedProductConfigFromUsers(
-  users: Array<{ name: string; role?: string | null }>,
+  _users: Array<{ name: string; role?: string | null }>,
   productNames: string[] = []
 ): FinishedProductDocumentConfig {
   const cfg = getDefaultFinishedProductDocumentConfig();
-  const primaryUser = users[0]?.name || "";
-  const inspectorUser = users[1]?.name || users[0]?.name || "";
-  cfg.rows = [
-    createFinishedProductRow({
-      responsiblePerson: primaryUser,
-      inspectorName: inspectorUser,
-    }),
-  ];
+  cfg.rows = [createFinishedProductRow()];
   cfg.itemsCatalog = productNames;
   if (cfg.productLists.length > 0) {
     cfg.productLists[0] = {
@@ -147,6 +150,21 @@ export function buildFinishedProductConfigFromUsers(
       items: productNames.slice(0, Math.min(productNames.length, 24)),
     };
   }
+  return cfg;
+}
+
+/** Образец для демо-организации и витрины: строка с людьми из ростера. */
+export function buildFinishedProductSampleConfig(
+  users: Array<{ name: string; role?: string | null }>,
+  productNames: string[] = []
+): FinishedProductDocumentConfig {
+  const cfg = buildFinishedProductConfigFromUsers(users, productNames);
+  cfg.rows = [
+    createFinishedProductRow({
+      responsiblePerson: users[0]?.name || "",
+      inspectorName: users[1]?.name || users[0]?.name || "",
+    }),
+  ];
   return cfg;
 }
 

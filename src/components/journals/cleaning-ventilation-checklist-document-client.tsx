@@ -80,6 +80,7 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 
 /**
  * The Должность select for this journal is a hardcoded "Управляющий / Сотрудник"
@@ -1160,7 +1161,7 @@ export function CleaningVentilationChecklistDocumentClient({
           <table className={`w-full border-collapse text-[13px] text-left ${mobileView === "table" ? "max-sm:min-w-[1140px]" : ""}`}>
             <tbody>
               <JournalPaperHeaderRows
-                orgName={organizationName || 'ООО "Тест"'}
+                orgName={organizationName || ORG_NAME_FALLBACK}
                 title={CLEANING_VENTILATION_CHECKLIST_TITLE.toUpperCase()}
                 startedAt={dateFrom}
                 finishedAt={isActive ? null : dateFrom}

@@ -92,6 +92,11 @@ type Props = {
   status: string;
   initialConfig: PerishableRejectionConfig;
   users: { id: string; name: string; role: string }[];
+  /**
+   * Ответственный документа (бракеровщик). Его имя подставляется в новую
+   * строку; не назначен — поле пустое, человек выбирает сам.
+   */
+  responsibleUserId?: string | null;
 };
 
 const RESPONSIBLE_POSITIONS = USER_ROLE_LABEL_VALUES;
@@ -176,9 +181,13 @@ export function PerishableRejectionDocumentClient({
   status,
   initialConfig,
   users,
+  responsibleUserId = null,
 }: Props) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  // Раньше новая строка получала «первого сотрудника по алфавиту».
+  const defaultResponsibleName =
+    (responsibleUserId && users.find((user) => user.id === responsibleUserId)?.name) || "";
   const [config, setConfig] = useState(() =>
     normalizePerishableRejectionConfig(initialConfig)
   );
@@ -271,7 +280,7 @@ export function PerishableRejectionDocumentClient({
       arrivalTime: mergeHM(nowHour(), nowMinute()),
       organolepticResult: "compliant",
       storageCondition: "2_6",
-      responsiblePerson: users[0]?.name || "",
+      responsiblePerson: defaultResponsibleName,
     })
   );
   const [draftPosition, setDraftPosition] = useState(RESPONSIBLE_POSITIONS[0]);
@@ -429,7 +438,7 @@ export function PerishableRejectionDocumentClient({
           arrivalTime: mergeHM(nowHour(), nowMinute()),
           organolepticResult: "compliant",
           storageCondition: "2_6",
-          responsiblePerson: users[0]?.name || "",
+          responsiblePerson: defaultResponsibleName,
         }),
       ],
     }));
@@ -490,7 +499,7 @@ export function PerishableRejectionDocumentClient({
         arrivalTime: mergeHM(nowHour(), nowMinute()),
         organolepticResult: "compliant",
         storageCondition: "2_6",
-        responsiblePerson: users[0]?.name || "",
+        responsiblePerson: defaultResponsibleName,
       })
     );
     setDraftPosition(RESPONSIBLE_POSITIONS[0]);

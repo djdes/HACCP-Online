@@ -71,6 +71,8 @@ import {
 } from "@/components/journals/journal-grid";
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { useTodayKey } from "@/lib/use-today-key";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 type Props = {
   documentId: string;
   title: string;
@@ -235,7 +237,7 @@ export function HealthDocumentClient(props: Props) {
     Math.max(rosterUsers.length + printEmptyRows, 1)
   );
   const monthLabel = formatMonthLabel(dateFrom, dateTo);
-  const organizationLabel = organizationName || 'ООО "Тест"';
+  const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const documentTitle = title || "Журнал здоровья";
   const entryMap: Record<string, HealthEntryData> = {};
 

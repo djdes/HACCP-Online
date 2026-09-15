@@ -4,6 +4,7 @@ import {
   getUserRoleSortOrder,
   normalizeUserRole,
 } from "@/lib/user-roles";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 
 export const HYGIENE_STATUS_OPTIONS = [
   { value: "healthy", code: "Зд.", label: "Здоров" },
@@ -78,7 +79,7 @@ const MONTH_NAMES = [
 
 const WEEKDAY_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
-export const HYGIENE_EXAMPLE_ORGANIZATION = 'ООО "Тест"';
+export const HYGIENE_EXAMPLE_ORGANIZATION = ORG_NAME_FALLBACK;
 export const HYGIENE_EXAMPLE_TITLE = "ГИГИЕНИЧЕСКИЙ ЖУРНАЛ";
 export const HYGIENE_EXAMPLE_MONTH = "Апрель 2025 г.";
 export const HYGIENE_EXAMPLE_DATE_FROM = "2025-04-01";
@@ -268,13 +269,12 @@ export function getHygienePositionLabel(role: string): string {
 }
 
 export function getHygieneUserPositionLabel(employee: HygieneRosterUser): string {
+  // Демо-должность — только по служебной почте демо-команды. По ФИО не
+  // сопоставляем: живой сотрудник с тем же ФИО получал чужую должность.
   const byEmail = HYGIENE_DEMO_TEAM_V2.find(
     (member) => employee.email && member.email === employee.email
   );
   if (byEmail) return byEmail.positionTitle;
-
-  const byName = HYGIENE_DEMO_TEAM_V2.find((member) => member.name === employee.name);
-  if (byName) return byName.positionTitle;
 
   if (employee.positionTitle) return employee.positionTitle;
 
@@ -287,9 +287,8 @@ export function getHygieneDemoTeamUsers(
   const demoUsers: HygieneRosterUser[] = [];
 
   HYGIENE_DEMO_TEAM_V2.forEach((member) => {
-    const user =
-      employees.find((employee) => employee.email === member.email) ||
-      employees.find((employee) => employee.name === member.name);
+    // Только по почте демо-команды — совпадение ФИО ничего не значит.
+    const user = employees.find((employee) => employee.email === member.email);
     if (!user) return;
     demoUsers.push({
       ...user,

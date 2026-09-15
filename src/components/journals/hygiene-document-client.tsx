@@ -72,6 +72,8 @@ import {
   getDayColumnBgClass,
   getDayColumnPrintKeepBg,
 } from "@/components/journals/journal-grid";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 type Props = {
   documentId: string;
   routeCode?: string;
@@ -421,7 +423,7 @@ export function HygieneDocumentClient({
     printableEmployees.find((employee) => employee.name)?.id ??
     null;
   const tourDateKey = dateKeys.includes(todayKey) ? todayKey : dateKeys[0];
-  const organizationLabel = organizationName || 'ООО "Тест"';
+  const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const responsibleLabel = responsibleTitle || getHygieneDefaultResponsibleTitle(employees);
   const documentTitle = title || "Гигиенический журнал";
   const monthLabel = formatMonthLabel(dateFrom, dateTo);

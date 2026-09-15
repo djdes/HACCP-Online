@@ -391,8 +391,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                                 title: resolvedTitle,
                                 dateFrom: document.dateFrom,
                                 responsibleTitle: document.responsibleTitle || "",
-                                responsibleUserId:
-                                  document.responsibleUserId || props.users[0]?.id || "",
+                                responsibleUserId: document.responsibleUserId || "",
                                 config,
                               }),
                           },

@@ -54,7 +54,7 @@ import {
 import { RoomDirectoryPickerDialog } from "@/components/cleaning/room-directory-picker-dialog";
 import { directoryRoomToEditorInitial } from "@/components/cleaning/room-editor-initial";
 import type { DirectoryBuilding, DirectoryRoom } from "@/lib/room-directory";
-import { buildDateKeys, getHygienePositionLabel, isWeekend } from "@/lib/hygiene-document";
+import { buildDateKeys, isWeekend } from "@/lib/hygiene-document";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
 import {
@@ -441,16 +441,14 @@ function ResponsibleDialog({
   const [employeeId, setEmployeeId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const titleOptions = useMemo(
-    () => [...new Set(employees.map((employee) => getHygienePositionLabel(employee.role)))],
-    [employees]
-  );
 
   useEffect(() => {
     if (!open || !row) return;
-    setResponsibleTitle(row.data.responsibleTitle || defaultResponsibleTitle || titleOptions[0] || "");
-    setEmployeeId(row.employeeId || defaultResponsibleUserId || employees[0]?.id || "");
-  }, [defaultResponsibleTitle, defaultResponsibleUserId, employees, open, row, titleOptions]);
+    // Первого сотрудника из списка не подставляем: только тот, кто уже
+    // записан в строке, или ответственный документа.
+    setResponsibleTitle(row.data.responsibleTitle || defaultResponsibleTitle || "");
+    setEmployeeId(row.employeeId || defaultResponsibleUserId || "");
+  }, [defaultResponsibleTitle, defaultResponsibleUserId, open, row]);
 
   const cascade = usePositionEmployeeCascade({
     users: employees,
@@ -566,19 +564,15 @@ function AddRowDialog({
   const [employeeId, setEmployeeId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const titleOptions = useMemo(
-    () => [...new Set(employees.map((employee) => getHygienePositionLabel(employee.role)))],
-    [employees]
-  );
 
   useEffect(() => {
     if (!open) return;
     const today = new Date();
     const todayLabel = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     setDate(todayLabel);
-    setResponsibleTitle(defaultResponsibleTitle || titleOptions[0] || "");
-    setEmployeeId(defaultResponsibleUserId || employees[0]?.id || "");
-  }, [defaultResponsibleTitle, defaultResponsibleUserId, employees, open, titleOptions]);
+    setResponsibleTitle(defaultResponsibleTitle || "");
+    setEmployeeId(defaultResponsibleUserId || "");
+  }, [defaultResponsibleTitle, defaultResponsibleUserId, open]);
 
   const cascade = usePositionEmployeeCascade({
     users: employees,
@@ -716,20 +710,16 @@ function JournalSettingsDialog({
   const [skipWeekends, setSkipWeekends] = useState(config.skipWeekends);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const titleOptions = useMemo(
-    () => [...new Set(employees.map((employee) => getHygienePositionLabel(employee.role)))],
-    [employees]
-  );
 
   useEffect(() => {
     if (!open) return;
     setName(title);
-    setPosition(responsibleTitle || titleOptions[0] || "");
-    setUserId(responsibleUserId || employees[0]?.id || "");
+    setPosition(responsibleTitle || "");
+    setUserId(responsibleUserId || "");
     setTimeOne(config.controlTimes[0] || "10:00");
     setTimeTwo(config.controlTimes[1] || "17:00");
     setSkipWeekends(config.skipWeekends);
-  }, [config.controlTimes, config.skipWeekends, employees, open, responsibleTitle, responsibleUserId, title, titleOptions]);
+  }, [config.controlTimes, config.skipWeekends, open, responsibleTitle, responsibleUserId, title]);
 
   const cascade = usePositionEmployeeCascade({
     users: employees,

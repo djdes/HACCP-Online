@@ -192,7 +192,25 @@ export function normalizeDisinfectantConfig(
 
 // --- Defaults ---
 
+/**
+ * Пустой конфиг нового документа: подразделения, приходы и расходы
+ * организация вносит сама. Раньше здесь стояли три подразделения, приходы
+ * 2023/2025 года и расход 19,976 кг «Ph средства» — и всё это попадало в
+ * журнал реальной организации как её собственные данные.
+ */
 export function getDisinfectantDefaultConfig(): DisinfectantDocumentConfig {
+  return {
+    responsibleRole: "",
+    responsibleEmployeeId: null,
+    responsibleEmployee: "",
+    subdivisions: [],
+    receipts: [],
+    consumptions: [],
+  };
+}
+
+/** Образец для демо-организации и витрины. */
+export function getDisinfectantSampleConfig(): DisinfectantDocumentConfig {
   return {
     responsibleRole: "Управляющий",
     responsibleEmployeeId: null,

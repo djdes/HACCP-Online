@@ -45,6 +45,8 @@ import { useMobileView } from "@/lib/use-mobile-view";
 
 import { toast } from "sonner";
 import { useJournalUndo } from "@/lib/journal-undo";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 /* ─── Types ─── */
 
 type UserItem = { id: string; name: string; role: string };
@@ -677,7 +679,7 @@ export function SanitaryDayChecklistDocumentClient({
   // История отмены: только правки этого человека в этой вкладке.
   const undoStack = useJournalUndo({ enabled: status === "active" });
   const { mobileView, switchMobileView } = useMobileView("sanitary_day_control");
-  const organizationLabel = organizationName || 'ООО "Тест"';
+  const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const documentTitle = title || getSanitaryDayChecklistTitle(routeCode);
   const entryDate = dateFrom;
 

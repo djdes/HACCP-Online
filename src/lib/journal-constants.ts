@@ -1,2 +1,8 @@
-/** Fallback organization name used in journal document headers/printouts. */
-export const ORG_NAME_FALLBACK = 'ООО "Тест"';
+/**
+ * Название организации в шапке журнала и в печати, когда своё не задано.
+ *
+ * Раньше здесь стояло тестовое «ООО Тест» — и оно печаталось в бланках
+ * реальных организаций. Нейтральное слово честнее: видно, что название
+ * не заполнено.
+ */
+export const ORG_NAME_FALLBACK = "Организация";

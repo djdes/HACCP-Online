@@ -143,12 +143,19 @@ export function createRegisterDocumentRow(
   };
 }
 
+/**
+ * Конфиг журнала-реестра. Ответственного по умолчанию не угадываем: раньше
+ * это был первый сотрудник по алфавиту. Его проставляют «Ответственные за
+ * журналы» (слот основного ответственного) при создании документа.
+ *
+ * `users` оставлен в сигнатуре ради совместимости вызовов.
+ */
 export function buildRegisterDocumentConfigFromUsers(
-  users: Array<{ id: string; role?: string | null }>
+  _users: Array<{ id: string; role?: string | null }>
 ): RegisterDocumentConfig {
   return {
     rows: [],
-    defaultResponsibleUserId: users[0]?.id || null,
+    defaultResponsibleUserId: null,
     defaultResponsibleTitle: null,
   };
 }

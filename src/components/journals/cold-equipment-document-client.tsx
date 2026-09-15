@@ -80,7 +80,6 @@ import {
 import {
   buildDateKeys,
   getDayNumber,
-  getHygienePositionLabel,
   getWeekdayShort,
   isWeekend,
   toDateKey,
@@ -111,6 +110,7 @@ import {
 } from "@/components/journals/journal-grid";
 
 import { useTodayKey } from "@/lib/use-today-key";
+import { NO_ROW_EMPLOYEE_MESSAGE, useRosterViewerId } from "@/components/journals/use-roster-viewer";
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
@@ -452,24 +452,22 @@ function JournalSettingsDialog({
   }) => Promise<void>;
   useV2?: boolean;
 }) {
-  const titleOptions = useMemo(
-    () => [...new Set(employees.map((employee) => getHygienePositionLabel(employee.role)))],
-    [employees]
-  );
 
   const [name, setName] = useState(title);
-  const [position, setPosition] = useState(responsibleTitle || titleOptions[0] || "");
-  const [userId, setUserId] = useState(responsibleUserId || employees[0]?.id || "");
+  // Первого сотрудника из списка не подставляем: в настройках видно ровно
+  // того ответственного, который назначен (или «не выбран»).
+  const [position, setPosition] = useState(responsibleTitle || "");
+  const [userId, setUserId] = useState(responsibleUserId || "");
   const [skipWeekends, setSkipWeekends] = useState(config.skipWeekends);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setName(title);
-    setPosition(responsibleTitle || titleOptions[0] || "");
-    setUserId(responsibleUserId || employees[0]?.id || "");
+    setPosition(responsibleTitle || "");
+    setUserId(responsibleUserId || "");
     setSkipWeekends(config.skipWeekends);
-  }, [config.skipWeekends, employees, open, responsibleTitle, responsibleUserId, title, titleOptions]);
+  }, [config.skipWeekends, open, responsibleTitle, responsibleUserId, title]);
 
   const cascade = usePositionEmployeeCascade({
     users: employees,
@@ -764,6 +762,7 @@ export function ColdEquipmentDocumentClient({
 }: Props) {
   const router = useRouter();
   const [documentTitle, setDocumentTitle] = useState(title);
+  const viewerId = useRosterViewerId(employees);
   // «Сегодня» считаем после mount (см. useTodayKey): new Date() в
   // рендере давал hydration mismatch и подсветку не того дня.
   const todayKey = useTodayKey();
@@ -1127,9 +1126,12 @@ export function ColdEquipmentDocumentClient({
       previousValue === null || previousValue === undefined
         ? ""
         : String(previousValue);
-    const employeeId = rowByDate[dateKey]?.employeeId || responsibleUserId || employees[0]?.id;
+    // Строка дня записывается на того, кто уже в ней, на ответственного
+    // документа или на вошедшего (если он в ростере) — не на «первого в
+    // списке».
+    const employeeId = rowByDate[dateKey]?.employeeId || responsibleUserId || viewerId;
     if (!employeeId) {
-      toast.error("Нет сотрудника, которого можно назначить ответственным.");
+      toast.error(NO_ROW_EMPLOYEE_MESSAGE);
       return;
     }
 

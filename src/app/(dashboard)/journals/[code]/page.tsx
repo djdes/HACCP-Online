@@ -158,7 +158,7 @@ import {
   DISINFECTANT_TEMPLATE_CODE,
   DISINFECTANT_SOURCE_SLUG,
   DISINFECTANT_DOCUMENT_TITLE,
-  getDisinfectantDefaultConfig,
+  getDisinfectantSampleConfig,
 } from "@/lib/disinfectant-document";
 import { DisinfectantDocumentsClient } from "@/components/journals/disinfectant-documents-client";
 import {
@@ -174,7 +174,7 @@ import { PerishableRejectionDocumentsClient } from "@/components/journals/perish
 import {
   PERISHABLE_REJECTION_TEMPLATE_CODE,
   PERISHABLE_REJECTION_DOCUMENT_TITLE,
-  getDefaultPerishableRejectionConfig,
+  getPerishableRejectionSampleConfig,
 } from "@/lib/perishable-rejection-document";
 import { ProductWriteoffDocumentsClient } from "@/components/journals/product-writeoff-documents-client";
 import {
@@ -230,7 +230,7 @@ import {
   TRACEABILITY_DOCUMENT_SOURCE_SLUG,
   TRACEABILITY_DOCUMENT_TEMPLATE_CODE,
   createTraceabilityRow,
-  getDefaultTraceabilityDocumentConfig,
+  getTraceabilitySampleConfig,
   normalizeTraceabilityDocumentConfig,
 } from "@/lib/traceability-document";
 import {
@@ -277,18 +277,12 @@ const SOURCE_STYLE_TRACKED_DEMO_CODES = new Set([
   "uv_lamp_runtime",
   "fryer_oil",
 ]);
-const DEMO_ADMIN_EMAIL = "admin@haccp.local";
-
 type TrackedTemplateField = {
   key: string;
   type?: string;
   label?: string;
   options?: Array<{ value: string; label: string }>;
 };
-
-function isDemoSeedOrganization(users: { email?: string | null }[]) {
-  return users.some((user) => user.email?.trim().toLowerCase() === DEMO_ADMIN_EMAIL);
-}
 
 function getCurrentAndPreviousMonthBounds(referenceDate = new Date()) {
   const year = referenceDate.getUTCFullYear();
@@ -925,7 +919,7 @@ async function ensureTraceabilitySampleDocuments(params: {
   ];
 
   const config = normalizeTraceabilityDocumentConfig({
-    ...getDefaultTraceabilityDocumentConfig(),
+    ...getTraceabilitySampleConfig(),
     documentTitle: "Журнал прослеживаемости",
     dateFrom: "2025-01-01",
     showShockTempField: true,
@@ -1348,6 +1342,7 @@ export default async function JournalDocumentsPage({
     where: { id: getActiveOrgId(session) },
     select: {
       name: true,
+      isDemo: true,
       disabledJournalCodes: true,
       journalAutomationJson: true,
       autoJournalCodes: true,
@@ -1484,13 +1479,23 @@ export default async function JournalDocumentsPage({
       </div>
     );
   }
-  const shouldNormalizeDemoSamples = isDemoSeedOrganization(orgUsers);
+  // Образцы документов сеются ТОЛЬКО в демо-организацию (флаг в самой
+  // организации). Раньше признаком было «в организации есть служебный
+  // аккаунт витрины», а часть веток (скан-журналы, дезсредства, санитарный
+  // день, мойка оборудования) не проверяла вообще ничего — и реальные
+  // организации получали чужие приходы, холодильники и закрытые документы
+  // за прошлый месяц, просто открыв страницу журнала.
+  const shouldNormalizeDemoSamples = orgSettings?.isDemo === true;
+  // Название организации для образцов и чтения старых конфигов.
+  const organizationDisplayName = orgSettings?.name || ORG_NAME_FALLBACK;
 
-  await normalizeDemoJournalSampleCorpus({
-    templateId: template.id,
-    organizationId: getActiveOrgId(session),
-    enabled: shouldNormalizeDemoSamples,
-  });
+  if (shouldNormalizeDemoSamples) {
+    await normalizeDemoJournalSampleCorpus({
+      templateId: template.id,
+      organizationId: getActiveOrgId(session),
+      enabled: shouldNormalizeDemoSamples,
+    });
+  }
 
   if (resolvedCode === "hygiene" || resolvedCode === "health_check") {
     // Only seed the sample grid for the demo org. Real customer orgs start
@@ -1577,14 +1582,16 @@ export default async function JournalDocumentsPage({
     }
 
     const scanConfig = getScanJournalConfig(resolvedCode);
-    await ensureScanOnlySampleDocuments({
-      templateId: template.id,
-      organizationId: getActiveOrgId(session),
-      createdById: session.user.id,
-      title: scanConfig?.title || template.name,
-      defaultResponsibleTitle: scanConfig?.defaultResponsibleTitle || null,
-      responsibleUserId: pickPrimaryManager(orgUsers)?.id || null,
-    });
+    if (shouldNormalizeDemoSamples) {
+      await ensureScanOnlySampleDocuments({
+        templateId: template.id,
+        organizationId: getActiveOrgId(session),
+        createdById: session.user.id,
+        title: scanConfig?.title || template.name,
+        defaultResponsibleTitle: scanConfig?.defaultResponsibleTitle || null,
+        responsibleUserId: pickPrimaryManager(orgUsers)?.id || null,
+      });
+    }
 
     const documents = await db.journalDocument.findMany({
       where: {
@@ -1798,7 +1805,7 @@ export default async function JournalDocumentsPage({
             dateFrom,
             dateTo,
             createdById: session.user.id,
-            config: getDefaultPerishableRejectionConfig(),
+            config: getPerishableRejectionSampleConfig(),
           },
         });
       }
@@ -1826,7 +1833,7 @@ export default async function JournalDocumentsPage({
             dateFrom: closedFrom,
             dateTo: closedTo,
             createdById: session.user.id,
-            config: getDefaultPerishableRejectionConfig(),
+            config: getPerishableRejectionSampleConfig(),
           },
         });
       }
@@ -2450,7 +2457,8 @@ export default async function JournalDocumentsPage({
                     tempMax: true,
                   },
                   orderBy: { name: "asc" },
-                })
+                }),
+                { sampleFallback: true }
               )
             : undefined;
         const primaryUser = pickPrimaryManager(orgUsers) || orgUsers[0];
@@ -2892,64 +2900,66 @@ export default async function JournalDocumentsPage({
     }
 
     if (resolvedCode === DISINFECTANT_TEMPLATE_CODE) {
-      const existingDis = await db.journalDocument.findMany({
-        where: { templateId: template.id, organizationId: getActiveOrgId(session) },
-        select: { status: true },
-      });
-      const disStatuses = new Set(existingDis.map((d) => d.status));
-      const disinfectantResponsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0] || null;
-      const disinfectantConfig = (() => {
-        const cfg = getDisinfectantDefaultConfig();
-        if (!disinfectantResponsibleUser) return cfg;
-        return {
-          ...cfg,
-          responsibleEmployeeId: disinfectantResponsibleUser.id,
-          responsibleEmployee: disinfectantResponsibleUser.name,
-          receipts: cfg.receipts.map((row) => ({
-            ...row,
+      if (shouldNormalizeDemoSamples) {
+        const existingDis = await db.journalDocument.findMany({
+          where: { templateId: template.id, organizationId: getActiveOrgId(session) },
+          select: { status: true },
+        });
+        const disStatuses = new Set(existingDis.map((d) => d.status));
+        const disinfectantResponsibleUser = pickPrimaryManager(orgUsers) || orgUsers[0] || null;
+        const disinfectantConfig = (() => {
+          const cfg = getDisinfectantSampleConfig();
+          if (!disinfectantResponsibleUser) return cfg;
+          return {
+            ...cfg,
             responsibleEmployeeId: disinfectantResponsibleUser.id,
             responsibleEmployee: disinfectantResponsibleUser.name,
-          })),
-          consumptions: cfg.consumptions.map((row) => ({
-            ...row,
-            responsibleEmployeeId: disinfectantResponsibleUser.id,
-            responsibleEmployee: disinfectantResponsibleUser.name,
-          })),
-        };
-      })();
-      if (!disStatuses.has("active")) {
-        const now = new Date();
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: DISINFECTANT_DOCUMENT_TITLE,
-            status: "active",
-            dateFrom: now,
-            dateTo: now,
-            createdById: session.user.id,
-            responsibleUserId: disinfectantResponsibleUser?.id || null,
-            responsibleTitle: disinfectantConfig.responsibleRole,
-            config: disinfectantConfig as Prisma.InputJsonValue,
-          },
-        });
-      }
-      if (!disStatuses.has("closed")) {
-        const { closedFrom } = getCurrentAndPreviousMonthBounds();
-        await db.journalDocument.create({
-          data: {
-            templateId: template.id,
-            organizationId: getActiveOrgId(session),
-            title: DISINFECTANT_DOCUMENT_TITLE,
-            status: "closed",
-            dateFrom: closedFrom,
-            dateTo: closedFrom,
-            createdById: session.user.id,
-            responsibleUserId: disinfectantResponsibleUser?.id || null,
-            responsibleTitle: disinfectantConfig.responsibleRole,
-            config: disinfectantConfig as Prisma.InputJsonValue,
-          },
-        });
+            receipts: cfg.receipts.map((row) => ({
+              ...row,
+              responsibleEmployeeId: disinfectantResponsibleUser.id,
+              responsibleEmployee: disinfectantResponsibleUser.name,
+            })),
+            consumptions: cfg.consumptions.map((row) => ({
+              ...row,
+              responsibleEmployeeId: disinfectantResponsibleUser.id,
+              responsibleEmployee: disinfectantResponsibleUser.name,
+            })),
+          };
+        })();
+        if (!disStatuses.has("active")) {
+          const now = new Date();
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: DISINFECTANT_DOCUMENT_TITLE,
+              status: "active",
+              dateFrom: now,
+              dateTo: now,
+              createdById: session.user.id,
+              responsibleUserId: disinfectantResponsibleUser?.id || null,
+              responsibleTitle: disinfectantConfig.responsibleRole,
+              config: disinfectantConfig as Prisma.InputJsonValue,
+            },
+          });
+        }
+        if (!disStatuses.has("closed")) {
+          const { closedFrom } = getCurrentAndPreviousMonthBounds();
+          await db.journalDocument.create({
+            data: {
+              templateId: template.id,
+              organizationId: getActiveOrgId(session),
+              title: DISINFECTANT_DOCUMENT_TITLE,
+              status: "closed",
+              dateFrom: closedFrom,
+              dateTo: closedFrom,
+              createdById: session.user.id,
+              responsibleUserId: disinfectantResponsibleUser?.id || null,
+              responsibleTitle: disinfectantConfig.responsibleRole,
+              config: disinfectantConfig as Prisma.InputJsonValue,
+            },
+          });
+        }
       }
 
       const disDocuments = await db.journalDocument.findMany({
@@ -3071,7 +3081,7 @@ export default async function JournalDocumentsPage({
 
         if (!auditPlanStatuses.has("active")) {
           const defaultConfig = getAuditPlanDefaultConfig({
-            organizationName: 'ООО "Тест"',
+            organizationName: organizationDisplayName,
             users: orgUsers,
           });
 
@@ -3090,7 +3100,7 @@ export default async function JournalDocumentsPage({
         }
         if (!auditPlanStatuses.has("closed")) {
           const defaultConfig = getAuditPlanDefaultConfig({
-            organizationName: 'ООО "Тест"',
+            organizationName: organizationDisplayName,
             users: orgUsers,
           });
           await db.journalDocument.create({
@@ -3132,7 +3142,7 @@ export default async function JournalDocumentsPage({
             dateFrom: document.dateFrom.toISOString().slice(0, 10),
             dateTo: document.dateTo.toISOString().slice(0, 10),
             config: normalizeAuditPlanConfig(document.config, {
-              organizationName: 'ООО "Тест"',
+              organizationName: organizationDisplayName,
               users: orgUsers,
             }),
           }))}
@@ -3141,14 +3151,16 @@ export default async function JournalDocumentsPage({
     }
 
     if (resolvedCode === EQUIPMENT_CLEANING_TEMPLATE_CODE) {
-      const existingEquipmentCleaningCount = await db.journalDocument.count({
-        where: {
-          organizationId: getActiveOrgId(session),
-          templateId: template.id,
-        },
-      });
+      const existingEquipmentCleaningCount = shouldNormalizeDemoSamples
+        ? await db.journalDocument.count({
+            where: {
+              organizationId: getActiveOrgId(session),
+              templateId: template.id,
+            },
+          })
+        : 0;
 
-      if (existingEquipmentCleaningCount === 0) {
+      if (shouldNormalizeDemoSamples && existingEquipmentCleaningCount === 0) {
         const { activeFrom, closedFrom } = getCurrentAndPreviousMonthBounds();
         await db.journalDocument.createMany({
           data: [
@@ -3757,7 +3769,7 @@ export default async function JournalDocumentsPage({
         select: { status: true },
       });
 
-      if (existingSdc.length === 0) {
+      if (shouldNormalizeDemoSamples && existingSdc.length === 0) {
         const today = new Date();
         await db.journalDocument.create({
           data: {
@@ -3774,7 +3786,7 @@ export default async function JournalDocumentsPage({
       }
 
       const sdcStatuses = new Set(existingSdc.map((document) => document.status));
-      if (!sdcStatuses.has("closed")) {
+      if (shouldNormalizeDemoSamples && !sdcStatuses.has("closed")) {
         const { closedFrom } = getCurrentAndPreviousMonthBounds();
         await db.journalDocument.create({
           data: {

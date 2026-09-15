@@ -315,7 +315,9 @@ function normalizeStringList(value: unknown) {
 export function getAcceptanceDocumentDefaultConfig(
   users: Array<{ id: string; role?: string | null }>
 ): AcceptanceDocumentConfig {
-  const defaultResponsibleUserId = pickPrimaryManager(users)?.id || users[0]?.id || null;
+  // Первого по списку не подставляем: это случайный человек. Нет
+  // управляющего — ответственный не назначен, его выберут в документе.
+  const defaultResponsibleUserId = pickPrimaryManager(users)?.id || null;
 
   return {
     rows: [],

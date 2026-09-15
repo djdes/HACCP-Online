@@ -288,6 +288,7 @@ import {
   VACCINATION_REFERENCE_DATA,
   VACCINATION_TYPE_LABELS,
 } from "@/lib/med-book-document";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 
 /**
  * Шрифт для PDF. Первым идёт свой, лежащий в репозитории: раньше список
@@ -6087,7 +6088,7 @@ export function renderJournalDocumentPdf(
   // сверки. Если что-то не задано — просто пропускаем разделитель.
   // Точки: под названием организации печатается точка с адресом.
   const orgName = withBuildingLabel(
-    document.organization?.name || 'ООО "Тест"',
+    document.organization?.name || ORG_NAME_FALLBACK,
     document.building,
   );
   const orgInn = document.organization?.inn ?? null;

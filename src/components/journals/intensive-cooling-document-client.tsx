@@ -65,6 +65,8 @@ import {
   RecordCardsView,
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 type UserItem = {
   id: string;
   name: string;
@@ -784,7 +786,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
         }
         paperHeader={
           <JournalDocumentHeader
-            orgName={props.organizationName || 'ООО "Тест"'}
+            orgName={props.organizationName || ORG_NAME_FALLBACK}
             title={INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
             startedAt={dateFrom}
             finishedAt={null}

@@ -259,8 +259,15 @@ function buildDefaultSeedItems() {
   );
 }
 
+/**
+ * Конфиг документа по оборудованию организации. Холодильников нет —
+ * таблица пустая (в ней есть «Добавить холодильник»). Стоковые позиции
+ * («Икорный холодильник», «Винный шкаф»…) подставляются только образцу
+ * демо-организации: `sampleFallback: true`.
+ */
 export function buildColdEquipmentConfigFromEquipment(
-  equipment: EquipmentSource[]
+  equipment: EquipmentSource[],
+  options: { sampleFallback?: boolean } = {}
 ): ColdEquipmentDocumentConfig {
   const relevantEquipment = equipment.filter((item) => {
     const normalizedType = item.type?.toLowerCase();
@@ -280,7 +287,9 @@ export function buildColdEquipmentConfigFromEquipment(
             max: item.tempMax ?? null,
           })
         )
-      : buildDefaultSeedItems();
+      : options.sampleFallback
+        ? buildDefaultSeedItems()
+        : [];
 
   return {
     equipment: configItems,
@@ -288,7 +297,16 @@ export function buildColdEquipmentConfigFromEquipment(
   };
 }
 
-export function getDefaultColdEquipmentDocumentConfig() {
+/** Конфиг нового документа без оборудования: пустая таблица. */
+export function getDefaultColdEquipmentDocumentConfig(): ColdEquipmentDocumentConfig {
+  return {
+    equipment: [],
+    skipWeekends: false,
+  };
+}
+
+/** Образец для демо-организации и витрины: стоковый набор холодильников. */
+export function getColdEquipmentSampleConfig(): ColdEquipmentDocumentConfig {
   return {
     equipment: buildDefaultSeedItems(),
     skipWeekends: false,
@@ -298,8 +316,12 @@ export function getDefaultColdEquipmentDocumentConfig() {
 export function normalizeColdEquipmentDocumentConfig(
   value: unknown
 ): ColdEquipmentDocumentConfig {
+  // Документы, созданные до появления справочника, хранят показания под
+  // id стоковых позиций (`cold-equipment-default-N`) и ключа `equipment`
+  // в конфиге у них нет. Им стоковый набор оставляем — иначе пропадут их
+  // записи. Новый документ всегда пишет `equipment` (хотя бы пустой).
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return getDefaultColdEquipmentDocumentConfig();
+    return getColdEquipmentSampleConfig();
   }
 
   const record = value as Record<string, unknown>;
@@ -330,9 +352,9 @@ export function normalizeColdEquipmentDocumentConfig(
 
   return {
     equipment:
-      equipment.length > 0
+      equipment.length > 0 || Array.isArray(record.equipment)
         ? equipment
-        : getDefaultColdEquipmentDocumentConfig().equipment,
+        : getColdEquipmentSampleConfig().equipment,
     skipWeekends:
       typeof record.skipWeekends === "boolean" ? record.skipWeekends : false,
   };

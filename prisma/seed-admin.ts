@@ -27,6 +27,8 @@ const DEFAULT_PASSWORD = "admin1234";
 const DEFAULT_ORG_NAME = "Тестовая организация (админ)";
 const DEFAULT_ORG_TYPE = "meat"; // must match registerSchema enum
 const DEFAULT_NAME = "Администратор";
+/** Служебные аккаунты демо-команды живут на этом домене. */
+const DEMO_EMAIL_DOMAIN = "@haccp.local";
 
 const DEMO_TEAM = [
   { email: "admin@haccp.local", name: "\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440", role: "owner" },
@@ -132,7 +134,50 @@ async function main() {
     });
 
     let orgId: string;
-    if (existing) {
+    // Организация существующего админа годится под демо, только если она
+    // уже демо или в ней одни служебные аккаунты демо-команды. Иначе это
+    // реальная организация (аккаунт когда-то попал в неё) — её не
+    // переименовываем и демо-команду в неё не переносим, а заводим
+    // отдельную демо-организацию.
+    const existingOrgIsDemoSafe = existing
+      ? await (async () => {
+          const org = await prisma.organization.findUnique({
+            where: { id: existing.organizationId },
+            select: { isDemo: true },
+          });
+          if (org?.isDemo) return true;
+          const realUsers = await prisma.user.count({
+            where: {
+              organizationId: existing.organizationId,
+              NOT: { email: { endsWith: DEMO_EMAIL_DOMAIN } },
+            },
+          });
+          return realUsers === 0;
+        })()
+      : false;
+    if (existing && !existingOrgIsDemoSafe) {
+      const result = await prisma.$transaction(async (tx) => {
+        const org = await tx.organization.create({
+          data: {
+            name: orgName,
+            type: DEFAULT_ORG_TYPE,
+            subscriptionPlan: "pro",
+            subscriptionEnd,
+            isDemo: true,
+          },
+        });
+        await tx.user.update({
+          where: { id: existing.id },
+          data: { name, passwordHash, role: "owner", positionTitle: "Управляющий", isActive: true },
+        });
+        return org;
+      });
+      orgId = result.id;
+      console.log(
+        `  ${email} is in a real organization (${existing.organizationId}) — left it untouched.`
+      );
+      console.log(`  Created separate demo organization: ${result.name} (${orgId})`);
+    } else if (existing) {
       // User exists — update in place, keep same org.
       orgId = existing.organizationId;
       await prisma.user.update({
@@ -151,6 +196,7 @@ async function main() {
           name: orgName,
           subscriptionPlan: "pro",
           subscriptionEnd,
+          isDemo: true,
         },
       });
       console.log(`  Updated existing admin user: ${email}`);
@@ -164,6 +210,7 @@ async function main() {
             type: DEFAULT_ORG_TYPE,
             subscriptionPlan: "pro",
             subscriptionEnd,
+            isDemo: true,
           },
         });
         const user = await tx.user.create({
@@ -191,8 +238,21 @@ async function main() {
 
       const existingDemoUser = await prisma.user.findUnique({
         where: { email: memberEmail },
-        select: { id: true },
+        select: { id: true, organizationId: true },
       });
+
+      // Демо-аккаунт, живущий в чужой (реальной) организации, не переносим:
+      // его записи в её журналах остались бы без автора.
+      if (existingDemoUser && existingDemoUser.organizationId !== orgId) {
+        const sourceOrg = await prisma.organization.findUnique({
+          where: { id: existingDemoUser.organizationId },
+          select: { isDemo: true },
+        });
+        if (!sourceOrg?.isDemo) {
+          console.log(`  Skipped demo user in a real organization: ${memberEmail}`);
+          continue;
+        }
+      }
 
       if (existingDemoUser) {
         await prisma.user.update({

@@ -53,6 +53,8 @@ import {
   PositionSelectItems,
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 type Props = {
   documentId: string;
   title: string;
@@ -149,7 +151,7 @@ export function EquipmentMaintenanceDocumentClient({
   const [editWorkType, setEditWorkType] = useState("");
 
   const isClosed = status === "closed";
-  const organizationLabel = organizationName || 'ООО "Тест"';
+  const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const { mobileView, switchMobileView } = useMobileView("equipment_maintenance");
   const { closeDocument, isClosing } = useDocumentCloseAction({ documentId, title });
 

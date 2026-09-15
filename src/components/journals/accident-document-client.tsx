@@ -54,6 +54,8 @@ import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/jou
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 type Props = {
   documentId: string;
   title: string;
@@ -628,7 +630,7 @@ export function AccidentDocumentClient(props: Props) {
           }
           paperHeader={
             <JournalDocumentHeader
-              orgName={props.organizationName || 'ООО "Тест"'}
+              orgName={props.organizationName || ORG_NAME_FALLBACK}
               title={ACCIDENT_DOCUMENT_TITLE}
               startedAt={dateFrom}
               finishedAt={isActive ? null : new Date()}

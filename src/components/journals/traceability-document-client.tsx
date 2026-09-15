@@ -52,6 +52,8 @@ import {
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 import { localDayKey } from "@/lib/entry-defaults";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 type PersonItem = { id: string; name: string; role?: string | null };
 type TraceabilitySettingsDraft = { title: string; dateFrom: string; showShockTempField: boolean; showShipmentBlock: boolean };
 type TraceabilityRowDraft = {
@@ -583,7 +585,7 @@ export function TraceabilityDocumentClient(props: Props) {
   // этой вкладке. Настройки документа и списки в неё не идут.
   const undoStack = useJournalUndo({ enabled: !isClosed });
   const employees = props.employees ?? props.users ?? [];
-  const organizationName = props.organizationName || 'ООО "Тест"';
+  const organizationName = props.organizationName || ORG_NAME_FALLBACK;
   const allSelected = config.rows.length > 0 && selectedRowIds.length === config.rows.length;
   const { mobileView, switchMobileView } = useMobileView("traceability_test");
 

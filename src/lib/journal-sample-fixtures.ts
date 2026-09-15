@@ -333,11 +333,14 @@ function buildColdEquipmentEntries(config: Record<string, unknown>) {
 export function buildJournalSampleInput(
   code: SampleJournalCode
 ): JournalDocumentPdfInput {
+  // Витрина: образцы-фикстуры (стоковые холодильники, приходы дезсредств)
+  // здесь нужны, поэтому организация помечена как демо.
   const config = getDefaultConfigForJournal(code, {
     areas: SAMPLE_AREAS,
     equipment: SAMPLE_EQUIPMENT,
     users: SAMPLE_USERS.map((u) => ({ id: u.id, name: u.name, role: u.role })),
     products: SAMPLE_PRODUCTS,
+    isDemo: true,
   });
 
   const title = SAMPLE_TITLES[code] ?? code;

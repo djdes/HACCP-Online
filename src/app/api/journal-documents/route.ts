@@ -84,6 +84,10 @@ import {
   getDefaultMetalImpurityConfig,
 } from "@/lib/metal-impurity-document";
 import { UV_LAMP_RUNTIME_TEMPLATE_CODE } from "@/lib/uv-lamp-runtime-document";
+import {
+  PERISHABLE_REJECTION_TEMPLATE_CODE,
+  buildPerishableRejectionConfigFromOrgData,
+} from "@/lib/perishable-rejection-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import {
   buildEquipmentCalibrationConfigFromEquipment,
@@ -292,7 +296,8 @@ export async function POST(request: Request) {
     resolvedTemplateCode === FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE ||
     resolvedTemplateCode === PRODUCT_WRITEOFF_TEMPLATE_CODE ||
     resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE ||
-    resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
+    resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE ||
+    resolvedTemplateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
       ? await db.product.findMany({
           where: {
             organizationId: getActiveOrgId(session),
@@ -305,8 +310,11 @@ export async function POST(request: Request) {
         })
       : [];
 
+  // Поставщики из принятых партий: справочник металлопримесей и бракеража
+  // скоропортящейся продукции.
   const metalSuppliers =
-    resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE
+    resolvedTemplateCode === METAL_IMPURITY_TEMPLATE_CODE ||
+    resolvedTemplateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
       ? await db.batch.findMany({
           where: {
             organizationId: getActiveOrgId(session),
@@ -670,6 +678,11 @@ export async function POST(request: Request) {
               ? rawConfig.responsiblePosition
               : undefined,
         })
+      : resolvedTemplateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
+      ? buildPerishableRejectionConfigFromOrgData({
+          products: allProducts.map((product) => product.name),
+          suppliers: metalSuppliers.map((item) => item.supplier || ""),
+        })
       : isSanitaryDayChecklistTemplate(resolvedTemplateCode)
       ? rawConfig ?? defaultSdcConfig()
       : isRegisterDocumentTemplate(resolvedTemplateCode)
@@ -768,8 +781,11 @@ export async function POST(request: Request) {
           },
           allUsers
         )
-      : resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE
-      ? {
+      : resolvedTemplateCode === GLASS_LIST_TEMPLATE_CODE ||
+        resolvedTemplateCode === PERISHABLE_REJECTION_TEMPLATE_CODE
+      ? // Диалог присылает только настройки состава (`showNote`), списки
+        // берём из справочников организации.
+        {
           ...(((initialConfig as Record<string, unknown>) || {}) as Record<string, unknown>),
           ...((rawConfig || {}) as Record<string, unknown>),
         }

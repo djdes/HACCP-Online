@@ -51,6 +51,8 @@ import {
   usePositionEmployeeCascade,
 } from "@/components/shared/position-select";
 import { localDayKey } from "@/lib/entry-defaults";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+
 type Props = {
   documentId: string;
   title: string;
@@ -130,7 +132,7 @@ export function EquipmentCalibrationDocumentClient({
   const [editNote, setEditNote] = useState("");
 
   const isClosed = status === "closed";
-  const organizationLabel = organizationName || 'ООО "Тест"';
+  const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const { mobileView, switchMobileView } = useMobileView("equipment_calibration");
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => {

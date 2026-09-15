@@ -50,6 +50,7 @@ import {
 import { PpeIssuanceDocumentClient } from "@/components/journals/ppe-issuance-document-client";
 import { isRegisterDocumentTemplate } from "@/lib/register-document";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 import { withBuildingLabel } from "@/lib/building-scope";
 import { isTrackedDocumentTemplate } from "@/lib/tracked-document";
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
@@ -247,6 +248,7 @@ async function JournalDocumentBody({
         where: { id: getActiveOrgId(session) },
         select: {
           name: true,
+          isDemo: true,
           timezone: true,
           disabledJournalCodes: true,
           experimentalUiV2: true,
@@ -254,10 +256,11 @@ async function JournalDocumentBody({
           autoJournalCodes: true,
         },
       }),
+      // Ростер документа: живые сотрудники этой организации без ROOT.
       db.user.findMany({
         where: {
           organizationId: getActiveOrgId(session),
-          isActive: true,
+          ...ORG_ROSTER_WHERE,
         },
         select: { id: true, name: true, role: true, email: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
         orderBy: [{ role: "asc" }, { name: "asc" }],
@@ -285,7 +288,11 @@ async function JournalDocumentBody({
     tasksFlowIntegration?.enabled && isIntegrationCryptoConfigured()
   );
 
-  const demoEmployees = getHygieneDemoTeamUsers(employees);
+  // Должности демо-команды подставляются только в демо-организации: раньше
+  // сотруднику реальной организации, чьи ФИО совпали с демо-ростером,
+  // молча меняли должность.
+  const demoEmployees =
+    organization?.isDemo === true ? getHygieneDemoTeamUsers(employees) : [];
   const enrichedEmployees =
     demoEmployees.length > 0
       ? employees.map((employee) => {
@@ -515,6 +522,7 @@ async function JournalDocumentBody({
         status={document.status}
         initialConfig={normalizePerishableRejectionConfig(document.config)}
         users={enrichedEmployees}
+        responsibleUserId={document.responsibleUserId}
       />
     );
   }
@@ -1155,6 +1163,8 @@ async function JournalDocumentBody({
         status={document.status}
         initialConfig={normalizeFinishedProductDocumentConfig(document.config)}
         users={employees}
+        responsibleUserId={document.responsibleUserId}
+        verifierUserId={document.verifierUserId}
         useV2={organization?.experimentalUiV2 ?? true}
       />
     );

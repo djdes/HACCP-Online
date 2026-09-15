@@ -82,7 +82,27 @@ export function createPerishableRejectionRow(
   };
 }
 
+/**
+ * Пустой конфиг нового документа. Списки изделий, производителей и
+ * поставщиков — справочники организации: заполняются из её продуктов и
+ * поставщиков (`buildPerishableRejectionConfigFromOrgData`) или руками.
+ * Раньше сюда были зашиты «Пельмени», ООО «Ромашка» и «ИП Бубнов Б.Б.», и
+ * они попадали в журналы реальных организаций.
+ */
 export function getDefaultPerishableRejectionConfig(): PerishableRejectionConfig {
+  return {
+    rows: [],
+    productLists: [
+      { id: createId("perishable-list"), name: "Изделия", items: [] },
+    ],
+    manufacturers: [],
+    suppliers: [],
+    showNote: true,
+  };
+}
+
+/** Образец для демо-организации и витрины: заполненные списки. */
+export function getPerishableRejectionSampleConfig(): PerishableRejectionConfig {
   return {
     rows: [],
     productLists: [
@@ -91,6 +111,37 @@ export function getDefaultPerishableRejectionConfig(): PerishableRejectionConfig
     manufacturers: ['ООО "Ромашка"'],
     suppliers: ["ИП Бубнов Б.Б."],
     showNote: true,
+  };
+}
+
+function uniqueTexts(values: readonly unknown[] | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values ?? []) {
+    const text = normalizeText(value);
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    out.push(text);
+  }
+  return out;
+}
+
+/**
+ * Конфиг нового документа по справочникам организации: изделия — её
+ * продукты, поставщики — из принятых партий. Производителей в справочниках
+ * нет, список пуст и пополняется из формы строки.
+ */
+export function buildPerishableRejectionConfigFromOrgData(params: {
+  products?: readonly string[];
+  suppliers?: readonly string[];
+}): PerishableRejectionConfig {
+  const config = getDefaultPerishableRejectionConfig();
+  return {
+    ...config,
+    productLists: [
+      { ...config.productLists[0], items: uniqueTexts(params.products) },
+    ],
+    suppliers: uniqueTexts(params.suppliers),
   };
 }
 

@@ -1,4 +1,5 @@
 import { getUserRoleLabel, normalizeUserRole, pickPrimaryManager } from "@/lib/user-roles";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 
 export const AUDIT_PLAN_TEMPLATE_CODE = "audit_plan";
 export const AUDIT_PLAN_SOURCE_SLUG = "auditplan";
@@ -281,7 +282,7 @@ export function getAuditPlanDefaultConfig(params?: {
   const date = params?.date || new Date();
   const year = date.getUTCFullYear();
   const documentDate = `${year}-01-15`;
-  const organizationName = params?.organizationName || 'ООО "Тест"';
+  const organizationName = params?.organizationName || ORG_NAME_FALLBACK;
   const users = params?.users || [];
   const approveUser = pickApproveUser(users);
   const columns = buildDefaultColumns(organizationName, users);

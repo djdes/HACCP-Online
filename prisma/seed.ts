@@ -762,17 +762,49 @@ async function main() {
   });
 
   console.log("Seeding example areas and equipment (demo orgs only)...");
-  // Only seed demo data for the demo org (identified by having a user with
-  // DEMO_ADMIN_EMAIL). Real customer orgs start with zero areas / equipment /
-  // products — they configure their own through /settings.
+  // Демо-данные (цеха, оборудование, продукты) — только в витринную
+  // организацию и только если она помечена `isDemo`. Раньше признаком было
+  // «в организации есть admin@haccp.local», и сидер при каждом деплое мог
+  // насыпать «Холодильный цех» в реальную организацию, куда когда-то
+  // попал этот аккаунт.
   const DEMO_ADMIN_EMAIL = "admin@haccp.local";
+  const DEMO_EMAIL_DOMAIN = "@haccp.local";
   const demoAdminUser = await prisma.user.findFirst({
     where: { email: DEMO_ADMIN_EMAIL },
     select: { organizationId: true },
   });
-  const organizations = demoAdminUser?.organizationId
-    ? [{ id: demoAdminUser.organizationId }]
-    : [];
+  const organizations: Array<{ id: string }> = [];
+  if (demoAdminUser?.organizationId && demoAdminUser.organizationId !== PLATFORM_ORG_ID) {
+    const demoOrg = await prisma.organization.findUnique({
+      where: { id: demoAdminUser.organizationId },
+      select: { id: true, name: true, isDemo: true },
+    });
+    // Витрина помечается демо один раз и только если в ней нет живых
+    // людей: все пользователи — служебные аккаунты демо-команды.
+    const foreignUsers = demoOrg
+      ? await prisma.user.count({
+          where: {
+            organizationId: demoOrg.id,
+            NOT: { email: { endsWith: DEMO_EMAIL_DOMAIN } },
+          },
+        })
+      : 0;
+    if (demoOrg && !demoOrg.isDemo && foreignUsers === 0) {
+      await prisma.organization.update({
+        where: { id: demoOrg.id },
+        data: { isDemo: true },
+      });
+      demoOrg.isDemo = true;
+      console.log(`  Marked showcase org as demo: ${demoOrg.name} (${demoOrg.id})`);
+    }
+    if (demoOrg?.isDemo) {
+      organizations.push({ id: demoOrg.id });
+    } else if (demoOrg) {
+      console.log(
+        `  Skip demo seed: ${DEMO_ADMIN_EMAIL} lives in a non-demo org with ${foreignUsers} real user(s) (${demoOrg.id})`
+      );
+    }
+  }
 
   for (const organization of organizations) {
     const areaNames = ["Холодильный цех", "Горячий цех", "Склад", "Упаковка"];

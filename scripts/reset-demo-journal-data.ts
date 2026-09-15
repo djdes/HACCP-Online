@@ -29,7 +29,7 @@ import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
 } from "../src/lib/uv-lamp-runtime-document";
 import {
-  buildFinishedProductConfigFromUsers,
+  buildFinishedProductSampleConfig,
   createFinishedProductRow,
   FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE,
   FINISHED_PRODUCT_DOCUMENT_TITLE,
@@ -63,7 +63,7 @@ import {
 } from "../src/lib/staff-training-document";
 import {
   DISINFECTANT_DOCUMENT_TITLE,
-  getDisinfectantDefaultConfig,
+  getDisinfectantSampleConfig,
 } from "../src/lib/disinfectant-document";
 import {
   getSanitationDayDefaultConfig,
@@ -118,7 +118,7 @@ import {
 } from "../src/lib/audit-report-document";
 import {
   createTraceabilityRow,
-  getDefaultTraceabilityDocumentConfig,
+  getTraceabilitySampleConfig,
   TRACEABILITY_DOCUMENT_TEMPLATE_CODE,
   TRACEABILITY_DOCUMENT_TITLE,
 } from "../src/lib/traceability-document";
@@ -165,7 +165,7 @@ import {
 } from "../src/lib/sanitary-day-checklist-document";
 import {
   createPerishableRejectionRow,
-  getDefaultPerishableRejectionConfig,
+  getPerishableRejectionSampleConfig,
   PERISHABLE_REJECTION_DOCUMENT_TITLE,
   PERISHABLE_REJECTION_TEMPLATE_CODE,
 } from "../src/lib/perishable-rejection-document";
@@ -680,7 +680,7 @@ async function seedActiveJournalExamples(
       }
 
       case COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE: {
-        const coldConfig = buildColdEquipmentConfigFromEquipment(equipment);
+        const coldConfig = buildColdEquipmentConfigFromEquipment(equipment, { sampleFallback: true });
         const document = await createDocument(prisma, {
           templateId: template.id,
           organizationId,
@@ -780,7 +780,7 @@ async function seedActiveJournalExamples(
       }
 
       case FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE: {
-        const config = buildFinishedProductConfigFromUsers(users, products.map((item) => item.name));
+        const config = buildFinishedProductSampleConfig(users, products.map((item) => item.name));
         config.rows = [
           createFinishedProductRow({
             productionDateTime: `${monthStartKey} 09:00`,
@@ -812,7 +812,7 @@ async function seedActiveJournalExamples(
       }
 
       case PERISHABLE_REJECTION_TEMPLATE_CODE: {
-        const config = getDefaultPerishableRejectionConfig();
+        const config = getPerishableRejectionSampleConfig();
         config.productLists[0].items = products.slice(0, 3).map((item) => item.name);
         config.manufacturers = supplierNames;
         config.suppliers = supplierNames;
@@ -983,7 +983,7 @@ async function seedActiveJournalExamples(
       }
 
       case "disinfectant_usage": {
-        const config = getDisinfectantDefaultConfig();
+        const config = getDisinfectantSampleConfig();
         config.responsibleEmployeeId = manager.id;
         config.responsibleEmployee = manager.name;
         config.receipts = config.receipts.map((row) => ({ ...row, responsibleEmployeeId: manager.id, responsibleEmployee: manager.name }));
@@ -1264,7 +1264,7 @@ async function seedActiveJournalExamples(
       case TRACEABILITY_DOCUMENT_TEMPLATE_CODE: {
         const rawMaterialList = products.slice(0, 5).map((item) => item.name);
         const productList = products.slice(0, 5).map((item) => item.name);
-        const config = getDefaultTraceabilityDocumentConfig();
+        const config = getTraceabilitySampleConfig();
         config.documentTitle = TRACEABILITY_DOCUMENT_TITLE;
         config.dateFrom = monthStartKey;
         config.showShockTempField = true;

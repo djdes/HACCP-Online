@@ -56,17 +56,32 @@ export type TraceabilityRowValidationIssue = {
   message: string;
 };
 
+/**
+ * Значения по умолчанию для документа организации. Списки сырья и
+ * продукции пустые — это справочники самой организации. Раньше здесь были
+ * «Мука», «Пельмени» и дата 01.01.2025, и нормализатор возвращал их даже
+ * после того, как человек очистил списки.
+ */
 const TRACEABILITY_DEFAULTS: TraceabilityDocumentConfig = {
   documentTitle: TRACEABILITY_DOCUMENT_TITLE,
-  dateFrom: "2025-01-01",
+  dateFrom: "",
   showShockTempField: true,
   showShipmentBlock: false,
-  rawMaterialList: ["Мука"],
-  productList: ["Пельмени"],
+  rawMaterialList: [],
+  productList: [],
   rows: [],
-  defaultResponsibleRole: "Управляющий",
+  defaultResponsibleRole: null,
   defaultResponsibleEmployeeId: null,
   defaultResponsibleEmployee: "",
+};
+
+/** Образец для демо-организации и витрины. */
+const TRACEABILITY_SAMPLE: TraceabilityDocumentConfig = {
+  ...TRACEABILITY_DEFAULTS,
+  dateFrom: "2025-01-01",
+  rawMaterialList: ["Мука"],
+  productList: ["Пельмени"],
+  defaultResponsibleRole: "Управляющий",
 };
 
 function createId(prefix: string) {
@@ -316,8 +331,17 @@ export function getDefaultTraceabilityDocumentConfig(): TraceabilityDocumentConf
   return {
     ...TRACEABILITY_DEFAULTS,
     rows: [],
-    rawMaterialList: [...TRACEABILITY_DEFAULTS.rawMaterialList],
-    productList: [...TRACEABILITY_DEFAULTS.productList],
+    rawMaterialList: [],
+    productList: [],
+  };
+}
+
+export function getTraceabilitySampleConfig(): TraceabilityDocumentConfig {
+  return {
+    ...TRACEABILITY_SAMPLE,
+    rows: [],
+    rawMaterialList: [...TRACEABILITY_SAMPLE.rawMaterialList],
+    productList: [...TRACEABILITY_SAMPLE.productList],
   };
 }
 
@@ -362,14 +386,8 @@ export function normalizeTraceabilityDocumentConfig(
       record.showShipmentBlock,
       TRACEABILITY_DEFAULTS.showShipmentBlock
     ),
-    rawMaterialList:
-      normalizeStringList(record.rawMaterialList).length > 0
-        ? normalizeStringList(record.rawMaterialList)
-        : [...TRACEABILITY_DEFAULTS.rawMaterialList],
-    productList:
-      normalizeStringList(record.productList).length > 0
-        ? normalizeStringList(record.productList)
-        : [...TRACEABILITY_DEFAULTS.productList],
+    rawMaterialList: normalizeStringList(record.rawMaterialList),
+    productList: normalizeStringList(record.productList),
     rows,
     defaultResponsibleRole:
       defaultResponsibleRole ?? TRACEABILITY_DEFAULTS.defaultResponsibleRole,

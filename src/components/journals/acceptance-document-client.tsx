@@ -97,6 +97,7 @@ import {
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
 import { localDayKey } from "@/lib/entry-defaults";
+import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 
 type User = { id: string; name: string; role: string };
 
@@ -2274,7 +2275,7 @@ export function AcceptanceDocumentClient(props: Props) {
     setRowsImportOpen(false);
   }
 
-  const organizationLabel = props.organizationName || 'ООО "Тест"';
+  const organizationLabel = props.organizationName || ORG_NAME_FALLBACK;
   const pageTitle = getAcceptancePageTitle(routeCode);
   const documentTitle = title || getAcceptanceDocumentTitle(routeCode);
   const journalHeaderTitle = isProductAcceptance
