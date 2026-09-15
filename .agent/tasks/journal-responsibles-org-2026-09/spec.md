@@ -1,0 +1,38 @@
+# journal-responsibles-org-2026-09 — ответственные строго из организации
+
+Источник: план `cached-nibbling-magpie.md`, Задача 1 (ТЗ п.1, п.3). Заморожено 2026-09-15.
+
+## Проблема
+В журналах реальной организации всплывают «не те» люди и данные: выбранный в диалоге ответственный
+перебивается слотами настроек, при каждом PATCH подставляется владелец (часто аккаунт с `name === email`),
+автоподбор берёт весь ростер по алфавиту (включая ROOT), дефолт-конфиги несут фикстуры («Ромашка»,
+«Бубнов», стоковые холодильники, приходы 2023/2025), сеялки образцов срабатывают по эвристике
+`admin@haccp.local`, в шапке — `ООО "Тест"`, TasksFlow-адаптеры берут пользователя по id без организации.
+
+## Acceptance criteria
+- **AC1** `POST /api/journal-documents` с явным `responsibleUserId`/`verifierUserId` из организации сохраняет именно их
+  (`responsibleTitle` = должность этого юзера) для `hygiene`, `climate_control`, `cold_equipment_control`, `cleaning`,
+  `uv_lamp_runtime`, `disinfectant_usage`, `finished_product`, `perishable_rejection`; слоты настроек заполняют только незаданное.
+- **AC2** Чужой / root / архивный / неактивный id → 400 `{ error: "Сотрудник не найден в организации", code: "responsible-not-in-org" }`.
+- **AC3** Без выбора и без настроек: исполнитель — не владелец и не аккаунт с `name === email`, если в орге есть линейный
+  персонал; ROOT — никогда; `responsibleUserId` может остаться `null`. `PATCH` без `responsibleUserId` в теле не меняет
+  ответственного (owner-fallback отключён).
+- **AC4** Новые документы `perishable_rejection`, `disinfectant_usage`, `cold_equipment_control`, `finished_product`,
+  `uv_lamp_runtime` организации `isDemo=false` не содержат фикстур (`Ромашка|Бубнов|Пельмени|2023-12-01|2025-02-13|Ph средство|cold-equipment-default-`);
+  демо-организация сохраняет образцы.
+- **AC5** Сеялки образцов в `[code]/page.tsx` (включая scan-only и `equipment_cleaning`) и подмена должностей демо-ростером —
+  только при `Organization.isDemo === true`; `prisma/seed.ts` сеет цеха/оборудование только в `isDemo`-организации;
+  `seed-admin.ts` не переносит демо-команду в `isDemo=false`.
+- **AC6** В `src/` нет литералов `ООО "Тест"` / `ООО "Организация"`; пустое название → «Организация» (grep-гвард).
+- **AC7** `/settings/journal-responsibles` не предлагает root; пресеты не ранжируют root/аккаунт-почту.
+- **AC8** TasksFlow-адаптеры, `journal-auto-create.ts`, `staff-journal-autofill.ts`, `journal-documents/route.ts` не содержат
+  `db.user.findUnique({ where: { id` (grep-гвард); `applyRemoteCompletion` с `employeeId` чужой орги → `false`.
+- **AC9** `scripts/repair-journal-responsibles.ts <email|orgId> [--apply]`: dry-run — таблица проблем; `--apply` чинит
+  перечисленное, печатает счётчики; проверен на e2e-базе.
+- **AC10** Юнит-тесты и локальный e2e-смоук зелёные; typecheck, lint, test:gate чистые.
+- **AC11** Прод: только read-only диагностика и dry-run; `--apply` — после явного «ок» владельца и бэкапа.
+
+## Ограничения
+- Схема БД не меняется. Outbox/claim/verify TasksFlow (П-15, П-19) не трогаем.
+- `[code]/page.tsx` — только точечные правки.
+- e2e только на `wesetup_e2e` (localhost:5432), никогда на `.env` (5433 = прод).
