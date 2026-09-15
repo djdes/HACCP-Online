@@ -1,3 +1,9 @@
+import {
+  legacyFlagsFromColumns,
+  sanitizeColumnsConfig,
+  type JournalColumnsConfig,
+} from "@/lib/journal-columns";
+
 export const FINISHED_PRODUCT_DOCUMENT_TEMPLATE_CODE = "finished_product";
 export const FINISHED_PRODUCT_DEFAULT_DOCUMENT_TITLE = "Бракеражный журнал";
 export const FINISHED_PRODUCT_ARCHIVE_DOCUMENT_TITLES = [
@@ -51,6 +57,11 @@ export type FinishedProductDocumentRow = {
 
 export type FinishedProductDocumentConfig = {
   rows: FinishedProductDocumentRow[];
+  /**
+   * Набор колонок документа (скрытые и переименованные), см.
+   * `src/lib/journal-columns.ts`. Нет — документ выглядит по флагам `showX`.
+   */
+  columns?: JournalColumnsConfig;
   fieldNameMode: FinishedProductFieldNameMode;
   inspectorMode: FinishedProductInspectorMode;
   showProductTemp: boolean;
@@ -186,17 +197,26 @@ export function normalizeFinishedProductDocumentConfig(
         .filter((item): item is FinishedProductDocumentRow => item !== null)
     : [];
 
+  // Набор колонок главнее старых флагов: флаги синхронизируются из него,
+  // чтобы печать и адаптеры TasksFlow, читающие `showX`, не расходились с
+  // таблицей.
+  const columns = sanitizeColumnsConfig("finished_product", record.columns, record);
+  const columnFlags = columns ? legacyFlagsFromColumns("finished_product", columns) : null;
+  const flag = (key: string) =>
+    columnFlags && key in columnFlags ? columnFlags[key] === true : record[key] === true;
+
   return {
     rows: rows.length > 0 ? rows : defaults.rows,
+    ...(columns ? { columns } : {}),
     fieldNameMode: record.fieldNameMode === "semi" ? "semi" : defaults.fieldNameMode,
     inspectorMode:
       record.inspectorMode === "commission_signatures"
         ? "commission_signatures"
         : defaults.inspectorMode,
-    showProductTemp: record.showProductTemp === true,
-    showCorrectiveAction: record.showCorrectiveAction === true,
-    showOxygenLevel: record.showOxygenLevel === true,
-    showCourierTime: record.showCourierTime === true,
+    showProductTemp: flag("showProductTemp"),
+    showCorrectiveAction: flag("showCorrectiveAction"),
+    showOxygenLevel: flag("showOxygenLevel"),
+    showCourierTime: flag("showCourierTime"),
     footerNote: normalizeFooterNote(record.footerNote),
     productLists: Array.isArray(record.productLists)
       ? (record.productLists as Array<Record<string, unknown>>)

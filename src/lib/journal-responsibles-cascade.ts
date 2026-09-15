@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { parseOrgColumnDefaults, withOrgColumnDefault } from "@/lib/journal-columns";
 import {
   getPrimarySlotId,
   getSchemaForJournal,
@@ -433,6 +434,11 @@ export async function prefillResponsiblesForNewDocument(input: {
    * имена и должности без отдельного кода.
    */
   slotOverrides?: SlotUserMap;
+  /**
+   * Флаги колонок (`showX`) в `baseConfig` выбрал человек в диалоге создания
+   * — они важнее общего набора колонок организации для своих колонок.
+   */
+  respectColumnFlags?: boolean;
 }): Promise<{
   config: Record<string, unknown>;
   responsibleUserId: string | null;
@@ -465,7 +471,7 @@ export async function prefillResponsiblesForNewDocument(input: {
   // 1. Читаем сохранённые слоты из Organization JSON.
   const org = await db.organization.findUnique({
     where: { id: organizationId },
-    select: { journalResponsibleUsersJson: true },
+    select: { journalResponsibleUsersJson: true, journalColumnsJson: true },
   });
   const allSlots = (org?.journalResponsibleUsersJson ?? {}) as Record<
     string,
@@ -553,6 +559,15 @@ export async function prefillResponsiblesForNewDocument(input: {
     });
     if (patched) config = patched;
   }
+
+  // 5. Общий набор колонок организации — новому документу (модель «копия»:
+  // набор ложится в config.columns и флаги showX, печать и TasksFlow читают
+  // их из документа). Свой набор в конфиге (перенос из прошлого документа)
+  // не трогаем.
+  config =
+    withOrgColumnDefault(journalCode, config, parseOrgColumnDefaults(org?.journalColumnsJson), {
+      respectFlags: input.respectColumnFlags === true,
+    }) ?? config;
 
   return {
     config,

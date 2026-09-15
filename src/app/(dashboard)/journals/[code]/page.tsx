@@ -266,6 +266,7 @@ import {
 } from "@/lib/user-roles";
 import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 import { JournalCreateDefaultsProvider } from "@/components/journals/journal-create-defaults";
+import { parseOrgColumnDefaults } from "@/lib/journal-columns";
 import { getPrimarySlotId } from "@/lib/journal-responsible-schemas";
 import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 
@@ -1347,6 +1348,7 @@ export default async function JournalDocumentsPage({
       journalAutomationJson: true,
       autoJournalCodes: true,
       journalResponsibleUsersJson: true,
+      journalColumnsJson: true,
     },
   });
   // Набор журналов для выпадающего списка в крошке «журнал»:
@@ -1435,6 +1437,7 @@ export default async function JournalDocumentsPage({
       orgUsers.some((user) => user.id === savedPrimaryResponsibleId)
         ? savedPrimaryResponsibleId
         : null,
+    columnDefaults: parseOrgColumnDefaults(orgSettings?.journalColumnsJson),
   };
 
   function withBanner(children: React.ReactNode) {

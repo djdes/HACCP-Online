@@ -2,6 +2,8 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
+import type { JournalColumnsConfig } from "@/lib/journal-columns";
+
 /**
  * Значения по умолчанию для диалога «Создание документа» на странице
  * журнала.
@@ -18,6 +20,11 @@ export type JournalCreateDefaults = {
    * настройках никого нет, человек выбирает сам.
    */
   defaultResponsibleUserId: string | null;
+  /**
+   * Общие наборы колонок организации по кодам журналов. Переключатели
+   * колонок в диалоге создания стартуют с них.
+   */
+  columnDefaults?: Record<string, JournalColumnsConfig>;
 };
 
 const JournalCreateDefaultsContext = createContext<JournalCreateDefaults>({

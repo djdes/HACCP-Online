@@ -74,6 +74,16 @@ import {
 } from "@/components/journals/journal-grid";
 import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { JournalPaperHeaderRows } from "@/components/journals/journal-document-header";
+import {
+  JournalColumnsSettings,
+  useColumnHeaderMenu,
+} from "@/components/journals/journal-columns-settings";
+import { useJournalHeaderEdit } from "@/components/journals/journal-header-edit";
+import {
+  legacyFlagsFromColumns,
+  resolveColumns,
+  type JournalColumnsConfig,
+} from "@/lib/journal-columns";
 
 import { useTodayKey } from "@/lib/use-today-key";
 import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
@@ -191,6 +201,25 @@ export function PerishableRejectionDocumentClient({
   const [config, setConfig] = useState(() =>
     normalizePerishableRejectionConfig(initialConfig)
   );
+  // Колонки документа: скрытые не показываются в таблице, карточках,
+  // диалоге строки и печати; данные скрытой колонки остаются в строках.
+  const columnsView = useMemo(() => resolveColumns("perishable_rejection", config), [config]);
+  const visibleColumnsView = useMemo(
+    () => columnsView.filter((column) => !column.hidden),
+    [columnsView]
+  );
+  const isColumnVisible = (key: string) =>
+    columnsView.find((column) => column.key === key)?.hidden !== true;
+  /** Подпись колонки: своя из набора документа или стандартная `fallback`. */
+  const columnLabel = (key: string, fallback: string) => {
+    const column = columnsView.find((item) => item.key === key);
+    return column && column.label !== column.defaultLabel ? column.label : fallback;
+  };
+  const withColumns = (base: PerishableRejectionConfig, next: JournalColumnsConfig): PerishableRejectionConfig => ({
+    ...base,
+    columns: next,
+    showNote: legacyFlagsFromColumns("perishable_rejection", next).showNote !== false,
+  });
   const readOnly = status === "closed";
   // «Настройки журнала» — название документа и дата начала. Раньше их
   // можно было изменить только со страницы списка; теперь доступны из «⋯».
@@ -240,24 +269,40 @@ export function PerishableRejectionDocumentClient({
       />
     ) : null,
     fields: [
-      { label: "Дата выработки", value: row.productionDate, hideIfEmpty: true },
-      { label: "Изготовитель/поставщик", value: row.manufacturer, hideIfEmpty: true },
-      { label: "Количество", value: row.quantity, hideIfEmpty: true },
-      { label: "Документ безопасности", value: row.documentNumber, hideIfEmpty: true },
+      isColumnVisible("productionDate")
+        ? { label: columnLabel("productionDate", "Дата выработки"), value: row.productionDate, hideIfEmpty: true }
+        : null,
+      isColumnVisible("manufacturer")
+        ? { label: columnLabel("manufacturer", "Изготовитель/поставщик"), value: row.manufacturer, hideIfEmpty: true }
+        : null,
+      isColumnVisible("packaging")
+        ? { label: columnLabel("packaging", "Количество"), value: row.quantity, hideIfEmpty: true }
+        : null,
+      isColumnVisible("document")
+        ? { label: columnLabel("document", "Документ безопасности"), value: row.documentNumber, hideIfEmpty: true }
+        : null,
       {
-        label: "Органолептика",
+        label: columnLabel("organoleptic", "Органолептика"),
         value: ORGANOLEPTIC_LABELS[row.organolepticResult] || row.organolepticResult,
         hideIfEmpty: true,
       },
-      {
-        label: "Условия хранения",
-        value: STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition,
-        hideIfEmpty: true,
-      },
-      { label: "Реализовано", value: `${row.actualSaleDate || ""} ${row.actualSaleTime || ""}`.trim(), hideIfEmpty: true },
-      { label: "Ответственный", value: row.responsiblePerson, hideIfEmpty: true },
-      { label: "Примечание", value: row.note, hideIfEmpty: true },
-    ],
+      isColumnVisible("storage")
+        ? {
+            label: columnLabel("storage", "Условия хранения"),
+            value: STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition,
+            hideIfEmpty: true,
+          }
+        : null,
+      isColumnVisible("sale")
+        ? {
+            label: columnLabel("sale", "Реализовано"),
+            value: `${row.actualSaleDate || ""} ${row.actualSaleTime || ""}`.trim(),
+            hideIfEmpty: true,
+          }
+        : null,
+      { label: columnLabel("responsible", "Ответственный"), value: row.responsiblePerson, hideIfEmpty: true },
+      isColumnVisible("note") ? { label: columnLabel("note", "Примечание"), value: row.note, hideIfEmpty: true } : null,
+    ].filter((field): field is { label: string; value: string; hideIfEmpty: boolean } => field !== null),
   }));
   const [addModalOpen, setAddModalOpen] = useState(false);
   // Правка существующей строки идёт через ту же модалку, что и добавление:
@@ -375,6 +420,18 @@ export function PerishableRejectionDocumentClient({
 
   // Уход со страницы не должен съедать последний недописанный ввод.
   useEffect(() => () => flushConfigSave(), [flushConfigSave]);
+
+  const headerEdit = useJournalHeaderEdit();
+  const canManageColumns = headerEdit?.canEditDocument === true;
+  // ПКМ / долгое нажатие по заголовку колонки: переименовать, скрыть,
+  // применить ко всем документам. Набор документа сохраняется сразу.
+  const headerMenu = useColumnHeaderMenu({
+    code: "perishable_rejection",
+    config: config as unknown as Record<string, unknown>,
+    enabled: !readOnly,
+    canApplyToAll: canManageColumns,
+    onChange: (next) => applyConfig((prev) => withColumns(prev, next), true),
+  });
 
   function updateRow(id: string, patch: Partial<PerishableRejectionRow>) {
     applyConfig((prev) => ({
@@ -693,9 +750,7 @@ export function PerishableRejectionDocumentClient({
    * фасовка · номер документа · органолептика · условия хранения ·
    * дата реализации · ответственное лицо · (примечание).
    */
-  const columnWeights = config.showNote
-    ? [95, 110, 78, 100, 92, 92, 100, 100, 84, 96, 70]
-    : [95, 118, 82, 106, 96, 96, 106, 106, 88, 102];
+  const columnWeights = visibleColumnsView.map((column) => column.weight);
   const columnWeightsTotal = columnWeights.reduce((sum, weight) => sum + weight, 0);
   const columnWidths = columnWeights.map(
     (weight) =>
@@ -916,35 +971,15 @@ export function PerishableRejectionDocumentClient({
                     aria-label="Выбрать все строки"
                   />
                 </th>
-                <th className={HEAD_CELL_CLASS}>
-                  Дата, время поступления пищ. продукции
-                </th>
-                <th className={HEAD_CELL_CLASS}>Наименование</th>
-                <th className={HEAD_CELL_CLASS}>Дата выработки</th>
-                <th className={HEAD_CELL_CLASS}>Изготовитель/поставщик</th>
-                <th className={HEAD_CELL_CLASS}>
-                  Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)
-                </th>
-                <th className={HEAD_CELL_CLASS}>
-                  Номер документа, подтверждающего безопасность
-                </th>
-                <th className={HEAD_CELL_CLASS}>
-                  Результаты органолептической оценки
-                </th>
-                <th className={HEAD_CELL_CLASS}>
-                  Условия хранения, конечный срок реализации
-                </th>
-                <th className={HEAD_CELL_CLASS}>
-                  Дата, время фактической реализации
-                </th>
-                <th className={HEAD_CELL_CLASS}>
-                  Ответственное лицо (ФИО, должность)
-                </th>
-                {/* «Примечание» — опциональная колонка состава таблицы
-                    (тумблер в диалоге создания, P2 аудита). */}
-                {config.showNote ? (
-                  <th className={HEAD_CELL_CLASS}>Примечание</th>
-                ) : null}
+                {visibleColumnsView.map((column) => (
+                  <th
+                    key={column.key}
+                    className={HEAD_CELL_CLASS}
+                    {...headerMenu.headerProps(column.key)}
+                  >
+                    {column.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -957,7 +992,7 @@ export function PerishableRejectionDocumentClient({
                   <td className={`${GRID_CELL_CLASS} px-1 py-1 align-top leading-tight print:hidden`}>
                     <Checkbox checked={false} disabled />
                   </td>
-                  {Array.from({ length: config.showNote ? 11 : 10 }, (_, index) => (
+                  {Array.from({ length: visibleColumnsView.length }, (_, index) => (
                     <td
                       key={index}
                       className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}
@@ -1003,7 +1038,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("productionDate") ? "" : " hidden"}`}>
                     <JournalCellInput
                       value={row.productionDate}
                       onChange={(e) =>
@@ -1013,7 +1048,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("manufacturer") ? "" : " hidden"}`}>
                     <JournalCellInput
                       value={
                         [row.manufacturer, row.supplier]
@@ -1027,7 +1062,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("packaging") ? "" : " hidden"}`}>
                     <JournalCellInput
                       value={
                         [row.packaging, row.quantity]
@@ -1041,7 +1076,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("document") ? "" : " hidden"}`}>
                     <JournalCellInput
                       value={row.documentNumber}
                       onChange={(e) =>
@@ -1072,7 +1107,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("storage") ? "" : " hidden"}`}>
                     <JournalCellInput
                       value={`${STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition}, ${row.expiryDate}`}
                       onChange={(e) =>
@@ -1082,7 +1117,7 @@ export function PerishableRejectionDocumentClient({
                       disabled={readOnly}
                     />
                   </td>
-                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
+                  <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("sale") ? "" : " hidden"}`}>
                     <JournalCellInput
                       value={`${row.actualSaleDate} ${row.actualSaleTime}`}
                       onChange={(e) => {
@@ -1141,7 +1176,7 @@ export function PerishableRejectionDocumentClient({
                 <JournalAddRow
                   leading={1}
                   labelSpan={2}
-                  trailing={config.showNote ? 9 : 8}
+                  trailing={visibleColumnsView.length - 2}
                   label="Добавить запись"
                   onClick={() => openAddRow()}
                 />
@@ -1149,6 +1184,7 @@ export function PerishableRejectionDocumentClient({
             </tbody>
           </table>
         </MobileViewTableWrapper>
+        {headerMenu.element}
       </div>
 
       {/* Add Row Dialog — design-system shape: padded header, body
@@ -1273,9 +1309,9 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Дата выработки */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("productionDate") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
-                Дата выработки
+                {columnLabel("productionDate", "Дата выработки")}
               </Label>
               <Input
                 type="date"
@@ -1291,9 +1327,9 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Изготовитель */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("manufacturer") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
-                Изготовитель
+                {columnLabel("manufacturer", "Изготовитель")}
               </Label>
               <Select
                 value={toNone(
@@ -1338,7 +1374,7 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Поставщик */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("manufacturer") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
                 Поставщик
               </Label>
@@ -1385,7 +1421,7 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Фасовка + Кол-во side-by-side */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2${isColumnVisible("packaging") ? "" : " hidden"}`}>
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">
                   Фасовка
@@ -1419,9 +1455,9 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Номер документа */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("document") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
-                Номер документа
+                {columnLabel("document", "Номер документа")}
               </Label>
               <Input
                 className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
@@ -1475,9 +1511,9 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Условия хранения — radio cards */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("storage") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
-                Условия хранения
+                {columnLabel("storage", "Условия хранения")}
               </Label>
               <div className="flex flex-col gap-2">
                 {(
@@ -1517,7 +1553,7 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Конечный срок реализации */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("storage") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
                 Конечный срок реализации
               </Label>
@@ -1535,9 +1571,9 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Дата и время фактической реализации */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("sale") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
-                Дата и время фактической реализации
+                {columnLabel("sale", "Дата и время фактической реализации")}
               </Label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr_1fr]">
                 <Input
@@ -1638,9 +1674,9 @@ export function PerishableRejectionDocumentClient({
             </div>
 
             {/* Примечание */}
-            <div className="space-y-2">
+            <div className={`space-y-2${isColumnVisible("note") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
-                Примечание
+                {columnLabel("note", "Примечание")}
               </Label>
               <Input
                 className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
@@ -2027,6 +2063,16 @@ export function PerishableRejectionDocumentClient({
                 className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus-visible:border-[#5566f6] focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
               />
             </div>
+            <JournalColumnsSettings
+              code="perishable_rejection"
+              config={config as unknown as Record<string, unknown>}
+              canApplyToAll={canManageColumns}
+              onChange={(next) => applyConfig((prev) => withColumns(prev, next), true)}
+              onApplyToAll={(next) => {
+                setSettingsOpen(false);
+                headerMenu.openApplyToAll(next);
+              }}
+            />
             <div className="flex justify-end">
               <Button
                 type="button"

@@ -6,6 +6,7 @@ import autoTable, { type CellDef, type CellHookData, type RowInput } from "jspdf
 import { getCalendarDayKind } from "@/lib/production-calendar-data";
 import { db } from "@/lib/db";
 import { withBuildingLabel } from "@/lib/building-scope";
+import { resolveColumns, type ResolvedJournalColumn } from "@/lib/journal-columns";
 import { readHeaderTitleOverride } from "@/lib/journal-header-title";
 import { resolveOrgJournalName } from "@/lib/org-journal-name";
 import { isAutoSeededEntry } from "@/lib/journal-entry-filters";
@@ -2434,6 +2435,25 @@ function drawCleaningPdf(doc: jsPDF, params: {
   });
 }
 
+/**
+ * Колонки печати бракеражей — те же, что в таблице документа
+ * (`resolveColumns`): скрытые не печатаются, переименованные печатаются под
+ * своим названием. У печати свои короткие стандартные подписи — они
+ * остаются, пока колонку не переименовали.
+ */
+function pdfColumns(code: string, config: unknown) {
+  const byKey = new Map<string, ResolvedJournalColumn>(
+    resolveColumns(code, config).map((column) => [column.key, column])
+  );
+  return {
+    visible: (key: string) => byKey.get(key)?.hidden !== true,
+    label: (key: string, printDefault: string) => {
+      const column = byKey.get(key);
+      return column && column.label !== column.defaultLabel ? column.label : printDefault;
+    },
+  };
+}
+
 function drawFinishedProductPdf(doc: jsPDF, params: {
   organizationName: string;
   title: string;
@@ -2449,28 +2469,37 @@ function drawFinishedProductPdf(doc: jsPDF, params: {
     dateTo: params.dateTo,
   });
 
+  const columns = pdfColumns("finished_product", params.config);
   const headRow: RowInput = [
     centerCell("№"),
-    centerCell("Дата, время изготовления"),
-    centerCell("Время снятия бракеража"),
+    centerCell(columns.label("production", "Дата, время изготовления")),
+    centerCell(columns.label("rejection", "Время снятия бракеража")),
     centerCell(
-      params.config.fieldNameMode === "semi"
-        ? "Наименование полуфабриката"
-        : "Наименование блюд (изделий)"
+      columns.label(
+        "name",
+        params.config.fieldNameMode === "semi"
+          ? "Наименование полуфабриката"
+          : "Наименование блюд (изделий)"
+      )
     ),
-    centerCell("Органолептическая оценка (включая оценку степени готовности)"),
+    centerCell(columns.label("organoleptic", "Органолептическая оценка (включая оценку степени готовности)")),
   ];
-  if (params.config.showProductTemp) headRow.push(centerCell("T продукта"));
-  if (params.config.showCorrectiveAction) headRow.push(centerCell("Корректирующие действия"));
-  if (params.config.showOxygenLevel) headRow.push(centerCell("Остаточный кислород, %"));
-  headRow.push(centerCell("Разрешение к реализации (время)"));
-  if (params.config.showCourierTime) headRow.push(centerCell("Передача курьеру"));
-  headRow.push(centerCell("Ответственный исполнитель (ФИО, должность)"));
+  if (columns.visible("temp")) headRow.push(centerCell(columns.label("temp", "T продукта")));
+  if (columns.visible("corrective")) headRow.push(centerCell(columns.label("corrective", "Корректирующие действия")));
+  if (columns.visible("oxygen")) headRow.push(centerCell(columns.label("oxygen", "Остаточный кислород, %")));
+  headRow.push(centerCell(columns.label("release", "Разрешение к реализации (время)")));
+  if (columns.visible("courier")) headRow.push(centerCell(columns.label("courier", "Передача курьеру")));
+  if (columns.visible("responsible")) {
+    headRow.push(centerCell(columns.label("responsible", "Ответственный исполнитель (ФИО, должность)")));
+  }
   headRow.push(
     centerCell(
-      params.config.inspectorMode === "commission_signatures"
-        ? "Подписи комиссии"
-        : "ФИО лица, проводившего бракераж"
+      columns.label(
+        "inspector",
+        params.config.inspectorMode === "commission_signatures"
+          ? "Подписи комиссии"
+          : "ФИО лица, проводившего бракераж"
+      )
     )
   );
   const head: RowInput[] = [headRow];
@@ -2483,14 +2512,14 @@ function drawFinishedProductPdf(doc: jsPDF, params: {
       { content: row.productName || "", styles: { halign: "left", valign: "middle" } },
       centerCell(row.organoleptic || ""),
     ];
-    if (params.config.showProductTemp) line.push(centerCell(row.productTemp || ""));
-    if (params.config.showCorrectiveAction) {
+    if (columns.visible("temp")) line.push(centerCell(row.productTemp || ""));
+    if (columns.visible("corrective")) {
       line.push({ content: row.correctiveAction || "", styles: { halign: "left", valign: "middle" } });
     }
-    if (params.config.showOxygenLevel) line.push(centerCell(row.oxygenLevel || ""));
+    if (columns.visible("oxygen")) line.push(centerCell(row.oxygenLevel || ""));
     line.push(centerCell(row.releasePermissionTime || ""));
-    if (params.config.showCourierTime) line.push(centerCell(row.courierTransferTime || ""));
-    line.push(centerCell(row.responsiblePerson || ""));
+    if (columns.visible("courier")) line.push(centerCell(row.courierTransferTime || ""));
+    if (columns.visible("responsible")) line.push(centerCell(row.responsiblePerson || ""));
     line.push(centerCell(row.inspectorName || ""));
     return line;
   });
@@ -3289,6 +3318,80 @@ function drawPerishableRejectionPdf(doc: jsPDF, params: {
       ]
     : params.config.rows;
 
+  // Колонки как в таблице документа (`resolveColumns`). Заголовки — ПОЛНЫЕ
+  // экранные формулировки: укороченные вроде «Документ» теряли смысл графы
+  // для инспектора. `softenSlashBreaks` разбивает «Фасовка/Кол-во» на
+  // переносимые слова — иначе autoTable рвал длинный токен посимвольно.
+  type PerishableRow = (typeof rows)[number];
+  const perishableColumns = pdfColumns("perishable_rejection", params.config);
+  type PerishablePrintColumn = {
+    key: string;
+    head: string;
+    cell: (row: PerishableRow) => string;
+    style: { cellWidth: number; halign?: "center" };
+  };
+  const perishablePrint = ([
+    {
+      key: "arrival",
+      head: perishableColumns.label("arrival", "Дата, время поступления пищ. продукции"),
+      cell: (row) => [row.arrivalDate, row.arrivalTime].filter(Boolean).join("\n"),
+      style: { cellWidth: 24 },
+    },
+    { key: "product", head: perishableColumns.label("product", "Наименование"), cell: (row) => row.productName, style: { cellWidth: 26 } },
+    {
+      key: "productionDate",
+      head: perishableColumns.label("productionDate", "Дата выработки"),
+      cell: (row) => row.productionDate,
+      style: { cellWidth: 19, halign: "center" },
+    },
+    {
+      key: "manufacturer",
+      head: softenSlashBreaks(perishableColumns.label("manufacturer", "Изготовитель/поставщик")),
+      cell: (row) => [row.manufacturer, row.supplier].filter(Boolean).join("\n"),
+      style: { cellWidth: 28 },
+    },
+    {
+      key: "packaging",
+      head: softenSlashBreaks(perishableColumns.label("packaging", "Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)")),
+      cell: (row) => [row.packaging, row.quantity].filter(Boolean).join("\n"),
+      style: { cellWidth: 24, halign: "center" },
+    },
+    {
+      key: "document",
+      head: perishableColumns.label("document", "Номер документа, подтверждающего безопасность"),
+      cell: (row) => row.documentNumber,
+      style: { cellWidth: 24 },
+    },
+    {
+      key: "organoleptic",
+      head: perishableColumns.label("organoleptic", "Результаты органолептической оценки"),
+      cell: (row) => ORGANOLEPTIC_LABELS[row.organolepticResult] || row.organolepticResult || "",
+      style: { cellWidth: 24 },
+    },
+    {
+      key: "storage",
+      head: perishableColumns.label("storage", "Условия хранения, конечный срок реализации"),
+      cell: (row) =>
+        [STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition || "", row.expiryDate]
+          .filter(Boolean)
+          .join("\n"),
+      style: { cellWidth: 27 },
+    },
+    {
+      key: "sale",
+      head: perishableColumns.label("sale", "Дата, время фактической реализации"),
+      cell: (row) => [row.actualSaleDate, row.actualSaleTime].filter(Boolean).join("\n"),
+      style: { cellWidth: 22, halign: "center" },
+    },
+    {
+      key: "responsible",
+      head: perishableColumns.label("responsible", "Ответственное лицо (ФИО, должность)"),
+      cell: (row) => row.responsiblePerson,
+      style: { cellWidth: 27 },
+    },
+    { key: "note", head: perishableColumns.label("note", "Примечание"), cell: (row) => row.note, style: { cellWidth: 24 } },
+  ] satisfies PerishablePrintColumn[]).filter((column) => perishableColumns.visible(column.key));
+
   autoTable(doc, {
     startY: perishableTitleY + 8,
     theme: "grid",
@@ -3322,51 +3425,11 @@ function drawPerishableRejectionPdf(doc: jsPDF, params: {
     // `softenSlashBreaks` разбивает «Фасовка/Кол-во» на переносимые
     // слова — иначе autoTable рвал длинный токен ПОСИМВОЛЬНО
     // («Фасовка/Ко|л-во посту|пившего»).
-    head: [[
-      "Дата, время поступления пищ. продукции",
-      "Наименование",
-      "Дата выработки",
-      softenSlashBreaks("Изготовитель/поставщик"),
-      softenSlashBreaks("Фасовка/Кол-во поступившего продукта (в кг, литрах, шт)"),
-      "Номер документа, подтверждающего безопасность",
-      "Результаты органолептической оценки",
-      "Условия хранения, конечный срок реализации",
-      "Дата, время фактической реализации",
-      "Ответственное лицо (ФИО, должность)",
-      // «Примечание» — опциональная колонка (config.showNote, P2 аудита).
-      ...(params.config.showNote ? ["Примечание"] : []),
-    ]],
-    body: rows.map((row) => [
-      [row.arrivalDate, row.arrivalTime].filter(Boolean).join("\n"),
-      row.productName,
-      row.productionDate,
-      [row.manufacturer, row.supplier].filter(Boolean).join("\n"),
-      [row.packaging, row.quantity].filter(Boolean).join("\n"),
-      row.documentNumber,
-      ORGANOLEPTIC_LABELS[row.organolepticResult] || row.organolepticResult || "",
-      [
-        STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition || "",
-        row.expiryDate,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      [row.actualSaleDate, row.actualSaleTime].filter(Boolean).join("\n"),
-      row.responsiblePerson,
-      ...(params.config.showNote ? [row.note] : []),
-    ]),
-    columnStyles: {
-      0: { cellWidth: 24 },
-      1: { cellWidth: 26 },
-      2: { cellWidth: 19, halign: "center" },
-      3: { cellWidth: 28 },
-      4: { cellWidth: 24, halign: "center" },
-      5: { cellWidth: 24 },
-      6: { cellWidth: 24 },
-      7: { cellWidth: 27 },
-      8: { cellWidth: 22, halign: "center" },
-      9: { cellWidth: 27 },
-      10: { cellWidth: 24 },
-    },
+    head: [perishablePrint.map((column) => column.head)],
+    body: rows.map((row) => perishablePrint.map((column) => column.cell(row))),
+    // Ширины — по колонкам, которые печатаются: скрытая колонка не сдвигает
+    // ширины остальных.
+    columnStyles: Object.fromEntries(perishablePrint.map((column, index) => [index, column.style])),
   });
 }
 

@@ -20,6 +20,7 @@ import {
 } from "@/components/journals/journal-dialog-field";
 import { Label } from "@/components/ui/label";
 import { normalizeFinishedProductDocumentConfig } from "@/lib/finished-product-document";
+import { syncColumnsWithLegacyFlags } from "@/lib/journal-columns";
 
 import { toast } from "sonner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
@@ -145,7 +146,9 @@ export function FinishedProductDocumentsClient({
           title,
           dateFrom,
           dateTo: endOfMonth(dateFrom),
-          config: {
+          // Переключатели этой формы правят флаги; если у документа есть
+          // набор колонок, флаги переносятся в него — иначе набор бы их перебил.
+          config: syncColumnsWithLegacyFlags("finished_product", {
             ...(normalizeFinishedProductDocumentConfig(editingDocument.config) || {}),
             fieldNameMode,
             inspectorMode,
@@ -154,7 +157,7 @@ export function FinishedProductDocumentsClient({
             showOxygenLevel,
             showCourierTime,
             footerNote,
-          },
+          }),
         }),
       });
       if (!response.ok) throw new Error();

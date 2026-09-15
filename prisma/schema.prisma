@@ -83,6 +83,10 @@ model Organization {
   /// Сокращённое название для шапки журналов и печатных форм. null —
   /// краткое название из ЕГРЮЛ или полное (см. src/lib/org-journal-name.ts).
   journalShortName               String?
+  /// Общие наборы колонок таблиц журналов: { [код журнала]: { hidden, labels } }.
+  /// Копируются в config.columns документов при создании и по «Применить ко
+  /// всем документам» (см. src/lib/journal-columns.ts).
+  journalColumnsJson             Json                           @default("{}")
   /// Сфера заведения: restaurant | cafe | education | bakery | fastfood |
   /// production | other. Колонка переиспользована — раньше здесь лежал
   /// «тип производства» (meat/dairy/…), старые значения переводит

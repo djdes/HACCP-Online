@@ -335,10 +335,19 @@ export function CreateDocumentDialog({
   const [fpInspectorMode, setFpInspectorMode] = useState<"inspector_name" | "commission_signatures">(
     "inspector_name"
   );
-  const [fpShowProductTemp, setFpShowProductTemp] = useState(false);
-  const [fpShowCorrectiveAction, setFpShowCorrectiveAction] = useState(false);
-  const [fpShowOxygenLevel, setFpShowOxygenLevel] = useState(false);
-  const [fpShowCourierTime, setFpShowCourierTime] = useState(false);
+  // Переключатели колонок стартуют с общего набора организации (если он
+  // задан «Применить ко всем документам»), иначе — как раньше.
+  const columnDefaultsForCreate = createDefaults.columnDefaults ?? {};
+  const startsVisible = (code: string, key: string, fallback: boolean) => {
+    const common = columnDefaultsForCreate[code];
+    return common ? !common.hidden.includes(key) : fallback;
+  };
+  const [fpShowProductTemp, setFpShowProductTemp] = useState(() => startsVisible("finished_product", "temp", false));
+  const [fpShowCorrectiveAction, setFpShowCorrectiveAction] = useState(() =>
+    startsVisible("finished_product", "corrective", false)
+  );
+  const [fpShowOxygenLevel, setFpShowOxygenLevel] = useState(() => startsVisible("finished_product", "oxygen", false));
+  const [fpShowCourierTime, setFpShowCourierTime] = useState(() => startsVisible("finished_product", "courier", false));
   const [fpShowFooterNote, setFpShowFooterNote] = useState(false);
   const [fpFooterNote, setFpFooterNote] = useState("");
   const [medBookIncludeVaccinations, setMedBookIncludeVaccinations] = useState(true);
@@ -348,7 +357,9 @@ export function CreateDocumentDialog({
     useState<EquipmentCleaningFieldVariant>("rinse_temperature");
   const [cleaningVentilation] = useState(true);
   /** Бракераж скоропортящейся: колонка «Примечание» в составе таблицы (P2). */
-  const [perishableShowNote, setPerishableShowNote] = useState(true);
+  const [perishableShowNote, setPerishableShowNote] = useState(() =>
+    startsVisible("perishable_rejection", "note", true)
+  );
   /** Приёмка продукции: опциональная колонка «Соответствие внешнего вида
    *  упаковки, маркировки требованиям НД» (I1 аудита). */
   const [acceptanceShowPackaging, setAcceptanceShowPackaging] = useState(false);

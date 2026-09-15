@@ -117,6 +117,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Ответственные в журналах": UserCheck,
   "Шапка журналов": SquarePen,
   "Температура по QR": QrCode,
+  "Колонки журналов": Table2,
 };
 
 function iconForCategory(name: string): LucideIcon {

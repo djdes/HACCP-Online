@@ -1,3 +1,9 @@
+import {
+  legacyFlagsFromColumns,
+  sanitizeColumnsConfig,
+  type JournalColumnsConfig,
+} from "@/lib/journal-columns";
+
 export const PERISHABLE_REJECTION_TEMPLATE_CODE = "perishable_rejection";
 export const PERISHABLE_REJECTION_DOCUMENT_TITLE =
   "Журнал бракеража скоропортящейся пищевой продукции";
@@ -36,6 +42,8 @@ export type PerishableRejectionConfig = {
    * документы, у которых поля в config нет, ничего не теряют.
    */
   showNote: boolean;
+  /** Набор колонок документа, см. `src/lib/journal-columns.ts`. */
+  columns?: JournalColumnsConfig;
 };
 
 function createId(prefix: string) {
@@ -162,6 +170,7 @@ export function normalizePerishableRejectionConfig(
         })
         .filter((item): item is PerishableRejectionRow => item !== null)
     : [];
+  const columns = sanitizeColumnsConfig(PERISHABLE_REJECTION_TEMPLATE_CODE, record.columns, record);
 
   return {
     rows,
@@ -197,8 +206,13 @@ export function normalizePerishableRejectionConfig(
           .map((item) => (item as string).trim())
           .filter((item) => item.length > 0)
       : defaults.suppliers,
-    showNote:
-      typeof record.showNote === "boolean" ? record.showNote : defaults.showNote,
+    // Набор колонок главнее старого флага «Примечание» — флаг из него.
+    showNote: columns
+      ? legacyFlagsFromColumns(PERISHABLE_REJECTION_TEMPLATE_CODE, columns).showNote !== false
+      : typeof record.showNote === "boolean"
+        ? record.showNote
+        : defaults.showNote,
+    ...(columns ? { columns } : {}),
   };
 }
 

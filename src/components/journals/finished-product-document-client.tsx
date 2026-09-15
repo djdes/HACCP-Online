@@ -68,6 +68,16 @@ import { JournalPaperHeaderRows } from "@/components/journals/journal-document-h
 import { useTodayKey } from "@/lib/use-today-key";
 import { TodayStripForJournal } from "@/components/journals/today-strip-for-journal";
 import { localDayKey } from "@/lib/entry-defaults";
+import {
+  JournalColumnsSettings,
+  useColumnHeaderMenu,
+} from "@/components/journals/journal-columns-settings";
+import { useJournalHeaderEdit } from "@/components/journals/journal-header-edit";
+import {
+  legacyFlagsFromColumns,
+  resolveColumns,
+  type JournalColumnsConfig,
+} from "@/lib/journal-columns";
 type Props = {
   documentId: string;
   title: string;
@@ -117,6 +127,21 @@ type FinishedProductTextField =
   | "courierTransferTime"
   | "responsiblePerson"
   | "inspectorName";
+
+/** Поле строки и справочник подсказок для каждой колонки реестра. */
+const FINISHED_PRODUCT_COLUMN_FIELDS: Record<string, { field: FinishedProductTextField; list?: string }> = {
+  production: { field: "productionDateTime" },
+  rejection: { field: "rejectionTime" },
+  name: { field: "productName", list: "finished-product-items" },
+  organoleptic: { field: "organoleptic" },
+  temp: { field: "productTemp" },
+  corrective: { field: "correctiveAction" },
+  oxygen: { field: "oxygenLevel" },
+  release: { field: "releasePermissionTime" },
+  courier: { field: "courierTransferTime" },
+  responsible: { field: "responsiblePerson", list: "finished-product-users" },
+  inspector: { field: "inspectorName", list: "finished-product-users" },
+};
 
 type FinishedProductColumn = {
   key: string;
@@ -273,6 +298,13 @@ export function FinishedProductDocumentClient({
   // Уход со страницы не должен съедать последний недописанный ввод.
   useEffect(() => () => flushConfigSave(), [flushConfigSave]);
 
+  // Карточки (телефон, Mini App) — те же колонки и подписи, что у таблицы.
+  const cardColumns = resolveColumns("finished_product", config);
+  const cardVisible = (key: string) => cardColumns.find((column) => column.key === key)?.hidden !== true;
+  const cardLabel = (key: string, fallback: string) => {
+    const column = cardColumns.find((item) => item.key === key);
+    return column && column.label !== column.defaultLabel ? column.label : fallback;
+  };
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => ({
     id: row.id,
     title: `№${index + 1} · ${row.productName || "—"}`,
@@ -293,23 +325,25 @@ export function FinishedProductDocumentClient({
       />
     ) : null,
     fields: [
-      { label: "Время снятия бракеража", value: row.rejectionTime, hideIfEmpty: true },
-      { label: "Органолептика", value: row.organoleptic, hideIfEmpty: true },
-      config.showProductTemp
-        ? { label: "T°C внутри продукта", value: row.productTemp, hideIfEmpty: true }
+      { label: cardLabel("rejection", "Время снятия бракеража"), value: row.rejectionTime, hideIfEmpty: true },
+      { label: cardLabel("organoleptic", "Органолептика"), value: row.organoleptic, hideIfEmpty: true },
+      cardVisible("temp")
+        ? { label: cardLabel("temp", "T°C внутри продукта"), value: row.productTemp, hideIfEmpty: true }
         : null,
-      config.showCorrectiveAction
-        ? { label: "Корректирующие действия", value: row.correctiveAction, hideIfEmpty: true }
+      cardVisible("corrective")
+        ? { label: cardLabel("corrective", "Корректирующие действия"), value: row.correctiveAction, hideIfEmpty: true }
         : null,
-      config.showOxygenLevel
-        ? { label: "Остаточный уровень кислорода, % об.", value: row.oxygenLevel, hideIfEmpty: true }
+      cardVisible("oxygen")
+        ? { label: cardLabel("oxygen", "Остаточный уровень кислорода, % об."), value: row.oxygenLevel, hideIfEmpty: true }
         : null,
-      { label: "Разрешение к реализации", value: row.releasePermissionTime, hideIfEmpty: true },
-      config.showCourierTime
-        ? { label: "Передача курьеру", value: row.courierTransferTime, hideIfEmpty: true }
+      { label: cardLabel("release", "Разрешение к реализации"), value: row.releasePermissionTime, hideIfEmpty: true },
+      cardVisible("courier")
+        ? { label: cardLabel("courier", "Передача курьеру"), value: row.courierTransferTime, hideIfEmpty: true }
         : null,
-      { label: "Исполнитель", value: row.responsiblePerson, hideIfEmpty: true },
-      { label: "Провёл бракераж", value: row.inspectorName, hideIfEmpty: true },
+      cardVisible("responsible")
+        ? { label: cardLabel("responsible", "Исполнитель"), value: row.responsiblePerson, hideIfEmpty: true }
+        : null,
+      { label: cardLabel("inspector", "Провёл бракераж"), value: row.inspectorName, hideIfEmpty: true },
     ].filter((f): f is { label: string; value: string; hideIfEmpty: boolean } => f !== null),
   }));
 
@@ -334,63 +368,52 @@ export function FinishedProductDocumentClient({
    * (14 и 13) с заголовками в 2-3 строки, «Разрешение к реализации»
    * ~150px (13). Раньше ФИО-колонки были по 18 и съедали органолептику.
    */
-  const columns = useMemo<FinishedProductColumn[]>(() => {
-    const list: FinishedProductColumn[] = [
-      { key: "production", label: "Дата, время изготовления", weight: 9, field: "productionDateTime", align: "center" },
-      { key: "rejection", label: "Время снятия бракеража", weight: 7, field: "rejectionTime", align: "center" },
-      {
-        key: "name",
-        label: config.fieldNameMode === "semi" ? "Наименование полуфабриката" : "Наименование блюд (изделий)",
-        weight: 13,
-        field: "productName",
-        list: "finished-product-items",
-      },
-      {
-        key: "organoleptic",
-        label: "Органолептическая оценка (включая оценку степени готовности)",
-        weight: 31,
-        field: "organoleptic",
-      },
-    ];
-    if (config.showProductTemp) {
-      list.push({ key: "temp", label: "T°C внутри продукта", weight: 8, field: "productTemp", align: "center" });
-    }
-    if (config.showCorrectiveAction) {
-      list.push({ key: "corrective", label: "Корректирующие действия", weight: 12, field: "correctiveAction" });
-    }
-    if (config.showOxygenLevel) {
-      list.push({ key: "oxygen", label: "Остаточный уровень кислорода, % об.", weight: 9, field: "oxygenLevel", align: "center" });
-    }
-    list.push({ key: "release", label: "Разрешение к реализации (время)", weight: 13, field: "releasePermissionTime", align: "center" });
-    if (config.showCourierTime) {
-      list.push({ key: "courier", label: "Время передачи блюд курьеру", weight: 9, field: "courierTransferTime", align: "center" });
-    }
-    list.push({
-      key: "responsible",
-      label: "Ответственный исполнитель (ФИО, должность)",
-      weight: 14,
-      field: "responsiblePerson",
-      list: "finished-product-users",
-    });
-    list.push({
-      key: "inspector",
-      label:
-        config.inspectorMode === "commission_signatures"
-          ? "Подписи членов комиссии"
-          : "ФИО лица, проводившего бракераж",
-      weight: 13,
-      field: "inspectorName",
-      list: "finished-product-users",
-    });
-    return list;
-  }, [
-    config.fieldNameMode,
-    config.inspectorMode,
-    config.showCorrectiveAction,
-    config.showCourierTime,
-    config.showOxygenLevel,
-    config.showProductTemp,
-  ]);
+  const resolvedColumns = useMemo(() => resolveColumns("finished_product", config), [config]);
+  const columnByKey = useMemo(
+    () => new Map(resolvedColumns.map((column) => [column.key, column])),
+    [resolvedColumns]
+  );
+  /** Видна ли колонка в таблице, карточках, диалоге строки и печати. */
+  const isColumnVisible = (key: string) => columnByKey.get(key)?.hidden !== true;
+  /** Подпись колонки: своя из набора документа или стандартная `fallback`. */
+  const columnLabel = (key: string, fallback: string) => {
+    const column = columnByKey.get(key);
+    return column && column.label !== column.defaultLabel ? column.label : fallback;
+  };
+  const columns = useMemo<FinishedProductColumn[]>(
+    () =>
+      resolvedColumns
+        .filter((column) => !column.hidden)
+        .map((column) => ({
+          key: column.key,
+          label: column.label,
+          weight: column.weight,
+          align: column.align,
+          ...FINISHED_PRODUCT_COLUMN_FIELDS[column.key],
+        })),
+    [resolvedColumns]
+  );
+
+  // Набор колонок: из «Настроек журнала» — в черновик (сохранит кнопка
+  // модалки), из меню заголовка таблицы — сразу. Старые флаги `showX`
+  // обновляются вместе с набором: их читают печать и TasksFlow.
+  const withColumns = (base: FinishedProductDocumentConfig, next: JournalColumnsConfig): FinishedProductDocumentConfig => ({
+    ...base,
+    columns: next,
+    ...(legacyFlagsFromColumns("finished_product", next) as Pick<
+      FinishedProductDocumentConfig,
+      "showProductTemp" | "showCorrectiveAction" | "showOxygenLevel" | "showCourierTime"
+    >),
+  });
+  const headerEdit = useJournalHeaderEdit();
+  const canManageColumns = headerEdit?.canEditDocument === true;
+  const headerMenu = useColumnHeaderMenu({
+    code: "finished_product",
+    config: config as unknown as Record<string, unknown>,
+    enabled: !readOnly,
+    canApplyToAll: canManageColumns,
+    onChange: (next) => commitConfig(withColumns(config, next), true),
+  });
 
   const columnsWeight = columns.reduce((sum, column) => sum + column.weight, 0);
   /**
@@ -682,6 +705,7 @@ export function FinishedProductDocumentClient({
         {mobileView === "cards" ? (
           <RecordCardsView items={cardItems} emptyLabel="Бракеража пока не зарегистрировано." />
         ) : null}
+        {headerMenu.element}
 
         <MobileViewTableWrapper mobileView={mobileView} className={GRID_VIEWPORT_CLASS}>
           {/*
@@ -742,6 +766,7 @@ export function FinishedProductDocumentClient({
                 <th
                   key={column.key}
                   className={`${GRID_HEAD_CELL_CLASS} px-1.5 py-1.5 text-center text-[11.5px] font-semibold leading-[1.25]`}
+                  {...headerMenu.headerProps(column.key)}
                 >
                   {column.label}
                 </th>
@@ -872,21 +897,21 @@ export function FinishedProductDocumentClient({
               <Label className="text-[13px] font-medium text-[#3c4053]">Органолептическая оценка</Label>
               <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.organoleptic} onChange={(e) => setDraftRow((prev) => ({ ...prev, organoleptic: e.target.value }))} />
             </div>
-            {config.showProductTemp ? (
+            {isColumnVisible("temp") ? (
               <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">T°C внутри продукта</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("temp", "T°C внутри продукта")}</Label>
                 <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productTemp} onChange={(e) => setDraftRow((prev) => ({ ...prev, productTemp: e.target.value }))} />
               </div>
             ) : null}
-            {config.showOxygenLevel ? (
+            {isColumnVisible("oxygen") ? (
               <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">Остаточный уровень кислорода, % об.</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("oxygen", "Остаточный уровень кислорода, % об.")}</Label>
                 <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.oxygenLevel} onChange={(e) => setDraftRow((prev) => ({ ...prev, oxygenLevel: e.target.value }))} />
               </div>
             ) : null}
-            {config.showCorrectiveAction ? (
+            {isColumnVisible("corrective") ? (
               <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">Корректирующие действия</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("corrective", "Корректирующие действия")}</Label>
                 <Textarea className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]" value={draftRow.correctiveAction} onChange={(e) => setDraftRow((prev) => ({ ...prev, correctiveAction: e.target.value }))} />
               </div>
             ) : null}
@@ -921,19 +946,21 @@ export function FinishedProductDocumentClient({
                 <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(parseDateTime(prev.releasePermissionTime).date, e.target.value) }))} />
               </div>
             </div>
-            {config.showCourierTime ? (
+            {isColumnVisible("courier") ? (
               <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время передачи блюд курьеру</Label>
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("courier", "Дата и время передачи блюд курьеру")}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(e.target.value, parseDateTime(prev.courierTransferTime).time) }))} />
                   <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(parseDateTime(prev.courierTransferTime).date, e.target.value) }))} />
                 </div>
               </div>
             ) : null}
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Ответственный исполнитель</Label>
-              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.responsiblePerson} onChange={(e) => setDraftRow((prev) => ({ ...prev, responsiblePerson: e.target.value }))} list="finished-product-users" />
-            </div>
+            {isColumnVisible("responsible") ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("responsible", "Ответственный исполнитель")}</Label>
+                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.responsiblePerson} onChange={(e) => setDraftRow((prev) => ({ ...prev, responsiblePerson: e.target.value }))} list="finished-product-users" />
+              </div>
+            ) : null}
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "Лицо, проводившее бракераж"}</Label>
               <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.inspectorName} onChange={(e) => setDraftRow((prev) => ({ ...prev, inspectorName: e.target.value }))} list="finished-product-users" />
@@ -965,47 +992,16 @@ export function FinishedProductDocumentClient({
           }}
           onCancel={() => setSettingsOpen(false)}
         >
-          <div className="space-y-2">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
-              Колонки таблицы
-            </div>
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
-              <Checkbox
-                checked={config.showProductTemp}
-                onCheckedChange={(value) =>
-                  setConfig((prev) => ({ ...prev, showProductTemp: value === true }))
-                }
-              />
-              <span className="text-[14px] text-[#0b1024]">T°C внутри продукта</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
-              <Checkbox
-                checked={config.showCorrectiveAction}
-                onCheckedChange={(value) =>
-                  setConfig((prev) => ({ ...prev, showCorrectiveAction: value === true }))
-                }
-              />
-              <span className="text-[14px] text-[#0b1024]">Корректирующие действия</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
-              <Checkbox
-                checked={config.showOxygenLevel}
-                onCheckedChange={(value) =>
-                  setConfig((prev) => ({ ...prev, showOxygenLevel: value === true }))
-                }
-              />
-              <span className="text-[14px] text-[#0b1024]">Остаточный уровень кислорода, % об.</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
-              <Checkbox
-                checked={config.showCourierTime}
-                onCheckedChange={(value) =>
-                  setConfig((prev) => ({ ...prev, showCourierTime: value === true }))
-                }
-              />
-              <span className="text-[14px] text-[#0b1024]">Время передачи блюд курьеру</span>
-            </label>
-          </div>
+          <JournalColumnsSettings
+            code="finished_product"
+            config={config as unknown as Record<string, unknown>}
+            canApplyToAll={canManageColumns}
+            onChange={(next) => setConfig((prev) => withColumns(prev, next))}
+            onApplyToAll={(next) => {
+              setSettingsOpen(false);
+              headerMenu.openApplyToAll(next);
+            }}
+          />
           <div className="space-y-2">
             <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
               Примечание под таблицей

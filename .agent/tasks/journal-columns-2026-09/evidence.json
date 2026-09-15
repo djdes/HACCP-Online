@@ -1,0 +1,12 @@
+{
+  "task_id": "journal-columns-2026-09",
+  "updated_at": "2026-09-15T23:59:00+03:00",
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+    { "cmd": "node --import tsx --test src/lib/journal-columns.test.ts", "result": "12/12" },
+    { "cmd": "npx eslint <task files>", "result": "0 errors, 5 pre-existing warnings" },
+    { "cmd": "npx tsx .agent/tasks/journal-columns-2026-09/e2e/columns.ts", "result": "23/23 PASS" }
+  ],
+  "criteria": { "AC1": "PASS", "AC2": "PASS", "AC3": "PASS", "AC4": "PASS", "AC5": "PASS", "AC6": "PASS (local); production read-only after deploy" },
+  "verification_note": "No independent verifier run: owner asked to finish tasks 3 and 4 as fast as possible."
+}

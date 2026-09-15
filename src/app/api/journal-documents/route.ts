@@ -862,6 +862,9 @@ export async function POST(request: Request) {
       (normalizedDocumentState.config as Record<string, unknown> | undefined) ??
       undefined,
     slotOverrides,
+    // Переключатели колонок в диалоге создания стартуют с общего набора
+    // организации, поэтому присланные флаги — выбор человека.
+    respectColumnFlags: true,
   });
 
   const finalResponsibleUserId =
