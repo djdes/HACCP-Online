@@ -44,9 +44,13 @@ test("в src нет литералов ООО \"Тест\" / ООО \"Орган
 test("клиенты журналов не подставляют «первого сотрудника в списке»", () => {
   // Предвыбранный первый человек неотличим от выбора: документ или строка
   // уходили на случайного сотрудника (часто — на аккаунт владельца).
-  const offenders = walk("src/components/journals").filter((file) =>
-    /\b(users|employees)\[0\](\?\.|\.|\s*\|\|)/.test(read(file))
-  );
+  const files = [
+    ...walk("src/components/journals"),
+    "src/lib/acceptance-document.ts",
+    "src/lib/cleaning-ventilation-checklist-document.ts",
+    "src/lib/intensive-cooling-document.ts",
+  ];
+  const offenders = files.filter((file) => /\b(users|employees)\[0\]/.test(read(file)));
   assert.deepEqual(offenders, []);
 });
 

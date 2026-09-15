@@ -810,6 +810,13 @@ export function GlassControlDocumentClient(props: Props) {
   }
 
   async function syncAutoFill(nextValue: boolean) {
+    // Проверяем до записи флага: иначе автозаполнение включилось бы на
+    // сервере, а ночной cron подписал бы строки кем попало.
+    if (nextValue && !fallbackEmployeeId) {
+      toast.error(NO_ROW_EMPLOYEE_MESSAGE);
+      return;
+    }
+
     const patchResponse = await fetch(`/api/journal-documents/${props.documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -818,11 +825,6 @@ export function GlassControlDocumentClient(props: Props) {
 
     if (!patchResponse.ok) {
       toast.error("Не удалось обновить автозаполнение");
-      return;
-    }
-
-    if (nextValue && !fallbackEmployeeId) {
-      toast.error(NO_ROW_EMPLOYEE_MESSAGE);
       return;
     }
 
@@ -1104,7 +1106,7 @@ export function GlassControlDocumentClient(props: Props) {
           dateFrom: props.dateFrom,
           controlFrequency: config.controlFrequency || GLASS_CONTROL_DEFAULT_FREQUENCY,
           responsibleTitle: props.responsibleTitle || responsibleOptions.titles[0] || "Управляющий",
-          responsibleUserId: props.responsibleUserId || fallbackEmployeeId,
+          responsibleUserId: props.responsibleUserId || "",
         }}
         onSave={saveSettings}
         useV2={props.useV2}

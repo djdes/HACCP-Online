@@ -710,7 +710,9 @@ export function StaffTrainingDocumentClient({
             </Select>
 
             <div className="flex justify-end pt-2">
-              <Button onClick={saveDraftRow}>Добавить</Button>
+              <Button onClick={saveDraftRow} disabled={!draftRow.employeeId}>
+                Добавить
+              </Button>
             </div>
           </div>
         </DialogContent>

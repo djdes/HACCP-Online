@@ -34,6 +34,8 @@ import {
   toIsoDate,
 } from "@/lib/glass-control-document";
 import { usePositionEmployeeCascade } from "@/components/shared/position-select";
+import { useJournalCreateDefaults } from "@/components/journals/journal-create-defaults";
+import { getUserPositionLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
@@ -81,16 +83,19 @@ type FormState = {
   responsibleUserId: string;
 };
 
-function buildDefaultState(users: UserItem[]): FormState {
-  const options = getGlassControlResponsibleOptions(users);
-  const fallbackUser = options.management[0] || users[0];
+function buildDefaultState(users: UserItem[], defaultResponsibleUserId: string | null): FormState {
+  // Предвыбор — только человек из «Ответственных за журналы»: первого
+  // руководителя по списку сервер не отличил бы от выбора.
+  const preset = defaultResponsibleUserId
+    ? users.find((user) => user.id === defaultResponsibleUserId) ?? null
+    : null;
 
   return {
     title: GLASS_CONTROL_DOCUMENT_TITLE,
     dateFrom: toIsoDate(new Date()),
     controlFrequency: GLASS_CONTROL_DEFAULT_FREQUENCY,
-    responsibleTitle: "Управляющий",
-    responsibleUserId: fallbackUser?.id || "",
+    responsibleTitle: preset ? getUserPositionLabel(preset) : "",
+    responsibleUserId: preset?.id ?? "",
   };
 }
 
@@ -251,7 +256,11 @@ export function GlassControlDocumentsClient(props: Props) {
   const routeCode = props.routeCode || props.templateCode;
   const [creating, setCreating] = useState(false);
   const [editingDocument, setEditingDocument] = useState<DocumentItem | null>(null);
-  const defaultState = useMemo(() => buildDefaultState(props.users), [props.users]);
+  const createDefaults = useJournalCreateDefaults();
+  const defaultState = useMemo(
+    () => buildDefaultState(props.users, createDefaults.defaultResponsibleUserId),
+    [createDefaults.defaultResponsibleUserId, props.users]
+  );
 
   async function createDocument(state: FormState) {
     const config = {
@@ -491,9 +500,8 @@ export function GlassControlDocumentsClient(props: Props) {
                 dateFrom: editingDocument.dateFrom,
                 controlFrequency:
                   normalizeGlassControlConfig(editingDocument.config).controlFrequency,
-                responsibleTitle: editingDocument.responsibleTitle || "Управляющий",
-                responsibleUserId:
-                  editingDocument.responsibleUserId || defaultState.responsibleUserId,
+                responsibleTitle: editingDocument.responsibleTitle || "",
+                responsibleUserId: editingDocument.responsibleUserId || "",
               }
             : defaultState
         }

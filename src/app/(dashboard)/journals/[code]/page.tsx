@@ -3363,10 +3363,12 @@ export default async function JournalDocumentsPage({
             },
             orderBy: { createdAt: "asc" },
           }),
+          // Ростер как у страницы документа: без архивных и ROOT — иначе
+          // диалог настроек предлагал уволенного сотрудника.
           db.user.findMany({
             where: {
               organizationId: getActiveOrgId(session),
-              isActive: true,
+              ...ORG_ROSTER_WHERE,
             },
             select: { id: true, name: true, role: true, positionTitle: true, jobPosition: { select: { name: true, categoryKey: true } } },
             orderBy: [{ role: "asc" }, { name: "asc" }],

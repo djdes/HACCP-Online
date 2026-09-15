@@ -22,7 +22,7 @@ import {
   normalizeAcceptanceDocumentConfig,
   type AcceptanceDocumentConfig,
 } from "@/lib/acceptance-document";
-import { getUserRoleLabel } from "@/lib/user-roles";
+import { getUserPositionLabel } from "@/lib/user-roles";
 import { useJournalCreateDefaults } from "@/components/journals/journal-create-defaults";
 import {
   EMPTY_STATE_CREATE_BUTTON_CLASS,
@@ -131,7 +131,7 @@ function getDefaultDialogState(
         ? users.find((user) => user.id === defaultResponsibleUserId) ?? null
         : null;
       return {
-        responsibleTitle: preset ? getUserRoleLabel(preset.role) : "",
+        responsibleTitle: preset ? getUserPositionLabel(preset) : "",
         responsibleUserId: preset?.id ?? "",
       };
     })(),
@@ -387,6 +387,11 @@ export function IncomingControlDocumentsClient({
     const config = {
       // Без строк-образцов: новый документ реальной организации пустой.
       ...buildConfigFromPayload({ ...payload, responsibleUserId }, false),
+      // В конфиг — только выбранный человек. Подставленного библиотекой
+      // «по умолчанию» не шлём: сервер принял бы его за выбор, а должность
+      // разошлась бы с человеком, которого назначат «Ответственные за журналы».
+      defaultResponsibleUserId: responsibleUserId || null,
+      defaultResponsibleTitle: payload.responsibleTitle || null,
       expiryFieldLabel: payload.expiryFieldLabel,
       showPackagingCompliance: payload.showPackagingCompliance,
     };

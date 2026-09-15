@@ -1,3 +1,5 @@
+import { isPlaceholderStaffUser } from "@/lib/journal-roster";
+
 export const USER_ROLE_VALUES = [
   "manager",
   "head_chef",
@@ -254,17 +256,37 @@ export function hasNormalizedUserRole(
   return normalizeUserRole(role) === expectedRole;
 }
 
+/**
+ * Аккаунт, которого нельзя подставлять «по умолчанию»: ROOT и заглушки
+ * (имя = почта из мгновенной регистрации, демо «Иванов И.И.»). Если имени
+ * в объекте нет, судить не по чему — считаем обычным сотрудником.
+ */
+function isDefaultPickExcluded(user: { role?: string | null }): boolean {
+  const record = user as { name?: unknown; email?: unknown; isRoot?: unknown };
+  if (record.isRoot === true) return true;
+  if (typeof record.name !== "string") return false;
+  return isPlaceholderStaffUser({
+    name: record.name,
+    email: typeof record.email === "string" ? record.email : null,
+  });
+}
+
 export function pickUserByRolePriority<
   T extends { role?: string | null }
 >(users: T[], roles: readonly UserRole[]): T | null {
+  // Раньше первым «управляющим» оказывался аккаунт мгновенной регистрации,
+  // названный почтой, — и он вставал ответственным журнала. Заглушки и ROOT
+  // берём, только если больше некого.
+  const real = users.filter((user) => !isDefaultPickExcluded(user));
+  const pool = real.length > 0 ? real : users;
   for (const role of roles) {
-    const match = users.find((user) => hasNormalizedUserRole(user.role, role));
+    const match = pool.find((user) => hasNormalizedUserRole(user.role, role));
     if (match) {
       return match;
     }
   }
 
-  return users[0] || null;
+  return pool[0] || null;
 }
 
 export function isManagerRole(role: string | null | undefined): boolean {

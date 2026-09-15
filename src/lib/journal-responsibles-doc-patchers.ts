@@ -84,6 +84,20 @@ function patchResponsibleUser(
   return { ...cfg, [field]: userId };
 }
 
+function patchAcceptanceResponsible(
+  cfg: ConfigObj,
+  userId: string | null,
+  ctx: DocPatcherCtx
+): ConfigObj {
+  if (!userId) return cfg;
+  const title = ctx.getPositionTitle(userId);
+  return {
+    ...cfg,
+    defaultResponsibleUserId: userId,
+    ...(title ? { defaultResponsibleTitle: title } : {}),
+  };
+}
+
 const PATCHERS: Record<string, Patcher> = {
   // ═══════════════════════════════════════════════════════════════
   // Pattern A: single primary user → top-level config field
@@ -153,11 +167,13 @@ const PATCHERS: Record<string, Patcher> = {
   intensive_cooling: (cfg, slots) =>
     patchResponsibleUser(cfg, slots.main ?? null, "defaultResponsibleUserId"),
 
-  incoming_control: (cfg, slots) =>
-    patchResponsibleUser(cfg, slots.main ?? null, "defaultResponsibleUserId"),
+  // Приёмка: вместе с человеком — его должность, иначе в карточке списка и
+  // в новых строках стояла бы должность другого сотрудника.
+  incoming_control: (cfg, slots, ctx) =>
+    patchAcceptanceResponsible(cfg, slots.main ?? null, ctx),
 
-  incoming_raw_materials_control: (cfg, slots) =>
-    patchResponsibleUser(cfg, slots.main ?? null, "defaultResponsibleUserId"),
+  incoming_raw_materials_control: (cfg, slots, ctx) =>
+    patchAcceptanceResponsible(cfg, slots.main ?? null, ctx),
 
   perishable_rejection: (cfg, slots) =>
     patchResponsibleUser(cfg, slots.main ?? null, "defaultResponsibleUserId"),

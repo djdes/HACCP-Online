@@ -1,4 +1,5 @@
 import { formatTimesRu } from "@/lib/plural-ru";
+import { pickPrimaryManager } from "@/lib/user-roles";
 
 export const CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE =
   "cleaning_ventilation_checklist";
@@ -113,15 +114,9 @@ export function getRoleLabel(role: string) {
 }
 
 export function getPreferredResponsibleUserId(users: BasicUser[]) {
-  // Префиксная иерархия: новые → старые роли → любой.
-  return (
-    users.find((user) => user.role === "manager")?.id ||
-    users.find((user) => user.role === "owner")?.id ||
-    users.find((user) => user.role === "head_chef")?.id ||
-    users.find((user) => user.role === "technologist")?.id ||
-    users[0]?.id ||
-    ""
-  );
+  // Руководство (новые и старые роли), иначе любой сотрудник — но не
+  // аккаунт-заглушка «имя = почта», пока в организации есть живые люди.
+  return pickPrimaryManager(users)?.id || "";
 }
 
 export function getDefaultCleaningVentilationConfig(
