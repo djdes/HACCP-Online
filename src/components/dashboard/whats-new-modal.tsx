@@ -27,6 +27,7 @@ import {
   Table2,
   Thermometer,
   type LucideIcon,
+  UserCheck,
   Users,
   Wand2,
   WifiOff,
@@ -112,6 +113,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Голосовой ввод": MicVocal,
   "Жесты на телефоне": Smartphone,
   "Поиск и навигация": Search,
+  "Ответственные в журналах": UserCheck,
 };
 
 function iconForCategory(name: string): LucideIcon {

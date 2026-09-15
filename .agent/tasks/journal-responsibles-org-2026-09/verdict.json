@@ -1,0 +1,153 @@
+{
+  "task_id": "journal-responsibles-org-2026-09",
+  "verified_at": "2026-09-15T20:10:00+03:00",
+  "round": 2,
+  "verifier": "task-verifier (fresh re-verification of the working tree after round-1 FAIL on AC3 and AC8)",
+  "overall": "UNKNOWN",
+  "local_verdict": "PASS",
+  "summary": "AC1-AC10 pass locally. AC11 is UNKNOWN because it can only be checked on production. Both round-1 failures are fixed and re-proven. AC8: the generic adapter (med_books, fryer_oil, sanitary_day_control), complaint_register and the cleaning rooms/control branches now reject an employee of another organization. AC3: a PATCH without responsibleUserId leaves an empty responsible empty, and only an explicit change of the choice inside config moves the responsible. The AC3 spec clarification is judged legitimate.",
+  "scope_note": "Judged the current working tree: commits e1a0114d, 2b903264, 1bd38124 plus uncommitted task files (repair script, journal-repair.ts/.test.ts, whats-new, and the round-2 fixes in [id]/route.ts, journal-staff-binding.ts/.test.ts, tasksflow-adapters generic.ts, complaint-register.ts and cleaning.ts, the smoke test, prisma/seed-admin.ts and the e2e scripts). Ignored tsconfig.json noise and unrelated in-progress files for later tasks.",
+  "commands": [
+    { "cmd": "npm run typecheck", "result": "exit 0" },
+    { "cmd": "node --import tsx --test src/lib/journal-roster.test.ts src/lib/journal-staff-binding.test.ts src/lib/journal-default-configs.test.ts src/lib/journal-responsibles-org.smoke.test.ts src/lib/journal-repair.test.ts", "result": "tests 115, pass 115, fail 0. Includes 36 new 'applyRemoteCompletion сверяет сотрудника с организацией: <adapter>' tests and 3 new pickChangedConfigResponsible tests." },
+    { "cmd": "npm run test:gate (DATABASE_URL* = local wesetup_e2e)", "result": "pass=1264, fail=0, exit 0" },
+    { "cmd": "npx eslint on the 8 round-2 fix files", "result": "0 errors, 3 warnings, all pre-existing: cleaning.ts 1 (same count at HEAD), prisma/seed-admin.ts 2 (same at a42eb11c). [id]/route.ts, journal-staff-binding.ts, generic.ts and complaint-register.ts have 0 warnings." },
+    { "cmd": "node guard-on-head.cjs: new smoke-guard logic applied to HEAD and working-tree adapters", "result": "violations at HEAD: cleaning.ts, complaint-register.ts, generic.ts; in the working tree: none. The guard is not vacuous." },
+    { "cmd": "e2e round 2: setup-db.ts, then create-docs.ts, then verify-docs.ts", "result": "setup exit 0; create-docs 67/68; verify-docs 26/28. All 5 new checks for the fixes PASS. The 3 failures are environmental: POST /api/settings/journal-responsibles/recreate-documents answered 'Лимит пересоздания: 2 раза в час. Подождите 31 мин.'. That per-organization limit already exists at HEAD (recreate-documents/route.ts:52), and the verifier's round-1 run plus the builder's rerun had used it up. verify-docs 'в организации A есть документы (создание + пересоздание + cron)' (21) and 'пересоздание/cron создали документы без «E2E» в названии' (0) fail as a consequence: with no recreate, the active E2E documents still cover today, so cron has nothing to create. `git diff HEAD` is empty for recreate-documents, journal-responsibles-cascade.ts, journal-auto-create.ts, journal-documents/route.ts, journal-roster(-db).ts, cron/auto-create-journals, journal-default-configs.ts, journal-document-entries-seed.ts and journal-responsibles-doc-patchers.ts. Those paths are therefore byte-identical to round 1, when the same checks passed (create-docs 66/66, verify-docs 25/25). The cron path was re-proven now by probe P10." },
+    { "cmd": "node --import tsx <scratchpad>/verifier/probe.ts (local e2e DB only, cleans up after itself)", "result": "28/28 PASS (P1-P10, details per criterion)" }
+  ],
+  "criteria": [
+    {
+      "id": "AC1",
+      "status": "PASS",
+      "evidence": [
+        "e2e round 2 create-docs: for all 8 journals, '<code>: создание с явным ответственным → 201', '<code>: сохранён выбранный ответственный' and '<code>: должность в шапке — должность выбранного' PASS; 'hygiene: сохранён выбранный проверяющий' and 'только должность «Повар» → ответственный Повар' PASS.",
+        "Probe P4: explicit responsible (cook) and verifier (head) on all 8 journals give 201, both kept, responsibleTitle='Повар'.",
+        "Probe P5 (saved slots main=head, _verifier=manager on hygiene and cold_equipment_control): an explicit responsible beats the slot, the slot fills the unset verifier, and the config carries the chosen user. With no choice, the slot responsible and verifier are used.",
+        "Code: src/app/api/journal-documents/route.ts:279-293, :822-871, :1000 (unchanged since round 1)."
+      ]
+    },
+    {
+      "id": "AC2",
+      "status": "PASS",
+      "evidence": [
+        "e2e round 2 create-docs: 'чужой ответственный (из другой организации|ROOT|архивный) → 400 responsible-not-in-org', 'чужой проверяющий → 400', 'PATCH с чужим ответственным → 400', 'ROOT: себя ответственным поставить нельзя → 400' PASS.",
+        "Probe P3: an inactive but not archived org-A user, as responsible and as verifier, returns 400 {error:'Сотрудник не найден в организации', code:'responsible-not-in-org'}.",
+        "Code: src/lib/journal-roster.ts:23-27 (ORG_ROSTER_WHERE), :121-151; [id]/route.ts:144-152."
+      ]
+    },
+    {
+      "id": "AC3",
+      "status": "PASS",
+      "spec_clarification": {
+        "judgement": "legitimate",
+        "reasoning": [
+          "The clarification (spec.md, «Уточнения» 2026-09-15) keeps AC3's stated goal: the owner fallback is disabled, and saving rows or cells, including on a document without a responsible, does not assign anyone. It exempts only an explicit change of the responsible chosen inside config.",
+          "The literal reading would regress explicit, pre-existing UX. Spot check: disinfectant, audit-plan, equipment-calibration, training-plan and sanitation-day document clients set responsibleEmployeeId/approveEmployeeId/defaultResponsibleUserId inside config and PATCH without a top-level responsibleUserId. At a42eb11c, disinfectant-document-client.tsx:1226 already sent only `{ title, config }`, and the server of that time always copied the config choice to the document.",
+          "The exemption is narrow and safe: pickChangedConfigResponsible compares the previous and next config under the org roster (ORG_ROSTER_WHERE), so ids of other organizations, ROOT or archived users never qualify (probe P9).",
+          "Process note: the spec was amended after a FAIL verdict. The change is dated and documented; the owner should confirm it when reviewing the task."
+        ]
+      },
+      "evidence": [
+        "Code: src/app/api/journal-documents/[id]/route.ts:317-343. The old branch that filled an empty responsible from config is gone. Without responsibleUserId in the body, the responsible changes only when pickChangedConfigResponsible (src/lib/journal-staff-binding.ts:831-858) reports a changed in-config choice that differs from the stored responsible.",
+        "Round-1 reproduction now passes. Probe P6: null responsible plus an unchanged config (defaultResponsibleUserId=cook) gives PATCH 200 and the responsible stays null. e2e create-docs 'PATCH прежнего конфига документа без ответственного → ответственного нет' PASS.",
+        "Probe P8a (staff-bound disinfectant_usage): a cell save with an unchanged config keeps the null responsible. Probe P8b: the settings choice responsibleEmployeeId=head inside config moves the responsible to head. e2e 'выбор ответственного в настройках реестра (в конфиге) → ответственный документа' PASS (complaint_register).",
+        "Probe P9: an org-B id and a ROOT id placed in config.defaultResponsibleUserId never become the responsible. Probe P7: a config PATCH keeps an archived responsible, with no owner fallback. e2e 'PATCH конфига без ответственного → ответственный прежний' PASS.",
+        "Creation without choice: e2e round 2 verify-docs 'ответственные всех документов — сотрудники A', 'аккаунт «имя = почта» не стал ответственным ни одного документа' and 'проверяющие — живые сотрудники A (не ROOT, не заглушка)' PASS. e2e 'ROOT: ответственный — сотрудник A, не ROOT' PASS. Probe P10 (cron, now): all 8 created documents have real org-A staff as responsible and verifier (no placeholder owner, no ROOT, no org B).",
+        "Unit tests: journal-staff-binding.test.ts, including 'сохранение строк с прежним выбором в конфиге ответственного не назначает', 'выбор ответственного в диалоге настроек (внутри конфига) переносится' and 'чужой id в конфиге не становится ответственным'; journal-roster.test.ts."
+      ]
+    },
+    {
+      "id": "AC4",
+      "status": "PASS",
+      "evidence": [
+        "e2e round 2 verify-docs 'в конфигах документов A нет фикстур' PASS. Probe P10: no fixture markers in the 8 cron-created configs.",
+        "e2e round 2 create-docs '<code>: страница документа без фикстур' and 'холодильники: пустой список после сохранения остаётся пустым' PASS.",
+        "Unit tests journal-default-configs.test.ts: '<code>: у реальной организации нет фикстур', 'демо-организация получает прежние образцы', 'нормализаторы не возвращают фикстуры в пустой конфиг'.",
+        "Code: src/lib/journal-default-configs.ts:181-192, :238-241, :259-265, :268-280, :374-377 (isDemo branches)."
+      ]
+    },
+    {
+      "id": "AC5",
+      "status": "PASS",
+      "evidence": [
+        "Smoke test 'страница журнала сеет образцы только в демо-организации' PASS (AST: every create and seeder call in [code]/page.tsx is gated by shouldNormalizeDemoSamples = orgSettings?.isDemo === true, page.tsx:1488; no admin@haccp.local).",
+        "e2e round 2 create-docs 'страницы журналов реальной организации не создают образцов' PASS.",
+        "Demo role substitution only when isDemo and matched by email: [code]/documents/[docId]/page.tsx:294-295, hygiene-document.ts:271-299.",
+        "Seeders (code review): prisma/seed.ts:762-805 seeds only into an isDemo showcase org. prisma/seed-admin.ts now makes no changes at all when admin@haccp.local lives in a real organization: it prints an error, sets exitCode 1 and returns before any write. Only reads (user and organization lookup, user count) happen before that point. Demo users living in a non-demo org are skipped."
+      ]
+    },
+    {
+      "id": "AC6",
+      "status": "PASS",
+      "evidence": [
+        "Smoke tests 'в src нет литералов ООО \"Тест\" / ООО \"Организация\"' and 'название по умолчанию — нейтральное «Организация»' PASS; an independent grep of src/ finds 0 matches.",
+        "e2e round 2 create-docs '<code>: страница документа без «Тест»', '<code>: PDF с названием организации и без «Тест»' and 'Mini App документ без «Тест»' PASS."
+      ]
+    },
+    {
+      "id": "AC7",
+      "status": "PASS",
+      "evidence": [
+        "src/app/(dashboard)/settings/journal-responsibles/page.tsx:35 roster excludes ROOT, inactive and archived users.",
+        "e2e round 2 create-docs 'настройки ответственных без ROOT и архивных' PASS.",
+        "src/components/settings/journal-responsibles-client.tsx:69-84: placeholder accounts get tier -1 and rank last in presets. The server auto-pick uses rankRosterForSlot (journal-roster.ts:86-119)."
+      ]
+    },
+    {
+      "id": "AC8",
+      "status": "PASS",
+      "evidence": [
+        "Grep guard: 'пользователь ищется внутри организации: <file>' PASS for all adapter files plus journal-auto-create.ts, staff-journal-autofill.ts and journal-documents/route.ts.",
+        "New AST guard 'applyRemoteCompletion сверяет сотрудника с организацией: <adapter>' PASS for all adapters. The same logic applied to HEAD flags cleaning.ts, complaint-register.ts and generic.ts, so the guard catches the round-1 hole.",
+        "Fixes: src/lib/tasksflow-adapters/generic.ts:446-457 and complaint-register.ts:104-115 load the document's organizationId and return false unless findTaskEmployee finds the rowKey employee. cleaning.ts:368-374 (rooms-mode cleaner) and :399-408 (control-digest controller) apply the same check.",
+        "Probe P1: med_books, fryer_oil and sanitary_day_control (generic adapter) with an org-B employee return false, and 0 entries are written. Probe P2: complaint_register returns false. Round 1 returned true and wrote rows.",
+        "e2e round 2 verify-docs PASS: 'med_books: applyRemoteCompletion с сотрудником B → false, ничего не записано', same for 'fryer_oil' and 'complaint_register', 'hygiene: applyRemoteCompletion с сотрудником B → false', 'perishable: applyRemoteCompletion с сотрудником B → false', 'hygiene: applyRemoteCompletion со своим сотрудником → true', 'hygiene: запись на сотрудника B не создана'.",
+        "An independent scan of all adapters finds none that reads an employee from rowKey without an org-scoped lookup."
+      ]
+    },
+    {
+      "id": "AC9",
+      "status": "PASS",
+      "evidence": [
+        "e2e round 2 verify-docs, all 14 repair checks PASS. Dry-run: 'видит чужого ответственного', 'видит ROOT-проверяющего', 'видит фикстуры и стоковые холодильники', 'видит пару-образец', 'ничего не меняет'. --apply --purge-samples: responsible and verifier fixed, fixtures removed, foreign config reference cleared, placeholder replaced, stock fridges removed, foreign auto-seed row deleted, sample pair deleted. Rerun: 'проблем по исправленным документам нет'. Raw output in raw/repair-dry-run.txt, raw/repair-apply.txt and raw/repair-rerun.txt (regenerated).",
+        "Unit tests journal-repair.test.ts: 5 PASS."
+      ],
+      "observations": [
+        "Config reference repair covers only top-level keys and commission (journal-repair.ts:55-63); nested references such as cleaningResponsibles[].userId are not reported. This does not block the AC, because --apply fixes exactly what the report lists."
+      ]
+    },
+    {
+      "id": "AC10",
+      "status": "PASS",
+      "evidence": [
+        "Typecheck exit 0; task unit tests 115/115; npm run test:gate pass=1264 fail=0; ESLint on the fix files 0 errors with only pre-existing warnings (round 1: 0 new warnings across all 87 task files).",
+        "Local e2e: every check that exercises this task's code passes in round 2, 28/28 verifier probes pass, and the recreate-dependent checks that failed only because of the pre-existing 2-per-hour limit passed in round 1 on byte-identical code (see commands)."
+      ]
+    },
+    {
+      "id": "AC11",
+      "status": "UNKNOWN",
+      "evidence": [
+        "Production-only criterion: read-only diagnostics and a dry-run after deploy, and --apply only after the owner's explicit OK and a backup. The evidence bundle has no production output, and the verifier must not touch production."
+      ]
+    }
+  ],
+  "observations_non_blocking": [
+    "A responsible title set through a PATCH uses the role label, not the job position. Probe P8b stored responsibleTitle='Шеф-повар' for a user whose jobPosition is 'Заведующая производством', because the PATCH roster query ([id]/route.ts:130-140) selects positionTitle but not jobPosition. POST uses the job position.",
+    "src/components/journals/incoming-control-documents-client.tsx:129: the incoming_control create dialog still preselects `config.defaultResponsibleUserId || users[0]?.id`, so the first roster user is sent as an explicit choice and saved slots are bypassed. incoming_control is not among AC1's 8 journals.",
+    "src/components/journals/cleaning-document-client.tsx:1494 sends responsibleUserId = controlResponsibles[0].userId on every save (explicit body field, pre-existing), so a cell save on a cleaning document without a responsible assigns the controller. This is outside the AC3 wording.",
+    "For templates without a staff normalizer (e.g. hygiene), a PATCH stores ids of other organizations or ROOT inside config (config.defaultResponsibleUserId) as-is. They never become the document responsible (probe P9); pre-existing behaviour.",
+    "e2e/create-docs.ts depends on recreate-documents, which is rate-limited to 2 per organization per hour. Back-to-back reruns within an hour fail 3 checks for that reason alone. Consider resetting the limiter in setup-db or making those checks tolerate an HTTP 429."
+  ],
+  "artifacts": {
+    "e2e_results": [
+      ".agent/tasks/journal-responsibles-org-2026-09/e2e/create-docs.json",
+      ".agent/tasks/journal-responsibles-org-2026-09/e2e/verify-docs.json",
+      ".agent/tasks/journal-responsibles-org-2026-09/raw/repair-dry-run.txt",
+      ".agent/tasks/journal-responsibles-org-2026-09/raw/repair-apply.txt",
+      ".agent/tasks/journal-responsibles-org-2026-09/raw/repair-rerun.txt"
+    ],
+    "verifier_scratch": "C:/Users/Yaroslav/AppData/Local/Temp/18/claude/d--www-Wesetup-ru/aa63a183-7b19-487e-8461-b751f0f1c337/scratchpad/verifier/ (probe.ts, probe-r2.log, probe-r2-results.json, run3-*.log, r2-unit.log, r2-typecheck.log, r2-test-gate.log, guard-on-head.cjs)"
+  }
+}

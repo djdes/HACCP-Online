@@ -6,6 +6,7 @@
  *   • completion   = append a new ComplaintRow to config.rows[]
  */
 import { db } from "@/lib/db";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   COMPLAINT_REGISTER_TEMPLATE_CODE,
   type ComplaintDocumentConfig,
@@ -102,9 +103,16 @@ export const complaintRegisterAdapter: JournalAdapter = {
 
     const doc = await db.journalDocument.findUnique({
       where: { id: documentId },
-      select: { config: true, template: { select: { code: true } } },
+      select: { config: true, organizationId: true, template: { select: { code: true } } },
     });
     if (!doc || doc.template.code !== TEMPLATE_CODE) return false;
+    // Жалобу принимает только сотрудник организации документа: id пришёл
+    // из rowKey внешнего сервиса.
+    const employee = await findTaskEmployee({
+      employeeId,
+      organizationId: doc.organizationId,
+    });
+    if (!employee) return false;
 
     const currentConfig = normalizeComplaintConfig(doc.config) as ComplaintDocumentConfig;
 

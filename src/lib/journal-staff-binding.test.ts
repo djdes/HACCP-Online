@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   normalizeJournalDocumentStaffState,
   normalizeJournalStaffBoundConfig,
+  pickChangedConfigResponsible,
   pickFallbackResponsibleUser,
   reconcileNamedStaffSelection,
   type StaffBindingUser,
@@ -100,4 +101,39 @@ test("сохранение конфига дезсредств не вписыв
   };
   assert.equal(config.responsibleEmployeeId, null);
   assert.equal(config.receipts[0]?.responsibleEmployeeId, null);
+});
+
+test("сохранение строк с прежним выбором в конфиге ответственного не назначает", () => {
+  const config = { defaultResponsibleUserId: "cook", rows: [] };
+  assert.equal(
+    pickChangedConfigResponsible({
+      templateCode: "complaint_register",
+      previousConfig: config,
+      nextConfig: { ...config, rows: [{ id: "r1" }] },
+      users: roster,
+    }),
+    null
+  );
+});
+
+test("выбор ответственного в диалоге настроек (внутри конфига) переносится", () => {
+  const choice = pickChangedConfigResponsible({
+    templateCode: "complaint_register",
+    previousConfig: { defaultResponsibleUserId: "cook" },
+    nextConfig: { defaultResponsibleUserId: "mgr" },
+    users: roster,
+  });
+  assert.equal(choice?.responsibleUserId, "mgr");
+});
+
+test("чужой id в конфиге не становится ответственным", () => {
+  assert.equal(
+    pickChangedConfigResponsible({
+      templateCode: "complaint_register",
+      previousConfig: {},
+      nextConfig: { defaultResponsibleUserId: "foreign-user" },
+      users: roster,
+    }),
+    null
+  );
 });

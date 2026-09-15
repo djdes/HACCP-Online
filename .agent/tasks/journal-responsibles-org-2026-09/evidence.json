@@ -1,0 +1,35 @@
+{
+  "task_id": "journal-responsibles-org-2026-09",
+  "updated_at": "2026-09-15T19:55:00+03:00",
+  "stand": {
+    "database": "postgresql://localhost:5432/wesetup_e2e (never .env / 127.0.0.1:5433)",
+    "dev_server": "next dev -p 3020 from d:/www/Wesetup.ru, NEXT_DIST_DIR=.next-e2e"
+  },
+  "commits": ["e1a0114d", "2b903264", "1bd38124", "pending: repair script, adapter org checks, config responsible rule, e2e, WhatsNew"],
+  "verification_rounds": [
+    { "round": 1, "verdict": "FAIL", "failed": ["AC3", "AC8"], "unknown": ["AC11"], "problems": "problems.md" }
+  ],
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+    { "cmd": "npm run test:gate (DATABASE_URL* = wesetup_e2e)", "result": "pass=1264, fail=0" },
+    { "cmd": "npx eslint <fix files>", "result": "0 errors, 1 pre-existing warning (cleaning.ts:14 unused import)" },
+    { "cmd": "node --import tsx --test src/lib/journal-responsibles-org.smoke.test.ts src/lib/journal-staff-binding.test.ts", "result": "78/78, 10/10" },
+    { "cmd": "npx tsx .agent/tasks/journal-responsibles-org-2026-09/e2e/setup-db.ts", "result": "exit 0" },
+    { "cmd": "npx tsx .agent/tasks/journal-responsibles-org-2026-09/e2e/create-docs.ts", "result": "68/68 PASS" },
+    { "cmd": "npx tsx .agent/tasks/journal-responsibles-org-2026-09/e2e/verify-docs.ts", "result": "28/28 PASS" }
+  ],
+  "criteria": {
+    "AC1": { "status": "PASS", "evidence": ["e2e/create-docs.json: explicit responsible/verifier kept for 8 journals"] },
+    "AC2": { "status": "PASS", "evidence": ["e2e/create-docs.json: foreign/ROOT/archived -> 400 responsible-not-in-org"] },
+    "AC3": { "status": "PASS", "evidence": ["e2e/create-docs.json: PATCH of unchanged config keeps null responsible; changed config choice reaches the document", "src/lib/journal-staff-binding.test.ts: pickChangedConfigResponsible", "spec.md «Уточнения» 2026-09-15"] },
+    "AC4": { "status": "PASS", "evidence": ["src/lib/journal-default-configs.test.ts", "e2e/verify-docs.json: no fixtures in org A configs"] },
+    "AC5": { "status": "PASS", "evidence": ["src/lib/journal-responsibles-org.smoke.test.ts AST gate", "e2e/create-docs.json: real org pages create no samples", "prisma/seed-admin.ts leaves real-org admin untouched"] },
+    "AC6": { "status": "PASS", "evidence": ["smoke guard: no ООО \"Тест\" literals", "e2e: pages, Mini App and PDF without «Тест»"] },
+    "AC7": { "status": "PASS", "evidence": ["e2e: settings roster without ROOT", "placeholder ranked last"] },
+    "AC8": { "status": "PASS", "evidence": ["smoke guard: org check in every rowKey-employee applyRemoteCompletion (verified to fail on HEAD generic/complaint/cleaning)", "e2e/verify-docs.json: hygiene, perishable, med_books, fryer_oil, complaint_register with org-B employee -> false"] },
+    "AC9": { "status": "PASS", "evidence": ["raw/repair-dry-run.txt", "raw/repair-apply.txt", "raw/repair-rerun.txt", "src/lib/journal-repair.test.ts"] },
+    "AC10": { "status": "PASS", "evidence": ["commands above"] },
+    "AC11": { "status": "UNKNOWN", "evidence": ["production read-only diagnostics after deploy; --apply only after owner OK and backup"] }
+  },
+  "artifacts": ["e2e/create-docs.json", "e2e/verify-docs.json", "raw/repair-dry-run.txt", "raw/repair-apply.txt", "raw/repair-rerun.txt", "shots/*.png"]
+}

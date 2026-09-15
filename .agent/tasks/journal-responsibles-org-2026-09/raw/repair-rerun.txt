@@ -1,0 +1,18 @@
+══════════════════════════════════════════════════════════════════════════════
+Организация: Кафе «Альфа» (e2e-org-a)
+Режим: только отчёт (dry-run)
+══════════════════════════════════════════════════════════════════════════════
+
+Проблем не найдено.
+
+Найдено (исправится при --apply):
+  documentsChecked: 25
+  responsibleFixed: 0
+  verifierFixed: 0
+  configRefsCleared: 0
+  fixturesCleaned: 0
+  seedEntriesDeleted: 0
+  entriesNeedManual: 0
+  slotsCleared: 0
+  samplesFound: 0
+  samplesDeleted: 0

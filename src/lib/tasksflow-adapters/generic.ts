@@ -19,6 +19,7 @@
  * shape allows for it.
  */
 import { db } from "@/lib/db";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import { FILLING_GUIDES } from "@/lib/journal-filling-guides";
 import { loadPipelineTree } from "@/lib/journal-pipeline-tree";
 import {
@@ -441,6 +442,19 @@ export function buildGenericAdapter(
       // that case we'd need to look up the worker via TaskLink. For
       // simplicity, only handle adapter-row-bound case.
       if (!employeeId) return false;
+
+      // id сотрудника пришёл из rowKey, то есть из внешнего сервиса:
+      // строку журнала пишем только сотруднику организации документа.
+      const doc = await db.journalDocument.findUnique({
+        where: { id: documentId },
+        select: { organizationId: true },
+      });
+      if (!doc) return false;
+      const employee = await findTaskEmployee({
+        employeeId,
+        organizationId: doc.organizationId,
+      });
+      if (!employee) return false;
 
       const dateObj = new Date(`${todayKey}T00:00:00.000Z`);
       if (Number.isNaN(dateObj.getTime())) return false;

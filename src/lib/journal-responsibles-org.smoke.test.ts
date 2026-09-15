@@ -59,6 +59,37 @@ for (const file of ORG_SCOPED_FILES) {
 }
 
 /**
+ * `applyRemoteCompletion` получает id сотрудника из `rowKey`, то есть из
+ * внешнего сервиса. Если адаптер разбирает rowKey на сотрудника, в том же
+ * методе обязана быть сверка с организацией документа — иначе строка
+ * журнала пишется человеку чужой организации (так было у общего адаптера
+ * и у журнала жалоб: поиска пользователя там не было вовсе, и гвард выше
+ * этого не видел).
+ */
+const ROW_KEY_EMPLOYEE_PARSERS = /\b(employeeIdFromRowKey|extractEmployeeId|parseRoomsModeRowKey|parseControlRowKey)\(/;
+const ORG_EMPLOYEE_CHECKS = /\b(findTaskEmployee|findOrgUser)\(/;
+
+for (const file of walk("src/lib/tasksflow-adapters")) {
+  test(`applyRemoteCompletion сверяет сотрудника с организацией: ${file}`, () => {
+    const source = read(file);
+    const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const bodies: string[] = [];
+    function visit(node: ts.Node) {
+      const named =
+        (ts.isMethodDeclaration(node) || ts.isPropertyAssignment(node)) &&
+        node.name.getText(sf) === "applyRemoteCompletion";
+      if (named) bodies.push(node.getText(sf));
+      ts.forEachChild(node, visit);
+    }
+    visit(sf);
+    for (const body of bodies) {
+      if (!ROW_KEY_EMPLOYEE_PARSERS.test(body)) continue;
+      assert.match(body, ORG_EMPLOYEE_CHECKS, `${file}: сотрудник из rowKey не сверяется с организацией`);
+    }
+  });
+}
+
+/**
  * Каждый вызов создания документа/записи в странице журнала лежит под
  * условием с `shouldNormalizeDemoSamples` (демо-организация). Вызовы
  * внутри вспомогательных `ensure*SampleDocuments` проверяются через их

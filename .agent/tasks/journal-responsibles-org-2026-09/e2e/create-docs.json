@@ -1,0 +1,1533 @@
+{
+  "created": {
+    "hygiene": {
+      "auto": "cmu2wtyk606gox09me4u1lj32",
+      "explicit": "cmu2wtype06k1x09mkib3z86g"
+    },
+    "climate_control": {
+      "auto": "cmu2wtytz06nex09m53894opt",
+      "explicit": "cmu2wtyz906o9x09m2u7maaes"
+    },
+    "cold_equipment_control": {
+      "auto": "cmu2wtz3306p4x09ma2h5fxi6",
+      "explicit": "cmu2wtz6m06pzx09mvh9qwtxv"
+    },
+    "cleaning": {
+      "auto": "cmu2wtza706qux09mzxyagi8v",
+      "explicit": "cmu2wtzeh06qvx09mwwd8b7vm"
+    },
+    "uv_lamp_runtime": {
+      "auto": "cmu2wtzha06qwx09mu87n7lk1",
+      "explicit": "cmu2wtzk906qxx09mq2f68nv2"
+    },
+    "disinfectant_usage": {
+      "auto": "cmu2wtzn306qyx09mwil3rqcr",
+      "explicit": "cmu2wtzq506rtx09moi38ik1k"
+    },
+    "finished_product": {
+      "auto": "cmu2wtztj06sox09mw3ju0kxa",
+      "explicit": "cmu2wtzw306spx09md06w2aip"
+    },
+    "perishable_rejection": {
+      "auto": "cmu2wtzys06sqx09mvp7kwhcp",
+      "explicit": "cmu2wu01x06srx09mocto374q"
+    }
+  },
+  "checks": [
+    {
+      "name": "hygiene: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtyk606gox09me4u1lj32",
+          "templateId": "cmu2pwdrt0004t49ms0wwx89n",
+          "organizationId": "e2e-org-a",
+          "title": "E2E hygiene авто",
+          "config": {
+            "defaultResponsibleUserId": "cmu2stnc80007wk9mhv7i9h0s"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "responsibleTitle": "Заведующая производством",
+          "verifierUserId": "cmu2stnbo0005wk9me2bn3w8b",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:38.070Z",
+          "updatedAt": "2026-09-15T16:52:38.070Z"
+        }
+      }
+    },
+    {
+      "name": "hygiene: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtype06k1x09mkib3z86g",
+          "templateId": "cmu2pwdrt0004t49ms0wwx89n",
+          "organizationId": "e2e-org-a",
+          "title": "E2E hygiene явный",
+          "config": {
+            "defaultResponsibleUserId": "cmu2stncj0009wk9mgu2p7eq1"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:38.258Z",
+          "updatedAt": "2026-09-15T16:52:38.258Z"
+        }
+      }
+    },
+    {
+      "name": "hygiene: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "hygiene: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "hygiene: сохранён выбранный проверяющий",
+      "ok": true,
+      "detail": "cmu2stnc80007wk9mhv7i9h0s"
+    },
+    {
+      "name": "climate_control: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtytz06nex09m53894opt",
+          "templateId": "cmu2pwdst000at49miodjcqqb",
+          "organizationId": "e2e-org-a",
+          "title": "E2E climate_control авто",
+          "config": {
+            "rooms": [
+              {
+                "id": "room-cmu2stnhd000jwk9me7z5o3hs",
+                "name": "Склад сухих продуктов",
+                "roomId": "cmu2stnhd000jwk9me7z5o3hs",
+                "humidity": {
+                  "max": 75,
+                  "min": 15,
+                  "enabled": true
+                },
+                "temperature": {
+                  "max": 25,
+                  "min": 18,
+                  "enabled": true
+                }
+              }
+            ],
+            "controlTimes": [
+              "10:00"
+            ],
+            "skipWeekends": false,
+            "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+          "responsibleTitle": "Повар",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:38.422Z",
+          "updatedAt": "2026-09-15T16:52:38.422Z"
+        }
+      }
+    },
+    {
+      "name": "climate_control: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtyz906o9x09m2u7maaes",
+          "templateId": "cmu2pwdst000at49miodjcqqb",
+          "organizationId": "e2e-org-a",
+          "title": "E2E climate_control явный",
+          "config": {
+            "rooms": [
+              {
+                "id": "room-cmu2stnhd000jwk9me7z5o3hs",
+                "name": "Склад сухих продуктов",
+                "roomId": "cmu2stnhd000jwk9me7z5o3hs",
+                "humidity": {
+                  "max": 75,
+                  "min": 15,
+                  "enabled": true
+                },
+                "temperature": {
+                  "max": 25,
+                  "min": 18,
+                  "enabled": true
+                }
+              }
+            ],
+            "controlTimes": [
+              "10:00"
+            ],
+            "skipWeekends": false,
+            "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:38.613Z",
+          "updatedAt": "2026-09-15T16:52:38.613Z"
+        }
+      }
+    },
+    {
+      "name": "climate_control: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "climate_control: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "cold_equipment_control: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtz3306p4x09ma2h5fxi6",
+          "templateId": "cmu2pwdsx000bt49m7jpdf4eq",
+          "organizationId": "e2e-org-a",
+          "title": "E2E cold_equipment_control авто",
+          "config": {
+            "equipment": [],
+            "skipWeekends": false,
+            "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+          "responsibleTitle": "Повар",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:38.751Z",
+          "updatedAt": "2026-09-15T16:52:38.751Z"
+        }
+      }
+    },
+    {
+      "name": "cold_equipment_control: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtz6m06pzx09mvh9qwtxv",
+          "templateId": "cmu2pwdsx000bt49m7jpdf4eq",
+          "organizationId": "e2e-org-a",
+          "title": "E2E cold_equipment_control явный",
+          "config": {
+            "equipment": [],
+            "skipWeekends": false,
+            "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:38.878Z",
+          "updatedAt": "2026-09-15T16:52:38.878Z"
+        }
+      }
+    },
+    {
+      "name": "cold_equipment_control: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "cold_equipment_control: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "cleaning: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtza706qux09mzxyagi8v",
+          "templateId": "cmu2pwdrx0005t49m4ywlw7sn",
+          "organizationId": "e2e-org-a",
+          "title": "E2E cleaning авто",
+          "config": {
+            "marks": {
+              "cmu2stnhd000jwk9me7z5o3hs": {
+                "2026-09-01": "T",
+                "2026-09-02": "T",
+                "2026-09-03": "T",
+                "2026-09-04": "T",
+                "2026-09-05": "T",
+                "2026-09-06": "T",
+                "2026-09-07": "T",
+                "2026-09-08": "T",
+                "2026-09-09": "T",
+                "2026-09-10": "T",
+                "2026-09-11": "T",
+                "2026-09-12": "T",
+                "2026-09-13": "T",
+                "2026-09-14": "T",
+                "2026-09-15": "T",
+                "2026-09-16": "T",
+                "2026-09-17": "T",
+                "2026-09-18": "T",
+                "2026-09-19": "T",
+                "2026-09-20": "T",
+                "2026-09-21": "T",
+                "2026-09-22": "T",
+                "2026-09-23": "T",
+                "2026-09-24": "T",
+                "2026-09-25": "T",
+                "2026-09-26": "T",
+                "2026-09-27": "T",
+                "2026-09-28": "T",
+                "2026-09-29": "T",
+                "2026-09-30": "T"
+              }
+            },
+            "rooms": [],
+            "title": "Журнал уборки",
+            "legend": [
+              "/-/ — Уборка не проводилась",
+              "Т — Текущая",
+              "Г — Генеральная; при генеральной уборке выполняется уборка поверхностей, указанных в текущей уборке, а также промываются стены за оборудованием, вентиляционные зонты при наличии и т.д."
+            ],
+            "matrix": {
+              "cmu2stnhd000jwk9me7z5o3hs": {
+                "2026-09-01": "T",
+                "2026-09-02": "T",
+                "2026-09-03": "T",
+                "2026-09-04": "T",
+                "2026-09-05": "T",
+                "2026-09-06": "T",
+                "2026-09-07": "T",
+                "2026-09-08": "T",
+                "2026-09-09": "T",
+                "2026-09-10": "T",
+                "2026-09-11": "T",
+                "2026-09-12": "T",
+                "2026-09-13": "T",
+                "2026-09-14": "T",
+                "2026-09-15": "T",
+                "2026-09-16": "T",
+                "2026-09-17": "T",
+                "2026-09-18": "T",
+                "2026-09-19": "T",
+                "2026-09-20": "T",
+                "2026-09-21": "T",
+                "2026-09-22": "T",
+                "2026-09-23": "T",
+                "2026-09-24": "T",
+                "2026-09-25": "T",
+                "2026-09-26": "T",
+                "2026-09-27": "T",
+                "2026-09-28": "T",
+                "2026-09-29": "T",
+                "2026-09-30": "T"
+              }
+            },
+            "autoFill": {
+              "enabled": false,
+              "skipWeekends": false,
+              "fillUntilToday": true,
+              "defaultRoomMark": "T"
+            },
+            "schedule": {
+              "ventilation": {
+                "times": [
+                  "12:00",
+                  "10:00",
+                  "23:00"
+                ],
+                "responsibleUserId": "cmu2stnbo0005wk9me2bn3w8b"
+              },
+              "wetCleaning": {
+                "times": [
+                  "12:00",
+                  "18:00"
+                ],
+                "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+              },
+              "disinfection": {
+                "times": [
+                  "14:00",
+                  "12:00",
+                  "23:00"
+                ],
+                "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+              }
+            },
+            "settings": {
+              "skipWeekends": false,
+              "fillUntilToday": true,
+              "autoFillEnabled": false
+            },
+            "procedure": {
+              "surfaces": "",
+              "detergent": "",
+              "ventilationRooms": "Горячий цех",
+              "wetCleaningRooms": "Горячий цех"
+            },
+            "periodicity": {
+              "ventilationPerDay": 3,
+              "wetCleaningPerDay": 2,
+              "disinfectionPerDay": 3
+            },
+            "cleaningMode": "rooms",
+            "skipWeekends": false,
+            "controlUserId": null,
+            "documentTitle": "Журнал уборки",
+            "roomsRaceMode": false,
+            "globalSubtasks": {
+              "current": [],
+              "general": []
+            },
+            "referenceTable": [],
+            "cleanerByRoomId": {},
+            "selectedRoomIds": [
+              "cmu2stnhd000jwk9me7z5o3hs"
+            ],
+            "responsiblePairs": [
+              {
+                "id": "cleaning-pair-c73307e5-86bc-49ab-8d3f-0bc98f117518",
+                "controlTitle": "Управляющий",
+                "cleaningTitle": "Повар",
+                "controlUserId": "cmu2stnbo0005wk9me2bn3w8b",
+                "cleaningUserId": "cmu2stncc0008wk9m2yu67ip7",
+                "controlUserName": "Мария Руководитель",
+                "cleaningUserName": "Иван Повар"
+              }
+            ],
+            "verifierByRoomId": {},
+            "responsiblePersons": [
+              {
+                "title": "Повар",
+                "userId": "cmu2stncc0008wk9m2yu67ip7"
+              },
+              {
+                "title": "Управляющий",
+                "userId": "cmu2stnbo0005wk9me2bn3w8b"
+              }
+            ],
+            "ventilationEnabled": true,
+            "cleaningSubtaskMode": "perRoom",
+            "controlResponsibles": [
+              {
+                "id": "cleaning-control-3ee7952e-e2a8-49ae-90ef-b83e429a49d6",
+                "code": "C1",
+                "kind": "control",
+                "name": "Мария Руководитель",
+                "title": "Управляющий",
+                "userId": "cmu2stnbo0005wk9me2bn3w8b",
+                "userName": "Мария Руководитель"
+              }
+            ],
+            "cleaningResponsibles": [
+              {
+                "id": "cleaning-cleaning-2a7bbe0c-d938-42bd-9d96-f544b058b969",
+                "code": "C1",
+                "kind": "cleaning",
+                "name": "Ольга Уборщица",
+                "title": "Уборщица",
+                "userId": "cmu2stncj0009wk9mgu2p7eq1",
+                "userName": "Ольга Уборщица"
+              }
+            ],
+            "selectedCleanerUserIds": [
+              "cmu2stncc0008wk9m2yu67ip7"
+            ]
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.007Z",
+          "updatedAt": "2026-09-15T16:52:39.007Z"
+        }
+      }
+    },
+    {
+      "name": "cleaning: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtzeh06qvx09mwwd8b7vm",
+          "templateId": "cmu2pwdrx0005t49m4ywlw7sn",
+          "organizationId": "e2e-org-a",
+          "title": "E2E cleaning явный",
+          "config": {
+            "marks": {
+              "cmu2stnhd000jwk9me7z5o3hs": {
+                "2026-09-01": "T",
+                "2026-09-02": "T",
+                "2026-09-03": "T",
+                "2026-09-04": "T",
+                "2026-09-05": "T",
+                "2026-09-06": "T",
+                "2026-09-07": "T",
+                "2026-09-08": "T",
+                "2026-09-09": "T",
+                "2026-09-10": "T",
+                "2026-09-11": "T",
+                "2026-09-12": "T",
+                "2026-09-13": "T",
+                "2026-09-14": "T",
+                "2026-09-15": "T",
+                "2026-09-16": "T",
+                "2026-09-17": "T",
+                "2026-09-18": "T",
+                "2026-09-19": "T",
+                "2026-09-20": "T",
+                "2026-09-21": "T",
+                "2026-09-22": "T",
+                "2026-09-23": "T",
+                "2026-09-24": "T",
+                "2026-09-25": "T",
+                "2026-09-26": "T",
+                "2026-09-27": "T",
+                "2026-09-28": "T",
+                "2026-09-29": "T",
+                "2026-09-30": "T"
+              }
+            },
+            "rooms": [],
+            "title": "Журнал уборки",
+            "legend": [
+              "/-/ — Уборка не проводилась",
+              "Т — Текущая",
+              "Г — Генеральная; при генеральной уборке выполняется уборка поверхностей, указанных в текущей уборке, а также промываются стены за оборудованием, вентиляционные зонты при наличии и т.д."
+            ],
+            "matrix": {
+              "cmu2stnhd000jwk9me7z5o3hs": {
+                "2026-09-01": "T",
+                "2026-09-02": "T",
+                "2026-09-03": "T",
+                "2026-09-04": "T",
+                "2026-09-05": "T",
+                "2026-09-06": "T",
+                "2026-09-07": "T",
+                "2026-09-08": "T",
+                "2026-09-09": "T",
+                "2026-09-10": "T",
+                "2026-09-11": "T",
+                "2026-09-12": "T",
+                "2026-09-13": "T",
+                "2026-09-14": "T",
+                "2026-09-15": "T",
+                "2026-09-16": "T",
+                "2026-09-17": "T",
+                "2026-09-18": "T",
+                "2026-09-19": "T",
+                "2026-09-20": "T",
+                "2026-09-21": "T",
+                "2026-09-22": "T",
+                "2026-09-23": "T",
+                "2026-09-24": "T",
+                "2026-09-25": "T",
+                "2026-09-26": "T",
+                "2026-09-27": "T",
+                "2026-09-28": "T",
+                "2026-09-29": "T",
+                "2026-09-30": "T"
+              }
+            },
+            "autoFill": {
+              "enabled": false,
+              "skipWeekends": false,
+              "fillUntilToday": true,
+              "defaultRoomMark": "T"
+            },
+            "schedule": {
+              "ventilation": {
+                "times": [
+                  "12:00",
+                  "10:00",
+                  "23:00"
+                ],
+                "responsibleUserId": "cmu2stnbo0005wk9me2bn3w8b"
+              },
+              "wetCleaning": {
+                "times": [
+                  "12:00",
+                  "18:00"
+                ],
+                "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+              },
+              "disinfection": {
+                "times": [
+                  "14:00",
+                  "12:00",
+                  "23:00"
+                ],
+                "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+              }
+            },
+            "settings": {
+              "skipWeekends": false,
+              "fillUntilToday": true,
+              "autoFillEnabled": false
+            },
+            "procedure": {
+              "surfaces": "",
+              "detergent": "",
+              "ventilationRooms": "Горячий цех",
+              "wetCleaningRooms": "Горячий цех"
+            },
+            "periodicity": {
+              "ventilationPerDay": 3,
+              "wetCleaningPerDay": 2,
+              "disinfectionPerDay": 3
+            },
+            "cleaningMode": "rooms",
+            "skipWeekends": false,
+            "controlUserId": null,
+            "documentTitle": "Журнал уборки",
+            "roomsRaceMode": false,
+            "globalSubtasks": {
+              "current": [],
+              "general": []
+            },
+            "referenceTable": [],
+            "cleanerByRoomId": {},
+            "selectedRoomIds": [
+              "cmu2stnhd000jwk9me7z5o3hs"
+            ],
+            "responsiblePairs": [
+              {
+                "id": "cleaning-pair-c73307e5-86bc-49ab-8d3f-0bc98f117518",
+                "controlTitle": "Управляющий",
+                "cleaningTitle": "Повар",
+                "controlUserId": "cmu2stnbo0005wk9me2bn3w8b",
+                "cleaningUserId": "cmu2stncc0008wk9m2yu67ip7",
+                "controlUserName": "Мария Руководитель",
+                "cleaningUserName": "Иван Повар"
+              }
+            ],
+            "verifierByRoomId": {},
+            "responsiblePersons": [
+              {
+                "title": "Повар",
+                "userId": "cmu2stncc0008wk9m2yu67ip7"
+              },
+              {
+                "title": "Управляющий",
+                "userId": "cmu2stnbo0005wk9me2bn3w8b"
+              }
+            ],
+            "ventilationEnabled": true,
+            "cleaningSubtaskMode": "perRoom",
+            "controlResponsibles": [
+              {
+                "id": "cleaning-control-3ee7952e-e2a8-49ae-90ef-b83e429a49d6",
+                "code": "C1",
+                "kind": "control",
+                "name": "Мария Руководитель",
+                "title": "Управляющий",
+                "userId": "cmu2stnbo0005wk9me2bn3w8b",
+                "userName": "Мария Руководитель"
+              }
+            ],
+            "cleaningResponsibles": [
+              {
+                "id": "cleaning-cleaning-2a7bbe0c-d938-42bd-9d96-f544b058b969",
+                "code": "C1",
+                "kind": "cleaning",
+                "name": "Ольга Уборщица",
+                "title": "Уборщица",
+                "userId": "cmu2stncj0009wk9mgu2p7eq1",
+                "userName": "Ольга Уборщица"
+              }
+            ],
+            "selectedCleanerUserIds": [
+              "cmu2stncc0008wk9m2yu67ip7"
+            ]
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.161Z",
+          "updatedAt": "2026-09-15T16:52:39.161Z"
+        }
+      }
+    },
+    {
+      "name": "cleaning: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "cleaning: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "uv_lamp_runtime: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtzha06qwx09mu87n7lk1",
+          "templateId": "cmu2pwdua000nt49m4r0u818q",
+          "organizationId": "e2e-org-a",
+          "title": "E2E uv_lamp_runtime авто",
+          "config": {
+            "spec": {
+              "radiationMode": "continuous",
+              "disinfectionAir": true,
+              "controlFrequency": "1 раз(а) в смену",
+              "autoFillStartTime": "09:00",
+              "commissioningDate": "2026-09-01",
+              "lampLifetimeHours": 10000,
+              "microorganismType": "санитарно-показательный",
+              "disinfectionSurface": true,
+              "disinfectionCondition": "with_people",
+              "autoFillDurationMinutes": 60,
+              "minIntervalBetweenSessions": ""
+            },
+            "areaName": "",
+            "lampNumber": "1",
+            "defaultResponsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+          "responsibleTitle": "Повар",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.262Z",
+          "updatedAt": "2026-09-15T16:52:39.262Z"
+        }
+      }
+    },
+    {
+      "name": "uv_lamp_runtime: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtzk906qxx09mq2f68nv2",
+          "templateId": "cmu2pwdua000nt49m4r0u818q",
+          "organizationId": "e2e-org-a",
+          "title": "E2E uv_lamp_runtime явный",
+          "config": {
+            "spec": {
+              "radiationMode": "continuous",
+              "disinfectionAir": true,
+              "controlFrequency": "1 раз(а) в смену",
+              "autoFillStartTime": "09:00",
+              "commissioningDate": "2026-09-01",
+              "lampLifetimeHours": 10000,
+              "microorganismType": "санитарно-показательный",
+              "disinfectionSurface": true,
+              "disinfectionCondition": "with_people",
+              "autoFillDurationMinutes": 60,
+              "minIntervalBetweenSessions": ""
+            },
+            "areaName": "",
+            "lampNumber": "1",
+            "defaultResponsibleUserId": "cmu2stncj0009wk9mgu2p7eq1"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.369Z",
+          "updatedAt": "2026-09-15T16:52:39.369Z"
+        }
+      }
+    },
+    {
+      "name": "uv_lamp_runtime: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "uv_lamp_runtime: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "disinfectant_usage: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtzn306qyx09mwil3rqcr",
+          "templateId": "cmu2pwdtj000gt49mu3qrb3y4",
+          "organizationId": "e2e-org-a",
+          "title": "E2E disinfectant_usage авто",
+          "config": {
+            "receipts": [],
+            "consumptions": [],
+            "subdivisions": [],
+            "responsibleRole": "",
+            "responsibleEmployee": "",
+            "responsibleEmployeeId": "cmu2stncc0008wk9m2yu67ip7"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+          "responsibleTitle": "Повар",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.471Z",
+          "updatedAt": "2026-09-15T16:52:39.471Z"
+        }
+      }
+    },
+    {
+      "name": "disinfectant_usage: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtzq506rtx09moi38ik1k",
+          "templateId": "cmu2pwdtj000gt49mu3qrb3y4",
+          "organizationId": "e2e-org-a",
+          "title": "E2E disinfectant_usage явный",
+          "config": {
+            "receipts": [],
+            "consumptions": [],
+            "subdivisions": [],
+            "responsibleRole": "",
+            "responsibleEmployee": "",
+            "responsibleEmployeeId": "cmu2stncj0009wk9mgu2p7eq1"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.581Z",
+          "updatedAt": "2026-09-15T16:52:39.581Z"
+        }
+      }
+    },
+    {
+      "name": "disinfectant_usage: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "disinfectant_usage: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "finished_product: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtztj06sox09mw3ju0kxa",
+          "templateId": "cmu2pwdro0003t49mw2klzjfs",
+          "organizationId": "e2e-org-a",
+          "title": "E2E finished_product авто",
+          "config": {
+            "rows": [
+              {
+                "id": "finished-product-row-6bc36adf-fdb1-42d1-a9d8-9f2f674596b9",
+                "oxygenLevel": "",
+                "productName": "",
+                "productTemp": "",
+                "organoleptic": "",
+                "inspectorName": "",
+                "rejectionTime": "",
+                "releaseAllowed": "yes",
+                "correctiveAction": "",
+                "organolepticValue": "",
+                "responsiblePerson": "",
+                "organolepticResult": "",
+                "productionDateTime": "",
+                "courierTransferTime": "",
+                "releasePermissionTime": ""
+              }
+            ],
+            "commission": {
+              "chefUserId": "cmu2stncc0008wk9m2yu67ip7",
+              "member1UserId": "cmu2stncj0009wk9mgu2p7eq1",
+              "member2UserId": "cmu2stnbo0005wk9me2bn3w8b"
+            },
+            "footerNote": "",
+            "itemsCatalog": [
+              "Сметана 20 %",
+              "Творог 9 %"
+            ],
+            "productLists": [
+              {
+                "id": "finished-product-list-f70c98d1-f064-4084-b52c-a7718c1e42e3",
+                "name": "Основной список",
+                "items": [
+                  "Сметана 20 %",
+                  "Творог 9 %"
+                ]
+              },
+              {
+                "id": "finished-product-list-5113f1f1-ede0-4e8d-a8a3-6eb1cdbed8ae",
+                "name": "Сезонные позиции",
+                "items": []
+              }
+            ],
+            "fieldNameMode": "dish",
+            "inspectorMode": "inspector_name",
+            "showCourierTime": true,
+            "showOxygenLevel": false,
+            "showProductTemp": true,
+            "showCorrectiveAction": true,
+            "defaultResponsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+          "responsibleTitle": "Повар",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.703Z",
+          "updatedAt": "2026-09-15T16:52:39.703Z"
+        }
+      }
+    },
+    {
+      "name": "finished_product: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtzw306spx09md06w2aip",
+          "templateId": "cmu2pwdro0003t49mw2klzjfs",
+          "organizationId": "e2e-org-a",
+          "title": "E2E finished_product явный",
+          "config": {
+            "rows": [
+              {
+                "id": "finished-product-row-3de23e37-b4b3-4ca8-9e99-5dd9277b9fe8",
+                "oxygenLevel": "",
+                "productName": "",
+                "productTemp": "",
+                "organoleptic": "",
+                "inspectorName": "",
+                "rejectionTime": "",
+                "releaseAllowed": "yes",
+                "correctiveAction": "",
+                "organolepticValue": "",
+                "responsiblePerson": "",
+                "organolepticResult": "",
+                "productionDateTime": "",
+                "courierTransferTime": "",
+                "releasePermissionTime": ""
+              }
+            ],
+            "commission": {
+              "chefUserId": "cmu2stncj0009wk9mgu2p7eq1",
+              "member1UserId": "cmu2stncc0008wk9m2yu67ip7",
+              "member2UserId": "cmu2stnbo0005wk9me2bn3w8b"
+            },
+            "footerNote": "",
+            "itemsCatalog": [
+              "Сметана 20 %",
+              "Творог 9 %"
+            ],
+            "productLists": [
+              {
+                "id": "finished-product-list-314b6240-3279-41fa-b62f-83951a077e01",
+                "name": "Основной список",
+                "items": [
+                  "Сметана 20 %",
+                  "Творог 9 %"
+                ]
+              },
+              {
+                "id": "finished-product-list-bb52df00-67e0-4073-86a2-0e0c18cfe0f3",
+                "name": "Сезонные позиции",
+                "items": []
+              }
+            ],
+            "fieldNameMode": "dish",
+            "inspectorMode": "inspector_name",
+            "showCourierTime": true,
+            "showOxygenLevel": false,
+            "showProductTemp": true,
+            "showCorrectiveAction": true,
+            "defaultResponsibleUserId": "cmu2stncj0009wk9mgu2p7eq1"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.795Z",
+          "updatedAt": "2026-09-15T16:52:39.795Z"
+        }
+      }
+    },
+    {
+      "name": "finished_product: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "finished_product: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "perishable_rejection: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wtzys06sqx09mvp7kwhcp",
+          "templateId": "cmu2pwdv7000wt49m4u1rakb6",
+          "organizationId": "e2e-org-a",
+          "title": "E2E perishable_rejection авто",
+          "config": {
+            "rows": [],
+            "showNote": true,
+            "suppliers": [
+              "ООО «Молочный двор»"
+            ],
+            "productLists": [
+              {
+                "id": "perishable-list-d18ead5d-91ad-4202-bb8e-5ee735b515e1",
+                "name": "Изделия",
+                "items": [
+                  "Сметана 20 %",
+                  "Творог 9 %"
+                ]
+              }
+            ],
+            "manufacturers": [],
+            "defaultResponsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+          "responsibleTitle": "Повар",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:39.892Z",
+          "updatedAt": "2026-09-15T16:52:39.892Z"
+        }
+      }
+    },
+    {
+      "name": "perishable_rejection: создание с явным ответственным → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wu01x06srx09mocto374q",
+          "templateId": "cmu2pwdv7000wt49m4u1rakb6",
+          "organizationId": "e2e-org-a",
+          "title": "E2E perishable_rejection явный",
+          "config": {
+            "rows": [],
+            "showNote": true,
+            "suppliers": [
+              "ООО «Молочный двор»"
+            ],
+            "productLists": [
+              {
+                "id": "perishable-list-f19032df-93b4-4ad6-9a17-283422f72306",
+                "name": "Изделия",
+                "items": [
+                  "Сметана 20 %",
+                  "Творог 9 %"
+                ]
+              }
+            ],
+            "manufacturers": [],
+            "defaultResponsibleUserId": "cmu2stncj0009wk9mgu2p7eq1"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1",
+          "responsibleTitle": "Уборщица",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:52:40.005Z",
+          "updatedAt": "2026-09-15T16:52:40.005Z"
+        }
+      }
+    },
+    {
+      "name": "perishable_rejection: сохранён выбранный ответственный",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "perishable_rejection: должность в шапке — должность выбранного",
+      "ok": true,
+      "detail": "Уборщица"
+    },
+    {
+      "name": "чужой ответственный (из другой организации) → 400 responsible-not-in-org",
+      "ok": true,
+      "detail": {
+        "status": 400,
+        "json": {
+          "error": "Сотрудник не найден в организации",
+          "code": "responsible-not-in-org"
+        }
+      }
+    },
+    {
+      "name": "чужой ответственный (ROOT) → 400 responsible-not-in-org",
+      "ok": true,
+      "detail": {
+        "status": 400,
+        "json": {
+          "error": "Сотрудник не найден в организации",
+          "code": "responsible-not-in-org"
+        }
+      }
+    },
+    {
+      "name": "чужой ответственный (архивный) → 400 responsible-not-in-org",
+      "ok": true,
+      "detail": {
+        "status": 400,
+        "json": {
+          "error": "Сотрудник не найден в организации",
+          "code": "responsible-not-in-org"
+        }
+      }
+    },
+    {
+      "name": "чужой проверяющий → 400",
+      "ok": true,
+      "detail": {
+        "error": "Сотрудник не найден в организации",
+        "code": "responsible-not-in-org"
+      }
+    },
+    {
+      "name": "только должность «Повар» → ответственный Повар",
+      "ok": true,
+      "detail": {
+        "id": "cmu2wu0bj06ssx09mmrq2g9ev",
+        "templateId": "cmu2pwdst000at49miodjcqqb",
+        "organizationId": "e2e-org-a",
+        "title": "E2E по должности",
+        "config": {
+          "rooms": [
+            {
+              "id": "room-cmu2stnhd000jwk9me7z5o3hs",
+              "name": "Склад сухих продуктов",
+              "roomId": "cmu2stnhd000jwk9me7z5o3hs",
+              "humidity": {
+                "max": 75,
+                "min": 15,
+                "enabled": true
+              },
+              "temperature": {
+                "max": 25,
+                "min": 18,
+                "enabled": true
+              }
+            }
+          ],
+          "controlTimes": [
+            "10:00"
+          ],
+          "skipWeekends": false,
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+        },
+        "dateFrom": "2026-09-01T00:00:00.000Z",
+        "dateTo": "2026-09-30T00:00:00.000Z",
+        "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+        "responsibleTitle": "Повар",
+        "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+        "verificationStatus": null,
+        "verificationDecidedById": null,
+        "verificationDecidedAt": null,
+        "verificationRejectReason": null,
+        "status": "active",
+        "autoFill": false,
+        "createdById": "cmu2stnbo0005wk9me2bn3w8b",
+        "buildingId": null,
+        "createdAt": "2026-09-15T16:52:40.351Z",
+        "updatedAt": "2026-09-15T16:52:40.351Z"
+      }
+    },
+    {
+      "name": "PATCH конфига без ответственного → ответственный прежний",
+      "ok": true,
+      "detail": {
+        "responsibleUserId": "cmu2stncj0009wk9mgu2p7eq1"
+      }
+    },
+    {
+      "name": "PATCH прежнего конфига документа без ответственного → ответственного нет",
+      "ok": true,
+      "detail": {
+        "responsibleUserId": null
+      }
+    },
+    {
+      "name": "выбор ответственного в настройках реестра (в конфиге) → ответственный документа",
+      "ok": true,
+      "detail": {
+        "status": 201,
+        "after": {
+          "responsibleUserId": "cmu2stnc80007wk9mhv7i9h0s"
+        }
+      }
+    },
+    {
+      "name": "холодильники: пустой список после сохранения остаётся пустым",
+      "ok": true,
+      "detail": {
+        "equipment": [],
+        "skipWeekends": false
+      }
+    },
+    {
+      "name": "PATCH с чужим ответственным → 400",
+      "ok": true,
+      "detail": {
+        "error": "Сотрудник не найден в организации",
+        "code": "responsible-not-in-org"
+      }
+    },
+    {
+      "name": "hygiene: страница документа без «Тест»",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "hygiene: страница документа без фикстур",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "hygiene: PDF с названием организации и без «Тест»",
+      "ok": true,
+      "detail": "Кафе «Альфа» СИСТЕМА ХАССП ГИГИЕНИЧЕСКИЙ ЖУРНАЛ  Начат   01-09-2026 Окончен   ____________  Периодичность контроля   Ежесменно перед началом смены – всех для сотрудников производства; для других сотру"
+    },
+    {
+      "name": "finished_product: страница документа без «Тест»",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "finished_product: страница документа без фикстур",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "finished_product: PDF с названием организации и без «Тест»",
+      "ok": true,
+      "detail": "Журнал бракеража готовой пищевой продукции  Кафе «Альфа» СИСТЕМА ХАССП E2E FINISHED_PRODUCT АВТО  Начат   01-09-2026 Окончен   ____________  Периодичность контроля   Перед каждой раздачей (реализацией"
+    },
+    {
+      "name": "perishable_rejection: страница документа без «Тест»",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "perishable_rejection: страница документа без фикстур",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "perishable_rejection: PDF с названием организации и без «Тест»",
+      "ok": true,
+      "detail": "E2E perishable_rejection авто  Кафе «Альфа» СИСТЕМА ХАССП E2E PERISHABLE_REJECTION АВТО  Начат   01-09-2026 Окончен   ____________  Периодичность контроля   Ежедневно — при поступлении и перед реализа"
+    },
+    {
+      "name": "disinfectant_usage: страница документа без «Тест»",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "disinfectant_usage: страница документа без фикстур",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "disinfectant_usage: PDF с названием организации и без «Тест»",
+      "ok": true,
+      "detail": "Кафе «Альфа»  E2E disinfectant_usage авто  Период: 01.09.2026 - 30.09.2026 Ответственный: Повар, Иван Повар  Подразделение / объект Площадь / емкость Вид обработки Кратность в месяц Дез. средство Конц"
+    },
+    {
+      "name": "cold_equipment_control: страница документа без «Тест»",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "cold_equipment_control: страница документа без фикстур",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "cold_equipment_control: PDF с названием организации и без «Тест»",
+      "ok": true,
+      "detail": "Кафе «Альфа» СИСТЕМА ХАССП E2E COLD_EQUIPMENT_CONTROL АВТО  Начат   01-09-2026 Окончен   ____________  Периодичность контроля   Ежедневно, не менее двух раз в смену — по каждой единице холодильного об"
+    },
+    {
+      "name": "Mini App документ без «Тест»",
+      "ok": true,
+      "detail": "http://localhost:3020/mini/documents/cmu2wtyk606gox09me4u1lj32"
+    },
+    {
+      "name": "страницы журналов реальной организации не создают образцов",
+      "ok": true,
+      "detail": {
+        "before": 19,
+        "after": 19
+      }
+    },
+    {
+      "name": "настройки ответственных без ROOT и архивных",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "пересоздание документов → 200",
+      "ok": false,
+      "detail": {
+        "error": "Лимит пересоздания: 2 раза в час. Подождите 31 мин."
+      }
+    },
+    {
+      "name": "cron автосоздания → 200",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "organizationsProcessed": 1,
+        "currentDocumentsCreated": 0,
+        "nextPeriodDocumentsCreated": 0,
+        "expiredDocumentsClosed": 0,
+        "brokenChainsRestored": 0,
+        "brokenChainCodes": [],
+        "errors": []
+      }
+    },
+    {
+      "name": "ROOT входит в организацию A",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "organization": {
+          "id": "e2e-org-a",
+          "name": "Кафе «Альфа»"
+        }
+      }
+    },
+    {
+      "name": "ROOT: создание без выбора → 201",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wv74p06x3x09mzlxalutw",
+          "templateId": "cmu2pwdrt0004t49ms0wwx89n",
+          "organizationId": "e2e-org-a",
+          "title": "E2E ROOT авто",
+          "config": {
+            "defaultResponsibleUserId": "cmu2stnc80007wk9mhv7i9h0s"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "responsibleTitle": "Заведующая производством",
+          "verifierUserId": "cmu2stnbo0005wk9me2bn3w8b",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2pwdqi0000t49mgwc4jat9",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:53:35.833Z",
+          "updatedAt": "2026-09-15T16:53:35.833Z"
+        }
+      }
+    },
+    {
+      "name": "ROOT: ответственный — сотрудник A, не ROOT",
+      "ok": true,
+      "detail": "cmu2stnc80007wk9mhv7i9h0s"
+    },
+    {
+      "name": "ROOT: явный ответственный сохранён",
+      "ok": true,
+      "detail": {
+        "document": {
+          "id": "cmu2wv78t070gx09mq7dfl6lo",
+          "templateId": "cmu2pwdv7000wt49m4u1rakb6",
+          "organizationId": "e2e-org-a",
+          "title": "E2E ROOT явный",
+          "config": {
+            "rows": [],
+            "showNote": true,
+            "suppliers": [
+              "ООО «Молочный двор»"
+            ],
+            "productLists": [
+              {
+                "id": "perishable-list-3b959534-3568-4c57-8024-c712e2d8d014",
+                "name": "Изделия",
+                "items": [
+                  "Сметана 20 %",
+                  "Творог 9 %"
+                ]
+              }
+            ],
+            "manufacturers": [],
+            "defaultResponsibleUserId": "cmu2stncc0008wk9m2yu67ip7"
+          },
+          "dateFrom": "2026-09-01T00:00:00.000Z",
+          "dateTo": "2026-09-30T00:00:00.000Z",
+          "responsibleUserId": "cmu2stncc0008wk9m2yu67ip7",
+          "responsibleTitle": "Повар",
+          "verifierUserId": "cmu2stnc80007wk9mhv7i9h0s",
+          "verificationStatus": null,
+          "verificationDecidedById": null,
+          "verificationDecidedAt": null,
+          "verificationRejectReason": null,
+          "status": "active",
+          "autoFill": false,
+          "createdById": "cmu2pwdqi0000t49mgwc4jat9",
+          "buildingId": null,
+          "createdAt": "2026-09-15T16:53:35.981Z",
+          "updatedAt": "2026-09-15T16:53:35.981Z"
+        }
+      }
+    },
+    {
+      "name": "ROOT: себя ответственным поставить нельзя → 400",
+      "ok": true,
+      "detail": {
+        "error": "Сотрудник не найден в организации",
+        "code": "responsible-not-in-org"
+      }
+    }
+  ]
+}

@@ -26,6 +26,7 @@ import {
 } from "@/lib/cleaning-document";
 import {
   normalizeJournalDocumentStaffState,
+  pickChangedConfigResponsible,
   normalizeJournalStaffBoundConfig,
 } from "@/lib/journal-staff-binding";
 import {
@@ -313,19 +314,30 @@ export async function PATCH(
       data.config = normalizedDocumentState.config;
     }
 
-    // Ответственного меняем, только когда о нём спросили:
+    // Ответственного меняем, только когда его выбрали этим запросом:
     //   • пришёл `responsibleUserId` (выбор в настройках документа) —
     //     пишем то, что выбрали (id уже проверен выше);
-    //   • у документа ответственного нет, а в конфиге он указан явно
-    //     (например, `defaultResponsibleUserId` журнала-реестра) — берём
-    //     из конфига.
-    // Сохранение строк/ячеек без этих полей ответственного не трогает.
+    //   • ответственный выбран ВНУТРИ конфига и отличается от прежнего
+    //     конфига: диалоги настроек реестров пишут выбор в
+    //     `defaultResponsibleUserId` / `responsibleEmployeeId` /
+    //     `approveEmployeeId` и шлют только `config`.
+    // Сохранение строк и ячеек присылает прежний выбор в конфиге — такой
+    // запрос ответственного не трогает, даже если у документа его нет.
+    const configChoice =
+      body.responsibleUserId === undefined && body.config !== undefined
+        ? pickChangedConfigResponsible({
+            templateCode: template.code,
+            previousConfig: doc.config,
+            nextConfig: normalizedDocumentState.config,
+            users: allUsers,
+          })
+        : null;
     if (body.responsibleUserId !== undefined) {
       data.responsibleUserId = normalizedDocumentState.responsibleUserId;
       data.responsibleTitle = normalizedDocumentState.responsibleTitle;
-    } else if (!doc.responsibleUserId && normalizedDocumentState.responsibleUserId) {
-      data.responsibleUserId = normalizedDocumentState.responsibleUserId;
-      data.responsibleTitle = normalizedDocumentState.responsibleTitle;
+    } else if (configChoice && configChoice.responsibleUserId !== doc.responsibleUserId) {
+      data.responsibleUserId = configChoice.responsibleUserId;
+      data.responsibleTitle = configChoice.responsibleTitle;
     } else if (body.responsibleTitle !== undefined) {
       data.responsibleTitle = normalizedDocumentState.responsibleTitle;
     }

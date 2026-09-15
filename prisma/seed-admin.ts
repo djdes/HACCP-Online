@@ -136,9 +136,9 @@ async function main() {
     let orgId: string;
     // Организация существующего админа годится под демо, только если она
     // уже демо или в ней одни служебные аккаунты демо-команды. Иначе это
-    // реальная организация (аккаунт когда-то попал в неё) — её не
-    // переименовываем и демо-команду в неё не переносим, а заводим
-    // отдельную демо-организацию.
+    // реальная организация (аккаунт когда-то попал в неё): её не
+    // переименовываем, демо-команду в неё не переносим и сам аккаунт не
+    // трогаем — демо заводят под другим адресом (ADMIN_EMAIL).
     const existingOrgIsDemoSafe = existing
       ? await (async () => {
           const org = await prisma.organization.findUnique({
@@ -156,28 +156,19 @@ async function main() {
         })()
       : false;
     if (existing && !existingOrgIsDemoSafe) {
-      const result = await prisma.$transaction(async (tx) => {
-        const org = await tx.organization.create({
-          data: {
-            name: orgName,
-            type: DEFAULT_ORG_TYPE,
-            subscriptionPlan: "pro",
-            subscriptionEnd,
-            isDemo: true,
-          },
-        });
-        await tx.user.update({
-          where: { id: existing.id },
-          data: { name, passwordHash, role: "owner", positionTitle: "Управляющий", isActive: true },
-        });
-        return org;
-      });
-      orgId = result.id;
-      console.log(
-        `  ${email} is in a real organization (${existing.organizationId}) — left it untouched.`
+      // Аккаунт живёт в реальной организации: не трогаем ни его, ни её.
+      // Раньше скрипт при этом менял аккаунту пароль и роль прямо в
+      // реальной организации, а демо-организация оставалась без входа.
+      console.error(
+        `  ${email} is in a real organization (${existing.organizationId}) — nothing changed.`
       );
-      console.log(`  Created separate demo organization: ${result.name} (${orgId})`);
-    } else if (existing) {
+      console.error(
+        "  Set ADMIN_EMAIL to a new address to create a separate demo organization."
+      );
+      process.exitCode = 1;
+      return;
+    }
+    if (existing) {
       // User exists — update in place, keep same org.
       orgId = existing.organizationId;
       await prisma.user.update({

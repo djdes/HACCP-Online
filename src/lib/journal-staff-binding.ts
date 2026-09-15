@@ -827,3 +827,32 @@ export function normalizeJournalDocumentStaffState(
     responsibleTitle: responsible.responsibleTitle ?? fallbackTitle,
   };
 }
+
+/**
+ * Ответственный, которого выбрали внутри конфига этим сохранением.
+ *
+ * Диалоги настроек реестров (аудит, дезсредства, поверка, генеральные
+ * уборки…) пишут выбор в `defaultResponsibleUserId` / `responsibleEmployeeId`
+ * / `approveEmployeeId` и шлют только `config`. Сохранение строк и ячеек
+ * присылает тот же конфиг с прежним выбором. Отличаем одно от другого
+ * сравнением с сохранённым конфигом: `null` — выбор не менялся или в
+ * новом конфиге нет сотрудника организации.
+ */
+export function pickChangedConfigResponsible(params: {
+  templateCode: string;
+  previousConfig: unknown;
+  nextConfig: unknown;
+  users: StaffBindingUser[];
+}): { responsibleUserId: string; responsibleTitle: string | null } | null {
+  const read = (config: unknown) =>
+    normalizeJournalDocumentStaffState(params.templateCode, { config }, params.users, {
+      allowFallbackUser: false,
+    });
+  const next = read(params.nextConfig);
+  if (!next.responsibleUserId) return null;
+  if (read(params.previousConfig).responsibleUserId === next.responsibleUserId) return null;
+  return {
+    responsibleUserId: next.responsibleUserId,
+    responsibleTitle: next.responsibleTitle ?? null,
+  };
+}

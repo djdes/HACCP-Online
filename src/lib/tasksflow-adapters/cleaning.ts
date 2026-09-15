@@ -13,6 +13,7 @@
  */
 import type { TasksFlowIntegration } from "@prisma/client";
 import { db } from "@/lib/db";
+import { findTaskEmployee } from "@/lib/journal-roster-db";
 import {
   CLEANING_DOCUMENT_TEMPLATE_CODE,
   type CleaningDocumentConfig,
@@ -364,6 +365,13 @@ export const cleaningAdapter: JournalAdapter = {
     // убрался в этом помещении.
     const parsed = parseRoomsModeRowKey(rowKey);
     if (parsed && config.cleaningMode === "rooms") {
+      // Уборщик взят из rowKey внешнего сервиса — только сотрудник
+      // организации документа.
+      const cleaner = await findTaskEmployee({
+        employeeId: parsed.cleanerUserId,
+        organizationId: doc.organizationId,
+      });
+      if (!cleaner) return false;
       return applyRoomsModeCompletion({
         documentId: doc.id,
         organizationId: doc.organizationId,
@@ -388,6 +396,16 @@ export const cleaningAdapter: JournalAdapter = {
       const effective = applyRoomResponsiblesToConfig(config, orgRooms);
       const controllerUserId =
         ctrl.verifierUserId ?? resolveDocumentController(effective);
+      // Проверяющий из rowKey (или конфига) — только сотрудник организации.
+      if (
+        controllerUserId &&
+        !(await findTaskEmployee({
+          employeeId: controllerUserId,
+          organizationId: doc.organizationId,
+        }))
+      ) {
+        return false;
+      }
       return applyControlCompletion({
         documentId: doc.id,
         controllerUserId,

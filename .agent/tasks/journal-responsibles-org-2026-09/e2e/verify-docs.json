@@ -1,0 +1,158 @@
+{
+  "checks": [
+    {
+      "name": "в организации A есть документы (создание + пересоздание + cron)",
+      "ok": false,
+      "detail": 21
+    },
+    {
+      "name": "ответственные всех документов — сотрудники A",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "аккаунт «имя = почта» не стал ответственным ни одного документа",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "проверяющие — живые сотрудники A (не ROOT, не заглушка)",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "записи журналов — только на сотрудников A",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "в конфигах документов A нет фикстур",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "пересоздание/cron создали документы без «E2E» в названии",
+      "ok": false,
+      "detail": 0
+    },
+    {
+      "name": "hygiene: applyRemoteCompletion с сотрудником B → false",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "perishable: applyRemoteCompletion с сотрудником B → false",
+      "ok": true,
+      "detail": false
+    },
+    {
+      "name": "hygiene: applyRemoteCompletion со своим сотрудником → true",
+      "ok": true,
+      "detail": true
+    },
+    {
+      "name": "hygiene: запись на сотрудника B не создана",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "name": "med_books: applyRemoteCompletion с сотрудником B → false, ничего не записано",
+      "ok": true,
+      "detail": {
+        "foreign": false,
+        "foreignEntries": 0
+      }
+    },
+    {
+      "name": "fryer_oil: applyRemoteCompletion с сотрудником B → false, ничего не записано",
+      "ok": true,
+      "detail": {
+        "foreign": false,
+        "foreignEntries": 0
+      }
+    },
+    {
+      "name": "complaint_register: applyRemoteCompletion с сотрудником B → false, ничего не записано",
+      "ok": true,
+      "detail": {
+        "foreign": false,
+        "foreignEntries": 0
+      }
+    },
+    {
+      "name": "ремонт dry-run: видит чужого ответственного",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "ремонт dry-run: видит ROOT-проверяющего",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "ремонт dry-run: видит фикстуры и стоковые холодильники",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "ремонт dry-run: видит пару-образец",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "ремонт dry-run ничего не меняет",
+      "ok": true,
+      "detail": {
+        "responsibleUserId": "cmu2stndh000cwk9m3hyqsdri"
+      }
+    },
+    {
+      "name": "ремонт --apply: ответственный — сотрудник A",
+      "ok": true,
+      "detail": "cmu2stncc0008wk9m2yu67ip7"
+    },
+    {
+      "name": "ремонт --apply: проверяющий — не ROOT",
+      "ok": true,
+      "detail": "cmu2stnbo0005wk9me2bn3w8b"
+    },
+    {
+      "name": "ремонт --apply: фикстуры убраны, данные организации оставлены",
+      "ok": true,
+      "detail": "{\"rows\":[],\"showNote\":true,\"suppliers\":[],\"productLists\":[{\"id\":\"l1\",\"name\":\"Изделия\",\"items\":[\"Сметана 20 %\"]}],\"manufacturers\":[],\"defaultResponsibleUserId\":null}"
+    },
+    {
+      "name": "ремонт --apply: чужая ссылка в конфиге обнулена",
+      "ok": true,
+      "detail": "{\"rows\":[],\"showNote\":true,\"suppliers\":[],\"productLists\":[{\"id\":\"l1\",\"name\":\"Изделия\",\"items\":[\"Сметана 20 %\"]}],\"manufacturers\":[],\"defaultResponsibleUserId\":null}"
+    },
+    {
+      "name": "ремонт --apply: заглушка «имя = почта» заменена",
+      "ok": true,
+      "detail": "cmu2stncj0009wk9mgu2p7eq1"
+    },
+    {
+      "name": "ремонт --apply: стоковые холодильники убраны",
+      "ok": true,
+      "detail": {
+        "equipment": [],
+        "skipWeekends": false
+      }
+    },
+    {
+      "name": "ремонт --apply: пустая авто-запись на чужого удалена",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "name": "ремонт --purge-samples: пара-образец удалена",
+      "ok": true,
+      "detail": 0
+    },
+    {
+      "name": "ремонт повторно: проблем по исправленным документам нет",
+      "ok": true,
+      "detail": null
+    }
+  ]
+}
