@@ -163,13 +163,21 @@ function InlineHeaderEditor({
               event.preventDefault();
               cancelled.current = true;
               event.currentTarget.blur();
+              return;
+            }
+            // Enter сохраняет и в многострочном поле — так ожидают в ячейке
+            // бланка; перенос строки — Shift+Enter. Иначе текст «не сохранялся»:
+            // Enter добавлял строку, а уход курсора из поля никто не делал.
+            if (multiline && event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              event.currentTarget.blur();
             }
           }}
           onBlur={() => void commit()}
           className={cn("bg-[#f5f6ff] ring-4 ring-[#5566f6]/15", inputClassName)}
         />
         <span className="mt-1 block text-[11px] font-normal normal-case not-italic leading-snug text-[#6f7282]">
-          {multiline ? "Сохранится, когда уберёте курсор из поля" : "Enter — сохранить"} · Esc — отменить
+          Enter — сохранить{multiline ? ", Shift+Enter — новая строка" : ""} · Esc — отменить
         </span>
       </span>
     );

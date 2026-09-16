@@ -52,6 +52,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { CONTROL_PERIODICITY_MAX_LENGTH } from "@/lib/control-periodicity";
 import { Label } from "@/components/ui/label";
 import { VoiceNumberInput } from "@/components/ui/voice-number-input";
 import { NumberField } from "@/components/journals/number-field";
@@ -436,6 +438,7 @@ function JournalSettingsDialog({
   employees,
   config,
   onSave,
+  controlPeriodicity,
   useV2 = false,
 }: {
   open: boolean;
@@ -445,10 +448,13 @@ function JournalSettingsDialog({
   responsibleUserId: string | null;
   employees: EmployeeItem[];
   config: ColdEquipmentDocumentConfig;
+  /** Строка «Периодичность контроля» шапки (`config.controlPeriodicity`). */
+  controlPeriodicity: string;
   onSave: (params: {
     title: string;
     responsibleTitle: string | null;
     responsibleUserId: string | null;
+    controlPeriodicity: string;
     config: ColdEquipmentDocumentConfig;
   }) => Promise<void>;
   useV2?: boolean;
@@ -460,6 +466,7 @@ function JournalSettingsDialog({
   const [position, setPosition] = useState(responsibleTitle || "");
   const [userId, setUserId] = useState(responsibleUserId || "");
   const [skipWeekends, setSkipWeekends] = useState(config.skipWeekends);
+  const [periodicity, setPeriodicity] = useState(controlPeriodicity);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -468,7 +475,8 @@ function JournalSettingsDialog({
     setPosition(responsibleTitle || "");
     setUserId(responsibleUserId || "");
     setSkipWeekends(config.skipWeekends);
-  }, [config.skipWeekends, open, responsibleTitle, responsibleUserId, title]);
+    setPeriodicity(controlPeriodicity);
+  }, [config.skipWeekends, controlPeriodicity, open, responsibleTitle, responsibleUserId, title]);
 
   const cascade = usePositionEmployeeCascade({
     users: employees,
@@ -488,6 +496,7 @@ function JournalSettingsDialog({
         title: name.trim(),
         responsibleTitle: position || null,
         responsibleUserId: userId || null,
+        controlPeriodicity: periodicity.trim(),
         config: normalizeColdEquipmentDocumentConfig({
           ...config,
           skipWeekends,
@@ -524,6 +533,25 @@ function JournalSettingsDialog({
             onChange={(event) => setName(event.target.value)}
             className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
           />
+        </div>
+        <div className="space-y-2">
+          <Label
+            htmlFor="cold-journal-periodicity-v2"
+            className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]"
+          >
+            Периодичность контроля
+          </Label>
+          <Textarea
+            id="cold-journal-periodicity-v2"
+            value={periodicity}
+            maxLength={CONTROL_PERIODICITY_MAX_LENGTH}
+            onChange={(event) => setPeriodicity(event.target.value)}
+            placeholder="Строка «Периодичность контроля» в шапке бланка"
+            className="min-h-[72px] rounded-xl border-[#dcdfed] px-3.5 py-2 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+          />
+          <p className="text-[12px] leading-[1.45] text-[#6f7282]">
+            Печатается в шапке этого документа и в PDF. Пусто — строка не печатается.
+          </p>
         </div>
         <div className="space-y-2">
           <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
@@ -594,6 +622,20 @@ function JournalSettingsDialog({
               value={name}
               onChange={(event) => setName(event.target.value)}
               className="h-22 rounded-[24px] border-[#dfe1ec] px-8 text-[24px]"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="cold-journal-periodicity-v1" className="text-[13px] font-medium text-[#3c4053]">
+              Периодичность контроля
+            </Label>
+            <Textarea
+              id="cold-journal-periodicity-v1"
+              value={periodicity}
+              maxLength={CONTROL_PERIODICITY_MAX_LENGTH}
+              onChange={(event) => setPeriodicity(event.target.value)}
+              placeholder="Строка «Периодичность контроля» в шапке бланка"
+              className="min-h-[96px] rounded-[24px] border-[#dfe1ec] px-8 py-4 text-[18px]"
             />
           </div>
 
@@ -974,6 +1016,7 @@ export function ColdEquipmentDocumentClient({
     title: string;
     responsibleTitle: string | null;
     responsibleUserId: string | null;
+    controlPeriodicity: string;
     config: ColdEquipmentDocumentConfig;
   }) {
     await persistDocument(params);
@@ -2043,6 +2086,7 @@ export function ColdEquipmentDocumentClient({
         responsibleUserId={responsibleUserId}
         employees={employees}
         config={config}
+        controlPeriodicity={controlPeriodicity}
         onSave={handleSaveSettings}
         useV2={useV2}
       />
