@@ -9,6 +9,7 @@ import {
   resolveActiveBuilding,
   withBuildingLabel,
   withBuildingSuffix,
+  buildingPrintName,
 } from "./building-scope";
 
 const A = { id: "b-a", name: "Точка 1", address: "ул. Ленина, 5" };
@@ -116,6 +117,9 @@ test("подписи: организация с точкой и адресом, 
     "ООО «Ромашка» · Кафе «Ромашка», г. Казань, ул. Баумана, 12",
   );
   assert.equal(withBuildingLabel("Кафе", { ...B, journalName: "   " }), "Кафе · Точка 2");
+  assert.equal(buildingPrintName({ ...A, journalName: " Кафе «Ромашка»,  г. Казань " }), "Кафе «Ромашка», г. Казань");
+  assert.equal(buildingPrintName(B), "Точка 2");
+  assert.equal(buildingPrintName(null), "");
   assert.equal(withBuildingSuffix("Уборка · Кухня", "Точка 2"), "Уборка · Кухня · Точка 2");
   assert.equal(withBuildingSuffix("Уборка · Кухня", null), "Уборка · Кухня");
   assert.equal(withBuildingSuffix("Уборка", "  "), "Уборка");

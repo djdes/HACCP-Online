@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import { db } from "@/lib/db";
 import { hashInspectorToken } from "@/lib/inspector-tokens";
 import { resolveOrgJournalName } from "@/lib/org-journal-name";
+import { buildingPrintName } from "@/lib/building-scope";
 import { NOT_AUTO_SEEDED } from "@/lib/journal-entry-filters";
 import { getDisabledJournalCodes } from "@/lib/disabled-journals";
 
@@ -74,7 +75,7 @@ export async function GET(
         dateFrom: true,
         dateTo: true,
         status: true,
-        building: { select: { name: true } },
+        building: { select: { name: true, journalName: true } },
         // Считаем только реально заполненные строки. _autoSeeded —
         // это пустые матриксы (employee × day) которые bulk-assign и
         // sync-* проставляют для рендера UI. Они НЕ являются
@@ -191,7 +192,7 @@ export async function GET(
       startY: 28,
       head: [["Документ", "Период", "Статус", "Записей"]],
       body: docs.map((d) => [
-        [d.title, d.building?.name].filter(Boolean).join(" · "),
+        [d.title, buildingPrintName(d.building)].filter(Boolean).join(" · "),
         `${fmt(d.dateFrom)} — ${fmt(d.dateTo)}`,
         d.status === "active" ? "Активен" : "Закрыт",
         String(d._count.entries),

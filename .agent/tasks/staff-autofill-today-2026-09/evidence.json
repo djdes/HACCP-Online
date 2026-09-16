@@ -1,0 +1,13 @@
+{
+  "task_id": "staff-autofill-today-2026-09",
+  "updated_at": "2026-09-16T16:40:00+03:00",
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+    { "cmd": "node --import tsx --test src/lib/staff-journal-autofill.test.ts src/lib/building-scope.test.ts", "result": "9/9" },
+    { "cmd": "npx tsx .agent/tasks/staff-autofill-today-2026-09/e2e/autofill-today.ts", "result": "15/15 PASS" },
+    { "cmd": "prod psql (read-only): future filled cells in gymnasium docs", "result": "hygiene 238, health 224, all equal to auto-fill defaults" },
+    { "cmd": "prod: npx tsx scripts/repair-journal-responsibles.ts cmtwzhw9700w73vts4z0z254u (dry-run)", "result": "no problems found" }
+  ],
+  "criteria": { "AC1": "PASS", "AC2": "PASS", "AC3": "PASS", "AC4": "PASS", "AC5": "PENDING deploy + cleanup", "AC6": "PASS (local)" },
+  "verification_note": "No independent verifier run: owner asked for maximum speed; verified by own e2e."
+}

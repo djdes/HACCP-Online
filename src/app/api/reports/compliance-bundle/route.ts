@@ -6,6 +6,7 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import { generateJournalDocumentPdf } from "@/lib/document-pdf";
 import { resolveOrgJournalName } from "@/lib/org-journal-name";
+import { buildingPrintName } from "@/lib/building-scope";
 import {
   buildCapaSummaryPdf,
   buildRegulatorCoverPdf,
@@ -123,7 +124,7 @@ export async function GET(request: Request) {
     },
     include: {
       template: { select: { code: true, name: true } },
-      building: { select: { name: true } },
+      building: { select: { name: true, journalName: true } },
     },
     orderBy: [
       { template: { sortOrder: "asc" } },
@@ -155,7 +156,7 @@ export async function GET(request: Request) {
   for (const doc of documents) {
     const templateFolder = sanitizeForZip(doc.template.name || doc.template.code);
     const fileLabel = sanitizeForZip(
-      `${doc.title}${doc.building ? ` · ${doc.building.name}` : ""} · ${ymd(doc.dateFrom)}..${ymd(doc.dateTo)}`
+      `${doc.title}${doc.building ? ` · ${buildingPrintName(doc.building)}` : ""} · ${ymd(doc.dateFrom)}..${ymd(doc.dateTo)}`
     );
     try {
       const { buffer } = await generateJournalDocumentPdf({

@@ -60,6 +60,19 @@ function utcDate(dateKey: string) {
 }
 
 /**
+ * Автозаполнение никогда не трогает будущее: отметки «здоров» и подписи
+ * ставятся только за прошедшие дни и сегодня, дальше — cron по одному дню.
+ * `todayKey` — ключ сегодняшнего дня; по умолчанию UTC-дата сервера, как в
+ * cron `auto-fill-journals`.
+ */
+export function limitDateKeysToToday(
+  dateKeys: readonly string[],
+  todayKey: string = toDateKey(new Date())
+): string[] {
+  return dateKeys.filter((dateKey) => dateKey <= todayKey);
+}
+
+/**
  * Читает графики (выходные / отпуска / больничные) на диапазон дат и
  * складывает в map `employeeId:dateKey -> статус`.
  *
@@ -186,7 +199,8 @@ export type StaffAutoFillEntry = {
  * Дозаполняет строки кадрового журнала на переданные даты.
  *
  * @param employeeIds сотрудники, для которых должны существовать строки
- * @param dateKeys    даты в формате YYYY-MM-DD (для cron — только сегодня)
+ * @param dateKeys    даты в формате YYYY-MM-DD (для cron — только сегодня);
+ *                    даты после сегодня отбрасываются всегда
  * @param entries     уже существующие строки документа
  */
 export async function applyStaffJournalAutoFill(
@@ -201,7 +215,9 @@ export async function applyStaffJournalAutoFill(
     entries: StaffAutoFillEntry[];
   }
 ): Promise<{ created: number; updated: number }> {
-  const { documentId, organizationId, templateCode, dateKeys, entries } = params;
+  const { documentId, organizationId, templateCode, entries } = params;
+  // Будущие дни не заполняются ни тумблером, ни добавлением сотрудника.
+  const dateKeys = limitDateKeysToToday(params.dateKeys);
   if (dateKeys.length === 0) return { created: 0, updated: 0 };
 
   // Новые строки — только живым сотрудникам этой организации. Список

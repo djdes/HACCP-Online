@@ -1,0 +1,171 @@
+[
+  {
+    "name": "hygiene: тумблер автозаполнения включён",
+    "ok": true,
+    "detail": 200
+  },
+  {
+    "name": "hygiene: добавление сотрудника — строки на весь период, будущие дни пустые (14 дн.)",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "addJson": {
+        "created": 30,
+        "filled": 16
+      },
+      "one": {
+        "total": 30,
+        "pastFilled": 16,
+        "pastEmpty": 0,
+        "futureFilled": 0,
+        "futureEmpty": 14
+      }
+    }
+  },
+  {
+    "name": "hygiene: добавление сотрудника — дни до сегодня включительно заполнены",
+    "ok": true,
+    "detail": {
+      "total": 30,
+      "pastFilled": 16,
+      "pastEmpty": 0,
+      "futureFilled": 0,
+      "futureEmpty": 14
+    }
+  },
+  {
+    "name": "hygiene: ответ содержит created и filled",
+    "ok": true,
+    "detail": {
+      "created": 30,
+      "filled": 16
+    }
+  },
+  {
+    "name": "hygiene: «заполнить всех» — будущих заполненных ячеек нет, прошлые заполнены",
+    "ok": true,
+    "detail": {
+      "total": 150,
+      "pastFilled": 80,
+      "pastEmpty": 0,
+      "futureFilled": 0,
+      "futureEmpty": 70
+    }
+  },
+  {
+    "name": "hygiene: включение тумблера заполняет только до сегодня",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "applyStat": {
+        "total": 150,
+        "pastFilled": 80,
+        "pastEmpty": 0,
+        "futureFilled": 0,
+        "futureEmpty": 70
+      }
+    }
+  },
+  {
+    "name": "hygiene: cron заполнил сегодня и не тронул будущее",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "cronStat": {
+        "total": 150,
+        "pastFilled": 5,
+        "pastEmpty": 75,
+        "futureFilled": 0,
+        "futureEmpty": 70
+      },
+      "todayEntries": 5
+    }
+  },
+  {
+    "name": "health_check: тумблер автозаполнения включён",
+    "ok": true,
+    "detail": 200
+  },
+  {
+    "name": "health_check: добавление сотрудника — строки на весь период, будущие дни пустые (14 дн.)",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "addJson": {
+        "created": 30,
+        "filled": 16
+      },
+      "one": {
+        "total": 30,
+        "pastFilled": 16,
+        "pastEmpty": 0,
+        "futureFilled": 0,
+        "futureEmpty": 14
+      }
+    }
+  },
+  {
+    "name": "health_check: добавление сотрудника — дни до сегодня включительно заполнены",
+    "ok": true,
+    "detail": {
+      "total": 30,
+      "pastFilled": 16,
+      "pastEmpty": 0,
+      "futureFilled": 0,
+      "futureEmpty": 14
+    }
+  },
+  {
+    "name": "health_check: ответ содержит created и filled",
+    "ok": true,
+    "detail": {
+      "created": 30,
+      "filled": 16
+    }
+  },
+  {
+    "name": "health_check: «заполнить всех» — будущих заполненных ячеек нет, прошлые заполнены",
+    "ok": true,
+    "detail": {
+      "total": 150,
+      "pastFilled": 80,
+      "pastEmpty": 0,
+      "futureFilled": 0,
+      "futureEmpty": 70
+    }
+  },
+  {
+    "name": "health_check: включение тумблера заполняет только до сегодня",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "applyStat": {
+        "total": 150,
+        "pastFilled": 80,
+        "pastEmpty": 0,
+        "futureFilled": 0,
+        "futureEmpty": 70
+      }
+    }
+  },
+  {
+    "name": "health_check: cron заполнил сегодня и не тронул будущее",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "cronStat": {
+        "total": 150,
+        "pastFilled": 5,
+        "pastEmpty": 75,
+        "futureFilled": 0,
+        "futureEmpty": 70
+      },
+      "todayEntries": 5
+    }
+  },
+  {
+    "name": "повар: добавление сотрудника → 403",
+    "ok": true,
+    "detail": 403
+  }
+]

@@ -129,6 +129,19 @@ export function buildingLabel(
   return address ? `${building.name}, ${address}` : building.name;
 }
 
+/**
+ * Имя точки в списках для инспектора (архив проверки, PDF портала): наименование
+ * для журналов, иначе короткое название — без адреса, чтобы строка списка не
+ * разрасталась.
+ */
+export function buildingPrintName(
+  building: { name: string; journalName?: string | null } | null | undefined,
+): string {
+  if (!building) return "";
+  const journalName = building.journalName?.replace(/\s+/g, " ").trim();
+  return journalName || building.name;
+}
+
 /** Название организации с точкой для шапки документа и PDF. */
 export function withBuildingLabel(
   organizationName: string,

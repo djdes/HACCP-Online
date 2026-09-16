@@ -3,11 +3,11 @@ import { getServerSession } from "@/lib/server-session";
 import { authOptions } from "@/lib/auth";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { buildDateKeys } from "@/lib/hygiene-document";
 import {
-  buildDateKeys,
-  getDefaultEntryDataForTemplate,
-} from "@/lib/hygiene-document";
-import { applyStaffJournalAutoFill } from "@/lib/staff-journal-autofill";
+  applyStaffJournalAutoFill,
+  limitDateKeysToToday,
+} from "@/lib/staff-journal-autofill";
 import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
 import {
@@ -85,7 +85,6 @@ export async function POST(
   });
 
   const dateKeys = buildDateKeys(document.dateFrom, document.dateTo);
-  const defaultData = getDefaultEntryDataForTemplate(document.template.code);
 
   /**
    * Состав сотрудников для «заполнить всех». Если у журнала задана
@@ -180,12 +179,15 @@ export async function POST(
     return NextResponse.json({ created: 0, skipped: true });
   }
 
+  // Строки на весь период — пустые: будущие дни никогда не заполняются
+  // заранее. При включённом автозаполнении отметки до сегодня ставит тот же
+  // helper, что и ежедневный cron (он же учитывает выходные и отпуска).
   const rows = targetUserIds.flatMap((employeeId) =>
     dateKeys.map((dateKey) => ({
       documentId,
       employeeId,
       date: new Date(dateKey),
-      data: document.autoFill ? defaultData : {},
+      data: {},
     }))
   );
 
@@ -194,5 +196,24 @@ export async function POST(
     skipDuplicates: true,
   });
 
-  return NextResponse.json({ created: result.count });
+  let filled = { created: 0, updated: 0 };
+  if (document.autoFill) {
+    const currentEntries = await db.journalDocumentEntry.findMany({
+      where: { documentId, employeeId: { in: targetUserIds } },
+      select: { id: true, employeeId: true, date: true, data: true },
+    });
+    filled = await applyStaffJournalAutoFill(db, {
+      documentId,
+      organizationId,
+      templateCode,
+      employeeIds: targetUserIds,
+      dateKeys: limitDateKeysToToday(dateKeys),
+      entries: currentEntries,
+    });
+  }
+
+  return NextResponse.json({
+    created: result.count,
+    filled: filled.created + filled.updated,
+  });
 }
