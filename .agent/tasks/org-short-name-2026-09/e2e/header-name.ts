@@ -53,8 +53,22 @@ async function login(browser: Browser, email: string, viewport = { width: 1440, 
     if ((await page.inputValue("#email")) === email) break;
     await page.waitForTimeout(300);
   }
-  await page.click('button[type="submit"]');
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 180_000 });
+  // Клик до гидратации уходит нативным POST /api/auth/login (404) и логин зависает:
+  // ждём сеть, кликаем и при необходимости повторяем.
+  await page.waitForLoadState("networkidle").catch(() => null);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.click('button[type="submit"]').catch(() => null);
+    const left = await page
+      .waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 45_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (left) break;
+    if (attempt === 2) throw new Error("login: форма не отправилась");
+    await page.goto(`${BASE}/login`, { waitUntil: "load", timeout: 180_000 });
+    await page.fill("#email", email);
+    await page.fill("#password", state.password);
+    await page.waitForTimeout(1500);
+  }
   await page.close();
   return context;
 }
@@ -433,6 +447,9 @@ async function main() {
     check("закрытый документ: карандашей нет", (await page.locator(HEADER_PENCILS).count()) === 0);
 
     await manager.close();
+  } catch (error) {
+    console.error("E2E ERROR", error);
+    checks.push({ name: "e2e без исключений", ok: false, detail: String(error).slice(0, 800) });
   } finally {
     await browser.close();
     if (partnerId) await db.partner.delete({ where: { id: partnerId } }).catch(() => null);

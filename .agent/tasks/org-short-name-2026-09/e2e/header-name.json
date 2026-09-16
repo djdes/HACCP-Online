@@ -94,7 +94,7 @@
     "ok": true,
     "detail": {
       "status": 200,
-      "manifest": "СВОДНЫЙ ОТЧЁТ ПО ЖУРНАЛАМ\r\nОрганизация: Альфа · журналы\r\nПериод: 2026-09-01 — 2026-09-30\r\nСобран: 15.09.2026, 22:25:05\r\n\r\n=== Содержание ===\r\n✓ Гигиенический журнал / E2E шапка гигиена · 2026-09-01..2"
+      "manifest": "СВОДНЫЙ ОТЧЁТ ПО ЖУРНАЛАМ\r\nОрганизация: Альфа · журналы\r\nПериод: 2026-09-01 — 2026-09-30\r\nСобран: 16.09.2026, 13:01:17\r\n\r\n=== Содержание ===\r\n✓ Гигиенический журнал / E2E шапка гигиена · 2026-09-01..2"
     }
   },
   {
@@ -256,7 +256,7 @@
   {
     "name": "повар: карандашей в шапке нет",
     "ok": true,
-    "detail": "http://localhost:3020/journals/climate_control/documents/cmu329j9z00og8s9mpapi5zs3"
+    "detail": "http://localhost:3020/journals/climate_control/documents/cmu3xjcmd003hks9mhffxikkt"
   },
   {
     "name": "повар: PATCH /api/settings/organization → 403",
