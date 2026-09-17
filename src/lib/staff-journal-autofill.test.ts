@@ -17,3 +17,12 @@ test("автозаполнение: порядок дат сохраняется
   assert.deepEqual(limitDateKeysToToday(["2000-01-02", "2000-01-01", "2999-12-31"]), ["2000-01-02", "2000-01-01"]);
   assert.deepEqual(limitDateKeysToToday([today]), [today]);
 });
+
+test("график: гигиена получает статус дня, журнал здоровья в выходной остаётся пустым", async () => {
+  const { buildStaffAutoFillEntryData } = await import("@/lib/staff-journal-autofill");
+  assert.deepEqual(buildStaffAutoFillEntryData("hygiene", "day_off"), { status: "day_off", temperatureAbove37: null });
+  assert.deepEqual(buildStaffAutoFillEntryData("hygiene", undefined), { status: "healthy", temperatureAbove37: false });
+  assert.deepEqual(buildStaffAutoFillEntryData("health_check", "vacation"), {});
+  assert.deepEqual(buildStaffAutoFillEntryData("health_check", "sick_leave"), {});
+  assert.deepEqual(buildStaffAutoFillEntryData("health_check", undefined), { signed: true, measures: null });
+});

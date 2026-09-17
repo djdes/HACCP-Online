@@ -142,6 +142,22 @@ async function main() {
         where: { documentId: id, date: new Date(`${TODAY}T00:00:00.000Z`), NOT: { data: { equals: {} } } },
       });
       check(`${code}: cron заполнил сегодня и не тронул будущее`, cron.ok() && cronStat.futureFilled === 0 && todayEntries > 0, { status: cron.status(), cronStat, todayEntries });
+
+      // График: у повара сегодня выходной → гигиена ставит «выходной», здоровье оставляет ячейку пустой.
+      const cookBefore = await db.user.findUnique({ where: { id: U.cookA.id }, select: { weeklyDaysOff: true } });
+      const todayIdx = (new Date(`${TODAY}T00:00:00.000Z`).getUTCDay() + 6) % 7;
+      await db.user.update({ where: { id: U.cookA.id }, data: { weeklyDaysOff: [todayIdx] } });
+      await db.journalDocumentEntry.updateMany({ where: { documentId: id }, data: { data: {} } });
+      const dayOff = await staff(id, { action: "apply_auto_fill" });
+      const cookToday = await db.journalDocumentEntry.findFirst({ where: { documentId: id, employeeId: U.cookA.id, date: new Date(`${TODAY}T00:00:00.000Z`) }, select: { data: true } });
+      const otherToday = await db.journalDocumentEntry.count({ where: { documentId: id, date: new Date(`${TODAY}T00:00:00.000Z`), NOT: { employeeId: U.cookA.id }, AND: { NOT: { data: { equals: {} } } } } });
+      const cookData = (cookToday?.data ?? {}) as Record<string, unknown>;
+      check(
+        `${code}: выходной по графику — ${code === "hygiene" ? "статус «выходной»" : "ячейка пустая"}, остальные заполнены`,
+        dayOff.ok() && (code === "hygiene" ? cookData.status === "day_off" : Object.keys(cookData).length === 0) && otherToday > 0,
+        { status: dayOff.status(), cookData, otherToday }
+      );
+      await db.user.update({ where: { id: U.cookA.id }, data: { weeklyDaysOff: cookBefore?.weeklyDaysOff ?? [] } });
     }
 
     // Права: повар не может добавлять сотрудников.

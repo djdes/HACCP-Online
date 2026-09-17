@@ -178,11 +178,16 @@ export function buildStaffAutoFillEntryData(
   templateCode: string,
   scheduleStatus?: StaffScheduleStatus
 ) {
-  if (templateCode === HYGIENE_TEMPLATE_CODE && scheduleStatus) {
-    return {
-      status: scheduleStatus,
-      temperatureAbove37: null,
-    } satisfies HygieneEntryData;
+  if (scheduleStatus) {
+    if (templateCode === HYGIENE_TEMPLATE_CODE) {
+      return {
+        status: scheduleStatus,
+        temperatureAbove37: null,
+      } satisfies HygieneEntryData;
+    }
+    // Журнал здоровья: в выходной, отпуск и больничный сотрудник не выходит
+    // на смену — подписи нет, ячейка остаётся пустой.
+    return {};
   }
 
   return getDefaultEntryDataForTemplate(templateCode);
@@ -237,10 +242,9 @@ export async function applyStaffJournalAutoFill(
   const allowedIds = new Set(allowedEmployees.map((user) => user.id));
   const employeeIds = params.employeeIds.filter((id) => allowedIds.has(id));
 
-  const schedule =
-    templateCode === HYGIENE_TEMPLATE_CODE
-      ? await loadStaffScheduleMap(db, { employeeIds, dateKeys, organizationId })
-      : (new Map() as StaffScheduleMap);
+  // График выходных, отпусков и больничных — для обоих кадровых журналов:
+  // гигиена ставит статус дня, здоровье оставляет ячейку пустой.
+  const schedule = await loadStaffScheduleMap(db, { employeeIds, dateKeys, organizationId });
 
   const dateKeySet = new Set(dateKeys);
   const existingKeys = new Set(
@@ -272,9 +276,14 @@ export async function applyStaffJournalAutoFill(
       : 0;
 
   // Дозаполняем только ПУСТЫЕ ячейки — ручные отметки не перетираем.
-  const rowsToUpdate = entries.filter(
-    (entry) => dateKeySet.has(toDateKey(entry.date)) && isEntryDataEmpty(entry.data)
-  );
+  const rowsToUpdate = entries.filter((entry) => {
+    const dateKey = toDateKey(entry.date);
+    if (!dateKeySet.has(dateKey) || !isEntryDataEmpty(entry.data)) return false;
+    // Пустую ячейку выходного (журнал здоровья) не перезаписываем пустотой.
+    return !isEntryDataEmpty(
+      buildStaffAutoFillEntryData(templateCode, schedule.get(staffScheduleKey(entry.employeeId, dateKey)))
+    );
+  });
 
   await Promise.all(
     rowsToUpdate.map((entry) =>

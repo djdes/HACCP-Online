@@ -5,20 +5,20 @@
     "detail": 200
   },
   {
-    "name": "hygiene: добавление сотрудника — строки на весь период, будущие дни пустые (14 дн.)",
+    "name": "hygiene: добавление сотрудника — строки на весь период, будущие дни пустые (13 дн.)",
     "ok": true,
     "detail": {
       "status": 200,
       "addJson": {
         "created": 30,
-        "filled": 16
+        "filled": 17
       },
       "one": {
         "total": 30,
-        "pastFilled": 16,
+        "pastFilled": 17,
         "pastEmpty": 0,
         "futureFilled": 0,
-        "futureEmpty": 14
+        "futureEmpty": 13
       }
     }
   },
@@ -27,10 +27,10 @@
     "ok": true,
     "detail": {
       "total": 30,
-      "pastFilled": 16,
+      "pastFilled": 17,
       "pastEmpty": 0,
       "futureFilled": 0,
-      "futureEmpty": 14
+      "futureEmpty": 13
     }
   },
   {
@@ -38,7 +38,7 @@
     "ok": true,
     "detail": {
       "created": 30,
-      "filled": 16
+      "filled": 17
     }
   },
   {
@@ -46,10 +46,10 @@
     "ok": true,
     "detail": {
       "total": 150,
-      "pastFilled": 80,
+      "pastFilled": 85,
       "pastEmpty": 0,
       "futureFilled": 0,
-      "futureEmpty": 70
+      "futureEmpty": 65
     }
   },
   {
@@ -59,10 +59,10 @@
       "status": 200,
       "applyStat": {
         "total": 150,
-        "pastFilled": 80,
+        "pastFilled": 85,
         "pastEmpty": 0,
         "futureFilled": 0,
-        "futureEmpty": 70
+        "futureEmpty": 65
       }
     }
   },
@@ -74,11 +74,23 @@
       "cronStat": {
         "total": 150,
         "pastFilled": 5,
-        "pastEmpty": 75,
+        "pastEmpty": 80,
         "futureFilled": 0,
-        "futureEmpty": 70
+        "futureEmpty": 65
       },
       "todayEntries": 5
+    }
+  },
+  {
+    "name": "hygiene: выходной по графику — статус «выходной», остальные заполнены",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "cookData": {
+        "status": "day_off",
+        "temperatureAbove37": null
+      },
+      "otherToday": 4
     }
   },
   {
@@ -87,20 +99,20 @@
     "detail": 200
   },
   {
-    "name": "health_check: добавление сотрудника — строки на весь период, будущие дни пустые (14 дн.)",
+    "name": "health_check: добавление сотрудника — строки на весь период, будущие дни пустые (13 дн.)",
     "ok": true,
     "detail": {
       "status": 200,
       "addJson": {
         "created": 30,
-        "filled": 16
+        "filled": 17
       },
       "one": {
         "total": 30,
-        "pastFilled": 16,
+        "pastFilled": 17,
         "pastEmpty": 0,
         "futureFilled": 0,
-        "futureEmpty": 14
+        "futureEmpty": 13
       }
     }
   },
@@ -109,10 +121,10 @@
     "ok": true,
     "detail": {
       "total": 30,
-      "pastFilled": 16,
+      "pastFilled": 17,
       "pastEmpty": 0,
       "futureFilled": 0,
-      "futureEmpty": 14
+      "futureEmpty": 13
     }
   },
   {
@@ -120,7 +132,7 @@
     "ok": true,
     "detail": {
       "created": 30,
-      "filled": 16
+      "filled": 17
     }
   },
   {
@@ -128,10 +140,10 @@
     "ok": true,
     "detail": {
       "total": 150,
-      "pastFilled": 80,
+      "pastFilled": 85,
       "pastEmpty": 0,
       "futureFilled": 0,
-      "futureEmpty": 70
+      "futureEmpty": 65
     }
   },
   {
@@ -141,10 +153,10 @@
       "status": 200,
       "applyStat": {
         "total": 150,
-        "pastFilled": 80,
+        "pastFilled": 85,
         "pastEmpty": 0,
         "futureFilled": 0,
-        "futureEmpty": 70
+        "futureEmpty": 65
       }
     }
   },
@@ -156,11 +168,20 @@
       "cronStat": {
         "total": 150,
         "pastFilled": 5,
-        "pastEmpty": 75,
+        "pastEmpty": 80,
         "futureFilled": 0,
-        "futureEmpty": 70
+        "futureEmpty": 65
       },
       "todayEntries": 5
+    }
+  },
+  {
+    "name": "health_check: выходной по графику — ячейка пустая, остальные заполнены",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "cookData": {},
+      "otherToday": 4
     }
   },
   {
