@@ -44,15 +44,29 @@ export type JournalCellInputProps = Omit<
   /** Разрешить настоящий перенос по Enter (примечания, описания). */
   multiline?: boolean;
   /**
-   * id `<datalist>` с подсказками (изделия, сотрудники).
+   * id `<datalist>` с подсказками (изделия, сотрудники, оценки).
    *
-   * `<textarea>` атрибут `list` не поддерживает, поэтому такая ячейка
-   * ПОКАЗЫВАЕТ значение переносящимся textarea, а на время правки
-   * подменяется настоящим `<input list>`. Так и подсказки на месте, и
-   * ФИО целиком видно, когда его просто читают.
+   * `<textarea>` атрибут `list` не поддерживает. Раньше ячейка на время
+   * правки подменялась настоящим `<input list>`, но на iPhone и iPad
+   * подмена элемента теряла фокус: ячейка «не редактировалась». Теперь
+   * подсказки читаются из того же `<datalist>` и показываются своим
+   * списком под ячейкой; выбор подставляет значение через обычное
+   * событие `input`, так что `onChange` клиента срабатывает как при вводе.
    */
   list?: string;
 };
+
+/** Сколько подсказок показывать под ячейкой. */
+const SUGGESTION_LIMIT = 8;
+
+function readDatalistOptions(listId: string): string[] {
+  if (typeof document === "undefined") return [];
+  const element = document.getElementById(listId);
+  if (!element) return [];
+  return Array.from(element.querySelectorAll("option"))
+    .map((option) => option.value)
+    .filter((option) => option.trim().length > 0);
+}
 
 export function JournalCellInput({
   className,
@@ -66,8 +80,10 @@ export function JournalCellInput({
   ...props
 }: JournalCellInputProps) {
   const ref = React.useRef<HTMLTextAreaElement | null>(null);
-  // Правка ячейки со справочником идёт в подменённом <input list>.
-  const [editingWithList, setEditingWithList] = React.useState(false);
+  // Подсказки справочника: открыты пока ячейка в фокусе.
+  const [suggestOpen, setSuggestOpen] = React.useState(false);
+  const [options, setOptions] = React.useState<string[]>([]);
+  const [highlight, setHighlight] = React.useState(-1);
 
   const resize = React.useCallback(() => {
     const el = ref.current;
@@ -82,7 +98,7 @@ export function JournalCellInput({
   // вчерашнего дня, отмена, приход данных с сервера). Ввод покрыт
   // `onInput` — он же обслуживает неуправляемые ячейки (`defaultValue`),
   // у которых `value` не меняется вовсе.
-  React.useLayoutEffect(resize, [resize, value, editingWithList]);
+  React.useLayoutEffect(resize, [resize, value]);
 
   // На телефоне таблица стартует СКРЫТОЙ за вкладкой «Карточки», и на
   // момент монтирования ячейка имеет нулевой размер. Без наблюдателя
@@ -105,39 +121,34 @@ export function JournalCellInput({
     return () => observer.disconnect();
   }, [resize]);
 
-  if (list && editingWithList) {
-    // Правка ячейки со справочником: настоящий <input list>, потому что
-    // подсказки из <datalist> textarea не поддерживает. Читается
-    // значение всё равно в textarea ниже — целиком, с переносом.
-    return (
-      <input
-        {...(props as React.ComponentProps<"input">)}
-        list={list}
-        value={value as string | undefined}
-        autoFocus
-        spellCheck={false}
-        onInput={onInput as React.FormEventHandler<HTMLInputElement> | undefined}
-        onKeyDown={(event) => {
-          (onKeyDown as React.KeyboardEventHandler<HTMLInputElement> | undefined)?.(
-            event,
-          );
-          if (event.defaultPrevented) return;
-          if (event.key === "Enter") event.currentTarget.blur();
-        }}
-        onBlur={(event) => {
-          setEditingWithList(false);
-          (onBlur as React.FocusEventHandler<HTMLInputElement> | undefined)?.(event);
-        }}
-        className={cn(
-          JOURNAL_CELL_INPUT_CLASS,
-          "h-7 whitespace-nowrap",
-          className,
-        )}
-      />
-    );
-  }
+  const current = String(value ?? "");
+  const query = current.trim().toLowerCase();
+  // Точное совпадение с вариантом (в ячейке уже «Хорошо») — показываем все
+  // варианты, иначе переключить значение на соседнее было бы нельзя.
+  const exactMatch = query.length > 0 && options.some((option) => option.toLowerCase() === query);
+  const suggestions =
+    list && suggestOpen
+      ? options
+          .filter((option) => !query || exactMatch || option.toLowerCase().includes(query))
+          .slice(0, SUGGESTION_LIMIT)
+      : [];
 
-  return (
+  /** Подставляет подсказку как обычный ввод: клиент получает onChange. */
+  const pick = React.useCallback(
+    (option: string) => {
+      const el = ref.current;
+      if (!el) return;
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+      setter?.call(el, option);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      setSuggestOpen(false);
+      setHighlight(-1);
+      resize();
+    },
+    [resize],
+  );
+
+  const textarea = (
     <textarea
       ref={ref}
       rows={1}
@@ -153,22 +164,49 @@ export function JournalCellInput({
       onFocus={(event) => {
         onFocus?.(event);
         if (list) {
-          setEditingWithList(true);
-          return;
+          setOptions(readDatalistOptions(list));
+          setSuggestOpen(true);
+          setHighlight(-1);
         }
         resize();
       }}
       onBlur={(event) => {
         onBlur?.(event);
+        setSuggestOpen(false);
+        setHighlight(-1);
         resize();
       }}
       onInput={(event) => {
         onInput?.(event);
+        if (list && !suggestOpen) setSuggestOpen(true);
+        setHighlight(-1);
         resize();
       }}
       onKeyDown={(event) => {
         onKeyDown?.(event);
         if (event.defaultPrevented) return;
+        if (suggestions.length > 0) {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setHighlight((index) => (index + 1) % suggestions.length);
+            return;
+          }
+          if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setHighlight((index) => (index <= 0 ? suggestions.length - 1 : index - 1));
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setSuggestOpen(false);
+            return;
+          }
+          if (event.key === "Enter" && highlight >= 0 && !event.shiftKey) {
+            event.preventDefault();
+            pick(suggestions[highlight]);
+            return;
+          }
+        }
         if (event.key === "Enter" && !event.shiftKey && !multiline) {
           // Ячейка бланка ведёт себя как input: Enter = «записал».
           event.preventDefault();
@@ -179,5 +217,39 @@ export function JournalCellInput({
       style={{ minHeight: MIN_HEIGHT_PX }}
       {...props}
     />
+  );
+
+  if (!list) return textarea;
+
+  return (
+    <span className="relative block">
+      {textarea}
+      {suggestions.length > 0 ? (
+        <ul
+          role="listbox"
+          aria-label="Подсказки"
+          className="absolute left-0 top-full z-30 mt-1 max-h-56 w-max min-w-full max-w-[320px] overflow-auto rounded-2xl border border-[#ececf4] bg-white p-1.5 text-left shadow-[0_24px_60px_-24px_rgba(11,16,36,0.35)] print:hidden"
+        >
+          {suggestions.map((option, index) => (
+            <li
+              key={option}
+              role="option"
+              aria-selected={index === highlight}
+              // mousedown с preventDefault — ячейка не теряет фокус до выбора.
+              onMouseDown={(event) => {
+                event.preventDefault();
+                pick(option);
+              }}
+              className={cn(
+                "cursor-pointer rounded-xl px-3 py-2 text-[13px] leading-snug text-[#0b1024] transition-colors duration-150 hover:bg-[#f5f6ff]",
+                index === highlight && "bg-[#eef1ff] font-medium text-[#3848c7]",
+              )}
+            >
+              {option}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </span>
   );
 }

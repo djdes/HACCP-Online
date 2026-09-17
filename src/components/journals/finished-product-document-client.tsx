@@ -21,7 +21,6 @@ import {
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
-  JOURNAL_DIALOG_CONTENT_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
   JOURNAL_DIALOG_TITLE_CLASS,
@@ -34,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   FINISHED_PRODUCT_QUALITY_GUIDE_TITLE,
@@ -114,6 +114,10 @@ const BULK_ROWS_MAX = 50;
 /** Пауза до автосохранения после последнего нажатия клавиши в ячейке. */
 const AUTOSAVE_DELAY_MS = 800;
 
+/** Стандартные результаты органолептической оценки (по просьбе заказчика — список). */
+const ORGANOLEPTIC_OPTIONS = ["Отлично", "Хорошо", "Удовлетворительно", "Неудовлетворительно"] as const;
+const ORGANOLEPTIC_CUSTOM = "__custom__";
+
 /** Текстовые поля строки — только они рендерятся колонками таблицы. */
 type FinishedProductTextField =
   | "productionDateTime"
@@ -133,7 +137,7 @@ const FINISHED_PRODUCT_COLUMN_FIELDS: Record<string, { field: FinishedProductTex
   production: { field: "productionDateTime" },
   rejection: { field: "rejectionTime" },
   name: { field: "productName", list: "finished-product-items" },
-  organoleptic: { field: "organoleptic" },
+  organoleptic: { field: "organoleptic", list: "finished-product-organoleptic" },
   temp: { field: "productTemp" },
   corrective: { field: "correctiveAction" },
   oxygen: { field: "oxygenLevel" },
@@ -407,6 +411,144 @@ export function FinishedProductDocumentClient({
   });
   const headerEdit = useJournalHeaderEdit();
   const canManageColumns = headerEdit?.canEditDocument === true;
+  // Поля записи — одно окно для «Добавить изделие», правки строки и «Добавить
+  // списком» (там наименования приходят списком, остальное общее).
+  const [organolepticCustom, setOrganolepticCustom] = useState(false);
+  const organolepticSelectValue = (ORGANOLEPTIC_OPTIONS as readonly string[]).includes(draftRow.organoleptic) && !organolepticCustom
+    ? draftRow.organoleptic
+    : draftRow.organoleptic || organolepticCustom
+      ? ORGANOLEPTIC_CUSTOM
+      : "";
+  const rowFields = ({ withProductName, leading }: { withProductName: boolean; leading?: React.ReactNode }) => (
+    <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+      {leading}
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время изготовления</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(e.target.value, parseDateTime(prev.productionDateTime).time) }))} />
+                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(parseDateTime(prev.productionDateTime).date, e.target.value) }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Время снятия бракеража</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(e.target.value, parseDateTime(prev.rejectionTime).time) }))} />
+                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(parseDateTime(prev.rejectionTime).date, e.target.value) }))} />
+              </div>
+            </div>
+            {withProductName ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Наименование изделия</Label>
+                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productName} onChange={(e) => setDraftRow((prev) => ({ ...prev, productName: e.target.value }))} list="finished-product-items" />
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Органолептическая оценка</Label>
+              <Select
+                value={organolepticSelectValue}
+                onValueChange={(next) => {
+                  if (next === ORGANOLEPTIC_CUSTOM) {
+                    setOrganolepticCustom(true);
+                    setDraftRow((prev) => ({ ...prev, organoleptic: "" }));
+                    return;
+                  }
+                  setOrganolepticCustom(false);
+                  setDraftRow((prev) => ({ ...prev, organoleptic: next }));
+                }}
+              >
+                <SelectTrigger className="h-10 rounded-xl border-[#dcdfed] bg-white text-[13.5px]" aria-label="Органолептическая оценка">
+                  <SelectValue placeholder="— Выберите оценку —" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORGANOLEPTIC_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                  ))}
+                  <SelectItem value={ORGANOLEPTIC_CUSTOM}>Своя формулировка…</SelectItem>
+                </SelectContent>
+              </Select>
+              {organolepticSelectValue === ORGANOLEPTIC_CUSTOM ? (
+                <Input
+                  className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+                  value={draftRow.organoleptic}
+                  placeholder="Например: соответствует требованиям"
+                  aria-label="Своя формулировка оценки"
+                  autoFocus
+                  onChange={(e) => setDraftRow((prev) => ({ ...prev, organoleptic: e.target.value }))}
+                />
+              ) : null}
+            </div>
+            {isColumnVisible("temp") ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("temp", "T°C внутри продукта")}</Label>
+                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productTemp} onChange={(e) => setDraftRow((prev) => ({ ...prev, productTemp: e.target.value }))} />
+              </div>
+            ) : null}
+            {isColumnVisible("oxygen") ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("oxygen", "Остаточный уровень кислорода, % об.")}</Label>
+                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.oxygenLevel} onChange={(e) => setDraftRow((prev) => ({ ...prev, oxygenLevel: e.target.value }))} />
+              </div>
+            ) : null}
+            {isColumnVisible("corrective") ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("corrective", "Корректирующие действия")}</Label>
+                <Textarea className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]" value={draftRow.correctiveAction} onChange={(e) => setDraftRow((prev) => ({ ...prev, correctiveAction: e.target.value }))} />
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Разрешение к реализации</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    ["yes", "Да", "#136b2a", "#ecfdf5"],
+                    ["no", "Нет", "#d2453d", "#fff4f2"],
+                  ] as const
+                ).map(([value, label, fg, bg]) => {
+                  const active = draftRow.releaseAllowed === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setDraftRow((prev) => ({ ...prev, releaseAllowed: value }))}
+                      className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"}`}
+                      style={active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время разрешения</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(e.target.value, parseDateTime(prev.releasePermissionTime).time) }))} />
+                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(parseDateTime(prev.releasePermissionTime).date, e.target.value) }))} />
+              </div>
+            </div>
+            {isColumnVisible("courier") ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("courier", "Дата и время передачи блюд курьеру")}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(e.target.value, parseDateTime(prev.courierTransferTime).time) }))} />
+                  <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(parseDateTime(prev.courierTransferTime).date, e.target.value) }))} />
+                </div>
+              </div>
+            ) : null}
+            {isColumnVisible("responsible") ? (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("responsible", "Ответственный исполнитель")}</Label>
+                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.responsiblePerson} onChange={(e) => setDraftRow((prev) => ({ ...prev, responsiblePerson: e.target.value }))} list="finished-product-users" />
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "Лицо, проводившее бракераж"}</Label>
+              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.inspectorName} onChange={(e) => setDraftRow((prev) => ({ ...prev, inspectorName: e.target.value }))} list="finished-product-users" />
+            </div>
+          
+    </div>
+  );
+
   const headerMenu = useColumnHeaderMenu({
     code: "finished_product",
     config: config as unknown as Record<string, unknown>,
@@ -525,8 +667,14 @@ export function FinishedProductDocumentClient({
       .map((item) => item.trim())
       .filter(Boolean);
     if (items.length === 0) return;
+    // Общие поля из окна (даты, оценка, ответственные) — каждому изделию списка.
+    const { id: _templateId, ...template } = draftRow;
+    void _templateId;
     commitConfig(
-      { ...config, rows: [...config.rows, ...items.map((item) => createDraft(users, item, draftPeople))] },
+      {
+        ...config,
+        rows: [...config.rows, ...items.map((item) => createFinishedProductRow({ ...template, productName: item }))],
+      },
       true
     );
     setBulkText("");
@@ -536,6 +684,7 @@ export function FinishedProductDocumentClient({
 
   function openAddRow() {
     setEditingRowId(null);
+    setOrganolepticCustom(false);
     setDraftRow(createDraft(users, "", draftPeople));
     setAddModalOpen(true);
   }
@@ -544,6 +693,7 @@ export function FinishedProductDocumentClient({
   function openEditRow(row: FinishedProductDocumentRow) {
     if (readOnly) return;
     setEditingRowId(row.id);
+    setOrganolepticCustom(false);
     setDraftRow({ ...row });
     setAddModalOpen(true);
   }
@@ -677,7 +827,7 @@ export function FinishedProductDocumentClient({
                 icon: <ListPlus className="size-4 text-[#6f7282]" />,
                 onSelect: () => {
                   setBulkText("");
-                  setBulkOpen(true);
+                  { setDraftRow(createDraft(users, "", draftPeople)); setBulkOpen(true); };
                 },
               },
             ]}
@@ -825,6 +975,7 @@ export function FinishedProductDocumentClient({
           </table>
           <datalist id="finished-product-items">{productOptions.map((item) => <option key={item} value={item} />)}</datalist>
           <datalist id="finished-product-users">{personOptions.map((item) => <option key={item} value={item} />)}</datalist>
+          <datalist id="finished-product-organoleptic">{ORGANOLEPTIC_OPTIONS.map((item) => <option key={item} value={item} />)}</datalist>
         </MobileViewTableWrapper>
 
         {/* «Примечание:» под таблицей — как на эталоне, и на экране, и в печати.
@@ -874,98 +1025,7 @@ export function FinishedProductDocumentClient({
               {editingRowId ? "Изменение записи" : "Добавление новой строки"}
             </DialogTitle>
           </DialogHeader>
-          <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время изготовления</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(e.target.value, parseDateTime(prev.productionDateTime).time) }))} />
-                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(parseDateTime(prev.productionDateTime).date, e.target.value) }))} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Время снятия бракеража</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(e.target.value, parseDateTime(prev.rejectionTime).time) }))} />
-                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(parseDateTime(prev.rejectionTime).date, e.target.value) }))} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Наименование изделия</Label>
-              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productName} onChange={(e) => setDraftRow((prev) => ({ ...prev, productName: e.target.value }))} list="finished-product-items" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Органолептическая оценка</Label>
-              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.organoleptic} onChange={(e) => setDraftRow((prev) => ({ ...prev, organoleptic: e.target.value }))} />
-            </div>
-            {isColumnVisible("temp") ? (
-              <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("temp", "T°C внутри продукта")}</Label>
-                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productTemp} onChange={(e) => setDraftRow((prev) => ({ ...prev, productTemp: e.target.value }))} />
-              </div>
-            ) : null}
-            {isColumnVisible("oxygen") ? (
-              <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("oxygen", "Остаточный уровень кислорода, % об.")}</Label>
-                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.oxygenLevel} onChange={(e) => setDraftRow((prev) => ({ ...prev, oxygenLevel: e.target.value }))} />
-              </div>
-            ) : null}
-            {isColumnVisible("corrective") ? (
-              <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("corrective", "Корректирующие действия")}</Label>
-                <Textarea className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]" value={draftRow.correctiveAction} onChange={(e) => setDraftRow((prev) => ({ ...prev, correctiveAction: e.target.value }))} />
-              </div>
-            ) : null}
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Разрешение к реализации</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {(
-                  [
-                    ["yes", "Да", "#136b2a", "#ecfdf5"],
-                    ["no", "Нет", "#d2453d", "#fff4f2"],
-                  ] as const
-                ).map(([value, label, fg, bg]) => {
-                  const active = draftRow.releaseAllowed === value;
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setDraftRow((prev) => ({ ...prev, releaseAllowed: value }))}
-                      className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"}`}
-                      style={active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время разрешения</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(e.target.value, parseDateTime(prev.releasePermissionTime).time) }))} />
-                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(parseDateTime(prev.releasePermissionTime).date, e.target.value) }))} />
-              </div>
-            </div>
-            {isColumnVisible("courier") ? (
-              <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("courier", "Дата и время передачи блюд курьеру")}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(e.target.value, parseDateTime(prev.courierTransferTime).time) }))} />
-                  <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(parseDateTime(prev.courierTransferTime).date, e.target.value) }))} />
-                </div>
-              </div>
-            ) : null}
-            {isColumnVisible("responsible") ? (
-              <div className="space-y-2">
-                <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("responsible", "Ответственный исполнитель")}</Label>
-                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.responsiblePerson} onChange={(e) => setDraftRow((prev) => ({ ...prev, responsiblePerson: e.target.value }))} list="finished-product-users" />
-              </div>
-            ) : null}
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "Лицо, проводившее бракераж"}</Label>
-              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.inspectorName} onChange={(e) => setDraftRow((prev) => ({ ...prev, inspectorName: e.target.value }))} list="finished-product-users" />
-            </div>
-          </div>
+          {rowFields({ withProductName: true })}
           <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto" onClick={closeRowModal}>Отмена</Button>
             <Button type="button" className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto" onClick={() => { void saveDraftRow(); }} disabled={isSaving}>
@@ -1019,28 +1079,32 @@ export function FinishedProductDocumentClient({
 
       {/* «Добавить списком» — многострочная вставка вместо window.prompt. */}
       <Dialog open={readOnly ? false : bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
           <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
             <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
               Добавить изделия списком
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 px-6 py-5">
-            <p className="text-[13px] leading-[1.55] text-[#6f7282]">
-              Вставьте наименования изделий — каждое с новой строки. Для каждой строки
-              создастся запись бракеража с текущей датой и временем.
-            </p>
-            <Textarea
-              value={bulkText}
-              onChange={(event) => setBulkText(event.target.value)}
-              placeholder={"Борщ\nКотлета по-киевски\nСалат «Цезарь»"}
-              className="min-h-[180px] rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
-            />
-            <div className="text-[12px] text-[#9b9fb3]">
-              Будет добавлено строк:{" "}
-              {bulkText.split("\n").map((item) => item.trim()).filter(Boolean).length}
-            </div>
-          </div>
+          {rowFields({
+            withProductName: false,
+            leading: (
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Наименования изделий — каждое с новой строки</Label>
+                <Textarea
+                  value={bulkText}
+                  onChange={(event) => setBulkText(event.target.value)}
+                  placeholder={"Борщ\nКотлета по-киевски\nСалат «Цезарь»"}
+                  aria-label="Наименования изделий списком"
+                  className="min-h-[140px] rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+                <div className="text-[12px] leading-[1.45] text-[#6f7282]">
+                  Будет добавлено строк:{" "}
+                  <span className="font-medium text-[#0b1024]">{bulkText.split("\n").map((item) => item.trim()).filter(Boolean).length}</span>.
+                  Поля ниже — общие для всех изделий списка, как в окне «Добавить изделие».
+                </div>
+              </div>
+            ),
+          })}
           <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
             <Button
               type="button"

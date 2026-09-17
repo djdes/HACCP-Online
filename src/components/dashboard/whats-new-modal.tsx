@@ -38,6 +38,7 @@ import {
   Smartphone,
   Zap,
   CalendarCheck,
+  ClipboardCheck,
 } from "lucide-react";
 
 const STORAGE_KEY = "wesetup.last-seen-build-sha";
@@ -120,6 +121,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Температура по QR": QrCode,
   Автозаполнение: CalendarCheck,
   "Колонки журналов": Table2,
+  "Бракераж готовой продукции": ClipboardCheck,
 };
 
 function iconForCategory(name: string): LucideIcon {
