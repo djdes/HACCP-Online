@@ -1,0 +1,61 @@
+{
+  "login": "http://localhost:3020/dashboard",
+  "ac2_directoryCreated": {
+    "a": {
+      "type": "refrigerator",
+      "tempMin": null,
+      "tempMax": null,
+      "area": "Основной цех"
+    },
+    "b": {
+      "type": "freezer",
+      "tempMin": null,
+      "tempMax": -18
+    }
+  },
+  "ac3_links": {
+    "posterHref": "/settings/qr-posters?kind=equipment&layout=poster&ids=cmu6hrf510006po9mjz9ab9ld&autoprint=1",
+    "stickerHref": "/settings/qr-posters?kind=equipment&layout=sheet&ids=cmu6hrf510006po9mjz9ab9ld&autoprint=1"
+  },
+  "ac3_qr": {
+    "path": "/equipment-fill/cmu6hrf510006po9mjz9ab9ld",
+    "fillPageStatus": 200,
+    "fillPageAccepted": true,
+    "tokenOk": true,
+    "tokenKind": "equipment",
+    "tokenId": "cmu6hrf510006po9mjz9ab9ld",
+    "hasSvg": true,
+    "norms": [],
+    "expiresAt": "2026-11-17T05:01:55.648Z"
+  },
+  "ac1_directorySynced": {
+    "tempMax": 7,
+    "name": "Тест QR А"
+  },
+  "ac1_rowLabel": "Тест QR А\nдо 7°C",
+  "ac5_barText": "Выбрано: 2 Оборудование будет удалено вместе с замерами температуры QR-коды Удалить",
+  "ac5_url": "http://localhost:3020/settings/qr-posters?kind=equipment&layout=sheet&ids=cmu6hrf510006po9mjz9ab9ld%2Ccmu6hrgzi0007po9mg98jerwi",
+  "ac5_stickers": 2,
+  "ac5_stickerTitles": [
+    "Тест QR А",
+    "Тест QR Б"
+  ],
+  "ac5_printGrid": {
+    "columns": 3,
+    "stickerHeightPx": 234,
+    "breakInside": "avoid"
+  },
+  "ac4_autoprint": {
+    "url": "http://localhost:3020/settings/qr-posters?kind=equipment&layout=sheet&ids=cmu6hrf510006po9mjz9ab9ld&autoprint=1",
+    "posters": 1,
+    "printCalls": 1
+  },
+  "ac4_poster": {
+    "posters": 1,
+    "printCalls": 1
+  },
+  "ac7_redirect": "http://localhost:3020/settings/qr-posters?kind=equipment&layout=sheet",
+  "errors": [
+    "fatal: locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[role=\"dialog\"]').filter({ hasText: 'Поиск помещения' }) to be visible\u001b[22m\n\n    at main (D:\\www\\Wesetup.ru\\.agent\\tasks\\equipment-qr-modal-2026-09\\e2e\\verify.ts:185:18)"
+  ]
+}

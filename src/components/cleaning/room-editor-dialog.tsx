@@ -37,6 +37,7 @@ import {
 import { MultiUserPicker } from "@/components/shared/multi-user-picker";
 import type { RoomResponsibleUser } from "@/lib/room-responsible-candidates";
 import { Switch } from "@/components/ui/switch";
+import { QrFillPreview } from "@/components/qr/qr-fill-preview";
 import { ChevronDown } from "lucide-react";
 import {
   DEFAULT_CLIMATE_HUMIDITY,
@@ -486,6 +487,16 @@ export function RoomEditorDialog({
                           Выход за норму подсветится в журнале и в форме TasksFlow.
                         </p>
                       </div>
+                    ) : null}
+                    {/* QR для заполнения с телефона — только когда карточку
+                        открыли из журнала климата: в журнале уборки он ни к чему. */}
+                    {focus === "climate" ? (
+                      <QrFillPreview
+                        kind="room"
+                        id={climateEnabled ? initial.id : null}
+                        emptyHint="Включите контроль климата — появится QR-код, по которому сотрудник вносит температуру и влажность этого помещения с телефона."
+                        className="bg-white"
+                      />
                     ) : null}
                   </div>
                 ) : null}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
+import { CheckCircle2, ChevronRight, Pencil, Search, SlidersHorizontal } from "lucide-react";
 
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { BottomActionBar } from "@/components/journals/bottom-action-bar";
@@ -50,6 +50,13 @@ export type DayFirstItem = {
   disabledReason?: string | null;
   /** Своя правая часть вместо значения: поле ввода, чипы. */
   trailing?: React.ReactNode;
+  /**
+   * Открыть карточку сущности (название, норма, QR) — круглый карандаш
+   * рядом с названием. Не передан — карандаша нет.
+   */
+  onEdit?: () => void;
+  /** Подпись карандаша для скринридера и подсказки. */
+  editLabel?: string;
   /**
    * Быстрая отметка смахиванием вправо. Журнал сам решает, что считать
    * обычным значением: «Зд.» у гигиенического, «выполнено» у уборки.
@@ -208,6 +215,21 @@ export function DayFirstCards({
                 </div>
               ) : null}
             </div>
+
+            {item.onEdit ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  item.onEdit?.();
+                }}
+                title={item.editLabel ?? `Изменить ${item.title}`}
+                aria-label={item.editLabel ?? `Изменить ${item.title}`}
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#9b9fb3] transition-colors duration-150 hover:bg-[#f5f6ff] hover:text-[#5566f6] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+              >
+                <Pencil className="size-4" />
+              </button>
+            ) : null}
 
             {item.trailing ? (
               <div className="shrink-0">{item.trailing}</div>

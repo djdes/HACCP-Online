@@ -1,0 +1,17 @@
+{
+  "task": "equipment-qr-modal-2026-09",
+  "date": "2026-09-18",
+  "stand": "localhost:3020 dev (Turbopack), DB tunnel to prod, org cmoe6rpt4000097ts71yb922y",
+  "criteria": {
+    "AC1": { "status": "PASS", "source": "e2e/results.json#ac1_directorySynced,ac1_rowLabel" },
+    "AC2": { "status": "PASS", "source": "e2e/results.json#ac2_directoryCreated" },
+    "AC3": { "status": "PASS", "source": "e2e/results.json#ac3_qr" },
+    "AC4": { "status": "PASS", "source": "e2e/results.json#ac4_autoprint,ac4_poster" },
+    "AC5": { "status": "PASS", "source": "e2e/results.json#ac5_url,ac5_stickers,ac5_printGrid" },
+    "AC6": { "status": "PASS", "source": "e2e/results-tail.json#ac6_room" },
+    "AC7": { "status": "PASS", "source": "e2e/results.json#ac7_redirect" },
+    "AC8": { "status": "PASS", "source": "e2e/results-tail.json#ac8_mini,ac8_miniDialogQr" },
+    "AC9": { "status": "PASS", "source": "npm run typecheck; eslint changed files; parity-build.log" }
+  },
+  "cleanup": { "removedEquipment": 2, "removedAreas": 1, "buildingsAfter": 0, "areasAfter": 0 }
+}

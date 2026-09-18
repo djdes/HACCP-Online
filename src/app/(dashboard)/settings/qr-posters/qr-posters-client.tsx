@@ -1,22 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Printer, QrCode, Refrigerator, Warehouse } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { FileText, Printer, QrCode, Refrigerator, Sticker, Warehouse } from "lucide-react";
 
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, PageHeaderStat } from "@/components/ui/page-header";
+import type { QrFillKind, QrPoster, QrPosterLayout } from "@/lib/qr-fill-types";
 import { cn } from "@/lib/utils";
 
-export type QrPoster = {
-  id: string;
-  kind: "room" | "equipment";
-  title: string;
-  subtitle: string;
-  norms: string[];
-  url: string;
-  svg: string;
-  /** ISO-дата, до которой код принимается. */
-  expiresAt: string | null;
-};
+export type { QrPoster } from "@/lib/qr-fill-types";
 
 const STEPS = [
   "Наведите камеру телефона на код.",
@@ -30,76 +22,162 @@ function formatDate(iso: string | null): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("ru-RU");
 }
 
+function buildHref(params: {
+  kind: QrFillKind;
+  layout: QrPosterLayout;
+  documentId: string | null;
+  selectedIds: string[] | null;
+}): string {
+  const search = new URLSearchParams();
+  search.set("kind", params.kind === "room" ? "rooms" : "equipment");
+  if (params.layout === "sheet") search.set("layout", "sheet");
+  if (params.documentId) search.set("doc", params.documentId);
+  if (params.selectedIds && params.selectedIds.length > 0) search.set("ids", params.selectedIds.join(","));
+  return `/settings/qr-posters?${search.toString()}`;
+}
+
+/**
+ * Две раскладки одной страницы:
+ *   • poster — плакат на лист A4 (крупный код, инструкция из трёх шагов);
+ *   • sheet  — наклейки сеткой, ~12 на лист: для дверцы холодильника или
+ *     таблички у входа. Сюда ведёт кнопка «QR-коды» из выделения строк
+ *     журнала (`ids=`) и «Наклейка» из диалога строки (`autoprint=1`).
+ */
 export function QrPostersClient({
   kind,
+  layout,
   posters,
   origin,
   documentTitle,
   documentId,
+  selectedIds,
+  autoprint,
 }: {
-  kind: "rooms" | "equipment";
+  kind: QrFillKind;
+  layout: QrPosterLayout;
   posters: QrPoster[];
   origin: string;
   documentTitle: string | null;
   documentId: string | null;
+  /** `ids=` из адреса — печать только выбранных объектов. */
+  selectedIds: string[] | null;
+  /** Открыть диалог печати сразу после загрузки (`autoprint=1`). */
+  autoprint: boolean;
 }) {
-  const tabs = [
-    { kind: "rooms" as const, label: "Склады и помещения", icon: Warehouse },
+  const printedRef = useRef(false);
+  useEffect(() => {
+    if (!autoprint || printedRef.current || posters.length === 0) return;
+    printedRef.current = true;
+    // Даём SVG отрисоваться; иначе Chrome печатает пустые рамки.
+    const timer = window.setTimeout(() => window.print(), 250);
+    return () => window.clearTimeout(timer);
+  }, [autoprint, posters.length]);
+
+  const kindTabs = [
+    { kind: "room" as const, label: "Склады и помещения", icon: Warehouse },
     { kind: "equipment" as const, label: "Холодильники и оборудование", icon: Refrigerator },
   ];
+  const layoutTabs = [
+    { layout: "poster" as const, label: "Плакат на лист", icon: FileText, hint: "Один объект на лист A4 — на дверь или стену" },
+    { layout: "sheet" as const, label: "Наклейки на лист", icon: Sticker, hint: "Много маленьких кодов на одном листе A4 — вырезать и наклеить" },
+  ];
+
+  const scopeLabel = documentTitle
+    ? `объектов документа «${documentTitle}»`
+    : selectedIds
+      ? "выбранных объектов"
+      : kind === "room"
+        ? "каждого склада"
+        : "каждого холодильника";
 
   return (
     <div className="space-y-5 print:space-y-0">
       <div className="space-y-5 print:hidden">
         <PageHeader
-          title="QR-плакаты"
+          title={layout === "sheet" ? "QR-наклейки" : "QR-плакаты"}
           description={
-            documentTitle
-              ? `Плакаты для объектов документа «${documentTitle}». По одному на лист A4.`
-              : "Плакат A4 с QR-кодом на каждый склад или холодильник. Сотрудник сканирует код и вносит показание без входа в кабинет."
+            layout === "sheet"
+              ? `Наклейки с QR-кодом для ${scopeLabel} — несколько на одном листе A4. Сотрудник сканирует код и вносит показание без входа в кабинет.`
+              : `Плакат A4 с QR-кодом для ${scopeLabel}. Сотрудник сканирует код и вносит показание без входа в кабинет.`
           }
           actions={
-            <button
-              type="button"
-              onClick={() => window.print()}
-              disabled={posters.length === 0}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-150 hover:bg-[#4a5bf0] disabled:bg-[#c8cbe0] disabled:shadow-none"
-            >
-              <Printer className="size-4" />
-              Распечатать
-            </button>
+            <>
+              {selectedIds ? (
+                <PageHeaderStat>Выбрано: {posters.length}</PageHeaderStat>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                disabled={posters.length === 0}
+                className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#5566f6] px-5 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_rgba(85,102,246,0.55)] transition-colors duration-150 hover:bg-[#4a5bf0] disabled:bg-[#c8cbe0] disabled:shadow-none"
+              >
+                <Printer className="size-4" />
+                Распечатать
+              </button>
+            </>
           }
         />
 
-        {documentId ? null : (
-          <div className="flex flex-wrap gap-2">
-            {tabs.map((tab) => {
+        <div className="flex flex-wrap items-center gap-2">
+          {documentId || selectedIds
+            ? null
+            : kindTabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = tab.kind === kind;
+                return (
+                  <Link
+                    key={tab.kind}
+                    href={buildHref({ kind: tab.kind, layout, documentId, selectedIds })}
+                    className={cn(
+                      "inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors duration-150",
+                      active
+                        ? "border-[#5566f6] bg-[#eef1ff] text-[#3848c7]"
+                        : "border-[#dcdfed] bg-white text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                    )}
+                  >
+                    <Icon className="size-4 text-[#5566f6]" />
+                    {tab.label}
+                  </Link>
+                );
+              })}
+          <div
+            role="tablist"
+            aria-label="Раскладка печати"
+            className="ml-auto inline-flex rounded-2xl border border-[#dcdfed] bg-white p-1"
+          >
+            {layoutTabs.map((tab) => {
               const Icon = tab.icon;
-              const active = tab.kind === kind;
+              const active = tab.layout === layout;
               return (
                 <Link
-                  key={tab.kind}
-                  href={`/settings/qr-posters?kind=${tab.kind}`}
+                  key={tab.layout}
+                  role="tab"
+                  aria-selected={active}
+                  title={tab.hint}
+                  href={buildHref({ kind, layout: tab.layout, documentId, selectedIds })}
                   className={cn(
-                    "inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-[14px] font-medium transition-colors duration-150",
+                    "inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium transition-colors duration-150",
                     active
-                      ? "border-[#5566f6] bg-[#eef1ff] text-[#3848c7]"
-                      : "border-[#dcdfed] bg-white text-[#0b1024] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                      ? "bg-[#eef1ff] text-[#3848c7]"
+                      : "text-[#6f7282] hover:bg-[#f5f6ff] hover:text-[#0b1024]"
                   )}
                 >
-                  <Icon className="size-4 text-[#5566f6]" />
+                  <Icon className="size-4" />
                   {tab.label}
                 </Link>
               );
             })}
           </div>
-        )}
+        </div>
 
         <div className="rounded-2xl border border-[#ececf4] bg-[#fafbff] p-4 text-[13px] leading-[1.55] text-[#3c4053]">
-          <b className="font-semibold text-[#0b1024]">Как это работает.</b> Распечатайте плакаты и повесьте у входа в
-          помещение или на дверцу холодильника. Показание ложится в активный журнал за сегодня — в ближайший срок
-          контроля. Если на сегодня журнала нет, телефон попросит сначала создать документ. Под каждым кодом указано, до
-          какого числа он действует; перед этой датой распечатайте плакаты заново.
+          <b className="font-semibold text-[#0b1024]">Как это работает.</b>{" "}
+          {layout === "sheet"
+            ? "Распечатайте лист, вырежьте наклейки и приклейте на дверцу холодильника или у входа в помещение."
+            : "Распечатайте плакаты и повесьте у входа в помещение или на дверцу холодильника."}{" "}
+          Показание ложится в активный журнал за сегодня — в ближайший срок контроля. Если на сегодня журнала нет,
+          телефон попросит сначала создать документ. Под каждым кодом указано, до какого числа он действует; перед
+          этой датой распечатайте коды заново.
           <span className="mt-1 block text-[12px] text-[#9b9fb3]">Домен ссылок: {origin.replace(/^https?:\/\//, "")}</span>
         </div>
       </div>
@@ -108,12 +186,14 @@ export function QrPostersClient({
         <div className="rounded-3xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-6 py-14 text-center print:hidden">
           <div className="text-[15px] font-medium text-[#0b1024]">
             {documentTitle
-              ? kind === "rooms"
+              ? kind === "room"
                 ? "В документе нет помещений из «Точек и помещений»"
                 : "В документе нет оборудования из «Оборудования»"
-              : kind === "rooms"
-                ? "Помещений пока нет"
-                : "Оборудования пока нет"}
+              : selectedIds
+                ? "Выбранные объекты не найдены"
+                : kind === "room"
+                  ? "Помещений пока нет"
+                  : "Оборудования пока нет"}
           </div>
           <p className="mx-auto mt-1.5 max-w-[420px] text-[13px] text-[#6f7282]">
             {documentTitle ? (
@@ -123,14 +203,25 @@ export function QrPostersClient({
                 Плакаты открыты из документа «{documentTitle}»: показываются только его строки, связанные со
                 справочником, а таких нет. Добавьте объект в документ из справочника или{" "}
                 <Link
-                  href={`/settings/qr-posters?kind=${kind}`}
+                  href={buildHref({ kind, layout, documentId: null, selectedIds: null })}
                   className="font-medium text-[#3848c7] underline underline-offset-2"
                 >
-                  {kind === "rooms" ? "откройте плакаты всех помещений" : "откройте плакаты всего оборудования"}
+                  {kind === "room" ? "откройте плакаты всех помещений" : "откройте плакаты всего оборудования"}
                 </Link>
                 .
               </>
-            ) : kind === "rooms" ? (
+            ) : selectedIds ? (
+              <>
+                Возможно, объекты удалены из справочника.{" "}
+                <Link
+                  href={buildHref({ kind, layout, documentId: null, selectedIds: null })}
+                  className="font-medium text-[#3848c7] underline underline-offset-2"
+                >
+                  Показать все
+                </Link>
+                .
+              </>
+            ) : kind === "room" ? (
               <>
                 Добавьте склады и цеха в{" "}
                 <Link href="/settings/buildings" className="font-medium text-[#3848c7] underline underline-offset-2">
@@ -148,6 +239,40 @@ export function QrPostersClient({
               </>
             )}
           </p>
+        </div>
+      ) : layout === "sheet" ? (
+        <div className="qr-sheet-grid grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {posters.map((poster) => {
+            const expires = formatDate(poster.expiresAt);
+            return (
+              <article
+                key={poster.id}
+                data-qr-poster=""
+                data-qr-url={poster.url}
+                data-qr-kind={poster.kind}
+                data-qr-id={poster.id}
+                className="qr-sticker flex flex-col items-center rounded-2xl border border-[#ececf4] bg-white p-4 text-center shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
+              >
+                <div
+                  className="qr-box w-full max-w-[160px] rounded-xl border border-[#ececf4] bg-white p-1.5"
+                  // SVG собран на сервере библиотекой qrcode — безопасно встраивать.
+                  dangerouslySetInnerHTML={{ __html: poster.svg }}
+                />
+                <div className="qr-sticker-title mt-2.5 text-[15px] font-semibold leading-tight text-[#0b1024]">
+                  {poster.title}
+                </div>
+                <div className="qr-sticker-subtitle mt-0.5 text-[12px] text-[#6f7282]">{poster.subtitle}</div>
+                {poster.norms.length > 0 ? (
+                  <div className="qr-sticker-norm mt-1 text-[12px] font-medium text-[#3848c7]">
+                    Норма: {poster.norms.join(", ")}
+                  </div>
+                ) : null}
+                <div className="qr-sticker-hint mt-2 text-[10.5px] text-[#9b9fb3]">
+                  Сканируйте камерой телефона{expires ? ` · до ${expires}` : ""}
+                </div>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <div className="qr-posters-grid grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -198,10 +323,11 @@ export function QrPostersClient({
       <style>{`
         .qr-box svg { display: block; width: 100%; height: auto; }
         @media print {
-          @page { size: A4 portrait; margin: 14mm; }
           html, body { background: #fff !important; }
           header, nav, footer, .screen-only { display: none !important; }
           main { padding: 0 !important; }
+
+          /* Плакат: один объект на лист A4. */
           .qr-posters-grid { display: block !important; }
           .qr-poster {
             box-sizing: border-box;
@@ -220,10 +346,34 @@ export function QrPostersClient({
           .qr-poster-eyebrow { font-size: 12pt; }
           .qr-poster-title { font-size: 30pt; margin-top: 6mm; }
           .qr-poster-subtitle { font-size: 14pt; margin-top: 3mm; }
-          .qr-box { width: 110mm !important; max-width: none !important; border: 0 !important; margin-top: 10mm; }
+          .qr-poster .qr-box { width: 110mm !important; max-width: none !important; border: 0 !important; margin-top: 10mm; }
           .qr-poster-steps { font-size: 15pt; width: 150mm; margin-top: 10mm; }
           .qr-poster-expires { font-size: 10pt; margin-top: 6mm; }
+
+          /* Наклейки: сетка 3 × 4 на листе A4 (12 штук), рамка под ножницы. */
+          .qr-sheet-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 4mm !important;
+          }
+          .qr-sticker {
+            box-sizing: border-box;
+            height: 62mm;
+            justify-content: center;
+            border: 0.3mm dashed #9b9fb3 !important;
+            border-radius: 3mm !important;
+            box-shadow: none !important;
+            padding: 3mm !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+          .qr-sticker .qr-box { width: 34mm !important; max-width: none !important; border: 0 !important; padding: 0 !important; }
+          .qr-sticker-title { font-size: 11pt; margin-top: 2mm; }
+          .qr-sticker-subtitle { font-size: 8.5pt; }
+          .qr-sticker-norm { font-size: 8.5pt; }
+          .qr-sticker-hint { font-size: 7pt; margin-top: 1.5mm; }
         }
+        @media print { @page { size: A4 portrait; margin: 12mm; } }
       `}</style>
     </div>
   );

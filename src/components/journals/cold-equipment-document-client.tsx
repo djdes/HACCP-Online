@@ -38,10 +38,12 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  Pencil,
   Plus,
   QrCode,
   UserPlus,
 } from "lucide-react";
+import { QrFillPreview } from "@/components/qr/qr-fill-preview";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
@@ -217,7 +219,8 @@ function EquipmentDialog({
   onOpenChange: (value: boolean) => void;
   initialItem: ColdEquipmentConfigItem | null;
   canDelete: boolean;
-  onSave: (item: ColdEquipmentConfigItem) => Promise<void>;
+  /** Возвращает сохранённую строку — уже со ссылкой на справочник. */
+  onSave: (item: ColdEquipmentConfigItem) => Promise<ColdEquipmentConfigItem>;
   onDelete: (itemId: string) => Promise<void>;
 }) {
   const [name, setName] = useState(initialItem?.name || "");
@@ -228,6 +231,13 @@ function EquipmentDialog({
     initialItem?.readingMode ?? "once",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /**
+   * QR показываем по записи справочника. Несвязанная строка получает её
+   * при сохранении — тогда окно не закрываем, а показываем свежий код.
+   */
+  const [linkedEquipmentId, setLinkedEquipmentId] = useState<string | null>(
+    initialItem?.sourceEquipmentId ?? null,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -235,6 +245,7 @@ function EquipmentDialog({
     setMin(initialItem?.min?.toString() || "");
     setMax(initialItem?.max?.toString() || "");
     setReadingMode(initialItem?.readingMode ?? "once");
+    setLinkedEquipmentId(initialItem?.sourceEquipmentId ?? null);
     // При правке подсвечиваем тот пресет, чьи нормы совпадают с
     // сохранёнными: человек должен видеть, что стоит «Морозильное», а
     // не гадать по двум числам.
@@ -245,6 +256,14 @@ function EquipmentDialog({
         preset.max === (initialItem?.max ?? null),
     );
     setPresetId(matched?.id ?? (initialItem ? "custom" : "fridge"));
+    // Новая строка: пресет «Холодильное» подсвечен — подставляем и его
+    // норму. Раньше клик по уже выбранной радиокнопке ничего не менял, и
+    // строка уходила без нормы.
+    if (!initialItem) {
+      const fridge = COLD_EQUIPMENT_PRESETS.find((preset) => preset.id === "fridge");
+      setMin(fridge?.min == null ? "" : String(fridge.min));
+      setMax(fridge?.max == null ? "" : String(fridge.max));
+    }
   }, [initialItem, open]);
 
   /** Выбор типа сразу подставляет норму — вспоминать цифры не нужно. */
@@ -259,7 +278,7 @@ function EquipmentDialog({
   async function handleSave() {
     const item = createColdEquipmentConfigItem({
       id: initialItem?.id,
-      sourceEquipmentId: initialItem?.sourceEquipmentId || null,
+      sourceEquipmentId: linkedEquipmentId || initialItem?.sourceEquipmentId || null,
       name,
       min: min === "" ? null : Number(min),
       max: max === "" ? null : Number(max),
@@ -268,8 +287,17 @@ function EquipmentDialog({
 
     setIsSubmitting(true);
     try {
-      await onSave(item);
+      const saved = await onSave(item);
+      const gotLinkedNow = !linkedEquipmentId && Boolean(saved.sourceEquipmentId);
+      setLinkedEquipmentId(saved.sourceEquipmentId ?? null);
+      if (gotLinkedNow && initialItem) {
+        // Строка только что попала в справочник — покажем QR, не закрывая окно.
+        toast.success("Сохранено. QR-код готов — его можно распечатать ниже.");
+        return;
+      }
       onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить оборудование");
     } finally {
       setIsSubmitting(false);
     }
@@ -398,6 +426,19 @@ function EquipmentDialog({
               />
             </div>
           </div>
+
+          {initialItem ? (
+            <QrFillPreview
+              kind="equipment"
+              id={linkedEquipmentId}
+              emptyHint="QR появится после сохранения: строка будет добавлена в справочник «Оборудование» и получит код, по которому сотрудник вносит температуру с телефона."
+            />
+          ) : (
+            <p className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-3 text-[12.5px] leading-[1.5] text-[#6f7282]">
+              После добавления строка попадёт в справочник «Оборудование» и получит
+              QR-код для заполнения с телефона — откройте её по клику на название.
+            </p>
+          )}
 
           <div className="flex items-center justify-between pt-2">
             <div>
@@ -902,6 +943,7 @@ export function ColdEquipmentDocumentClient({
   const [editingEquipment, setEditingEquipment] = useState<ColdEquipmentConfigItem | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPreparingQr, setIsPreparingQr] = useState(false);
   // Mobile-only view preference. The 1900-px table behind horizontal
   // scroll is unusable on a 320-px phone, so by default we render a card
   // per equipment with a per-day temperature input accordion. See
@@ -1044,19 +1086,54 @@ export function ColdEquipmentDocumentClient({
     }
   }
 
+  /**
+   * Строка и запись справочника «Оборудование» — одно устройство: сервер
+   * обновляет связанную запись или создаёт новую и пишет
+   * `sourceEquipmentId` (иначе у строки нет QR, IoT и CAPA её не видят).
+   */
   async function handleSaveEquipment(item: ColdEquipmentConfigItem) {
-    const nextConfig = normalizeColdEquipmentDocumentConfig({
-      ...config,
-      equipment: editingEquipment
-        ? config.equipment.map((current) =>
-            current.id === editingEquipment.id ? item : current
-          )
-        : [...config.equipment, item],
+    const response = await fetch(`/api/journal-documents/${documentId}/cold-equipment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "save_equipment", item }),
     });
-
-    await persistDocument({ config: nextConfig });
-    await syncEntries();
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.item) {
+      throw new Error(result?.error || "Не удалось сохранить оборудование");
+    }
+    const saved = result.item as ColdEquipmentConfigItem;
+    setEditingEquipment((current) => (current ? saved : current));
     router.refresh();
+    return saved;
+  }
+
+  /**
+   * «QR-коды» в полосе выделения: сначала связываем выбранные строки со
+   * справочником (у добавленных в журнале записи ещё нет), потом — лист
+   * наклеек только для них.
+   */
+  async function handlePrintSelectedQr() {
+    if (selectedEquipmentIds.length === 0) return;
+    setIsPreparingQr(true);
+    try {
+      const response = await fetch(`/api/journal-documents/${documentId}/cold-equipment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "ensure_equipment", itemIds: selectedEquipmentIds }),
+      });
+      const result = await response.json().catch(() => null);
+      const equipmentIds: string[] = Array.isArray(result?.equipmentIds) ? result.equipmentIds : [];
+      if (!response.ok || equipmentIds.length === 0) {
+        throw new Error(result?.error || "Не удалось подготовить QR-коды");
+      }
+      router.push(
+        `/settings/qr-posters?kind=equipment&layout=sheet&ids=${encodeURIComponent(equipmentIds.join(","))}`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось подготовить QR-коды");
+    } finally {
+      setIsPreparingQr(false);
+    }
   }
 
   async function handleDeleteEquipment(itemId: string) {
@@ -1331,7 +1408,19 @@ export function ColdEquipmentDocumentClient({
         onDelete={handleDeleteSelectedEquipment}
         deleting={isDeleting}
         hint="Оборудование будет удалено вместе с замерами температуры"
-      />
+      >
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void handlePrintSelectedQr()}
+          disabled={isPreparingQr || isDeleting}
+          title="Распечатать наклейки с QR-кодом для выбранных строк — все на одном листе A4"
+          className="h-10 gap-1.5 rounded-xl border-[#dcdfed] bg-white px-3.5 text-[14px] font-semibold text-[#0b1024] shadow-none transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          <QrCode className="size-4 text-[#5566f6]" />
+          {isPreparingQr ? "Готовим…" : "QR-коды"}
+        </Button>
+      </JournalSelectionBar>
     ) : null;
 
   return (
@@ -1559,6 +1648,16 @@ export function ColdEquipmentDocumentClient({
                   subtitle: formatRange(item.min, item.max),
                   disabledReason:
                     status === "active" ? undefined : "журнал закрыт",
+                  // Карандаш — то же окно строки (название, норма, QR),
+                  // что и клик по названию в таблице.
+                  onEdit:
+                    status === "active"
+                      ? () => {
+                          setEditingEquipment(item);
+                          setEquipmentDialogOpen(true);
+                        }
+                      : undefined,
+                  editLabel: `Изменить ${item.name}`,
                   trailing:
                     status === "active" ? (
                       <div className="w-[190px]">
@@ -1655,6 +1754,22 @@ export function ColdEquipmentDocumentClient({
                         }`}
                       />
                     </button>
+                    {status === "active" ? (
+                      // Тап по названию раскрывает дни; карандаш — окно
+                      // строки с нормой и QR (как клик по названию в таблице).
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingEquipment(item);
+                          setEquipmentDialogOpen(true);
+                        }}
+                        title="Изменить название и норму, показать QR-код"
+                        aria-label={`Изменить ${item.name}`}
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#6f7282] transition-colors duration-150 hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                    ) : null}
                   </div>
                   {expanded ? (
                     <div className="space-y-1.5 border-t border-[#ececf4] p-3">
@@ -1878,13 +1993,37 @@ export function ColdEquipmentDocumentClient({
                     />
                   </td>
 
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-middle leading-tight`} data-grid-label>
-                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      <span className="text-[13px] font-medium">{item.name}</span>
-                      <span className="text-[12px] text-[#6f7282]">
-                        {formatRange(item.min, item.max)}
+                  <td className={`${GRID_CELL_CLASS} p-0 align-middle leading-tight`} data-grid-label>
+                    {/* Название — кнопка: открывает окно строки (название,
+                        норма, QR-код). Раньше правка пряталась в панели
+                        автозаполнения, и норму никто не находил. На бумаге
+                        печатается как обычный текст. */}
+                    <button
+                      type="button"
+                      disabled={status !== "active"}
+                      onClick={() => {
+                        if (status !== "active") return;
+                        setEditingEquipment(item);
+                        setEquipmentDialogOpen(true);
+                      }}
+                      title="Изменить название и норму, показать QR-код для заполнения с телефона"
+                      className="group flex w-full items-center gap-2 px-2 py-1 text-left transition-colors duration-150 enabled:hover:bg-[#f5f6ff] disabled:cursor-default"
+                    >
+                      <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <span className="text-[13px] font-medium group-enabled:group-hover:text-[#3848c7]">
+                          {item.name}
+                        </span>
+                        <span className="text-[12px] text-[#6f7282]">
+                          {formatRange(item.min, item.max)}
+                        </span>
                       </span>
-                    </div>
+                      {status === "active" ? (
+                        <span className="flex shrink-0 items-center gap-1 text-[#9b9fb3] transition-colors duration-150 group-hover:text-[#5566f6] print:hidden">
+                          {item.sourceEquipmentId ? <QrCode className="size-3.5" /> : null}
+                          <Pencil className="size-3.5" />
+                        </span>
+                      ) : null}
+                    </button>
                   </td>
 
                   {dateKeys.map((dateKey) => {

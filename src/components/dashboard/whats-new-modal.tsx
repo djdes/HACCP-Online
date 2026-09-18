@@ -119,6 +119,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Ответственные в журналах": UserCheck,
   "Шапка журналов": SquarePen,
   "Температура по QR": QrCode,
+  "Оборудование и QR-коды": QrCode,
   Автозаполнение: CalendarCheck,
   "Колонки журналов": Table2,
   "Бракераж готовой продукции": ClipboardCheck,

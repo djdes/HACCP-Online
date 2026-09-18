@@ -345,6 +345,14 @@ export function normalizeColdEquipmentDocumentConfig(
               typeof itemRecord.name === "string" ? itemRecord.name : undefined,
             min: normalizeNumber(itemRecord.min),
             max: normalizeNumber(itemRecord.max),
+            // Режим замеров раньше терялся при нормализации: диалог его
+            // сохранял, а после перезагрузки страницы стоял «один раз».
+            readingMode:
+              itemRecord.readingMode === "once" ||
+              itemRecord.readingMode === "twice" ||
+              itemRecord.readingMode === "thrice"
+                ? itemRecord.readingMode
+                : undefined,
           });
         })
         .filter((item): item is ColdEquipmentConfigItem => item !== null)

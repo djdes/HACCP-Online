@@ -1828,9 +1828,22 @@ export function ClimateDocumentClient({
                       ~36px ширины освобождается — название спокойно
                       встаёт в одну строку. На экране перенос оставляем:
                       там чекбокс на месте и место действительно нужно. */}
-                  <span className="font-medium lowercase print:whitespace-nowrap">
-                    {room.name}
-                  </span>
+                  {status === "active" ? (
+                    // Клик по названию = карандаш: карточка помещения с
+                    // нормами и QR-кодом. На бумаге — обычный текст.
+                    <button
+                      type="button"
+                      onClick={() => openRoomEditor(room)}
+                      title="Открыть карточку помещения: нормы и QR-код для заполнения с телефона"
+                      className="font-medium lowercase transition-colors duration-150 hover:text-[#3848c7] print:whitespace-nowrap print:text-inherit"
+                    >
+                      {room.name}
+                    </button>
+                  ) : (
+                    <span className="font-medium lowercase print:whitespace-nowrap">
+                      {room.name}
+                    </span>
+                  )}
                   {status === "active" && (
                     <button
                       type="button"
@@ -2277,7 +2290,19 @@ export function ClimateDocumentClient({
                     className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                     colSpan={config.controlTimes.length * getRoomMetricColumnCount(room)}
                   >
-                    {room.name}
+                    {status === "active" ? (
+                      <button
+                        type="button"
+                        onClick={() => openRoomEditor(room)}
+                        title="Открыть карточку помещения: нормы и QR-код для заполнения с телефона"
+                        className="inline-flex items-center gap-1 font-semibold transition-colors duration-150 hover:text-[#3848c7] print:text-inherit"
+                      >
+                        {room.name}
+                        <Pencil className="size-3 text-[#9b9fb3] print:hidden" />
+                      </button>
+                    ) : (
+                      room.name
+                    )}
                   </th>
                 ))}
               </tr>

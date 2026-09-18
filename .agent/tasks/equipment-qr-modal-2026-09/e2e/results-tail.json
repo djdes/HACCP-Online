@@ -1,0 +1,22 @@
+{
+  "ac6_nameButtons": 2,
+  "ac6_room": {
+    "path": "/room-fill/cmu6hqw3w0001i09mg650pxdr",
+    "fillPageStatus": 200,
+    "fillPageAccepted": true,
+    "tokenOk": true,
+    "kind": "room",
+    "norms": [
+      "18…25 °C",
+      "15…75 %"
+    ],
+    "posterHref": "/settings/qr-posters?kind=rooms&layout=poster&ids=cmu6hqw3w0001i09mg650pxdr&autoprint=1"
+  },
+  "ac8_mini": {
+    "url": "http://localhost:3020/mini/documents/cmu3e8tav00gqd7tspsb35swv",
+    "pencilButtons": 2,
+    "tableNameButtons": 2
+  },
+  "ac8_miniDialogQr": true,
+  "errors": []
+}

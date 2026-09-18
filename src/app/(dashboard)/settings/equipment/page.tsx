@@ -117,7 +117,7 @@ export default async function EquipmentSettingsPage() {
         <div className="flex flex-wrap items-center gap-2">
           {canManage && equipment.length > 0 ? (
             <Link
-              href="/settings/equipment/qr-sheet"
+              href="/settings/qr-posters?kind=equipment&layout=sheet"
               className="inline-flex h-10 items-center gap-2 rounded-lg border-0 bg-[#5566f6]/[0.04] px-4 text-[14px] font-semibold text-[#5566f6] hover:bg-[#5566f6]/[0.09]"
               title="Распечатать QR-наклейки для быстрой записи температуры с телефона"
             >
