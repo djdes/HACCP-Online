@@ -628,6 +628,81 @@ export function syncClimateEntryDataWithConfig(
   return next;
 }
 
+/**
+ * Перенос замеров при смене времени контроля (`mapping`: старое → новое).
+ *
+ * Время — структурный ключ `measurements[roomId][time]` и часть ключа
+ * комментария `roomId:time:metric`. Раньше смена «10:00» → «09:30» в
+ * настройках просто теряла всё, что было внесено под «10:00»: sync с новым
+ * конфигом заводил пустой слот. Теперь замеры и комментарии переезжают под
+ * новое время; слоты, которых в mapping нет, не трогаем.
+ */
+export function renameClimateControlTimes(
+  entryData: ClimateEntryData,
+  mapping: Record<string, string>
+): ClimateEntryData {
+  const pairs = Object.entries(mapping).filter(([from, to]) => from && to && from !== to);
+  if (pairs.length === 0) return entryData;
+
+  const measurements: ClimateEntryData["measurements"] = {};
+  Object.entries(entryData.measurements).forEach(([roomId, byTime]) => {
+    const nextByTime: Record<string, ClimateMeasurement> = {};
+    // Сначала слоты, которых переименование не касается, потом
+    // переехавшие — чтобы «10:00 → 14:00» при уже существующем пустом
+    // «14:00» не затёрло реальные значения пустыми.
+    Object.entries(byTime).forEach(([time, value]) => {
+      if (!(time in mapping)) nextByTime[time] = value;
+    });
+    pairs.forEach(([from, to]) => {
+      const moved = byTime[from];
+      if (!moved) return;
+      const existing = nextByTime[to];
+      nextByTime[to] = {
+        temperature: moved.temperature ?? existing?.temperature ?? null,
+        humidity: moved.humidity ?? existing?.humidity ?? null,
+      };
+    });
+    measurements[roomId] = nextByTime;
+  });
+
+  let corrections: Record<string, string> | undefined;
+  if (entryData.corrections) {
+    corrections = {};
+    Object.entries(entryData.corrections).forEach(([key, text]) => {
+      // Ключ `roomId:ЧЧ:ММ:metric` — время само содержит двоеточие,
+      // поэтому режем по первому и последнему разделителю.
+      const first = key.indexOf(":");
+      const last = key.lastIndexOf(":");
+      if (first < 0 || last <= first) {
+        corrections![key] = text;
+        return;
+      }
+      const roomId = key.slice(0, first);
+      const time = key.slice(first + 1, last);
+      const metric = key.slice(last + 1);
+      const to = mapping[time];
+      corrections![to ? climateCorrectionKey(roomId, to, metric as ClimateMetricKind) : key] = text;
+    });
+  }
+
+  return {
+    ...entryData,
+    measurements,
+    ...(corrections ? { corrections } : {}),
+  };
+}
+
+/** Строка «ЧЧ:ММ» — время контроля; иначе null. */
+export function normalizeClimateControlTime(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const match = raw.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
 export function mergeClimateEntryData(
   currentData: ClimateEntryData,
   generatedData: ClimateEntryData

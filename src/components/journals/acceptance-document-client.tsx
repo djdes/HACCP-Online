@@ -73,6 +73,7 @@ import {
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { Switch } from "@/components/ui/switch";
 import { DateField } from "@/components/journals/journal-dialog-field";
+import { TimeField, joinTimeValue, splitTimeValue } from "@/components/journals/time-field";
 import {
   PositionSelectItems,
   usePositionEmployeeCascade,
@@ -802,11 +803,22 @@ function IncomingControlRowDialog(props: {
         </DialogHeader>
 
         <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <DateField
               label="Дата поставки"
               value={row.deliveryDate}
               onChange={(value) => setValue("deliveryDate", value)}
+            />
+            {/* Время поставки печатается в бланке и показывается в карточке,
+                но раньше в этом окне его негде было задать или поправить —
+                оно приходило только из импорта, Меркурия и TasksFlow. */}
+            <TimeField
+              label="Время поставки"
+              value={joinTimeValue(row.deliveryHour, row.deliveryMinute)}
+              onChange={(value) => {
+                const { hour, minute } = splitTimeValue(value);
+                setRow((current) => ({ ...current, deliveryHour: hour, deliveryMinute: minute }));
+              }}
             />
             <DateField
               label="Годен до"

@@ -39,6 +39,7 @@ import {
   Zap,
   CalendarCheck,
   ClipboardCheck,
+  Clock3,
   Snowflake,
 } from "lucide-react";
 
@@ -121,6 +122,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Шапка журналов": SquarePen,
   "Температура по QR": QrCode,
   "Оборудование и QR-коды": QrCode,
+  "Время в журналах": Clock3,
   Автозаполнение: CalendarCheck,
   "Колонки журналов": Table2,
   "Бракераж готовой продукции": ClipboardCheck,

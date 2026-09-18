@@ -9,13 +9,19 @@ import {
   buildClimateAutoFillRows,
   mergeClimateEntryData,
   normalizeClimateDocumentConfig,
+  normalizeClimateControlTime,
   normalizeClimateEntryData,
+  renameClimateControlTimes,
   syncClimateEntryDataWithConfig,
 } from "@/lib/climate-document";
 import { toDateKey } from "@/lib/hygiene-document";
 import { isManagementRole, pickPrimaryManager } from "@/lib/user-roles";
 
-type ClimateAction = "apply_auto_fill" | "sync_entries";
+type ClimateAction =
+  | "apply_auto_fill"
+  | "sync_entries"
+  /** Смена времён контроля с переносом уже внесённых замеров. */
+  | "set_control_times";
 
 export async function POST(
   request: Request,
@@ -31,7 +37,10 @@ export async function POST(
   }
 
   const { id } = await params;
-  const body = (await request.json()) as { action?: ClimateAction };
+  const body = (await request.json().catch(() => ({}))) as {
+    action?: ClimateAction;
+    times?: unknown;
+  };
   const action = body.action;
 
   if (!action) {
@@ -67,6 +76,50 @@ export async function POST(
   }
 
   const config = normalizeClimateDocumentConfig(document.config);
+
+  if (action === "set_control_times") {
+    const raw = Array.isArray(body.times) ? body.times : [];
+    const times = raw.map(normalizeClimateControlTime);
+    if (times.length === 0 || times.length > 2 || times.some((time) => time === null)) {
+      return NextResponse.json(
+        { error: "Укажите одно или два времени контроля в формате ЧЧ:ММ" },
+        { status: 400 }
+      );
+    }
+    const nextTimes = times as string[];
+    if (new Set(nextTimes).size !== nextTimes.length) {
+      return NextResponse.json({ error: "Времена контроля не должны совпадать" }, { status: 400 });
+    }
+
+    // Слот i переезжает в слот i: «10:00 → 09:30». Удалённый второй слот
+    // просто исчезает (как и раньше), добавленный — пустой.
+    const mapping: Record<string, string> = {};
+    config.controlTimes.forEach((from, index) => {
+      const to = nextTimes[index];
+      if (to && to !== from) mapping[from] = to;
+    });
+    const nextConfig = normalizeClimateDocumentConfig({ ...config, controlTimes: nextTimes });
+
+    await db.journalDocument.update({
+      where: { id: document.id },
+      data: { config: nextConfig },
+    });
+    await Promise.all(
+      document.entries.map((entry) =>
+        db.journalDocumentEntry.update({
+          where: { id: entry.id },
+          data: {
+            data: syncClimateEntryDataWithConfig(
+              renameClimateControlTimes(normalizeClimateEntryData(entry.data), mapping),
+              nextConfig
+            ),
+          },
+        })
+      )
+    );
+
+    return NextResponse.json({ config: nextConfig, updated: document.entries.length });
+  }
 
   if (action === "sync_entries") {
     await Promise.all(

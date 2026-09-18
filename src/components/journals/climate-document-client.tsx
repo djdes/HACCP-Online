@@ -37,6 +37,7 @@ import {
   CLIMATE_FREQUENCY_HINT,
   CLIMATE_SCOPE_HINT,
   normalizeClimateDocumentConfig,
+  renameClimateControlTimes,
   syncClimateEntryDataWithConfig,
   applyRoomDirectoryToClimateConfig,
   climateRoomFromDirectory,
@@ -52,6 +53,7 @@ import {
   type RoomEditorInitial,
 } from "@/components/cleaning/room-editor-dialog";
 import { RoomDirectoryPickerDialog } from "@/components/cleaning/room-directory-picker-dialog";
+import { TimeField } from "@/components/journals/time-field";
 import { directoryRoomToEditorInitial } from "@/components/cleaning/room-editor-initial";
 import type { DirectoryBuilding, DirectoryRoom } from "@/lib/room-directory";
 import { buildDateKeys, isWeekend } from "@/lib/hygiene-document";
@@ -186,6 +188,93 @@ function parseMetricInput(rawValue: string) {
 
 function isDateWithinDocumentPeriod(dateKey: string, dateFrom: string, dateTo: string) {
   return dateKey >= dateFrom && dateKey <= dateTo;
+}
+
+/**
+ * Правка одного времени контроля прямо из шапки таблицы / карточек.
+ *
+ * Время — ключ, под которым лежат замеры всех дней документа, поэтому
+ * меняется оно для документа целиком, а сервер переносит уже внесённые
+ * значения под новое время (`set_control_times`). Раньше единственный
+ * путь был «Настройки журнала», и замеры при этом терялись.
+ */
+function ControlTimeDialog({
+  open,
+  onOpenChange,
+  times,
+  index,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (value: boolean) => void;
+  times: string[];
+  index: number | null;
+  onSave: (nextTimes: string[]) => Promise<void>;
+}) {
+  const [value, setValue] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open || index === null) return;
+    setValue(times[index] ?? "");
+  }, [index, open, times]);
+
+  async function handleSave() {
+    if (index === null) return;
+    if (!value) {
+      toast.error("Укажите время в формате ЧЧ:ММ.");
+      return;
+    }
+    const nextTimes = times.map((time, position) => (position === index ? value : time));
+    if (new Set(nextTimes).size !== nextTimes.length) {
+      toast.error("Времена контроля не должны совпадать.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await onSave(nextTimes);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось изменить время контроля");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
+            Время контроля {index !== null && times.length > 1 ? index + 1 : ""}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 px-6 py-5">
+          <TimeField
+            label="Когда снимаются показания"
+            value={value}
+            onChange={setValue}
+            showNow={false}
+          />
+          <p className="rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 text-[12.5px] leading-[1.5] text-[#6f7282]">
+            Время меняется для всего документа: заголовок колонки во всех
+            днях. Уже внесённые замеры и комментарии переедут под новое время,
+            ничего не потеряется.
+          </p>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={isSubmitting || !value}
+              className="h-10 rounded-xl bg-[#5566f6] px-5 text-[13.5px] text-white hover:bg-[#4a5bf0]"
+            >
+              {isSubmitting ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function RoomDialog({
@@ -1038,6 +1127,7 @@ export function ClimateDocumentClient({
     responsibleUserId
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editingTimeIndex, setEditingTimeIndex] = useState<number | null>(null);
   // История отмены (Ctrl+Z). Пока курсор в поле ввода, хоткей отдан
   // нативной отмене браузера — стек ловит уже сохранённые значения.
   const undoStack = useJournalUndo({ enabled: status === "active" });
@@ -1254,12 +1344,52 @@ export function ClimateDocumentClient({
     );
   }
 
+  /**
+   * Смена времён контроля с переносом замеров: слот i → слот i. Сервер
+   * переименовывает ключи во всех записях, здесь повторяем то же локально,
+   * чтобы таблица не мигала пустыми ячейками до refresh.
+   */
+  async function handleSetControlTimes(nextTimes: string[]) {
+    const response = await fetch(`/api/journal-documents/${documentId}/climate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "set_control_times", times: nextTimes }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.config) {
+      throw new Error(result?.error || "Не удалось изменить время контроля");
+    }
+    const nextConfig = normalizeClimateDocumentConfig(result.config);
+    const mapping: Record<string, string> = {};
+    config.controlTimes.forEach((from, index) => {
+      const to = nextConfig.controlTimes[index];
+      if (to && to !== from) mapping[from] = to;
+    });
+    setConfig(nextConfig);
+    setRows((currentRows) =>
+      currentRows.map((row) => ({
+        ...row,
+        data: syncClimateEntryDataWithConfig(
+          renameClimateControlTimes(row.data, mapping),
+          nextConfig
+        ),
+      }))
+    );
+  }
+
   async function handleSaveSettings(params: {
     title: string;
     responsibleTitle: string | null;
     responsibleUserId: string | null;
     config: ClimateDocumentConfig;
   }) {
+    // Времена контроля — через перенос замеров, а не голый PATCH конфига:
+    // иначе всё внесённое под старым временем пропадало.
+    const timesChanged =
+      params.config.controlTimes.length !== config.controlTimes.length ||
+      params.config.controlTimes.some((time, index) => time !== config.controlTimes[index]);
+    if (timesChanged) await handleSetControlTimes(params.config.controlTimes);
+
     await persistDocument({
       title: params.title,
       responsibleTitle: params.responsibleTitle,
@@ -2198,6 +2328,25 @@ export function ClimateDocumentClient({
         ) : null}
 
 
+        {mobileView === "cards" && status === "active" ? (
+          // На телефоне шапки таблицы нет — время контроля правится отсюда.
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px] text-[#6f7282]">
+            <span>Время контроля:</span>
+            {config.controlTimes.map((time, timeIndex) => (
+              <button
+                key={`chip:${time}`}
+                type="button"
+                onClick={() => setEditingTimeIndex(timeIndex)}
+                title="Изменить время контроля — для всего документа, замеры сохранятся"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#dcdfed] bg-white px-3 text-[13px] font-medium tabular-nums text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+              >
+                {time}
+                <Pencil className="size-3 text-[#9b9fb3]" />
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {mobileView === "cards" ? (
           <RecordCardsView
             items={rows.map((row, index) => {
@@ -2308,13 +2457,27 @@ export function ClimateDocumentClient({
               </tr>
               <tr>
                 {visibleRooms.flatMap((room) =>
-                  config.controlTimes.map((time) => (
+                  config.controlTimes.map((time, timeIndex) => (
                     <th
                       key={`${room.id}:${time}`}
                       className={`${GRID_HEAD_CELL_CLASS} px-2 py-1.5 text-center font-semibold leading-tight`}
                       colSpan={getRoomMetricColumnCount(room)}
                     >
-                      {time}
+                      {status === "active" ? (
+                        // Время контроля правится по клику, как название
+                        // помещения. Замеры под ним переезжают.
+                        <button
+                          type="button"
+                          onClick={() => setEditingTimeIndex(timeIndex)}
+                          title="Изменить время контроля — для всего документа, замеры сохранятся"
+                          className="inline-flex items-center gap-1 font-semibold tabular-nums transition-colors duration-150 hover:text-[#3848c7] print:text-inherit"
+                        >
+                          {time}
+                          <Pencil className="size-3 text-[#9b9fb3] print:hidden" />
+                        </button>
+                      ) : (
+                        time
+                      )}
                     </th>
                   ))
                 )}
@@ -2529,6 +2692,16 @@ export function ClimateDocumentClient({
         config={config}
         onSave={handleSaveSettings}
         useV2={useV2}
+      />
+
+      <ControlTimeDialog
+        open={editingTimeIndex !== null}
+        onOpenChange={(value) => {
+          if (!value) setEditingTimeIndex(null);
+        }}
+        times={config.controlTimes}
+        index={editingTimeIndex}
+        onSave={handleSetControlTimes}
       />
 
       <RoomDialog

@@ -1365,7 +1365,10 @@ export function CleaningVentilationChecklistDocumentClient({
               fields: row.procedures.map((procedure) => {
                 const responsibleName = userMap[procedure.responsibleUserId]?.name || "";
                 const times = procedure.times.filter(Boolean).join(" · ") || "—";
-                const editable = isActive && config.autoFillEnabled;
+                // Автозаполнение решает, ПОДСТАВЛЯТЬ ли время заранее, а не
+                // можно ли человеку поправить уже записанное: при выключенном
+                // автозаполнении время было видно, но не редактировалось.
+                const editable = isActive;
                 return {
                   label: procedure.label,
                   value: (
@@ -1531,7 +1534,7 @@ export function CleaningVentilationChecklistDocumentClient({
                           <span className="print:hidden">
                             <TimeSelect
                               value={procedure.times[timeIndex] || "00:00"}
-                              disabled={!isActive || !config.autoFillEnabled}
+                              disabled={!isActive}
                               onChange={(value) => {
                                 updateProcedureTime(row.dateKey, procedure, timeIndex, value).catch(
                                   (error) =>

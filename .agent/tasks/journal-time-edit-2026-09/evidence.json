@@ -1,0 +1,11 @@
+{
+  "task": "journal-time-edit-2026-09",
+  "date": "2026-09-18",
+  "criteria": {
+    "AC1": { "status": "PASS", "source": "e2e/results.json#ac1_*; snapshot.ts check" },
+    "AC2": { "status": "PASS", "source": "src/lib/climate-control-times.test.ts; handleSaveSettings -> set_control_times" },
+    "AC3": { "status": "PASS", "source": "e2e/results.json#ac3_*" },
+    "AC4": { "status": "PASS", "source": "e2e/results.json#ac4_timeField" },
+    "AC5": { "status": "PASS", "source": "node --test 5/5; npm run typecheck; eslint" }
+  }
+}
