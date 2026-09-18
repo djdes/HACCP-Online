@@ -130,6 +130,59 @@ export const COLD_EQUIPMENT_READING_MODES = [
 export type ColdEquipmentReadingModeId =
   (typeof COLD_EQUIPMENT_READING_MODES)[number]["id"];
 
+/** Сколько замеров в день у оборудования (1–3). */
+export function getColdEquipmentReadingCount(item: { readingMode?: ColdEquipmentReadingModeId }): number {
+  return COLD_EQUIPMENT_READING_MODES.find((mode) => mode.id === item.readingMode)?.times ?? 1;
+}
+
+/**
+ * Ключ замера в `temperatures`. Первый замер живёт под id оборудования —
+ * так читаются все старые документы, QR и TasksFlow; второй и третий — под
+ * `id#2`, `id#3`. Модель данных строки при этом не меняется.
+ */
+export function coldReadingSlotKey(equipmentId: string, slotIndex: number): string {
+  return slotIndex <= 0 ? equipmentId : `${equipmentId}#${slotIndex + 1}`;
+}
+
+/** Строка сетки: оборудование × номер замера за день. */
+export type ColdEquipmentReadingSlot = ColdEquipmentConfigItem & {
+  /** Ключ значения в `temperatures` и `corrections`. */
+  slotKey: string;
+  slotIndex: number;
+  slotCount: number;
+  /** «1-й замер» / «2-й замер»; пусто, когда замер один. */
+  slotLabel: string;
+};
+
+/** Оборудование документа, развёрнутое по замерам в день. */
+export function expandColdEquipmentReadingSlots(
+  config: Pick<ColdEquipmentDocumentConfig, "equipment">
+): ColdEquipmentReadingSlot[] {
+  return config.equipment.flatMap((item) => {
+    const slotCount = getColdEquipmentReadingCount(item);
+    return Array.from({ length: slotCount }, (_, slotIndex) => ({
+      ...item,
+      slotKey: coldReadingSlotKey(item.id, slotIndex),
+      slotIndex,
+      slotCount,
+      slotLabel: slotCount > 1 ? `${slotIndex + 1}-й замер` : "",
+    }));
+  });
+}
+
+/** Ключ первого пустого замера оборудования за день; все заполнены — последний. */
+export function pickColdReadingSlotForWrite(
+  item: ColdEquipmentConfigItem,
+  temperatures: Record<string, number | null | undefined>
+): string {
+  const count = getColdEquipmentReadingCount(item);
+  for (let index = 0; index < count; index += 1) {
+    const key = coldReadingSlotKey(item.id, index);
+    if (temperatures[key] === null || temperatures[key] === undefined) return key;
+  }
+  return coldReadingSlotKey(item.id, count - 1);
+}
+
 export type ColdEquipmentDocumentConfig = {
   equipment: ColdEquipmentConfigItem[];
   skipWeekends: boolean;
@@ -181,20 +234,22 @@ export function collectColdEquipmentDeviations(
 ): ColdEquipmentDeviation[] {
   const result: ColdEquipmentDeviation[] = [];
 
+  const slots = expandColdEquipmentReadingSlots(config);
   for (const row of rows) {
-    for (const item of config.equipment) {
-      const value = row.data.temperatures?.[item.id];
-      if (!isColdEquipmentValueOutOfRange(value, item)) continue;
+    for (const slot of slots) {
+      const value = row.data.temperatures?.[slot.slotKey];
+      if (!isColdEquipmentValueOutOfRange(value, slot)) continue;
       result.push({
-        key: `${row.id}:${item.id}`,
+        key: `${row.id}:${slot.slotKey}`,
         rowId: row.id,
         date: row.date,
-        equipmentId: item.id,
-        equipmentName: item.name,
+        // Ключ замера: комментарий к отклонению держится за свой замер.
+        equipmentId: slot.slotKey,
+        equipmentName: slot.slotLabel ? `${slot.name} · ${slot.slotLabel}` : slot.name,
         value: value as number,
-        min: item.min,
-        max: item.max,
-        comment: row.data.corrections?.[item.id] ?? "",
+        min: slot.min,
+        max: slot.max,
+        comment: row.data.corrections?.[slot.slotKey] ?? "",
       });
     }
   }
@@ -374,8 +429,8 @@ export function createEmptyColdEquipmentEntryData(
 ): ColdEquipmentEntryData {
   const temperatures: Record<string, number | null> = {};
 
-  config.equipment.forEach((item) => {
-    temperatures[item.id] = null;
+  expandColdEquipmentReadingSlots(config).forEach((slot) => {
+    temperatures[slot.slotKey] = null;
   });
 
   return {
@@ -440,8 +495,8 @@ export function syncColdEquipmentEntryDataWithConfig(
 ): ColdEquipmentEntryData {
   const next = createEmptyColdEquipmentEntryData(config, entryData.responsibleTitle);
 
-  config.equipment.forEach((item) => {
-    next.temperatures[item.id] = entryData.temperatures[item.id] ?? null;
+  expandColdEquipmentReadingSlots(config).forEach((slot) => {
+    next.temperatures[slot.slotKey] = entryData.temperatures[slot.slotKey] ?? null;
   });
   if (entryData.corrections) next.corrections = entryData.corrections;
 
@@ -481,11 +536,11 @@ export function buildColdEquipmentAutoFillEntryData(params: {
   const { config, dateKey, responsibleTitle } = params;
   const data = createEmptyColdEquipmentEntryData(config, responsibleTitle);
 
-  config.equipment.forEach((item) => {
-    data.temperatures[item.id] = buildGeneratedTemperature(
-      item.min,
-      item.max,
-      `${dateKey}:${item.id}`
+  expandColdEquipmentReadingSlots(config).forEach((slot) => {
+    data.temperatures[slot.slotKey] = buildGeneratedTemperature(
+      slot.min,
+      slot.max,
+      `${dateKey}:${slot.slotKey}`
     );
   });
 

@@ -39,6 +39,7 @@ import {
   Zap,
   CalendarCheck,
   ClipboardCheck,
+  Snowflake,
 } from "lucide-react";
 
 const STORAGE_KEY = "wesetup.last-seen-build-sha";
@@ -123,6 +124,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   Автозаполнение: CalendarCheck,
   "Колонки журналов": Table2,
   "Бракераж готовой продукции": ClipboardCheck,
+  "Температура холодильников": Snowflake,
 };
 
 function iconForCategory(name: string): LucideIcon {

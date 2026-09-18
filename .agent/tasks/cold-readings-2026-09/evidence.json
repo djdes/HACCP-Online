@@ -1,0 +1,12 @@
+{
+  "task_id": "cold-readings-2026-09",
+  "updated_at": "2026-09-18T12:00:00+03:00",
+  "commands": [
+    { "cmd": "npx tsc --noEmit --skipLibCheck -p tsconfig.typecheck.json", "result": "exit 0" },
+    { "cmd": "node --import tsx --test src/lib/cold-equipment-document.test.ts", "result": "4/4" },
+    { "cmd": "npx tsx .agent/tasks/cold-readings-2026-09/e2e/cold-readings.ts", "result": "15/15 PASS" },
+    { "cmd": "npx tsx .agent/tasks/qr-a4-temperature-2026-09/e2e/poster-scan.ts (regression)", "result": "29/29 PASS" }
+  ],
+  "criteria": { "AC1": "PASS", "AC2": "PASS", "AC3": "PASS", "AC4": "PASS", "AC5": "PASS", "AC6": "PASS (local); prod smoke after deploy" },
+  "verification_note": "No independent verifier run: owner asked for speed; verified by own e2e."
+}

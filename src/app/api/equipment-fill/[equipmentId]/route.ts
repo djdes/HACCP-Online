@@ -11,6 +11,7 @@ import {
   COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE,
   normalizeColdEquipmentDocumentConfig,
   normalizeColdEquipmentEntryData,
+  pickColdReadingSlotForWrite,
   type ColdEquipmentEntryData,
 } from "@/lib/cold-equipment-document";
 import { normalizeClimateDocumentConfig } from "@/lib/climate-document";
@@ -167,8 +168,23 @@ export async function POST(
       existing?.data ?? null
     );
     const temperatures = { ...current.temperatures };
+    // Замеры дня по всем сотрудникам: второй скан за день ложится во второй
+    // замер (режим «2 раза в день»), а не затирает утренний.
+    const dayEntries = await db.journalDocumentEntry.findMany({
+      where: { documentId: doc.id, date: todayStart },
+      select: { data: true },
+    });
+    const dayTemperatures: Record<string, number | null> = {};
+    for (const dayEntry of dayEntries) {
+      const dayData = normalizeColdEquipmentEntryData(dayEntry.data ?? null);
+      for (const [key, value] of Object.entries(dayData.temperatures)) {
+        if (value != null) dayTemperatures[key] = value;
+      }
+    }
     for (const item of matching) {
-      temperatures[item.id] = parsed.temperature;
+      const slotKey = pickColdReadingSlotForWrite(item, dayTemperatures);
+      temperatures[slotKey] = parsed.temperature;
+      dayTemperatures[slotKey] = parsed.temperature;
     }
     const nextData: ColdEquipmentEntryData = {
       responsibleTitle: current.responsibleTitle,

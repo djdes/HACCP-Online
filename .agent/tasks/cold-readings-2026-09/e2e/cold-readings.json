@@ -1,0 +1,122 @@
+[
+  {
+    "name": "плакаты холодильника и морозилки есть",
+    "ok": true,
+    "detail": {
+      "fridgeUrl": "http://localhost:3020/equipment-fill/cmu32lpar0000pg9mh9kvyjlc?token=cmu32lpar0000pg9mh9kvyjlc.1789720551136.lyq7ZGUlEsKWZkjIo5uft8TSbz2PAl69eDSzKsFhUK0",
+      "freezerUrl": "http://localhost:3020/equipment-fill/cmu6oqeif0000j49muiylzrud?token=cmu6oqeif0000j49muiylzrud.1789720551117.XyGTPwx1WkJ8wMTS_5k0q08SNwyjbw8Z4H4oUWo75oc"
+    }
+  },
+  {
+    "name": "QR: первый скан за день — 1-й замер",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "temps": {
+        "merged": {
+          "cold-fridge": 4
+        },
+        "employees": 1
+      }
+    }
+  },
+  {
+    "name": "QR: второй скан (другой сотрудник) — 2-й замер, утренний цел",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "temps": {
+        "merged": {
+          "cold-fridge": 4,
+          "cold-fridge#2": 5
+        },
+        "employees": 2
+      }
+    }
+  },
+  {
+    "name": "QR: третий скан обновляет последний замер, первый цел",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "temps": {
+        "merged": {
+          "cold-fridge": 4,
+          "cold-fridge#2": 5
+        },
+        "employees": 2
+      }
+    }
+  },
+  {
+    "name": "морозилка: минус в поле стоит сразу",
+    "ok": true,
+    "detail": "-"
+  },
+  {
+    "name": "морозилка: кнопка «−» нажата",
+    "ok": true
+  },
+  {
+    "name": "кнопка «−» снимает минус",
+    "ok": true,
+    "detail": "18"
+  },
+  {
+    "name": "кнопка «−» возвращает минус",
+    "ok": true,
+    "detail": "-18"
+  },
+  {
+    "name": "холодильник с плюсовой нормой: поле пустое",
+    "ok": true
+  },
+  {
+    "name": "QR: отрицательная температура морозилки записана",
+    "ok": true,
+    "detail": {
+      "status": 200,
+      "temps": {
+        "merged": {
+          "cold-fridge": 4,
+          "cold-freezer": -18,
+          "cold-fridge#2": 5
+        },
+        "employees": 2
+      }
+    }
+  },
+  {
+    "name": "журнал: у холодильника строки «1-й замер» и «2-й замер»",
+    "ok": true
+  },
+  {
+    "name": "журнал: оба замера видны (слияние строк сотрудников)",
+    "ok": true,
+    "detail": {
+      "firstValue": "4",
+      "secondValue": "5.5"
+    }
+  },
+  {
+    "name": "журнал: у морозилки одна строка без подписи замера и −18",
+    "ok": true
+  },
+  {
+    "name": "журнал: правка 2-го замера сохраняется, 1-й не тронут",
+    "ok": true,
+    "detail": {
+      "merged": {
+        "cold-fridge": 4,
+        "cold-freezer": -18,
+        "cold-fridge#2": 3.5
+      },
+      "employees": 2
+    }
+  },
+  {
+    "name": "PDF: строки «1-й замер» и «2-й замер»",
+    "ok": true,
+    "detail": "Альфа (общее) СИСТЕМА ХАССП E2E ЗАМЕРЫ ДВА РАЗА В ДЕНЬ Начат 18-09-2026 Окончен ____________ Периодичность контроля Ежедневно, не менее двух раз в смену — по каждой единице холодильного оборудования. E2E ЗАМЕРЫ ДВА РАЗА В ДЕНЬ Наименование или номер ХК Месяц Сентя брь 2026 г. 18 ПТ Температура °C Холодильник QR E2E от 2°C до 6°C · 1-й замер 4 Холодильник QR E2E от 2°C до 6°C · 2-й замер 5.5 Морози"
+  }
+]

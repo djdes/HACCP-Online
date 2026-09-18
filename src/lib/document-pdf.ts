@@ -25,6 +25,7 @@ import {
   getColdEquipmentDocumentTitle,
   getColdEquipmentFilePrefix,
   normalizeColdEquipmentDocumentConfig,
+  expandColdEquipmentReadingSlots,
   normalizeColdEquipmentEntryData,
 } from "@/lib/cold-equipment-document";
 import {
@@ -1836,7 +1837,8 @@ function drawColdEquipmentPdf(doc: jsPDF, params: {
   });
 
   const pageWidth = doc.internal.pageSize.getWidth();
-  const equipment = params.config.equipment;
+  // Строки бланка: оборудование × замер за день (режим «2 раза в день»).
+  const equipment = expandColdEquipmentReadingSlots(params.config);
   const dateKeys = buildDateKeys(params.dateFrom, params.dateTo);
 
   const titleY = afterHeader(metaBottom, 60);
@@ -1850,9 +1852,15 @@ function drawColdEquipmentPdf(doc: jsPDF, params: {
   params.entries.forEach((entry) => {
     const dateKey = toDateKey(entry.date);
     const data = normalizeColdEquipmentEntryData(entry.data);
+    // За день могли писать разные сотрудники (замеры по QR) — сливаем значения.
+    const current = rowByDate.get(dateKey);
+    const temperatures = { ...(current?.temperatures ?? {}) };
+    Object.entries(data.temperatures).forEach(([key, value]) => {
+      if (value != null || !(key in temperatures)) temperatures[key] = value;
+    });
     rowByDate.set(dateKey, {
-      employeeId: entry.employeeId,
-      temperatures: data.temperatures,
+      employeeId: current?.employeeId ?? entry.employeeId,
+      temperatures,
     });
   });
 
@@ -1912,12 +1920,12 @@ function drawColdEquipmentPdf(doc: jsPDF, params: {
         : "";
     body.push([
       {
-        content: `${item.name}${norm}`,
+        content: `${item.name}${norm}${item.slotLabel ? `  · ${item.slotLabel}` : ""}`,
         colSpan: 2,
         styles: { halign: "left" as const, valign: "middle" as const },
       },
       ...dateKeys.map((dateKey) =>
-        centerCell(formatNumberShort(rowByDate.get(dateKey)?.temperatures?.[item.id]))
+        centerCell(formatNumberShort(rowByDate.get(dateKey)?.temperatures?.[item.slotKey]))
       ),
     ]);
   });

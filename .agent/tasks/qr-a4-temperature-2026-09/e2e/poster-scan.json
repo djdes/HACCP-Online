@@ -8,12 +8,12 @@
     {
       "name": "у плаката склада есть data-qr-url/kind",
       "ok": true,
-      "detail": "http://localhost:3020/room-fill/cmu2stnhd000jwk9me7z5o3hs?token=room%3Acmu2stnhd000jwk9me7z5o3hs.1789500898624.z2WtEJq8SWnTdiAhvqHFT40k26eH-7WzgDPcUw6CmE0"
+      "detail": "http://localhost:3020/room-fill/cmu2stnhd000jwk9me7z5o3hs?token=room%3Acmu2stnhd000jwk9me7z5o3hs.1789720624275.uWWCgm5gCyaohsy7e8iIFIcg3j96vgFpToBjOiju2W4"
     },
     {
       "name": "плакат: название, три шага, срок действия",
       "ok": true,
-      "detail": "ТЕМПЕРАТУРА И ВЛАЖНОСТЬ\nСклад сухих продуктов\nОсновная точка · норма 15…25 °C, 40…70 %\n1.\nНаведите камеру телефона на код.\n2.\nВыберите своё имя и введите показания.\n3.\nНажмите «Сохранить» — запись попадёт в журнал за сегодня.\nКод действует до 15.09.2027"
+      "detail": "ТЕМПЕРАТУРА И ВЛАЖНОСТЬ\nСклад сухих продуктов\nОсновная точка · норма 15…25 °C, 40…70 %\n1.\nНаведите камеру телефона на код.\n2.\nВыберите своё имя и введите показания.\n3.\nНажмите «Сохранить» — запись попадёт в журнал за сегодня.\nКод действует до 18.09.2027"
     },
     {
       "name": "печать: QR около 110 мм",
@@ -40,17 +40,17 @@
     {
       "name": "climate_control: пункт меню «QR-плакаты» ведёт на плакаты этого документа",
       "ok": true,
-      "detail": "http://localhost:3020/settings/qr-posters?kind=rooms&doc=cmu32lpf70002pg9m1zptk62t"
+      "detail": "http://localhost:3020/settings/qr-posters?kind=rooms&doc=cmu6pg3cz0000309m5dazu8wg"
     },
     {
       "name": "cold_equipment_control: пункт меню «QR-плакаты» ведёт на плакаты этого документа",
       "ok": true,
-      "detail": "http://localhost:3020/settings/qr-posters?kind=equipment&doc=cmu32lpfd0003pg9mvrs9qdce"
+      "detail": "http://localhost:3020/settings/qr-posters?kind=equipment&doc=cmu6pg3d50001309mb4xv4ipl"
     },
     {
       "name": "ссылка плаката открывает форму без входа",
       "ok": true,
-      "detail": "http://localhost:3020/room-fill/cmu2stnhd000jwk9me7z5o3hs?token=room%3Acmu2stnhd000jwk9me7z5o3hs.1789500898624.z2WtEJq8SWnTdiAhvqHFT40k26eH-7WzgDPcUw6CmE0"
+      "detail": "http://localhost:3020/room-fill/cmu2stnhd000jwk9me7z5o3hs?token=room%3Acmu2stnhd000jwk9me7z5o3hs.1789720624275.uWWCgm5gCyaohsy7e8iIFIcg3j96vgFpToBjOiju2W4"
     },
     {
       "name": "замер в норме → 200, слот в ответе",
@@ -59,9 +59,9 @@
         "status": 200,
         "json": {
           "ok": true,
-          "documentId": "cmu32lpf70002pg9m1zptk62t",
-          "dateKey": "2026-09-15",
-          "slot": "17:00",
+          "documentId": "cmu6pg3cz0000309m5dazu8wg",
+          "dateKey": "2026-09-18",
+          "slot": "10:00",
           "temperatureOutOfRange": false,
           "humidityOutOfRange": false
         }
@@ -70,7 +70,7 @@
     {
       "name": "экран успеха: «Записано в бланк за сегодня, <срок>»",
       "ok": true,
-      "detail": "ТЕМПЕРАТУРА И ВЛАЖНОСТЬ\nСклад сухих продуктов\n\nКафе «Альфа» · Основная точка\n\nнорма 15…25 °C · норма 40…70 %\n\nЗаписано\n\nЗаписано в бланк за сегодня, 17:00 — на имя Иван Повар.\n\nЗаписать ещё замер"
+      "detail": "ТЕМПЕРАТУРА И ВЛАЖНОСТЬ\nСклад сухих продуктов\n\nКафе «Альфа» · Основная точка\n\nнорма 15…25 °C · норма 40…70 %\n\nЗаписано\n\nЗаписано в бланк за сегодня, 10:00 — на имя Иван Повар.\n\nЗаписать ещё замер"
     },
     {
       "name": "имя запомнено на телефоне",
@@ -82,7 +82,7 @@
       "ok": true,
       "detail": {
         "room-cmu2stnhd000jwk9me7z5o3hs": {
-          "17:00": {
+          "10:00": {
             "humidity": 55,
             "temperature": 20
           }
@@ -96,9 +96,9 @@
         "status": 200,
         "json": {
           "ok": true,
-          "documentId": "cmu32lpf70002pg9m1zptk62t",
-          "dateKey": "2026-09-15",
-          "slot": "17:00",
+          "documentId": "cmu6pg3cz0000309m5dazu8wg",
+          "dateKey": "2026-09-18",
+          "slot": "10:00",
           "temperatureOutOfRange": true,
           "humidityOutOfRange": true
         }
@@ -108,24 +108,24 @@
       "name": "инцидент отклонения открыт",
       "ok": true,
       "detail": {
-        "id": "cmu32pjf0011j8s9m5326kr3n",
+        "id": "cmu6pgx3d000prk9m2qykrglq",
         "organizationId": "e2e-org-a",
-        "subjectKey": "doc:cmu32lpf70002pg9m1zptk62t:room-cmu2stnhd000jwk9me7z5o3hs",
+        "subjectKey": "doc:cmu6pg3cz0000309m5dazu8wg:room-cmu2stnhd000jwk9me7z5o3hs",
         "subjectName": "Склад сухих продуктов",
         "equipmentId": null,
-        "documentId": "cmu32lpf70002pg9m1zptk62t",
+        "documentId": "cmu6pg3cz0000309m5dazu8wg",
         "responsibleUserId": null,
         "firstValue": 31,
         "lastValue": 31,
         "tempMin": 15,
         "tempMax": 25,
         "notifiedAt": null,
-        "escalatedAt": "2026-09-15T19:37:09.478Z",
+        "escalatedAt": "2026-09-18T08:37:37.003Z",
         "resolvedAt": null,
         "resolvedReason": null,
-        "lastSeenAt": "2026-09-15T19:37:09.478Z",
-        "createdAt": "2026-09-15T19:37:09.516Z",
-        "updatedAt": "2026-09-15T19:37:10.176Z"
+        "lastSeenAt": "2026-09-18T08:37:37.003Z",
+        "createdAt": "2026-09-18T08:37:37.033Z",
+        "updatedAt": "2026-09-18T08:37:37.188Z"
       }
     },
     {
@@ -194,13 +194,13 @@
       "ok": true,
       "detail": {
         "room-cmu2stnhd000jwk9me7z5o3hs": {
-          "17:00": {
+          "10:00": {
             "humidity": 90,
             "temperature": 31
           }
         },
         "room-area-cmu2stnek000dwk9mgkz5j72o": {
-          "17:00": {
+          "10:00": {
             "humidity": 50,
             "temperature": 4
           }

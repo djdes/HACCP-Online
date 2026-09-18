@@ -38,7 +38,11 @@ const LS_EMPLOYEE_KEY = "wesetup.equipment-fill.employeeId";
  */
 export function EquipmentFillClient({ token, equipment, employees }: Props) {
   const [employeeId, setEmployeeId] = useState<string>("");
-  const [temperature, setTemperature] = useState<string>("");
+  // Морозилка (норма ниже нуля) — минус стоит сразу: на цифровой клавиатуре
+  // телефона его не набрать.
+  const [temperature, setTemperature] = useState<string>(
+    equipment.tempMax != null && equipment.tempMax < 0 ? "-" : ""
+  );
   const [humidity, setHumidity] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -166,7 +170,7 @@ export function EquipmentFillClient({ token, equipment, employees }: Props) {
               type="button"
               onClick={() => {
                 setDone(false);
-                setTemperature("");
+                setTemperature(equipment.tempMax != null && equipment.tempMax < 0 ? "-" : "");
                 setError(null);
               }}
               className="mt-6 h-12 rounded-2xl bg-[#5566f6] px-5 text-[15px] font-medium text-white hover:bg-[#4a5bf0]"
@@ -209,6 +213,25 @@ export function EquipmentFillClient({ token, equipment, employees }: Props) {
                   <span className="flex size-12 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
                     <Thermometer className="size-5" />
                   </span>
+                  {/* На цифровой клавиатуре телефона минуса нет — знак ставится кнопкой. */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTemperature((current) => {
+                        const value = current.trim();
+                        return value.startsWith("-") ? value.slice(1) : `-${value}`;
+                      })
+                    }
+                    aria-label="Минус: отрицательная температура"
+                    aria-pressed={temperature.trim().startsWith("-")}
+                    className={`flex size-12 shrink-0 items-center justify-center rounded-2xl border text-[24px] font-semibold leading-none transition-colors duration-150 ${
+                      temperature.trim().startsWith("-")
+                        ? "border-[#5566f6] bg-[#5566f6] text-white"
+                        : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#f5f6ff]"
+                    }`}
+                  >
+                    −
+                  </button>
                   <Input
                     type="text"
                     inputMode="decimal"

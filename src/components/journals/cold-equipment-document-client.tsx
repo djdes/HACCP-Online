@@ -11,6 +11,7 @@ import {
   collectColdEquipmentDeviations,
   isColdEquipmentValueOutOfRange,
   COLD_EQUIPMENT_READING_MODES,
+  expandColdEquipmentReadingSlots,
   type ColdEquipmentReadingModeId,
 } from "@/lib/cold-equipment-document";
 import {
@@ -983,15 +984,36 @@ export function ColdEquipmentDocumentClient({
    * Считаем от состава: 40 (чекбокс) + 300 (наименование) + 48 × дни.
    */
   const gridMinWidth = 340 + dateKeys.length * 48;
-  const rowByDate = useMemo(
-    () =>
-      Object.fromEntries(
-        [...rows]
-          .sort((left, right) => left.date.localeCompare(right.date))
-          .map((row) => [row.date, row])
-      ) as Record<string, EntryRow>,
-    [rows]
-  );
+  // Одна строка сетки на дату. Если за день писали разные сотрудники
+  // (утренний и вечерний замер по QR) — значения сливаются, иначе второй
+  // сотрудник «затирал» бы первого на экране.
+  const rowByDate = useMemo(() => {
+    const map: Record<string, EntryRow> = {};
+    [...rows]
+      .sort((left, right) => left.date.localeCompare(right.date))
+      .forEach((row) => {
+        const current = map[row.date];
+        if (!current) {
+          map[row.date] = row;
+          return;
+        }
+        const temperatures = { ...current.data.temperatures };
+        Object.entries(row.data.temperatures).forEach(([key, value]) => {
+          if (value != null) temperatures[key] = value;
+        });
+        map[row.date] = {
+          ...current,
+          data: {
+            ...current.data,
+            temperatures,
+            corrections: { ...(current.data.corrections ?? {}), ...(row.data.corrections ?? {}) },
+          },
+        };
+      });
+    return map;
+  }, [rows]);
+  // Строки сетки: оборудование × замер за день (режим «2 раза в день» даёт две строки).
+  const readingSlots = useMemo(() => expandColdEquipmentReadingSlots(config), [config]);
   const responsibleCodes = useMemo(
     () => buildResponsibleCodes(employees, rows, responsibleUserId),
     [employees, responsibleUserId, rows]
@@ -1010,12 +1032,12 @@ export function ColdEquipmentDocumentClient({
   const todayProgress = useMemo(() => {
     if (!todayInPeriod || config.equipment.length === 0) return { filled: 0, total: 0 };
     const todayRow = rowByDate[todayKey];
-    const filled = config.equipment.reduce((count, item) => {
-      const value = todayRow?.data.temperatures?.[item.id];
+    const filled = readingSlots.reduce((count, slot) => {
+      const value = todayRow?.data.temperatures?.[slot.slotKey];
       return count + (value != null ? 1 : 0);
     }, 0);
-    return { filled, total: config.equipment.length };
-  }, [config.equipment, rowByDate, todayInPeriod, todayKey]);
+    return { filled, total: readingSlots.length };
+  }, [config.equipment, readingSlots, rowByDate, todayInPeriod, todayKey]);
 
   /** «Перейти» в полосе прогресса — скролл к сегодняшней колонке дня. */
   function scrollToTodayColumn() {
@@ -1250,13 +1272,19 @@ export function ColdEquipmentDocumentClient({
     // Строка дня записывается на того, кто уже в ней, на ответственного
     // документа или на вошедшего (если он в ростере) — не на «первого в
     // списке».
-    const employeeId = rowByDate[dateKey]?.employeeId || responsibleUserId || viewerId;
+    // За день могли писать разные сотрудники (замеры по QR). Правим ту запись,
+    // где значение уже лежит; иначе — первую запись дня. Сливать чужие значения
+    // в одну запись нельзя: старое значение у второго сотрудника «воскресало» бы.
+    const dayRows = rows.filter((row) => row.date === dateKey);
+    const ownerRow =
+      dayRows.find((row) => row.data.temperatures?.[equipmentId] != null) ?? dayRows[0];
+    const employeeId = ownerRow?.employeeId || responsibleUserId || viewerId;
     if (!employeeId) {
       toast.error(NO_ROW_EMPLOYEE_MESSAGE);
       return;
     }
 
-    const existingRow = rowByDate[dateKey];
+    const existingRow = ownerRow;
     const nextData = existingRow
       ? {
           ...createEmptyColdEquipmentEntryData(
@@ -1296,7 +1324,9 @@ export function ColdEquipmentDocumentClient({
           date: dateKey,
           data: nextData,
         };
-        const withoutCurrent = currentRows.filter((row) => row.date !== dateKey);
+        const withoutCurrent = currentRows.filter(
+          (row) => !(row.date === dateKey && row.employeeId === employeeId)
+        );
         return [...withoutCurrent, nextRow].sort((left, right) =>
           left.date.localeCompare(right.date)
         );
@@ -1321,7 +1351,9 @@ export function ColdEquipmentDocumentClient({
         data: nextData,
       };
 
-      const withoutCurrent = currentRows.filter((row) => row.date !== dateKey);
+      const withoutCurrent = currentRows.filter(
+          (row) => !(row.date === dateKey && row.employeeId === employeeId)
+        );
       return [...withoutCurrent, nextRow].sort((left, right) =>
         left.date.localeCompare(right.date)
       );
@@ -1640,11 +1672,11 @@ export function ColdEquipmentDocumentClient({
         {mobileView === "cards" && mobileAxis === "today" && todayInPeriod ? (
           <div className={`mb-4 ${viewClasses.cards}`}>
             <DayFirstCards
-              items={config.equipment.map((item) => {
-                const value = rowByDate[todayKey]?.data.temperatures[item.id];
+              items={readingSlots.map((item) => {
+                const value = rowByDate[todayKey]?.data.temperatures[item.slotKey];
                 return {
-                  id: item.id,
-                  title: item.name,
+                  id: item.slotKey,
+                  title: item.slotLabel ? `${item.name} · ${item.slotLabel}` : item.name,
                   subtitle: formatRange(item.min, item.max),
                   disabledReason:
                     status === "active" ? undefined : "журнал закрыт",
@@ -1662,11 +1694,11 @@ export function ColdEquipmentDocumentClient({
                     status === "active" ? (
                       <div className="w-[190px]">
                         <ColdTemperatureCell
-                          inputId={`today-temp-${item.id}`}
+                          inputId={`today-temp-${item.slotKey}`}
                           value={value ?? ""}
                           norm={{ min: item.min, max: item.max }}
                           onCommit={(next) =>
-                            handleTemperatureBlur(todayKey, item.id, next)
+                            handleTemperatureBlur(todayKey, item.slotKey, next)
                           }
                         />
                       </div>
@@ -1700,16 +1732,16 @@ export function ColdEquipmentDocumentClient({
                 «Добавить» сверху.
               </div>
             ) : null}
-            {config.equipment.map((item) => {
-              const expanded = expandedEquipmentId === item.id;
+            {readingSlots.map((item) => {
+              const expanded = expandedEquipmentId === item.slotKey;
               const filledCount = dateKeys.reduce((acc, dk) => {
-                const val = rowByDate[dk]?.data.temperatures[item.id];
+                const val = rowByDate[dk]?.data.temperatures[item.slotKey];
                 return acc + (val != null ? 1 : 0);
               }, 0);
               const isSelected = selectedEquipmentIds.includes(item.id);
               return (
                 <div
-                  key={item.id}
+                  key={item.slotKey}
                   className="rounded-2xl border border-[#ececf4] bg-white"
                 >
                   <div className="flex items-center gap-3 px-3 py-3">
@@ -1733,13 +1765,14 @@ export function ColdEquipmentDocumentClient({
                     <button
                       type="button"
                       onClick={() =>
-                        setExpandedEquipmentId(expanded ? null : item.id)
+                        setExpandedEquipmentId(expanded ? null : item.slotKey)
                       }
                       className="flex min-w-0 flex-1 items-center gap-2 text-left"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[14px] font-medium text-[#0b1024]">
                           {item.name}
+                          {item.slotLabel ? <span className="ml-1.5 text-[12px] font-semibold text-[#3848c7]">{item.slotLabel}</span> : null}
                         </div>
                         <div className="truncate text-[12px] text-[#6f7282]">
                           {formatRange(item.min, item.max)}
@@ -1775,11 +1808,11 @@ export function ColdEquipmentDocumentClient({
                     <div className="space-y-1.5 border-t border-[#ececf4] p-3">
                       {dateKeys.map((dateKey) => {
                         const row = rowByDate[dateKey];
-                        const value = row?.data.temperatures[item.id];
+                        const value = row?.data.temperatures[item.slotKey];
                         const weekend = isWeekend(dateKey);
                         return (
                           <div
-                            key={`${item.id}:${dateKey}`}
+                            key={`${item.slotKey}:${dateKey}`}
                             className={`flex items-center gap-2 rounded-xl px-1 py-1 ${
                               weekend ? "bg-[#fafbff]" : ""
                             }`}
@@ -1790,11 +1823,11 @@ export function ColdEquipmentDocumentClient({
                             </span>
                             {status === "active" ? (
                               <ColdTemperatureCell
-                                inputId={`temp-${item.id}-${dateKey}`}
+                                inputId={`temp-${item.slotKey}-${dateKey}`}
                                 value={value ?? ""}
                                 norm={{ min: item.min, max: item.max }}
                                 onCommit={(next) =>
-                                  handleTemperatureBlur(dateKey, item.id, next)
+                                  handleTemperatureBlur(dateKey, item.slotKey, next)
                                 }
                               />
                             ) : (
@@ -1974,8 +2007,8 @@ export function ColdEquipmentDocumentClient({
                 </td>
               </tr>
 
-              {config.equipment.map((item) => (
-                <tr key={item.id}>
+              {readingSlots.map((item) => (
+                <tr key={item.slotKey}>
                   <td
                     className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}
                     data-grid-check
@@ -2016,6 +2049,11 @@ export function ColdEquipmentDocumentClient({
                         <span className="text-[12px] text-[#6f7282]">
                           {formatRange(item.min, item.max)}
                         </span>
+                        {item.slotLabel ? (
+                          <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#3848c7] print:bg-transparent print:px-0 print:text-black">
+                            {item.slotLabel}
+                          </span>
+                        ) : null}
                       </span>
                       {status === "active" ? (
                         <span className="flex shrink-0 items-center gap-1 text-[#9b9fb3] transition-colors duration-150 group-hover:text-[#5566f6] print:hidden">
@@ -2028,11 +2066,11 @@ export function ColdEquipmentDocumentClient({
 
                   {dateKeys.map((dateKey) => {
                     const row = rowByDate[dateKey];
-                    const value = row?.data.temperatures[item.id];
+                    const value = row?.data.temperatures[item.slotKey];
 
                     return (
                       <td
-                        key={`${item.id}:${dateKey}`}
+                        key={`${item.slotKey}:${dateKey}`}
                         data-grid-day
                         className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                       >
@@ -2042,7 +2080,7 @@ export function ColdEquipmentDocumentClient({
                             step="0.1"
                             defaultValue={value ?? ""}
                             onBlur={(event) =>
-                              handleTemperatureBlur(dateKey, item.id, event.target.value)
+                              handleTemperatureBlur(dateKey, item.slotKey, event.target.value)
                             }
                             className={cn(
                               "h-7 min-w-[44px] border-0 px-1 text-center text-[13px] shadow-none focus-visible:ring-1",
@@ -2245,20 +2283,20 @@ export function ColdEquipmentDocumentClient({
         open={runnerOpen}
         title={`Замеры за ${getDayNumber(todayKey)} ${getWeekdayShort(todayKey)}.`}
         onClose={() => setRunnerOpen(false)}
-        steps={config.equipment.map((item) => {
-          const value = rowByDate[todayKey]?.data.temperatures[item.id];
+        steps={readingSlots.map((item) => {
+          const value = rowByDate[todayKey]?.data.temperatures[item.slotKey];
           return {
-            id: item.id,
-            title: item.name,
+            id: item.slotKey,
+            title: item.slotLabel ? `${item.name} · ${item.slotLabel}` : item.name,
             subtitle: formatRange(item.min, item.max),
             done: value != null,
             render: () => (
               <ColdTemperatureCell
-                inputId={`runner-temp-${item.id}`}
+                inputId={`runner-temp-${item.slotKey}`}
                 value={value ?? ""}
                 norm={{ min: item.min, max: item.max }}
                 onCommit={(next) =>
-                  handleTemperatureBlur(todayKey, item.id, next)
+                  handleTemperatureBlur(todayKey, item.slotKey, next)
                 }
               />
             ),

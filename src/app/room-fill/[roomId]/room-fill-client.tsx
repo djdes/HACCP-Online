@@ -52,7 +52,10 @@ function isOutside(value: number | null, metric: Metric): boolean {
  */
 export function RoomFillClient({ token, room, norms, hasActiveDocument, nextSlot, employees }: Props) {
   const [employeeId, setEmployeeId] = useState("");
-  const [temperature, setTemperature] = useState("");
+  // Холодный склад с нормой ниже нуля — минус стоит сразу.
+  const [temperature, setTemperature] = useState(
+    norms.temperature.max !== null && norms.temperature.max < 0 ? "-" : ""
+  );
   const [humidity, setHumidity] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -183,7 +186,7 @@ export function RoomFillClient({ token, room, norms, hasActiveDocument, nextSlot
               type="button"
               onClick={() => {
                 setSaved(null);
-                setTemperature("");
+                setTemperature(norms.temperature.max !== null && norms.temperature.max < 0 ? "-" : "");
                 setHumidity("");
                 setError(null);
               }}
@@ -226,6 +229,25 @@ export function RoomFillClient({ token, room, norms, hasActiveDocument, nextSlot
                       <span className="flex size-12 items-center justify-center rounded-2xl bg-[#f5f6ff] text-[#5566f6]">
                         <Thermometer className="size-5" />
                       </span>
+                      {/* На цифровой клавиатуре телефона минуса нет — знак ставится кнопкой. */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTemperature((current) => {
+                            const value = current.trim();
+                            return value.startsWith("-") ? value.slice(1) : `-${value}`;
+                          })
+                        }
+                        aria-label="Минус: отрицательная температура"
+                        aria-pressed={temperature.trim().startsWith("-")}
+                        className={`flex size-12 shrink-0 items-center justify-center rounded-2xl border text-[24px] font-semibold leading-none transition-colors duration-150 ${
+                          temperature.trim().startsWith("-")
+                            ? "border-[#5566f6] bg-[#5566f6] text-white"
+                            : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#f5f6ff]"
+                        }`}
+                      >
+                        −
+                      </button>
                       <Input
                         id="room-fill-temperature"
                         type="text"
