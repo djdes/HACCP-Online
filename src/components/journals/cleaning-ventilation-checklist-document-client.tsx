@@ -1164,7 +1164,10 @@ export function CleaningVentilationChecklistDocumentClient({
         {/* Рамку контейнера убрали: границы теперь несут сами ячейки
             бумажной шапки, иначе линия дублировалась. */}
         {/* В табличном виде на телефоне шапка той же ширины, что сетка (1140px), — лист панорамируется целиком. */}
-        <div className={`overflow-hidden ${mobileView === "table" ? "max-sm:w-fit max-sm:min-w-full" : ""}`}>
+        {/* В карточках на телефоне бумажная часть (шапка ХАССП +
+            «Процедура/Периодичность/Ответственные») скрыта: она шире
+            экрана и обрезалась справа. Печать и десктоп — как были. */}
+        <div className={`overflow-hidden ${mobileView === "table" ? "max-sm:w-fit max-sm:min-w-full" : "max-sm:hidden print:block"}`}>
           <table className={`w-full border-collapse text-[13px] text-left ${mobileView === "table" ? "max-sm:min-w-[1140px]" : ""}`}>
             <tbody>
               <JournalPaperHeaderRows

@@ -71,7 +71,7 @@ export function MiniCard({
 
       <div className="min-w-0 flex-1 py-0.5">
         <div
-          className="truncate"
+          className="line-clamp-2"
           style={{
             fontSize: 15,
             fontWeight: 500,

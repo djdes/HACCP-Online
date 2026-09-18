@@ -2,6 +2,7 @@
 import { BodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { ArrowRight, BellRing, ListChecks, Sparkles, X } from "lucide-react";
 import { haptic } from "./use-haptic";
@@ -88,9 +89,12 @@ export function MiniTour() {
   const Icon = current.icon;
   const isLast = step === STEPS.length - 1;
 
-  return (
+  // Портал в <body>: внутри оболочки у тура свой контекст наложения, и нижнее
+  // меню рисовалось поверх кнопки «Далее» — нажать её было нельзя.
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 p-3"
+      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 p-3"
+      style={{ paddingBottom: "calc(var(--mini-safe-b, 0px) + 12px)" }}
       role="dialog"
       aria-modal="true"
     >
@@ -144,6 +148,7 @@ export function MiniTour() {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -10,6 +10,7 @@ import {
   SEARCH_WORTH_IT_FROM,
 } from "../_components/mini-search-field";
 import { filterAndRank } from "../_lib/list-search";
+import { getEquipmentTypeLabel } from "@/lib/equipment-type-label";
 import { useRegisterRefresh } from "../_components/refresh-provider";
 
 type EquipmentItem = {
@@ -93,6 +94,7 @@ export default function MiniEquipmentPage() {
   const shown = filterAndRank(state.items, query, (item) => [
     item.name,
     item.type,
+    getEquipmentTypeLabel(item.type),
     item.areaName,
     item.id,
   ]);
@@ -190,7 +192,7 @@ export default function MiniEquipmentPage() {
                   className="text-[13px]"
                   style={{ color: "var(--mini-text-muted)" }}
                 >
-                  {item.type || "—"} · {item.areaName}
+                  {getEquipmentTypeLabel(item.type) || "—"} · {item.areaName}
                 </p>
               </div>
             </div>

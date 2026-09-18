@@ -20,6 +20,7 @@ import {
   DOC_EXTRA_BLOCK_CLASS,
   DOC_HEADING_CLASS,
   DOC_PAPER_CANVAS_CLASS,
+  DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS,
   DOC_PAPER_HEADER_CLASS,
   JOURNAL_DIALOG_CONTENT_WIDE_CLASS,
   JOURNAL_DIALOG_HEADER_CLASS,
@@ -786,7 +787,11 @@ export function FinishedProductDocumentClient({
 
       <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
 
-        <div className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS}`}>
+        <div
+          className={`${DOC_PAPER_HEADER_CLASS} ${GRID_VIEWPORT_CLASS} ${
+            mobileView === "cards" ? DOC_PAPER_HEADER_CARDS_HIDDEN_CLASS : ""
+          }`}
+        >
           <table className="w-full min-w-[640px] border-collapse text-[13px] sm:min-w-0">
             <tbody>
               <JournalPaperHeaderRows

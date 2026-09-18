@@ -171,15 +171,22 @@ export function AuditReportDocumentClient({
             : []
         }
         paperHeader={
-          <JournalDocumentHeader
-            orgName={organizationName}
-            title="ОТЧЕТ О ВНУТРЕННЕМ АУДИТЕ"
-            startedAt={config.documentDate}
-            finishedAt={null}
-          />
+          // На телефоне бумажная шапка уезжала за правый край — она
+          // шире экрана. На компьютере и в печати остаётся.
+          <div className="max-sm:hidden print:block">
+            <JournalDocumentHeader
+              orgName={organizationName}
+              title="ОТЧЕТ О ВНУТРЕННЕМ АУДИТЕ"
+              startedAt={config.documentDate}
+              finishedAt={null}
+            />
+          </div>
         }
       >
-        <section className="space-y-6 print:p-0">
+        {/* `max-sm:px-4` — бумажное полотно отчёта на телефоне идёт в край
+            экрана (общее правило для листов с таблицей), а текст и поля
+            ввода отчёта должны стоять по обычным полям страницы. */}
+        <section className="space-y-6 max-sm:px-4 print:p-0">
           <div className="grid gap-3 text-[18px]">
             <div><span className="font-semibold">Дата аудита:</span> {config.documentDate}</div>
             <div><span className="font-semibold">Основание:</span> {config.basisTitle}</div>

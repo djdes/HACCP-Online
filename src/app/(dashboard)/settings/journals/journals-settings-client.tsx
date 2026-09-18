@@ -837,7 +837,7 @@ export function JournalsSettingsClient({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск по названию, описанию или коду"
+            placeholder="Название, описание или код"
             aria-label="Поиск по набору журналов"
             className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white pl-11 pr-11 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
           />

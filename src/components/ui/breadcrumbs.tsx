@@ -196,6 +196,8 @@ export function Breadcrumbs({
         ]
       : visible;
 
+  const hideFirstOnPhone = shown.length >= 3;
+
   return (
     <nav
       aria-label="Хлебные крошки"
@@ -207,12 +209,21 @@ export function Breadcrumbs({
       {shown.map((item, index) => (
         <span
           key={`${item.label}-${index}`}
-          className="flex min-w-0 items-center gap-0.5"
+          className={cn(
+            "flex min-w-0 items-center gap-0.5",
+            // Телефон, путь из 3+ звеньев: название организации — самое
+            // бесполезное звено (рядом кнопка «назад»), а места оно отнимало
+            // столько, что остальные сжимались до «Ж.» и «Чек-ли…».
+            hideFirstOnPhone && index === 0 && "max-sm:hidden",
+          )}
         >
           {index > 0 ? (
             <ChevronRight
               aria-hidden
-              className="size-4 shrink-0 text-[#c6c9d8]"
+              className={cn(
+                "size-4 shrink-0 text-[#c6c9d8]",
+                hideFirstOnPhone && index === 1 && "max-sm:hidden",
+              )}
             />
           ) : null}
           <CrumbNode crumb={item} isLast={index === shown.length - 1} />

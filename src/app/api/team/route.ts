@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getServerSession } from "@/lib/server-session";
 import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
+import { getUserRoleLabel } from "@/lib/user-roles";
 import { hasCapability, effectivePreset } from "@/lib/permission-presets";
 
 export const runtime = "nodejs";
@@ -230,7 +231,9 @@ export async function GET() {
         role: u.role,
       }),
       positionLabel:
-        u.jobPosition?.name?.trim() || u.positionTitle?.trim() || u.role,
+        u.jobPosition?.name?.trim() ||
+        u.positionTitle?.trim() ||
+        getUserRoleLabel(u.role),
       hasTelegram: Boolean(u.telegramChatId),
       workStatus,
       activeClaim: active

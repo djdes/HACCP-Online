@@ -710,8 +710,13 @@ export function GlassControlDocumentClient(props: Props) {
           Повреждения
         </span>
       ) : (
-        <span className="rounded-full bg-[#e6f8ec] px-2 py-0.5 text-[11px] font-semibold text-[#1f7a3c]">
-          Без повреждений
+        // Короткая подпись: длинная «Без повреждений» на телефоне
+        // съедала строку заголовка и дата обрезалась («№2 · 02-09-20…»).
+        <span
+          title="Повреждений не обнаружено"
+          className="rounded-full bg-[#e6f8ec] px-2 py-0.5 text-[11px] font-semibold text-[#1f7a3c]"
+        >
+          Норма
         </span>
       ),
       leading: !isClosed ? (

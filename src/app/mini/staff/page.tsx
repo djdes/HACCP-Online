@@ -81,6 +81,9 @@ export default function MiniStaffPage() {
         const body = (await resp.json().catch(() => ({ error: "" }))) as {
           error?: string;
         };
+        if (resp.status === 403) {
+          throw new Error("Раздел «Сотрудники» доступен руководителю. Попросите его добавить или изменить сотрудника.");
+        }
         throw new Error(body.error || `HTTP ${resp.status}`);
       }
       const data = (await resp.json()) as StaffData;

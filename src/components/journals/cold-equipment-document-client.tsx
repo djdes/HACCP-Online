@@ -1677,7 +1677,9 @@ export function ColdEquipmentDocumentClient({
                 return {
                   id: item.slotKey,
                   title: item.slotLabel ? `${item.name} · ${item.slotLabel}` : item.name,
-                  subtitle: formatRange(item.min, item.max),
+                  // Норма без того подписана под полем ввода («норма 2…6 °C»).
+                  // Вторая копия только отъедала место у названия.
+                  subtitle: undefined,
                   disabledReason:
                     status === "active" ? undefined : "журнал закрыт",
                   // Карандаш — то же окно строки (название, норма, QR),
@@ -1692,7 +1694,9 @@ export function ColdEquipmentDocumentClient({
                   editLabel: `Изменить ${item.name}`,
                   trailing:
                     status === "active" ? (
-                      <div className="w-[190px]">
+                      // На телефоне управление стоит отдельной строкой (см. day-first-cards) —
+                      // отдаём ему всю ширину, в 190px кнопки ± и камера не помещались.
+                      <div className="w-[190px] max-sm:w-full">
                         <ColdTemperatureCell
                           inputId={`today-temp-${item.slotKey}`}
                           value={value ?? ""}

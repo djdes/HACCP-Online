@@ -128,8 +128,10 @@ export function MiniNav() {
     const rail = railRef.current;
     if (!rail || !activeHref) return;
     const link = rail.querySelector<HTMLElement>(`[data-nav-href="${activeHref}"]`);
-    link?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [activeHref]);
+    link?.scrollIntoView({ block: "nearest", inline: "center" });
+    // items.length: вкладки руководителя достраиваются после ответа сервера и
+    // сдвигают активную — без пересчёта «Профиль» оставался обрезанным у края.
+  }, [activeHref, items.length]);
 
   return (
     <nav
@@ -155,7 +157,7 @@ export function MiniNav() {
               onClick={() => {
                 if (!isActive) haptic("selection");
               }}
-              className="mini-press relative flex min-w-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2"
+              className="mini-press relative flex min-w-[58px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-2"
               style={{
                 color: isActive ? "var(--mini-bg)" : "var(--mini-text-muted)",
                 background: isActive ? "var(--mini-lime)" : "transparent",

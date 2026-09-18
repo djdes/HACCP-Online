@@ -92,14 +92,14 @@ export default async function CapaPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Открыто"
           value={openCount}
           tone={hasCritical ? "warn" : "default"}
         />
         <StatCard label="Критических" value={criticalCount} tone="critical" />
-        <StatCard label="SLA нарушено" value={slaBreached} tone="warn" />
+        <StatCard label="Срок нарушен" value={slaBreached} tone="warn" />
         <StatCard label="Закрыто за неделю" value={closedWeek} tone="success" />
       </div>
 
@@ -192,7 +192,7 @@ function StatCard({
       ? "text-[#116b2a]"
       : "text-[#0b1024]";
   return (
-    <div className="rounded-2xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]">
+    <div className="rounded-2xl border border-[#ececf4] bg-white p-4 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-5">
       <div className="text-[12px] font-medium text-[#6f7282]">{label}</div>
       <div className={`mt-1 text-[28px] font-semibold tabular-nums ${valueColor}`}>
         {value}

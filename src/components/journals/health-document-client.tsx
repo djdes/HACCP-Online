@@ -65,7 +65,10 @@ import { toast } from "sonner";
 import {
   GRID_CELL_CLASS,
   GRID_HEAD_CELL_CLASS,
-  GRID_VIEWPORT_WIDE_CLASS as GRID_VIEWPORT_CLASS,
+  // Обычный прокручиваемый viewport, а не WIDE: с колонками «Должность» и
+  // «Принятые меры» месяц из 30 дней шире экрана 1440px, и при
+  // `lg:overflow-visible` правая колонка просто обрезалась краем страницы.
+  GRID_VIEWPORT_CLASS,
   getDayColumnBgClass,
   getDayColumnPrintKeepBg,
 } from "@/components/journals/journal-grid";

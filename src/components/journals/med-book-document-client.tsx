@@ -1184,7 +1184,12 @@ export function MedBookDocumentClient({
             Прививки
           </h2>
           <div className="space-y-2">
-            <div className={`${GRID_VIEWPORT_CLASS} ${GRID_VIEWPORT_SCROLLBAR_CLASS}`}>
+            {/* Не GRID_VIEWPORT_CLASS: у него на телефоне скролл снимается
+                глобальным правилом, и «Прививки» уезжали в край экрана.
+                Здесь таблица ездит внутри своего блока. */}
+            <div
+              className={`overflow-auto rounded-[14px] bg-white ${GRID_VIEWPORT_SCROLLBAR_CLASS} print:overflow-visible print:rounded-none print:bg-transparent`}
+            >
               <table className="w-full min-w-[1320px] border-collapse text-[13px] text-black">
                 <thead>
                   <tr>

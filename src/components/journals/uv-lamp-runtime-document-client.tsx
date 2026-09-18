@@ -922,7 +922,10 @@ function SpecificationTable({
 
   return (
     <div className="uv-spec-section">
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
+      {/* `overflow-auto`, а не `overflow-x-auto`: глобальное мобильное
+          правило `div.overflow-x-auto:has(table)` гасит скролл и поля,
+          и справочная таблица уезжала за правый край. */}
+      <div className="-mx-4 overflow-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
       <table className="w-full min-w-[640px] table-fixed border-collapse text-[13px] text-[12px] sm:min-w-0">
         {/* U7: четыре примерно равные колонки — раньше подписи занимали
             445/480px и душили значения. */}
@@ -1039,7 +1042,9 @@ function MonthlySummaryTable({ monthlyData }: { monthlyData: { month: string; ho
 
   return (
     <div className="uv-monthly-section">
-      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
+      {/* См. комментарий в SpecificationTable — тот же обход глобального
+          правила для телефона. */}
+      <div className="-mx-4 overflow-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
       <table className="w-full min-w-[720px] border-collapse text-[13px] text-[12px] sm:min-w-0">
         <thead>
           <tr>

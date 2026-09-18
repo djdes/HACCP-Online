@@ -865,14 +865,16 @@ export function AuditPlanDocumentClient({
         sheetTitle={`План-программа внутренних аудитов на ${normalized.year} г.`}
         toolbar={
           !readOnly ? (
-            <>
+            // Свой flex-wrap: в карточном виде на телефоне оболочка
+            // отдаёт тулбар без ряда-обёртки, и кнопки слипались.
+            <div className="flex flex-wrap items-center gap-2">
               <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddRowOpen(true)}>
                 <Plus className="size-5" /> Добавить
               </Button>
               <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setAddColumnOpen(true)}>
                 <Plus className="size-5" /> Добавить подразделение
               </Button>
-            </>
+            </div>
           ) : undefined
         }
       >

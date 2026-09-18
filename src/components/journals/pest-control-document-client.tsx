@@ -311,7 +311,7 @@ function EntryDialog(props: {
               }
               className="mb-3 h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <Select
                 value={entry.timeSpecified ? entry.performedHour || "__" : "__"}
                 onValueChange={(value) =>
@@ -322,7 +322,8 @@ function EntryDialog(props: {
                   }))
                 }
               >
-                <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
+                <SelectTrigger aria-label="Часы" className="h-10 w-full rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
+                  <span className="mr-1 text-[#9b9fb3]">ч</span>
                   <SelectValue placeholder="Часы" />
                 </SelectTrigger>
                 <SelectContent>
@@ -344,7 +345,8 @@ function EntryDialog(props: {
                   }))
                 }
               >
-                <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
+                <SelectTrigger aria-label="Минуты" className="h-10 w-full rounded-xl border-[#dfe1ec] bg-[#f3f4fb] px-3.5 text-[13.5px]">
+                  <span className="mr-1 text-[#9b9fb3]">мин</span>
                   <SelectValue placeholder="Минуты" />
                 </SelectTrigger>
                 <SelectContent>

@@ -731,11 +731,11 @@ function SettingsGroup({
 
 function StatPill({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-white/10 px-2 py-2.5 text-center backdrop-blur-sm sm:px-4 sm:py-3 sm:text-left">
+    <div className="min-w-0 rounded-2xl bg-white/10 px-1 py-2.5 text-center backdrop-blur-sm sm:px-4 sm:py-3 sm:text-left">
       <div className="text-[20px] font-semibold leading-none tabular-nums sm:text-[24px]">
         {value}
       </div>
-      <div className="mt-1 text-[10.5px] leading-tight text-white/60 sm:text-[12px]">
+      <div className="mt-1 truncate text-[10px] leading-tight tracking-[-0.01em] text-white/60 sm:text-[12px] sm:tracking-normal">
         {label}
       </div>
     </div>

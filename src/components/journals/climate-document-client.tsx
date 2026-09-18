@@ -2240,7 +2240,11 @@ export function ClimateDocumentClient({
               Показатель вышел за норму — опишите, что сделали. Пустая графа
               при проверке читается как «нарушение заметили и проигнорировали».
             </p>
-            <div className="mt-3 overflow-x-auto">
+            {/* `overflow-auto`, а не `overflow-x-auto`: глобальное правило
+                для телефона (`div.overflow-x-auto:has(table)`) снимает
+                скролл и выводит таблицу в край экрана — сюда это не
+                годится, таблица должна ездить внутри своего блока. */}
+            <div className="mt-3 overflow-auto">
               <table className="w-full border-collapse text-[13px]">
                 <thead>
                   <tr>

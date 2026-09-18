@@ -169,7 +169,7 @@ export default async function ReportsPage() {
           Помогает заметить тренды без ковыряния в графиках. */}
       <section className="rounded-3xl border border-[#ececf4] bg-white p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] md:p-6">
         <h2 className="mb-4 text-[16px] font-semibold tracking-[-0.01em] text-[#0b1024]">
-          Эта неделя vs прошлая
+          Эта неделя и прошлая
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <CompareTile

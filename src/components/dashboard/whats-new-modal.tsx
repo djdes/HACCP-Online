@@ -261,7 +261,9 @@ export function WhatsNewModal({ buildSha, notes }: Props) {
               const Icon = iconForCategory(cat.category);
               return (
                 <div
-                  key={cat.category}
+                  // Категории в заметках повторяются («Журналы» — в разных релизах),
+                  // одного названия для ключа мало.
+                  key={`${cat.category}-${idx}`}
                   className={`overflow-hidden rounded-2xl border transition-colors ${
                     isOpen
                       ? "border-[#5566f6]/30 bg-[#f5f6ff]/40"

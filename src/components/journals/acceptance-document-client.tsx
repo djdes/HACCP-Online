@@ -2453,7 +2453,11 @@ export function AcceptanceDocumentClient(props: Props) {
                 setRowDialogOpen(true);
               }}
             >
-              <Plus className="size-5" strokeWidth={2.5} /> Добавить
+              {/* Рядом стоит сплит-кнопка с такой же подписью «Добавить».
+                  На телефоне, где меню не раскрыто, различить их было
+                  нельзя — уточняем, что здесь добавляется. */}
+              <Plus className="size-5" strokeWidth={2.5} />
+              <span>Добавить<span className="sm:hidden">&nbsp;поставку</span></span>
             </Button>
 
             <Button type="button" variant="outline" className={DOC_SECONDARY_BUTTON_CLASS} onClick={() => setEditListsOpen(true)}>

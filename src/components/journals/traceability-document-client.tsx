@@ -814,7 +814,9 @@ export function TraceabilityDocumentClient(props: Props) {
         sheetMinWidth={1480}
         toolbar={
           !isClosed ? (
-            <>
+            // Свой flex-wrap: в карточном виде на телефоне оболочка
+            // отдаёт тулбар без ряда-обёртки, и кнопки слипались.
+            <div className="flex flex-wrap items-center gap-2">
               <ResponsiveMenu
               title="Добавить"
               align="start"
@@ -851,7 +853,7 @@ export function TraceabilityDocumentClient(props: Props) {
               <button type="button" onClick={() => setListsOpen(true)} className={DOC_SECONDARY_BUTTON_CLASS}>
                 Редактировать списки
               </button>
-            </>
+            </div>
           ) : null
         }
       >

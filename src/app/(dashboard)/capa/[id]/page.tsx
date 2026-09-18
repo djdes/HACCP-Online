@@ -89,7 +89,7 @@ export default async function CapaDetailPage({
       {slaBreached && (
         <div className="flex items-center gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
           <AlertTriangle className="size-4" />
-          SLA нарушено! Дедлайн был: {slaDeadline.toLocaleString("ru-RU")}
+          Срок нарушен! Нужно было закрыть до: {slaDeadline.toLocaleString("ru-RU")}
         </div>
       )}
 

@@ -557,8 +557,8 @@ function SlotPicker({
           </span>
           {slot.label}
           {slot.primary ? (
-            <span className="rounded-full bg-[#fff8eb] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#a13a32]">
-              primary
+            <span className="rounded-full bg-[#fff8eb] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#a13a32]" title="Этот сотрудник попадает в шапку документа">
+              главный
             </span>
           ) : null}
         </div>

@@ -813,6 +813,22 @@ html, body {
     }
   }
 
+  /* Окна журналов «шапка + прокручиваемое тело + кнопки»: высота тела
+     задана как `92vh - 160px` из расчёта на кнопки в один ряд. На телефоне
+     кнопки стоят столбиком (≈120px), плюс отступы сетки окна, и нижняя «Отмена» уходила за край
+     окна. Оставляем телу место с учётом двух кнопок. */
+  [data-slot="dialog-content"] > [class*="max-h-[calc(92vh-1"],
+  [data-slot="dialog-content"] > form > [class*="max-h-[calc(92vh-1"] {
+    max-height: calc(100vh - 1.5rem - 262px) !important;
+  }
+
+  @supports (height: 100dvh) {
+    [data-slot="dialog-content"] > [class*="max-h-[calc(92vh-1"],
+    [data-slot="dialog-content"] > form > [class*="max-h-[calc(92vh-1"] {
+      max-height: calc(100dvh - 1.5rem - 262px) !important;
+    }
+  }
+
   /* Popover/dropdown — не должен залезать за viewport */
   [data-slot="popover-content"],
   [data-radix-popper-content-wrapper] > * {
@@ -878,7 +894,15 @@ html, body {
   /* ── Inputs: 16px font-size чтобы iOS Safari не зумил ───────── */
   .app-shell input,
   .app-shell textarea,
-  .app-shell select {
+  .app-shell select,
+  /* Окна и выпадающие панели рисуются порталом в <body>, вне .app-shell:
+     без этих строк поля в окне «Добавить запись» оставались 13-14px и
+     iPhone приближал экран при каждом нажатии на поле. */
+  [role="dialog"] input,
+  [role="dialog"] textarea,
+  [role="dialog"] select,
+  [data-radix-popper-content-wrapper] input,
+  [data-radix-popper-content-wrapper] textarea {
     font-size: max(16px, 1rem);
   }
 

@@ -811,7 +811,13 @@ export function PerishableRejectionDocumentClient({
 
       <div className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
         {/* HACCP header table */}
-        <table className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px]`}>
+        {/* В карточках на телефоне бумажная шапка скрыта (уезжала за
+            правый край); на печати и на десктопе — как было. */}
+        <table
+          className={`${DOC_PAPER_HEADER_CLASS} w-full border-collapse text-[13px] ${
+            mobileView === "cards" ? "max-sm:hidden print:table" : ""
+          }`}
+        >
           <tbody>
             <JournalPaperHeaderRows
               orgName={organizationName}

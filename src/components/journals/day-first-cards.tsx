@@ -178,7 +178,12 @@ export function DayFirstCards({
         const row = (
           <div
             data-day-row={item.id}
+            // Телефон + широкий `trailing` (поле температуры с ± и кнопками):
+            // в одну строку название сжималось до «Холоди…», а камера вылезала
+            // за карточку. Переносим управление на вторую строку.
             className={`flex items-center gap-3 border px-3 py-2.5 ${
+              item.trailing ? "max-sm:flex-wrap" : ""
+            } ${
               filled
                 ? "border-[#ececf4] bg-white"
                 : locked
@@ -232,7 +237,7 @@ export function DayFirstCards({
             ) : null}
 
             {item.trailing ? (
-              <div className="shrink-0">{item.trailing}</div>
+              <div className="shrink-0 max-sm:flex max-sm:w-full max-sm:justify-end">{item.trailing}</div>
             ) : (
               <button
                 type="button"

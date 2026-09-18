@@ -247,7 +247,7 @@ export function JournalsBrowser({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск по названию, описанию или коду"
+            placeholder="Название, описание или код"
             aria-label="Поиск по журналам"
             className="h-12 w-full rounded-2xl border border-[#dcdfed] bg-white pl-11 pr-11 text-[15px] text-[#0b1024] placeholder:text-[#c1c5d6] shadow-[0_0_0_1px_rgba(240,240,250,0.45)] transition-[border-color,box-shadow] focus:border-[#5566f6] focus:outline-none focus:ring-4 focus:ring-[#5566f6]/15"
           />
@@ -605,7 +605,7 @@ function TemplateCard({
 
           <div className="flex min-w-0 flex-1 flex-col gap-2 px-3.5 py-3">
             <div className="flex items-start justify-between gap-2">
-              <div className="line-clamp-2 min-w-0 flex-1 text-[14px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024]">
+              <div className="line-clamp-3 min-w-0 flex-1 text-[14px] font-semibold leading-snug tracking-[-0.01em] text-[#0b1024] sm:line-clamp-2">
                 {template.name}
               </div>
               <ArrowRight className="size-4 shrink-0 translate-y-0.5 text-[#c7ccea] transition-transform group-hover:translate-x-0.5 group-hover:text-[#5566f6]" />

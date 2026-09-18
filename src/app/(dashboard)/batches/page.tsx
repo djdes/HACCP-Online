@@ -93,7 +93,7 @@ export default async function BatchesPage({
       </div>
 
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <StatCard label="На складе" value={receivedCount} />
         <StatCard label="В производстве" value={inProductionCount} />
         <StatCard
@@ -246,7 +246,7 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-5 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] ${
+      className={`rounded-2xl border p-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)] sm:p-5 ${
         tone === "warn"
           ? "border-[#ffd2cd] bg-[#fff4f2]"
           : "border-[#ececf4] bg-white"

@@ -12,7 +12,6 @@ import {
   Loader2,
   MessageSquareOff,
   Plane,
-  XCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -282,9 +281,8 @@ function MemberCard({ member }: { member: TeamMember }) {
       ) : null}
 
       {member.workStatus === "no_telegram" ? (
-        <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] text-[#a13a32]">
-          <XCircle className="size-3" />
-          Не подключил Telegram-бот
+        <div className="mt-3 text-[12px] leading-snug text-[#a13a32]">
+          Без бота сотрудник не получает задачи. Отправьте ему приглашение в разделе «Сотрудники».
         </div>
       ) : null}
 

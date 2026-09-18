@@ -8,6 +8,7 @@ import { signOut, useSession } from "next-auth/react";
 
 import { clearSnapshot } from "../_lib/snapshot-cache";
 import { hasFullWorkspaceAccess } from "@/lib/role-access";
+import { getUserRoleLabel } from "@/lib/user-roles";
 import {
   ArrowLeft,
   Coins,
@@ -148,7 +149,7 @@ export function MiniMeClient({
               className="font-medium"
               style={{ color: "var(--mini-text)" }}
             >
-              {u.role || "—"}
+              {u.role ? getUserRoleLabel(u.role) : "—"}
             </dd>
           </div>
           {u.email && !u.email.endsWith("@invite.local") ? (

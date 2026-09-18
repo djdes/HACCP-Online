@@ -988,7 +988,13 @@ export function SanitationDayDocumentClient({
         </div>
 
       <section className={`${DOC_BODY_STACK_CLASS} ${DOC_PAPER_CANVAS_CLASS}`}>
-        <div className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0">
+        {/* В карточках на телефоне бумажная шапка скрыта: 560px не
+            влезают в 390px и лист обрезался справа. */}
+        <div
+          className={`-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 lg:overflow-visible sm:px-0 ${
+            mobileView === "cards" ? "max-sm:hidden print:block" : ""
+          }`}
+        >
         <table className="w-full min-w-[560px] border-collapse text-[13px] sm:min-w-0">
           <tbody>
             <JournalPaperHeaderRows
@@ -1071,9 +1077,11 @@ export function SanitationDayDocumentClient({
           </>
         ) : null}
 
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-
-          {mobileView === "cards" ? (
+        {/* Карточки — ВНЕ скроллера таблицы: глобальное правило
+            `div.overflow-x-auto:has(table)` гасит у него боковые поля
+            (таблица на телефоне идёт в край), и карточки уезжали за
+            края экрана вместе с ней. */}
+        {mobileView === "cards" ? (
             <RecordCardsView
               items={normalized.rows.map((row, index) => {
                 const planSummary = SANITATION_MONTHS.map((m) => {
@@ -1357,7 +1365,6 @@ export function SanitationDayDocumentClient({
             </tbody>
           </table>
           </MobileViewTableWrapper>
-        </div>
       </section>
 
       <RoomDialog
