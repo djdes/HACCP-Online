@@ -51,13 +51,13 @@ export function LocationsSummaryStrip({ items }: { items: LocationSummaryItem[] 
       aria-label="Сводка по точкам"
       className="rounded-3xl border border-[#ececf4] bg-white p-3 shadow-[0_0_0_1px_rgba(240,240,250,0.45)]"
     >
-      <div className="mb-2 flex items-center justify-between px-1">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5 px-1">
         <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
           Точки сегодня
         </div>
         <div className="text-[12px] text-[#9b9fb3]">Нажмите, чтобы перейти в точку</div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {items.map((item) => {
           const ratio = item.total > 0 ? item.filled / item.total : 1;
           const tone =
@@ -74,7 +74,7 @@ export function LocationsSummaryStrip({ items }: { items: LocationSummaryItem[] 
               aria-current={item.active ? "true" : undefined}
               title={item.address ? `${item.name}, ${item.address}` : item.name}
               className={cn(
-                "group rounded-2xl border px-3.5 py-3 text-left transition-colors",
+                "group w-full min-w-0 rounded-2xl border px-3.5 py-3 text-left transition-colors",
                 item.active
                   ? "border-[#5566f6]/40 bg-[#f5f6ff]"
                   : "border-[#ececf4] bg-white hover:border-[#5566f6]/40 hover:bg-[#fafbff]",
@@ -100,7 +100,7 @@ export function LocationsSummaryStrip({ items }: { items: LocationSummaryItem[] 
                     style={{ width: `${Math.round(ratio * 100)}%` }}
                   />
                 </div>
-                <span className={cn("text-[12px] font-medium tabular-nums", tone.text)}>
+                <span className={cn("shrink-0 text-[12px] font-medium tabular-nums", tone.text)}>
                   {item.filled}/{item.total}
                 </span>
               </div>
