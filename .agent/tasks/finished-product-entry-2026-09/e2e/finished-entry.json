@@ -10,59 +10,75 @@
     "detail": "Close\nДобавить изделия списком\nНаименования изделий — каждое с новой строки\nБудет добавлено строк: 0. Поля ниже — общие для всех изделий списка, как в окне «Добавить изделие».\nДата и время изготовления\nВремя снятия бракеража\nОрганолептическая оценка\n— Выберите оценку —\nT°C внутри продукта\nКорректирующие действия\nРазрешение к реализации\nДа\nНет\nДата и время разрешения\nДата и время передачи блюд курь"
   },
   {
+    "name": "списком: при заполненном ФИО в списке все сотрудники, а не один",
+    "ok": true,
+    "detail": [
+      "Иван Повар",
+      "Ольга Уборщица",
+      "Анна Заведующая",
+      "Мария Руководитель",
+      "owner-a@e2e.local"
+    ]
+  },
+  {
+    "name": "списком: проводивший бракераж выбирается из списка",
+    "ok": true,
+    "detail": "Анна Заведующая"
+  },
+  {
     "name": "списком: три строки с общими полями (оценка «Хорошо», ФИО)",
     "ok": true,
     "detail": [
       {
-        "id": "finished-product-row-d9ca4d86-665d-4340-8461-a7b4c79f85e0",
+        "id": "finished-product-row-d9c30849-86e5-4cdc-899f-948d9e8feab9",
         "oxygenLevel": "",
         "productName": "Борщ",
         "productTemp": "",
         "organoleptic": "Хорошо",
         "inspectorName": "Анна Заведующая",
-        "rejectionTime": "2026-09-17 19:19",
+        "rejectionTime": "2026-09-18 13:23",
         "releaseAllowed": "yes",
         "correctiveAction": "",
         "organolepticValue": "",
         "responsiblePerson": "Иван Повар",
         "organolepticResult": "",
-        "productionDateTime": "2026-09-17 19:19",
-        "courierTransferTime": "2026-09-17 19:19",
-        "releasePermissionTime": "2026-09-17 19:19"
+        "productionDateTime": "2026-09-18 13:23",
+        "courierTransferTime": "2026-09-18 13:23",
+        "releasePermissionTime": "2026-09-18 13:23"
       },
       {
-        "id": "finished-product-row-a0208f20-636f-4cb8-8c8b-15aee6e389b6",
+        "id": "finished-product-row-d77d6922-4cfb-4631-940d-3504f4005f35",
         "oxygenLevel": "",
         "productName": "Котлета",
         "productTemp": "",
         "organoleptic": "Хорошо",
         "inspectorName": "Анна Заведующая",
-        "rejectionTime": "2026-09-17 19:19",
+        "rejectionTime": "2026-09-18 13:23",
         "releaseAllowed": "yes",
         "correctiveAction": "",
         "organolepticValue": "",
         "responsiblePerson": "Иван Повар",
         "organolepticResult": "",
-        "productionDateTime": "2026-09-17 19:19",
-        "courierTransferTime": "2026-09-17 19:19",
-        "releasePermissionTime": "2026-09-17 19:19"
+        "productionDateTime": "2026-09-18 13:23",
+        "courierTransferTime": "2026-09-18 13:23",
+        "releasePermissionTime": "2026-09-18 13:23"
       },
       {
-        "id": "finished-product-row-4250f961-4bb5-4afe-aea4-684862db1f69",
+        "id": "finished-product-row-032b12c9-7e5e-4e8d-832c-3eac4ba22f1a",
         "oxygenLevel": "",
         "productName": "Компот",
         "productTemp": "",
         "organoleptic": "Хорошо",
         "inspectorName": "Анна Заведующая",
-        "rejectionTime": "2026-09-17 19:19",
+        "rejectionTime": "2026-09-18 13:23",
         "releaseAllowed": "yes",
         "correctiveAction": "",
         "organolepticValue": "",
         "responsiblePerson": "Иван Повар",
         "organolepticResult": "",
-        "productionDateTime": "2026-09-17 19:19",
-        "courierTransferTime": "2026-09-17 19:19",
-        "releasePermissionTime": "2026-09-17 19:19"
+        "productionDateTime": "2026-09-18 13:23",
+        "courierTransferTime": "2026-09-18 13:23",
+        "releasePermissionTime": "2026-09-18 13:23"
       }
     ]
   },
@@ -70,9 +86,9 @@
     "name": "списком: у строк разные id",
     "ok": true,
     "detail": [
-      "finished-product-row-d9ca4d86-665d-4340-8461-a7b4c79f85e0",
-      "finished-product-row-a0208f20-636f-4cb8-8c8b-15aee6e389b6",
-      "finished-product-row-4250f961-4bb5-4afe-aea4-684862db1f69"
+      "finished-product-row-d9c30849-86e5-4cdc-899f-948d9e8feab9",
+      "finished-product-row-d77d6922-4cfb-4631-940d-3504f4005f35",
+      "finished-product-row-032b12c9-7e5e-4e8d-832c-3eac4ba22f1a"
     ]
   },
   {
@@ -92,21 +108,21 @@
     "name": "ячейка ФИО: ввод вручную сохраняется в документ",
     "ok": true,
     "detail": {
-      "id": "finished-product-row-d9ca4d86-665d-4340-8461-a7b4c79f85e0",
+      "id": "finished-product-row-d9c30849-86e5-4cdc-899f-948d9e8feab9",
       "oxygenLevel": "",
       "productName": "Борщ",
       "productTemp": "",
       "organoleptic": "Хорошо",
       "inspectorName": "Анна Заведующая",
-      "rejectionTime": "2026-09-17 19:19",
+      "rejectionTime": "2026-09-18 13:23",
       "releaseAllowed": "yes",
       "correctiveAction": "",
       "organolepticValue": "",
       "responsiblePerson": "Пётр Новый",
       "organolepticResult": "",
-      "productionDateTime": "2026-09-17 19:19",
-      "courierTransferTime": "2026-09-17 19:19",
-      "releasePermissionTime": "2026-09-17 19:19"
+      "productionDateTime": "2026-09-18 13:23",
+      "courierTransferTime": "2026-09-18 13:23",
+      "releasePermissionTime": "2026-09-18 13:23"
     }
   },
   {
@@ -117,21 +133,21 @@
     "name": "телефон: ввод в ячейке ФИО сохраняется",
     "ok": true,
     "detail": {
-      "id": "finished-product-row-a0208f20-636f-4cb8-8c8b-15aee6e389b6",
+      "id": "finished-product-row-d77d6922-4cfb-4631-940d-3504f4005f35",
       "oxygenLevel": "",
       "productName": "Котлета",
       "productTemp": "",
       "organoleptic": "Хорошо",
       "inspectorName": "Анна Заведующая",
-      "rejectionTime": "2026-09-17 19:19",
+      "rejectionTime": "2026-09-18 13:23",
       "releaseAllowed": "yes",
       "correctiveAction": "",
       "organolepticValue": "",
       "responsiblePerson": "Ольга Тач",
       "organolepticResult": "",
-      "productionDateTime": "2026-09-17 19:19",
-      "courierTransferTime": "2026-09-17 19:19",
-      "releasePermissionTime": "2026-09-17 19:19"
+      "productionDateTime": "2026-09-18 13:23",
+      "courierTransferTime": "2026-09-18 13:23",
+      "releasePermissionTime": "2026-09-18 13:23"
     }
   },
   {
@@ -149,21 +165,21 @@
     "name": "окно записи: своя формулировка сохраняется",
     "ok": true,
     "detail": {
-      "id": "finished-product-row-3a472346-c51a-4242-a77f-65165ba3f9dd",
+      "id": "finished-product-row-b994d90d-d4dd-481d-a4ee-92a897ae3c9a",
       "oxygenLevel": "",
       "productName": "Суп",
       "productTemp": "",
       "organoleptic": "Соответствует требованиям",
       "inspectorName": "Анна Заведующая",
-      "rejectionTime": "2026-09-17 19:20",
+      "rejectionTime": "2026-09-18 13:24",
       "releaseAllowed": "yes",
       "correctiveAction": "",
       "organolepticValue": "",
       "responsiblePerson": "Иван Повар",
       "organolepticResult": "",
-      "productionDateTime": "2026-09-17 19:20",
-      "courierTransferTime": "2026-09-17 19:20",
-      "releasePermissionTime": "2026-09-17 19:20"
+      "productionDateTime": "2026-09-18 13:24",
+      "courierTransferTime": "2026-09-18 13:24",
+      "releasePermissionTime": "2026-09-18 13:24"
     }
   },
   {
@@ -180,21 +196,21 @@
     "name": "ячейка оценки: выбор подсказки сохраняется",
     "ok": true,
     "detail": {
-      "id": "finished-product-row-4250f961-4bb5-4afe-aea4-684862db1f69",
+      "id": "finished-product-row-032b12c9-7e5e-4e8d-832c-3eac4ba22f1a",
       "oxygenLevel": "",
       "productName": "Компот",
       "productTemp": "",
       "organoleptic": "Удовлетворительно",
       "inspectorName": "Анна Заведующая",
-      "rejectionTime": "2026-09-17 19:19",
+      "rejectionTime": "2026-09-18 13:23",
       "releaseAllowed": "yes",
       "correctiveAction": "",
       "organolepticValue": "",
       "responsiblePerson": "Иван Повар",
       "organolepticResult": "",
-      "productionDateTime": "2026-09-17 19:19",
-      "courierTransferTime": "2026-09-17 19:19",
-      "releasePermissionTime": "2026-09-17 19:19"
+      "productionDateTime": "2026-09-18 13:23",
+      "courierTransferTime": "2026-09-18 13:23",
+      "releasePermissionTime": "2026-09-18 13:23"
     }
   }
 ]

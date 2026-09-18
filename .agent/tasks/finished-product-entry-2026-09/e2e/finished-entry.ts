@@ -85,8 +85,18 @@ async function main() {
     await bulk.locator("textarea").first().fill("Борщ\nКотлета\nКомпот");
     await bulk.getByRole("combobox", { name: "Органолептическая оценка" }).click();
     await page.getByRole("option", { name: "Хорошо" }).click();
-    await bulk.locator('input[list="finished-product-users"]').nth(0).fill("Иван Повар");
-    await bulk.locator('input[list="finished-product-users"]').nth(1).fill("Анна Заведующая");
+    // Поле ФИО уже заполнено ответственным документа — список всё равно показывает ВСЕХ сотрудников.
+    const responsibleField = bulk.getByRole("combobox", { name: "Ответственный исполнитель" });
+    await responsibleField.fill("Иван Повар");
+    await responsibleField.blur();
+    await responsibleField.focus();
+    const allPeople = await bulk.getByRole("listbox", { name: "Ответственный исполнитель: варианты" }).getByRole("option").allInnerTexts();
+    check("списком: при заполненном ФИО в списке все сотрудники, а не один", allPeople.length >= 3 && allPeople.includes("Иван Повар"), allPeople);
+    await page.screenshot({ path: path.join(SHOTS, "bulk-people-list.png") });
+    const inspectorField = bulk.getByRole("combobox", { name: "Лицо, проводившее бракераж" });
+    await inspectorField.focus();
+    await bulk.getByRole("listbox", { name: "Лицо, проводившее бракераж: варианты" }).getByRole("option", { name: "Анна Заведующая" }).click();
+    check("списком: проводивший бракераж выбирается из списка", (await inspectorField.inputValue()) === "Анна Заведующая", await inspectorField.inputValue());
     await page.screenshot({ path: path.join(SHOTS, "bulk-dialog.png") });
     await bulk.getByRole("button", { name: "Добавить", exact: true }).click();
     await page.locator("[data-sonner-toast]", { hasText: "Добавлено строк: 3" }).first().waitFor({ timeout: 30_000 }).catch(() => null);
@@ -145,7 +155,7 @@ async function main() {
     await page.getByRole("button", { name: "Добавить изделие" }).first().click();
     const dialog = page.getByRole("dialog").filter({ hasText: "Добавление новой строки" }).first();
     await dialog.waitFor({ timeout: 30_000 });
-    await dialog.locator('input[list="finished-product-items"]').first().fill("Суп");
+    await dialog.getByRole("combobox", { name: "Наименование изделия" }).fill("Суп");
     await dialog.getByRole("combobox", { name: "Органолептическая оценка" }).click();
     const optionNames = await page.getByRole("option").allInnerTexts();
     check("окно записи: список оценок", ["Отлично", "Хорошо", "Удовлетворительно", "Неудовлетворительно", "Своя формулировка…"].every((o) => optionNames.includes(o)), optionNames);

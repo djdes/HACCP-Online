@@ -26,6 +26,7 @@ import {
   JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalCellInput } from "@/components/journals/journal-cell-input";
+import { SuggestInput } from "@/components/journals/suggest-input";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -358,7 +359,8 @@ export function FinishedProductDocumentClient({
   // back to a free-text input, so dropping ID-disambiguation here is
   // safe for the autosuggest UX.
   const personOptions = useMemo(
-    () => Array.from(new Set(users.map((item) => item.name).filter(Boolean))),
+    // Аккаунт «имя = почта» (мгновенная регистрация) — не сотрудник для подписи бракеража.
+    () => Array.from(new Set(users.map((item) => item.name).filter((name) => Boolean(name) && !name.includes("@")))),
     [users]
   );
 
@@ -439,7 +441,7 @@ export function FinishedProductDocumentClient({
             {withProductName ? (
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Наименование изделия</Label>
-                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.productName} onChange={(e) => setDraftRow((prev) => ({ ...prev, productName: e.target.value }))} list="finished-product-items" />
+                <SuggestInput ariaLabel="Наименование изделия" value={draftRow.productName} options={productOptions} onChange={(next) => setDraftRow((prev) => ({ ...prev, productName: next }))} />
               </div>
             ) : null}
             <div className="space-y-2">
@@ -538,12 +540,12 @@ export function FinishedProductDocumentClient({
             {isColumnVisible("responsible") ? (
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("responsible", "Ответственный исполнитель")}</Label>
-                <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.responsiblePerson} onChange={(e) => setDraftRow((prev) => ({ ...prev, responsiblePerson: e.target.value }))} list="finished-product-users" />
+                <SuggestInput ariaLabel="Ответственный исполнитель" value={draftRow.responsiblePerson} options={personOptions} placeholder="Выберите сотрудника или впишите ФИО" onChange={(next) => setDraftRow((prev) => ({ ...prev, responsiblePerson: next }))} />
               </div>
             ) : null}
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">{config.inspectorMode === "commission_signatures" ? "Подписи членов комиссии" : "Лицо, проводившее бракераж"}</Label>
-              <Input className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={draftRow.inspectorName} onChange={(e) => setDraftRow((prev) => ({ ...prev, inspectorName: e.target.value }))} list="finished-product-users" />
+              <SuggestInput ariaLabel="Лицо, проводившее бракераж" value={draftRow.inspectorName} options={personOptions} placeholder="Выберите сотрудника или впишите ФИО" onChange={(next) => setDraftRow((prev) => ({ ...prev, inspectorName: next }))} />
             </div>
           
     </div>
