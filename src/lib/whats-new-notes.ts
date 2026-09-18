@@ -29,7 +29,7 @@ import type { WhatsNewNote } from "@/components/dashboard/whats-new-modal";
  * Поменяли список — модалка покажется сама, не поменяли — нет.
  * Оставлен как отметка о последнем ручном обновлении текста.
  */
-export const LATEST_NOTES_BUILD_SHA = "5b3a5e6f";
+export const LATEST_NOTES_BUILD_SHA = "f9677600";
 
 export type { WhatsNewNote };
 
