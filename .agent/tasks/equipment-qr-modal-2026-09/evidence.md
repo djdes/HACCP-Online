@@ -26,3 +26,12 @@
 Откат: `cleanup.ts` удалил 2 записи оборудования, цех «Основной цех»,
 здание/помещение посева и вернул конфиги документов (`db-probe2.ts`:
 buildings `[]`, areas `[]`).
+
+## Прод (2026-09-18, после деплоя 3fd22a16)
+
+`e2e/prod-smoke.ts` (read-only): `.build-sha` = `3fd22a16…`, `/login` 200;
+окно «Добавление оборудования» с подсказкой про QR и подставленной нормой
+«от 2»; `/settings/qr-posters?…&layout=sheet` — «QR-наклейки», вкладки
+«Плакат на лист / Наклейки на лист»; `/settings/equipment/qr-sheet` →
+редирект; `GET /api/qr-fill/equipment/<нет>` 404, неизвестный вид — 400;
+ошибок 5xx и `pageerror` нет (`e2e/prod-smoke.json`).

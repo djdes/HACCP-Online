@@ -1,0 +1,27 @@
+{
+  "rowButtons": 1,
+  "addDialogHint": true,
+  "presetPrefilled": "2",
+  "page_sheet": {
+    "url": "https://wesetup.ru/settings/qr-posters?kind=equipment&layout=sheet",
+    "h1": "QR-наклейки",
+    "layoutTabs": [
+      "Плакат на лист",
+      "Наклейки на лист"
+    ],
+    "posters": 0
+  },
+  "page_poster": {
+    "url": "https://wesetup.ru/settings/qr-posters?kind=rooms",
+    "h1": "QR-плакаты",
+    "layoutTabs": [
+      "Плакат на лист",
+      "Наклейки на лист"
+    ],
+    "posters": 0
+  },
+  "redirect": "https://wesetup.ru/settings/qr-posters?kind=equipment&layout=sheet",
+  "apiMissing": 404,
+  "apiBadKind": 400,
+  "errors": []
+}
