@@ -123,6 +123,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "Температура по QR": QrCode,
   "Оборудование и QR-коды": QrCode,
   "Время в журналах": Clock3,
+  "Наименования и окно строки": ClipboardCheck,
   Автозаполнение: CalendarCheck,
   "Колонки журналов": Table2,
   "Бракераж готовой продукции": ClipboardCheck,

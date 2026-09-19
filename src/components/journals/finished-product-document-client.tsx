@@ -7,6 +7,7 @@ import {
   ListPlus,
   Plus,
   Trash2,
+  Check,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
 } from "@/components/journals/journal-responsive";
 import { JournalCellInput } from "@/components/journals/journal-cell-input";
 import { SuggestInput } from "@/components/journals/suggest-input";
+import { useNameSuggestions } from "@/components/journals/use-name-suggestions";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -215,7 +217,24 @@ function createDraft(
     responsiblePerson: nameOf(people.responsibleUserId),
     inspectorName: nameOf(people.verifierUserId),
     releaseAllowed: "yes",
+    // По умолчанию «Отлично»: в норме бракераж проходит, хуже — выберут.
+    organoleptic: ORGANOLEPTIC_OPTIONS[0],
   });
+}
+
+/** Поле ввода даты/времени: `min-w-0`, иначе на iPhone нативные
+    date/time-инпуты держат свою ширину, наезжают друг на друга и
+    уводят окно в горизонтальный скролл. */
+const DATE_TIME_INPUT_CLASS = "h-10 w-full min-w-0 rounded-xl border-[#dcdfed] px-3 text-[13.5px]";
+
+function DateTimePair({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  const parts = parseDateTime(value);
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+      <Input type="date" className={DATE_TIME_INPUT_CLASS} value={parts.date} onChange={(e) => onChange(mergeDateTime(e.target.value, parts.time))} />
+      <Input type="time" className={DATE_TIME_INPUT_CLASS} value={parts.time} onChange={(e) => onChange(mergeDateTime(parts.date, e.target.value))} />
+    </div>
+  );
 }
 
 export function FinishedProductDocumentClient({
@@ -353,7 +372,12 @@ export function FinishedProductDocumentClient({
     ].filter((f): f is { label: string; value: string; hideIfEmpty: boolean } => f !== null),
   }));
 
-  const productOptions = useMemo(() => Array.from(new Set(config.itemsCatalog)).filter(Boolean), [config.itemsCatalog]);
+  // Наименования всей организации (последние сверху) + справочник документа.
+  const dishSuggestions = useNameSuggestions("dish");
+  const productOptions = useMemo(
+    () => dishSuggestions.options(config.itemsCatalog),
+    [dishSuggestions, config.itemsCatalog]
+  );
   // Dedupe by name — multiple staff records can carry identical full
   // names ("Титов Максим Андреевич"), and React would warn about
   // duplicate keys in the <datalist> below. The select still falls
@@ -423,21 +447,15 @@ export function FinishedProductDocumentClient({
       ? ORGANOLEPTIC_CUSTOM
       : "";
   const rowFields = ({ withProductName, leading }: { withProductName: boolean; leading?: React.ReactNode }) => (
-    <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
+    <div className="max-h-[calc(92vh-160px)] min-w-0 space-y-5 overflow-x-hidden overflow-y-auto px-6 py-5">
       {leading}
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время изготовления</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(e.target.value, parseDateTime(prev.productionDateTime).time) }))} />
-                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.productionDateTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, productionDateTime: mergeDateTime(parseDateTime(prev.productionDateTime).date, e.target.value) }))} />
-              </div>
+              <DateTimePair value={draftRow.productionDateTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, productionDateTime: next }))} />
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Время снятия бракеража</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(e.target.value, parseDateTime(prev.rejectionTime).time) }))} />
-                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.rejectionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, rejectionTime: mergeDateTime(parseDateTime(prev.rejectionTime).date, e.target.value) }))} />
-              </div>
+              <DateTimePair value={draftRow.rejectionTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, rejectionTime: next }))} />
             </div>
             {withProductName ? (
               <div className="space-y-2">
@@ -500,22 +518,28 @@ export function FinishedProductDocumentClient({
             ) : null}
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Разрешение к реализации</Label>
-              <div className="grid grid-cols-2 gap-2">
+              {/* Выбранный вариант — заливка + галочка + кольцо; невыбранный —
+                  белый с рамкой. Раньше оба были цветными, и было не понятно,
+                  какой из них нажат. */}
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Разрешение к реализации">
                 {(
                   [
-                    ["yes", "Да", "#136b2a", "#ecfdf5"],
-                    ["no", "Нет", "#d2453d", "#fff4f2"],
+                    ["yes", "Да", "#136b2a", "rgba(19,107,42,0.18)"],
+                    ["no", "Нет", "#d2453d", "rgba(210,69,61,0.18)"],
                   ] as const
-                ).map(([value, label, fg, bg]) => {
+                ).map(([value, label, fg, ring]) => {
                   const active = draftRow.releaseAllowed === value;
                   return (
                     <button
                       key={value}
                       type="button"
+                      role="radio"
+                      aria-checked={active}
                       onClick={() => setDraftRow((prev) => ({ ...prev, releaseAllowed: value }))}
-                      className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${active ? "border-transparent text-white" : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"}`}
-                      style={active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }}
+                      className={`flex h-10 items-center justify-center gap-1.5 rounded-xl border px-3.5 text-[14px] font-medium transition-all duration-150 ${active ? "border-transparent text-white shadow-[0_8px_20px_-10px_rgba(11,16,36,0.35)]" : "border-[#dcdfed] bg-white text-[#6f7282] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#0b1024]"}`}
+                      style={active ? { backgroundColor: fg, boxShadow: `0 0 0 4px ${ring}` } : undefined}
                     >
+                      {active ? <Check className="size-4" strokeWidth={3} /> : null}
                       {label}
                     </button>
                   );
@@ -524,18 +548,12 @@ export function FinishedProductDocumentClient({
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время разрешения</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(e.target.value, parseDateTime(prev.releasePermissionTime).time) }))} />
-                <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.releasePermissionTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: mergeDateTime(parseDateTime(prev.releasePermissionTime).date, e.target.value) }))} />
-              </div>
+              <DateTimePair value={draftRow.releasePermissionTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: next }))} />
             </div>
             {isColumnVisible("courier") ? (
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("courier", "Дата и время передачи блюд курьеру")}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input type="date" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).date} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(e.target.value, parseDateTime(prev.courierTransferTime).time) }))} />
-                  <Input type="time" className="h-10 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]" value={parseDateTime(draftRow.courierTransferTime).time} onChange={(e) => setDraftRow((prev) => ({ ...prev, courierTransferTime: mergeDateTime(parseDateTime(prev.courierTransferTime).date, e.target.value) }))} />
-                </div>
+                <DateTimePair value={draftRow.courierTransferTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, courierTransferTime: next }))} />
               </div>
             ) : null}
             {isColumnVisible("responsible") ? (
@@ -680,6 +698,7 @@ export function FinishedProductDocumentClient({
       },
       true
     );
+    void dishSuggestions.remember(items);
     setBulkText("");
     setBulkOpen(false);
     toast.success(`Добавлено строк: ${items.length}`);
@@ -715,6 +734,7 @@ export function FinishedProductDocumentClient({
     };
     setConfig(nextConfig);
     await saveConfig(nextConfig);
+    void dishSuggestions.remember([draftRow.productName]);
     setDraftRow(createDraft(users, "", draftPeople));
     setEditingRowId(null);
     setAddModalOpen(false);

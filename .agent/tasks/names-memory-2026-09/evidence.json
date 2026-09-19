@@ -1,0 +1,13 @@
+{
+  "task": "names-memory-2026-09",
+  "date": "2026-09-19",
+  "criteria": {
+    "AC1": { "status": "PASS", "source": "e2e/results.json#ac1_*" },
+    "AC2": { "status": "PASS", "source": "e2e/results.json#ac2_*" },
+    "AC3": { "status": "PASS", "source": "e2e/results.json#ac3_*" },
+    "AC4": { "status": "PASS", "source": "e2e/results.json#ac4_*,ac2_prButtons" },
+    "AC5": { "status": "PASS", "source": "e2e/results.json#ac5_rating" },
+    "AC6": { "status": "PASS", "source": "e2e/results.json#ac6_mini" },
+    "AC7": { "status": "PASS", "source": "node --test 5/5; npm run typecheck; eslint" }
+  }
+}

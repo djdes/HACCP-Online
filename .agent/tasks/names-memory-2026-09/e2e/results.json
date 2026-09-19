@@ -1,0 +1,45 @@
+{
+  "ac3_overflow": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "ac3_dateTime": {
+    "dateRight": 191,
+    "timeLeft": 199,
+    "overlap": false,
+    "timeRight": 366,
+    "viewport": 390
+  },
+  "ac4_default": {
+    "yes": "true",
+    "no": "false",
+    "yesHasCheck": true
+  },
+  "ac5_rating": "Отлично",
+  "ac4_afterClick": {
+    "yes": "false",
+    "no": "true"
+  },
+  "ac1_apiFirst": "E2E Блюдо 99072",
+  "ac1_listFirst": "E2E Блюдо 99072",
+  "ac1_icFirst": "E2E Блюдо 99072",
+  "ac2_prButtons": {
+    "compliant": "true",
+    "non": "false"
+  },
+  "ac2_apiFirst": "E2E Продукт 99072",
+  "ac2_incomingFirst": "E2E Продукт 99072",
+  "ac2_incomingListHead": [
+    "E2E Продукт 99072"
+  ],
+  "ac6_mini": {
+    "overflow": {
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    "yes": "true",
+    "rating": "Отлично",
+    "firstSuggestion": "E2E Блюдо 99072"
+  },
+  "errors": []
+}

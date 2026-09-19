@@ -73,6 +73,8 @@ import {
 import { resolveJournalCodeAlias } from "@/lib/source-journal-map";
 import { Switch } from "@/components/ui/switch";
 import { DateField } from "@/components/journals/journal-dialog-field";
+import { useNameSuggestions } from "@/components/journals/use-name-suggestions";
+import { mergeSuggestions } from "@/lib/name-suggestions";
 import { TimeField, joinTimeValue, splitTimeValue } from "@/components/journals/time-field";
 import {
   PositionSelectItems,
@@ -266,6 +268,8 @@ function RowDialog(props: {
   users: User[];
   config: AcceptanceDocumentConfig;
   initialRow: AcceptanceRow | null;
+  /** Продукция всей организации (последние сверху) — поверх списка документа. */
+  recentProducts?: readonly string[];
   onSave: (row: AcceptanceRow, addToLists: { products: string[]; manufacturers: string[]; suppliers: string[] }) => Promise<void>;
 }) {
   const [row, setRow] = useState<AcceptanceRow>(() => createAcceptanceRow());
@@ -293,7 +297,7 @@ function RowDialog(props: {
     setNewProduct("");
     setNewManufacturer("");
     setNewSupplier("");
-    setProductOptions(props.config.products);
+    setProductOptions(mergeSuggestions(props.recentProducts ?? [], props.config.products));
     setManufacturerOptions(props.config.manufacturers);
     setSupplierOptions(props.config.suppliers);
     setAddedProducts([]);
@@ -690,6 +694,8 @@ function IncomingControlRowDialog(props: {
   users: User[];
   config: AcceptanceDocumentConfig;
   initialRow: AcceptanceRow | null;
+  /** Продукция всей организации (последние сверху) — поверх списка документа. */
+  recentProducts?: readonly string[];
   onSave: (
     row: AcceptanceRow,
     addToLists: { products: string[]; manufacturers: string[]; suppliers: string[] }
@@ -724,7 +730,7 @@ function IncomingControlRowDialog(props: {
     );
     setNewProduct("");
     setNewPartner("");
-    setProductOptions(props.config.products);
+    setProductOptions(mergeSuggestions(props.recentProducts ?? [], props.config.products));
     setPartnerOptions([
       ...new Set([...props.config.manufacturers, ...props.config.suppliers]),
     ]);
@@ -2100,7 +2106,10 @@ export function AcceptanceDocumentClient(props: Props) {
     startTransition(() => router.refresh());
   }
 
+  const productSuggestions = useNameSuggestions("product");
+
   async function handleSaveRow(row: AcceptanceRow, addToLists: { products: string[]; manufacturers: string[]; suppliers: string[] }) {
+    void productSuggestions.remember([row.productName]);
     const nextRows = editingRow
       ? config.rows.map((item) => (item.id === editingRow.id ? row : item))
       : [...config.rows, row];
@@ -2745,10 +2754,11 @@ export function AcceptanceDocumentClient(props: Props) {
           users={props.users}
           config={config}
           initialRow={editingRow}
+          recentProducts={productSuggestions.recent}
           onSave={handleSaveRow}
         />
       ) : (
-        <RowDialog open={rowDialogOpen} onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }} users={props.users} config={config} initialRow={editingRow} onSave={handleSaveRow} />
+        <RowDialog open={rowDialogOpen} onOpenChange={(open) => { setRowDialogOpen(open); if (!open) setEditingRow(null); }} users={props.users} config={config} initialRow={editingRow} recentProducts={productSuggestions.recent} onSave={handleSaveRow} />
       )}
       <ImportRowsDialog open={rowsImportOpen} onOpenChange={setRowsImportOpen} users={props.users} responsibleTitle={responsibleTitle} responsibleUserId={responsibleUserId} isProductAcceptance={isProductAcceptance} onFileSelect={handleImportFile} />
       <AddMultipleRowsDialog open={bulkAddOpen} onOpenChange={setBulkAddOpen} onSubmit={addMultipleRows} />

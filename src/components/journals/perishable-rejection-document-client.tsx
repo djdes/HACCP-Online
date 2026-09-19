@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, List, ListPlus, Plus, Trash2 } from "lucide-react";
+import { Archive, Check, ChevronDown, List, ListPlus, Plus, Trash2 } from "lucide-react";
+import { SuggestInput } from "@/components/journals/suggest-input";
+import { useNameSuggestions } from "@/components/journals/use-name-suggestions";
 import { toast } from "sonner";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import {
@@ -341,10 +343,12 @@ export function PerishableRejectionDocumentClient({
     autoPick: "none",
   });
 
+  // Наименования всей организации (последние сверху) + списки документа.
+  const productSuggestions = useNameSuggestions("product");
   const productOptions = useMemo(() => {
     const fromLists = config.productLists.flatMap((list) => list.items);
-    return Array.from(new Set(fromLists)).filter(Boolean);
-  }, [config.productLists]);
+    return productSuggestions.options(fromLists);
+  }, [config.productLists, productSuggestions]);
 
   // Dedupe manufacturer/supplier catalogs at render time — legacy
   // documents may contain duplicate entries (same name typed twice
@@ -610,6 +614,7 @@ export function PerishableRejectionDocumentClient({
       }),
       true
     );
+    void productSuggestions.remember([nextRow.productName]);
     resetDraftRow();
     setEditingRowId(null);
     setAddModalOpen(false);
@@ -1272,44 +1277,15 @@ export function PerishableRejectionDocumentClient({
               <Label className="text-[13px] font-medium text-[#3c4053]">
                 Наименование изделия
               </Label>
-              <Select
-                value={toNone(
-                  productOptions.includes(draftRow.productName)
-                    ? draftRow.productName
-                    : ""
-                )}
-                onValueChange={(value) =>
-                  setDraftRow((prev) => ({
-                    ...prev,
-                    productName: fromNone(value),
-                  }))
-                }
-              >
-                <SelectTrigger className={SELECT_TRIGGER_CLASS}>
-                  <SelectValue placeholder="— выберите из списка —" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>— выберите из списка —</SelectItem>
-                  {productOptions.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
-                placeholder="Или введите новое наименование"
-                value={
-                  productOptions.includes(draftRow.productName)
-                    ? ""
-                    : draftRow.productName
-                }
-                onChange={(e) =>
-                  setDraftRow((prev) => ({
-                    ...prev,
-                    productName: e.target.value,
-                  }))
+              {/* Одно поле вместо «список + или введите новое»: варианты
+                  открываются по стрелке, своё пишется прямо в поле. */}
+              <SuggestInput
+                ariaLabel="Наименование изделия"
+                value={draftRow.productName}
+                options={productOptions}
+                placeholder="Выберите из списка или введите новое"
+                onChange={(next) =>
+                  setDraftRow((prev) => ({ ...prev, productName: next }))
                 }
               />
             </div>
@@ -1485,8 +1461,8 @@ export function PerishableRejectionDocumentClient({
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
-                    ["compliant", "Соответствует", "#136b2a", "#ecfdf5"],
-                    ["non_compliant", "Не соответствует", "#d2453d", "#fff4f2"],
+                    ["compliant", "Соответствует", "#136b2a", "rgba(19,107,42,0.18)"],
+                    ["non_compliant", "Не соответствует", "#d2453d", "rgba(210,69,61,0.18)"],
                   ] as const
                 ).map(([value, label, fg, bg]) => {
                   const active = draftRow.organolepticResult === value;
@@ -1500,15 +1476,18 @@ export function PerishableRejectionDocumentClient({
                           organolepticResult: value,
                         }))
                       }
-                      className={`flex h-9 items-center justify-center gap-2 rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
+                      role="radio"
+                      aria-checked={active}
+                      // Выбранный — заливка + галочка + кольцо, невыбранный —
+                      // белый: раньше оба были цветными и «нажатый» не читался.
+                      className={`flex h-10 items-center justify-center gap-1.5 rounded-xl border px-3.5 text-[14px] font-medium transition-all duration-150 ${
                         active
-                          ? "border-transparent text-white"
-                          : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                          ? "border-transparent text-white shadow-[0_8px_20px_-10px_rgba(11,16,36,0.35)]"
+                          : "border-[#dcdfed] bg-white text-[#6f7282] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#0b1024]"
                       }`}
-                      style={
-                        active ? { backgroundColor: fg, color: "white" } : { backgroundColor: bg, color: fg, borderColor: bg }
-                      }
+                      style={active ? { backgroundColor: fg, boxShadow: `0 0 0 4px ${bg}` } : undefined}
                     >
+                      {active ? <Check className="size-4" strokeWidth={3} /> : null}
                       {label}
                     </button>
                   );

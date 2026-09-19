@@ -16,6 +16,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { SuggestInput } from "@/components/journals/suggest-input";
+import { useNameSuggestions } from "@/components/journals/use-name-suggestions";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -109,6 +111,8 @@ function RowDialog(props: {
   initialRow: IntensiveCoolingRow | null;
   config: IntensiveCoolingConfig;
   users: UserItem[];
+  /** Блюда организации (последние сверху) — поверх подсказок документа. */
+  dishOptions?: readonly string[];
   onSave: (row: IntensiveCoolingRow) => Promise<void>;
 }) {
   const [row, setRow] = useState<IntensiveCoolingRow>(() => createIntensiveCoolingRow());
@@ -217,18 +221,13 @@ function RowDialog(props: {
             />
           </fieldset>
 
-          <Input
-            list="intensive-cooling-dishes"
+          <SuggestInput
+            ariaLabel="Наименование блюда"
             value={row.dishName}
-            onChange={(event) => setValue("dishName", event.target.value)}
-            className="h-9 rounded-xl border-[#d7dbea]"
+            options={props.dishOptions ?? Array.from(new Set(props.config.dishSuggestions))}
             placeholder="Введите наименование блюда"
+            onChange={(next) => setValue("dishName", next)}
           />
-          <datalist id="intensive-cooling-dishes">
-            {Array.from(new Set(props.config.dishSuggestions)).map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
 
           <Input
             value={row.startTemperature}
@@ -619,6 +618,8 @@ export function IntensiveCoolingDocumentClient(props: Props) {
   const [finishOpen, setFinishOpen] = useState(false);
   const [rowDialogOpen, setRowDialogOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<IntensiveCoolingRow | null>(null);
+  // Блюда всей организации (последние сверху) + подсказки документа.
+  const dishSuggestions = useNameSuggestions("dish");
 
   const rows = useMemo(() => config.rows, [config.rows]);
   const isActive = props.status === "active";
@@ -657,6 +658,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
       ? config.rows.map((item) => (item.id === editingRow.id ? row : item))
       : [...config.rows, row];
     await persist(title, dateFrom, { ...config, rows: nextRows });
+    void dishSuggestions.remember([row.dishName]);
     setEditingRow(null);
   }
 
@@ -964,6 +966,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
         initialRow={editingRow}
         config={config}
         users={props.users}
+        dishOptions={dishSuggestions.options(config.dishSuggestions)}
         onSave={(row) =>
           handleSaveRow(row).catch((error) => {
             toast.error(error instanceof Error ? error.message : "Ошибка");

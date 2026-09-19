@@ -349,6 +349,7 @@ model Organization {
   areas                          Area[]
   journalEntries                 JournalEntry[]
   products                       Product[]
+  nameSuggestions                NameSuggestion[]
   auditLogs                      AuditLog[]
   journalChecklistItems          JournalChecklistItem[]
   journalChecklistChecks         JournalChecklistCheck[]
@@ -1480,6 +1481,27 @@ model BonusEntry {
   @@index([organizationId, status, createdAt])
   @@index([userId, status])
   @@index([templateId])
+}
+
+/// Память наименований организации (2026-09-19): что вписывали в окна
+/// строк журналов — блюда (бракераж, интенсивное охлаждение) и продукция
+/// (входной контроль, скоропорт). Выпадающий список в любом документе
+/// предлагает их первыми, последние введённые — сверху. Отдельно от
+/// `Product`: тот — справочник поставок с единицами и сроками, а здесь
+/// просто строки, которые человек уже печатал.
+model NameSuggestion {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// "dish" — готовые блюда, "product" — продукция/сырьё.
+  scope          String
+  value          String
+  useCount       Int          @default(1)
+  lastUsedAt     DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, scope, value])
+  @@index([organizationId, scope, lastUsedAt])
 }
 
 model Product {
