@@ -76,10 +76,7 @@ export async function POST(
   if (!verify.ok) {
     return NextResponse.json(
       {
-        error:
-          verify.reason === "expired"
-            ? "Срок QR-плаката истёк — попросите управляющего распечатать новый."
-            : "QR-код недействителен для этого помещения.",
+        error: "QR-код недействителен для этого помещения.",
         code: verify.reason,
       },
       { status: 401 }

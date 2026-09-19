@@ -7,7 +7,7 @@ import {
   type ClimateMetricConfig,
 } from "@/lib/climate-document";
 import { db } from "@/lib/db";
-import { mintQrFillToken, verifyQrFillToken } from "@/lib/qr-fill-token";
+import { mintQrFillToken } from "@/lib/qr-fill-token";
 import type { QrFillKind, QrPoster } from "@/lib/qr-fill-types";
 import { loadDirectoryBuildings } from "@/lib/room-directory";
 
@@ -43,12 +43,6 @@ export function qrFillUrl(origin: string, kind: QrFillKind, id: string): string 
   return `${base}/${path}/${id}?token=${encodeURIComponent(token)}`;
 }
 
-function expiresAtOf(url: string): string | null {
-  const token = new URL(url).searchParams.get("token") ?? "";
-  const verified = verifyQrFillToken(token);
-  return verified.ok ? new Date(verified.expiresAt).toISOString() : null;
-}
-
 type EquipmentSource = {
   id: string;
   name: string;
@@ -68,7 +62,6 @@ export async function buildEquipmentPoster(item: EquipmentSource, origin: string
     norms: norm ? [norm] : [],
     url,
     svg: await qrSvg(url),
-    expiresAt: expiresAtOf(url),
   };
 }
 
@@ -92,7 +85,6 @@ export async function buildRoomPoster(
     ].filter((label): label is string => Boolean(label)),
     url,
     svg: await qrSvg(url),
-    expiresAt: expiresAtOf(url),
   };
 }
 

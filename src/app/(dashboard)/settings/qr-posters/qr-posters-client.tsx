@@ -16,12 +16,6 @@ const STEPS = [
   "Нажмите «Сохранить» — запись попадёт в журнал за сегодня.",
 ];
 
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("ru-RU");
-}
-
 function buildHref(params: {
   kind: QrFillKind;
   layout: QrPosterLayout;
@@ -176,8 +170,8 @@ export function QrPostersClient({
             ? "Распечатайте лист, вырежьте наклейки и приклейте на дверцу холодильника или у входа в помещение."
             : "Распечатайте плакаты и повесьте у входа в помещение или на дверцу холодильника."}{" "}
           Показание ложится в активный журнал за сегодня — в ближайший срок контроля. Если на сегодня журнала нет,
-          телефон попросит сначала создать документ. Под каждым кодом указано, до какого числа он действует; перед
-          этой датой распечатайте коды заново.
+          телефон попросит сначала создать документ. Коды бессрочные: распечатали один раз — и они работают, пока
+          объект есть в справочнике.
           <span className="mt-1 block text-[12px] text-[#9b9fb3]">Домен ссылок: {origin.replace(/^https?:\/\//, "")}</span>
         </div>
       </div>
@@ -243,7 +237,6 @@ export function QrPostersClient({
       ) : layout === "sheet" ? (
         <div className="qr-sheet-grid grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {posters.map((poster) => {
-            const expires = formatDate(poster.expiresAt);
             return (
               <article
                 key={poster.id}
@@ -268,7 +261,7 @@ export function QrPostersClient({
                   </div>
                 ) : null}
                 <div className="qr-sticker-hint mt-2 text-[10.5px] text-[#9b9fb3]">
-                  Сканируйте камерой телефона{expires ? ` · до ${expires}` : ""}
+                  Сканируйте камерой телефона
                 </div>
               </article>
             );
@@ -277,7 +270,6 @@ export function QrPostersClient({
       ) : (
         <div className="qr-posters-grid grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {posters.map((poster) => {
-            const expires = formatDate(poster.expiresAt);
             return (
               <article
                 key={poster.id}
@@ -311,9 +303,6 @@ export function QrPostersClient({
                     </li>
                   ))}
                 </ol>
-                {expires ? (
-                  <div className="qr-poster-expires mt-3 text-[11px] text-[#9b9fb3]">Код действует до {expires}</div>
-                ) : null}
               </article>
             );
           })}
@@ -348,7 +337,6 @@ export function QrPostersClient({
           .qr-poster-subtitle { font-size: 14pt; margin-top: 3mm; }
           .qr-poster .qr-box { width: 110mm !important; max-width: none !important; border: 0 !important; margin-top: 10mm; }
           .qr-poster-steps { font-size: 15pt; width: 150mm; margin-top: 10mm; }
-          .qr-poster-expires { font-size: 10pt; margin-top: 6mm; }
 
           /* Наклейки: сетка 3 × 4 на листе A4 (12 штук), рамка под ножницы. */
           .qr-sheet-grid {

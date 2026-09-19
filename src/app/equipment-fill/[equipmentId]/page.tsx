@@ -43,9 +43,7 @@ export default async function EquipmentFillPage({
             Ссылка недействительна
           </h1>
           <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
-            {verify.ok === false && verify.reason === "expired"
-              ? "Срок QR-наклейки истёк — попросите администратора распечатать новую."
-              : "Наклейка повреждена или не подходит к этому оборудованию."}
+            Наклейка повреждена или не подходит к этому оборудованию.
           </p>
         </div>
       </main>

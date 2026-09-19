@@ -53,9 +53,7 @@ export default async function RoomFillPage({
             Ссылка недействительна
           </h1>
           <p className="mt-2 text-[14px] leading-relaxed text-[#6f7282]">
-            {verify.reason === "expired"
-              ? "Срок QR-плаката истёк — попросите управляющего распечатать новый."
-              : "Плакат повреждён или не подходит к этому помещению."}
+            Плакат повреждён или не подходит к этому помещению.
           </p>
         </div>
       </main>

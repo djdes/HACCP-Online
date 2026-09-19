@@ -12,7 +12,7 @@
  *     temperature rows that are trivially distinguishable in the audit
  *     log).
  *
- * TTL: 60 days. Regenerate the sticker if the manager fears abuse.
+ * Без срока действия (2026-09-19). Отзыв — только сменой секрета.
  *
  * Реализация общая с плакатами помещений — `src/lib/qr-fill-token.ts`.
  * Здесь обёртки со старыми именами: токен помещения (`room:<id>…`)
@@ -27,7 +27,7 @@ export function mintEquipmentQrToken(equipmentId: string): string {
 
 export type EquipmentTokenVerification =
   | { ok: true; equipmentId: string }
-  | { ok: false; reason: "bad-format" | "bad-sig" | "expired" };
+  | { ok: false; reason: "bad-format" | "bad-sig" };
 
 export function verifyEquipmentQrToken(token: string): EquipmentTokenVerification {
   const result = verifyQrFillToken(token);

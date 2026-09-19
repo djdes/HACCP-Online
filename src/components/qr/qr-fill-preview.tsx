@@ -26,12 +26,6 @@ type State =
   | { status: "ready"; poster: QrPoster }
   | { status: "error"; message: string };
 
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString("ru-RU");
-}
-
 /**
  * QR-код объекта прямо в диалоге строки журнала (холодильник /
  * помещение): сотрудник сканирует и вносит показание без входа. Печать —
@@ -137,11 +131,9 @@ export function QrFillPreview({ kind, id, emptyHint, className }: Props) {
                   Сотрудник наводит камеру, выбирает своё имя и вводит показание —
                   запись ложится в журнал за сегодня.
                 </p>
-                {formatDate(state.poster.expiresAt) ? (
-                  <div className="text-[11.5px] text-[#9b9fb3]">
-                    Код действует до {formatDate(state.poster.expiresAt)}
-                  </div>
-                ) : null}
+                <div className="text-[11.5px] text-[#9b9fb3]">
+                  Код бессрочный — печатается один раз.
+                </div>
               </>
             ) : (
               <div className="space-y-2">

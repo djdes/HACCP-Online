@@ -12,17 +12,14 @@ import crypto from "node:crypto";
  * Вид объекта зашит в подписанную часть, поэтому токен помещения не
  * принимается маршрутом оборудования и наоборот.
  *
- * Сроки: наклейка оборудования — 60 дней (как было), плакат помещения —
- * год: его печатают на A4 и вешают надолго. На странице плакатов под
- * каждым кодом написано, до какого числа он действует.
+ * Срока действия нет (решение владельца, 2026-09-19): плакат вешают один
+ * раз и надолго, а «перепечатайте через 60 дней» на практике означало
+ * молча переставший работать код. Момент выпуска остаётся в подписи ради
+ * совместимости формата — уже расклеенные коды продолжают работать.
+ * Отозвать код можно только сменой секрета.
  */
 
 export type QrFillKind = "equipment" | "room";
-
-export const QR_FILL_TTL_MS: Record<QrFillKind, number> = {
-  equipment: 60 * 24 * 60 * 60 * 1000,
-  room: 365 * 24 * 60 * 60 * 1000,
-};
 
 const ROOM_PREFIX = "room:";
 
@@ -54,13 +51,10 @@ export function mintQrFillToken(kind: QrFillKind, id: string, now: number = Date
 }
 
 export type QrFillTokenVerification =
-  | { ok: true; kind: QrFillKind; id: string; issuedAt: number; expiresAt: number }
-  | { ok: false; reason: "bad-format" | "bad-sig" | "expired" };
+  | { ok: true; kind: QrFillKind; id: string; issuedAt: number }
+  | { ok: false; reason: "bad-format" | "bad-sig" };
 
-export function verifyQrFillToken(
-  token: string,
-  now: number = Date.now()
-): QrFillTokenVerification {
+export function verifyQrFillToken(token: string): QrFillTokenVerification {
   const parts = typeof token === "string" ? token.split(".") : [];
   if (parts.length !== 3) return { ok: false, reason: "bad-format" };
   const [subject, issuedRaw, sig] = parts;
@@ -78,19 +72,16 @@ export function verifyQrFillToken(
     return { ok: false, reason: "bad-sig" };
   }
 
-  const expiresAt = issued + QR_FILL_TTL_MS[kind];
-  if (now > expiresAt) return { ok: false, reason: "expired" };
-  return { ok: true, kind, id, issuedAt: issued, expiresAt };
+  return { ok: true, kind, id, issuedAt: issued };
 }
 
 /** Проверка токена конкретного объекта конкретного вида. */
 export function verifyQrFillTokenFor(
   token: string,
   kind: QrFillKind,
-  id: string,
-  now: number = Date.now()
+  id: string
 ): QrFillTokenVerification {
-  const result = verifyQrFillToken(token, now);
+  const result = verifyQrFillToken(token);
   if (!result.ok) return result;
   if (result.kind !== kind || result.id !== id) return { ok: false, reason: "bad-sig" };
   return result;

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  QR_FILL_TTL_MS,
   mintQrFillToken,
   verifyQrFillToken,
   verifyQrFillTokenFor,
@@ -43,19 +42,18 @@ test("токен помещения не принимается как токе�
   assert.equal(verifyQrFillTokenFor(roomToken, "room", "abc").ok, true);
 });
 
-test("испорченный и просроченный токены", () => {
+test("испорченный токен и бессрочность", () => {
   const token = mintQrFillToken("room", "abc");
   const [subject, issued, sig] = token.split(".");
   assert.deepEqual(verifyQrFillToken(`${subject}.${issued}.${sig.slice(0, -2)}xx`), { ok: false, reason: "bad-sig" });
   assert.deepEqual(verifyQrFillToken(`room:other.${issued}.${sig}`), { ok: false, reason: "bad-sig" });
   assert.deepEqual(verifyQrFillToken("abc"), { ok: false, reason: "bad-format" });
 
-  const old = mintQrFillToken("room", "abc", Date.now() - QR_FILL_TTL_MS.room - DAY);
-  assert.deepEqual(verifyQrFillToken(old), { ok: false, reason: "expired" });
-  const equipmentOld = mintQrFillToken("equipment", "eq", Date.now() - 61 * DAY);
-  assert.deepEqual(verifyQrFillToken(equipmentOld), { ok: false, reason: "expired" });
-  const roomSameAge = mintQrFillToken("room", "abc", Date.now() - 61 * DAY);
-  assert.equal(verifyQrFillToken(roomSameAge).ok, true, "плакат живёт дольше наклейки");
+  // Срока действия нет: расклеенные год и три года назад коды работают.
+  const oldRoom = mintQrFillToken("room", "abc", Date.now() - 400 * DAY);
+  assert.equal(verifyQrFillToken(oldRoom).ok, true);
+  const oldEquipment = mintQrFillToken("equipment", "eq", Date.now() - 3 * 365 * DAY);
+  assert.equal(verifyQrFillToken(oldEquipment).ok, true);
 });
 
 test("id с точкой или префиксом помещения для оборудования не выпускается", () => {
