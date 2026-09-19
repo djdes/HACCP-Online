@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
   DocumentCloseButton,
@@ -77,6 +78,18 @@ type Props = {
    * (или дефолт шаблона). Редактируется в «Настройках журнала».
    */
   controlPeriodicity?: string;
+  /**
+   * Период документа. Передан — в «Настройках журнала» появляются поля
+   * «с … по …» (сервер это умеет, UI раньше не давал).
+   */
+  dateFrom?: string;
+  dateTo?: string;
+  /** Сколько записей окажется вне нового периода (для предупреждения). */
+  countOutsidePeriod?: (from: string, to: string) => number;
+  /** Доп. поля журнала внутри «Настроек журнала». */
+  settingsExtraFields?: React.ReactNode;
+  /** Что дописать в `config` документа при сохранении настроек. */
+  settingsExtraConfig?: Record<string, unknown>;
   showHeaderActions?: boolean;
   hideHeading?: boolean;
   hidePrint?: boolean;
@@ -435,6 +448,11 @@ function JournalSettingsDialog({
   responsibleUserId,
   users,
   controlPeriodicity = "",
+  dateFrom = "",
+  dateTo = "",
+  countOutsidePeriod,
+  extraFields,
+  extraConfig,
   useV2 = false,
 }: {
   open: boolean;
@@ -445,6 +463,15 @@ function JournalSettingsDialog({
   responsibleUserId: string | null;
   users: UserItem[];
   controlPeriodicity?: string;
+  /** Период документа `YYYY-MM-DD`; пустой — поля «с … по …» не рисуем. */
+  dateFrom?: string;
+  dateTo?: string;
+  /** Сколько записей окажется вне нового периода (для предупреждения). */
+  countOutsidePeriod?: (from: string, to: string) => number;
+  /** Доп. поля конкретного журнала (например «пустых строк при печати»). */
+  extraFields?: React.ReactNode;
+  /** Что дописать в `config` документа при сохранении. */
+  extraConfig?: Record<string, unknown>;
   useV2?: boolean;
 }) {
   const router = useRouter();
@@ -452,6 +479,8 @@ function JournalSettingsDialog({
   const [responsible, setResponsible] = useState(responsibleTitle || "");
   const [responsibleUser, setResponsibleUser] = useState(responsibleUserId || "");
   const [periodicity, setPeriodicity] = useState(controlPeriodicity);
+  const [from, setFrom] = useState(dateFrom);
+  const [to, setTo] = useState(dateTo);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const options = useMemo(() => getStaffJournalResponsibleTitleOptions(users), [users]);
   const cascade = usePositionEmployeeCascade({
@@ -471,8 +500,12 @@ function JournalSettingsDialog({
     setResponsible(responsibleTitle || options[0] || "");
     setResponsibleUser(responsibleUserId || "");
     setPeriodicity(controlPeriodicity);
+    setFrom(dateFrom);
+    setTo(dateTo);
   }, [
     controlPeriodicity,
+    dateFrom,
+    dateTo,
     open,
     options,
     responsibleTitle,
@@ -480,7 +513,52 @@ function JournalSettingsDialog({
     title,
   ]);
 
+  const periodEditable = Boolean(dateFrom && dateTo);
+
   async function handleSave() {
+    if (periodEditable) {
+      if (!from || !to) {
+        toast.error("Укажите период документа");
+        return;
+      }
+      if (from > to) {
+        toast.error("Дата начала не может быть позже даты окончания");
+        return;
+      }
+    }
+
+    // Сокращение периода — потенциальная потеря записей: сервер требует
+    // явный `shrinkPeriod`, а человек — честное предупреждение.
+    const shrinks = periodEditable && (from > dateFrom || to < dateTo);
+    if (shrinks) {
+      const outside = countOutsidePeriod?.(from, to) ?? 0;
+      const confirmed = await confirmAsync({
+        title: "Сократить период документа?",
+        description: `Новый период: ${from} — ${to}.`,
+        variant: "warn",
+        confirmLabel: "Сократить период",
+        bullets:
+          outside > 0
+            ? [
+                {
+                  label: `Записей окажется вне периода: ${outside}`,
+                  tone: "warn" as const,
+                },
+                {
+                  label: "Они останутся в базе, но пропадут из бланка и печати",
+                  tone: "default" as const,
+                },
+              ]
+            : [
+                {
+                  label: "Записей вне нового периода нет",
+                  tone: "info" as const,
+                },
+              ],
+      });
+      if (!confirmed) return;
+    }
+
     setIsSubmitting(true);
     try {
       await requestJson(`/api/journal-documents/${documentId}`, {
@@ -491,6 +569,10 @@ function JournalSettingsDialog({
           responsibleTitle: responsible,
           responsibleUserId: responsibleUser || null,
           controlPeriodicity: periodicity,
+          ...(periodEditable
+            ? { dateFrom: from, dateTo: to, ...(shrinks ? { shrinkPeriod: true } : {}) }
+            : {}),
+          ...(extraConfig ? { config: extraConfig } : {}),
         }),
       });
 
@@ -502,6 +584,36 @@ function JournalSettingsDialog({
       setIsSubmitting(false);
     }
   }
+
+  /** Поля «с … по …» — общие для обеих обёрток диалога. */
+  const periodFields = periodEditable ? (
+    <div className="space-y-2">
+      <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+        Период документа
+      </Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          type="date"
+          value={from}
+          onChange={(event) => setFrom(event.target.value)}
+          aria-label="Период документа: с"
+          className="h-10 w-[165px] rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] transition-colors duration-150 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+        />
+        <span className="text-[13.5px] text-[#6f7282]">по</span>
+        <Input
+          type="date"
+          value={to}
+          onChange={(event) => setTo(event.target.value)}
+          aria-label="Период документа: по"
+          className="h-10 w-[165px] rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] transition-colors duration-150 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+        />
+      </div>
+      <p className="text-[12px] leading-snug text-[#6f7282]">
+        Сокращение периода спрячет записи за его пределами — перед
+        сохранением покажем, сколько их.
+      </p>
+    </div>
+  ) : null;
 
   if (useV2) {
     return (
@@ -574,6 +686,8 @@ function JournalSettingsDialog({
           value={periodicity}
           onChange={setPeriodicity}
         />
+        {periodFields}
+        {extraFields}
       </JournalSettingsModal>
     );
   }
@@ -637,6 +751,8 @@ function JournalSettingsDialog({
             value={periodicity}
             onChange={setPeriodicity}
           />
+          {periodFields}
+          {extraFields}
           <div className="flex justify-end">
             <Button
               type="button"
@@ -665,6 +781,11 @@ export function StaffJournalToolbar({
   includedEmployeeIds,
   routeCode,
   controlPeriodicity = "",
+  dateFrom = "",
+  dateTo = "",
+  countOutsidePeriod,
+  settingsExtraFields,
+  settingsExtraConfig,
   showHeaderActions = false,
   hideHeading = false,
   subtitle,
@@ -912,6 +1033,11 @@ export function StaffJournalToolbar({
         responsibleUserId={responsibleUserId}
         users={users}
         controlPeriodicity={controlPeriodicity}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        countOutsidePeriod={countOutsidePeriod}
+        extraFields={settingsExtraFields}
+        extraConfig={settingsExtraConfig}
         useV2={useV2}
       />
 

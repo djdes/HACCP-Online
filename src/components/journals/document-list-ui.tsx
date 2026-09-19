@@ -52,7 +52,14 @@ export function JournalTopBar(props: {
    * документа». Без него такие шаги показываются неактивными.
    */
   firstDocumentId?: string;
+  /**
+   * Может ли смотрящий создавать документы. У повара API отвечает 403,
+   * а кнопка «Создать документ» всё равно показывалась. `undefined` ⇒
+   * старое поведение (можно).
+   */
+  canManage?: boolean;
 }) {
+  const canManage = props.canManage !== false;
   return (
     // `sm:items-center` — когда длинный H1 («Журнал бракеража скоропортящейся
     // продукции») переносится в две строки, кнопки «Инструкция» / «Создать
@@ -86,8 +93,8 @@ export function JournalTopBar(props: {
             firstDocumentId={props.firstDocumentId}
           />
         </div>
-        {props.activeTab === "active" && props.documentCount !== 0 && props.createSlot}
-        {props.activeTab === "active" && props.documentCount !== 0 && !props.createSlot && (
+        {canManage && props.activeTab === "active" && props.documentCount !== 0 && props.createSlot}
+        {canManage && props.activeTab === "active" && props.documentCount !== 0 && !props.createSlot && (
           <CreateDocumentDialog
             templateCode={props.templateCode}
             templateName={props.templateName}
@@ -165,6 +172,7 @@ export function EmptyDocumentsState({
   templateName,
   users,
   nextLampNumber,
+  canManage,
 }: {
   label?: string;
   description?: string;
@@ -178,9 +186,13 @@ export function EmptyDocumentsState({
   templateName?: string;
   users?: { id: string; name: string; role: string }[];
   nextLampNumber?: string;
+  /** Нет прав на создание — карточка остаётся, кнопка исчезает. */
+  canManage?: boolean;
 } = {}) {
   const button =
-    action ??
+    canManage === false
+      ? null
+      : action ??
     (templateCode && templateName && users ? (
       <CreateDocumentDialog
         templateCode={templateCode}

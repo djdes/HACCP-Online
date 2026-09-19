@@ -406,8 +406,18 @@ export function reconcileEntryStaffFields(
   const title = getDbStaffTitle(user);
   const record = { ...(value as Record<string, unknown>) };
 
-  if ("positionTitle" in record) record.positionTitle = title;
-  if ("responsibleTitle" in record) record.responsibleTitle = title;
+  // Должность, введённую руками, не затираем значением из карточки
+  // сотрудника: в медкнижках её правят прямо в строке журнала, и
+  // каждое сохранение возвращало прежний текст. Подставляем только
+  // когда поле пустое.
+  const isBlank = (value: unknown) =>
+    typeof value !== "string" || value.trim() === "";
+  if ("positionTitle" in record && isBlank(record.positionTitle)) {
+    record.positionTitle = title;
+  }
+  if ("responsibleTitle" in record && isBlank(record.responsibleTitle)) {
+    record.responsibleTitle = title;
+  }
   if ("employeeName" in record) record.employeeName = user.name;
   if ("responsibleEmployee" in record) record.responsibleEmployee = user.name;
   if ("employeeId" in record) record.employeeId = user.id;

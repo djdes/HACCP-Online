@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X } from "lucide-react";
+import { Archive, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,6 +39,7 @@ import { JournalAddRow } from "@/components/journals/journal-add-row";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   RecordCardsView,
@@ -83,6 +84,8 @@ export function EquipmentCalibrationDocumentClient({
   const [config, setConfig] = useState(() =>
     normalizeEquipmentCalibrationConfig(initialConfig)
   );
+  // Последний применённый конфиг — источник правды для правок подряд.
+  const configRef = useRef(config);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -134,6 +137,20 @@ export function EquipmentCalibrationDocumentClient({
   const isClosed = status === "closed";
   const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const { mobileView, switchMobileView } = useMobileView("equipment_calibration");
+  const { closeDocument, isClosing } = useDocumentCloseAction({ documentId, title });
+
+  /**
+   * Годы для селекта. Раньше список был жёстко «текущий−3…+6», и у
+   * документа за более ранний/поздний год селект показывал пусто.
+   */
+  const yearOptions = (() => {
+    const base = new Date().getFullYear();
+    const years = new Set<number>();
+    for (let i = -3; i <= 6; i += 1) years.add(base + i);
+    if (Number.isFinite(config.year)) years.add(config.year);
+    if (Number.isFinite(settingsYear)) years.add(settingsYear);
+    return [...years].sort((a, b) => a - b).map(String);
+  })();
 
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
     const nextDate = calculateNextCalibrationDate(
@@ -184,26 +201,43 @@ export function EquipmentCalibrationDocumentClient({
 
   /* ---------- persistence ---------- */
 
-  async function saveConfig(nextConfig: EquipmentCalibrationConfig) {
+  /**
+   * ПОЧЕМУ ref + функциональная правка: `next` строился из `config` из
+   * замыкания, поэтому две быстрые правки подряд затирали друг друга; а
+   * при отказе сервера оптимистичное состояние оставалось на экране,
+   * хотя в базу ничего не легло — теперь откатываем.
+   */
+  function applyConfig(next: EquipmentCalibrationConfig) {
+    configRef.current = next;
+    setConfig(next);
+  }
+
+  async function mutateConfig(
+    mutate: (current: EquipmentCalibrationConfig) => EquipmentCalibrationConfig
+  ) {
+    const previous = configRef.current;
+    const next = mutate(previous);
+    applyConfig(next);
     setIsSaving(true);
     try {
       const response = await fetch(`/api/journal-documents/${documentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: nextConfig }),
+        body: JSON.stringify({ config: next }),
       });
-      if (!response.ok) throw new Error();
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Не удалось сохранить журнал");
+      }
       startTransition(() => router.refresh());
-    } catch {
-      toast.error("Не удалось сохранить журнал");
+    } catch (error) {
+      applyConfig(previous);
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить журнал"
+      );
     } finally {
       setIsSaving(false);
     }
-  }
-
-  function updateConfigAndSave(next: EquipmentCalibrationConfig) {
-    setConfig(next);
-    saveConfig(next);
   }
 
   /* ---------- row helpers ---------- */
@@ -216,12 +250,12 @@ export function EquipmentCalibrationDocumentClient({
 
   function removeSelectedRows() {
     if (selectedRows.length === 0) return;
-    const next = {
-      ...config,
-      rows: config.rows.filter((row) => !selectedRows.includes(row.id)),
-    };
+    const doomed = selectedRows;
     setSelectedRows([]);
-    updateConfigAndSave(next);
+    void mutateConfig((current) => ({
+      ...current,
+      rows: current.rows.filter((row) => !doomed.includes(row.id)),
+    }));
   }
 
   /* ---------- add row ---------- */
@@ -248,8 +282,10 @@ export function EquipmentCalibrationDocumentClient({
       lastCalibrationDate: draftLastDate,
       note: draftNote,
     });
-    const next = { ...config, rows: [...config.rows, newRow] };
-    updateConfigAndSave(next);
+    void mutateConfig((current) => ({
+      ...current,
+      rows: [...current.rows, newRow],
+    }));
     resetDraft();
     setAddModalOpen(false);
   }
@@ -257,7 +293,7 @@ export function EquipmentCalibrationDocumentClient({
   /* ---------- edit row ---------- */
 
   function openEditRow(rowId: string) {
-    const row = config.rows.find((r) => r.id === rowId);
+    const row = configRef.current.rows.find((r) => r.id === rowId);
     if (!row) return;
     setEditingRowId(rowId);
     setEditName(row.equipmentName);
@@ -273,25 +309,23 @@ export function EquipmentCalibrationDocumentClient({
 
   function saveEditRow() {
     if (!editingRowId) return;
-    const next = {
-      ...config,
-      rows: config.rows.map((row) =>
-        row.id === editingRowId
-          ? {
-              ...row,
-              equipmentName: editName,
-              equipmentNumber: editNumber,
-              location: editLocation,
-              purpose: editPurpose,
-              measurementRange: editRange,
-              calibrationInterval: parseInt(editInterval, 10) || 12,
-              lastCalibrationDate: editLastDate,
-              note: editNote,
-            }
-          : row
-      ),
+    const rowId = editingRowId;
+    const patch = {
+      equipmentName: editName,
+      equipmentNumber: editNumber,
+      location: editLocation,
+      purpose: editPurpose,
+      measurementRange: editRange,
+      calibrationInterval: parseInt(editInterval, 10) || 12,
+      lastCalibrationDate: editLastDate,
+      note: editNote,
     };
-    updateConfigAndSave(next);
+    void mutateConfig((current) => ({
+      ...current,
+      rows: current.rows.map((row) =>
+        row.id === rowId ? { ...row, ...patch } : row
+      ),
+    }));
     setEditModalOpen(false);
     setEditingRowId(null);
   }
@@ -310,14 +344,15 @@ export function EquipmentCalibrationDocumentClient({
 
   async function handleSaveSettings() {
     const nextConfig: EquipmentCalibrationConfig = {
-      ...config,
+      ...configRef.current,
       documentDate: settingsDate,
       year: settingsYear,
       approveRole: settingsApproveRole,
       approveEmployeeId: settingsApproveEmployeeId || null,
       approveEmployee: settingsApproveEmployee,
     };
-    setConfig(nextConfig);
+    const previous = configRef.current;
+    applyConfig(nextConfig);
 
     setIsSaving(true);
     try {
@@ -326,11 +361,18 @@ export function EquipmentCalibrationDocumentClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config: nextConfig, title: settingsTitle }),
       });
-      if (!response.ok) throw new Error();
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Не удалось сохранить настройки");
+      }
       setSettingsOpen(false);
       startTransition(() => router.refresh());
-    } catch {
-      toast.error("Не удалось сохранить настройки");
+    } catch (error) {
+      // Откат: иначе на экране остаются настройки, которых нет в базе.
+      applyConfig(previous);
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить настройки"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -372,6 +414,21 @@ export function EquipmentCalibrationDocumentClient({
         onSettings={openSettings}
         closed={isClosed}
         closedHint="Откройте журнал заново, чтобы добавлять и править средства измерений."
+        /* «Закончить журнал» был в ППР и поломках, а в поверке отсутствовал —
+           закрыть график поверки было нечем. */
+        menuItems={
+          !isClosed
+            ? [
+                {
+                  key: "close-journal",
+                  label: "Закончить журнал",
+                  icon: <Archive className="size-4" />,
+                  onSelect: () => void closeDocument(),
+                  disabled: isClosing,
+                },
+              ]
+            : []
+        }
         mobileView={mobileView}
         onMobileView={switchMobileView}
         cards={
@@ -786,7 +843,7 @@ export function EquipmentCalibrationDocumentClient({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - 3 + i)).map((y) => (
+                  {yearOptions.map((y) => (
                     <SelectItem key={y} value={y}>{y}</SelectItem>
                   ))}
                 </SelectContent>
@@ -878,7 +935,7 @@ export function EquipmentCalibrationDocumentClient({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - 3 + i)).map((y) => (
+                    {yearOptions.map((y) => (
                       <SelectItem key={y} value={y}>{y}</SelectItem>
                     ))}
                   </SelectContent>

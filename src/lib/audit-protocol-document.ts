@@ -1,3 +1,5 @@
+import { localDayKey } from "@/lib/entry-defaults";
+
 export const AUDIT_PROTOCOL_TEMPLATE_CODE = "audit_protocol";
 export const AUDIT_PROTOCOL_SOURCE_SLUG = "auditprotocol";
 export const AUDIT_PROTOCOL_DOCUMENT_TITLE = "Протокол внутреннего аудита";
@@ -60,12 +62,13 @@ export function createAuditProtocolSignature(
     id: createId("sign"),
     name: params?.name || "",
     role: params?.role || "",
-    signedAt: params?.signedAt || new Date().toISOString().slice(0, 10),
+    signedAt: params?.signedAt || localDayKey(),
   };
 }
 
 export function getDefaultAuditProtocolConfig(): AuditProtocolConfig {
-  const documentDate = new Date().toISOString().slice(0, 10);
+  // Местная дата, а не UTC: ночью документ создавался вчерашним числом.
+  const documentDate = localDayKey();
   const sections = [
     createAuditProtocolSection("Общие требования СМБПП"),
     createAuditProtocolSection("Требования к документации"),

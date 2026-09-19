@@ -55,6 +55,7 @@ import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/jou
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+import { localDayKey } from "@/lib/entry-defaults";
 
 type Props = {
   documentId: string;
@@ -109,6 +110,9 @@ function RowDialog(props: {
     try {
       await props.onSave(row);
       props.onOpenChange(false);
+    } catch (error) {
+      // Без catch ошибка сохранения глохла: окно висело, тоста не было.
+      toast.error(error instanceof Error ? error.message : "Ошибка сохранения строки");
     } finally {
       setSubmitting(false);
     }
@@ -379,6 +383,7 @@ function FinishDialog(props: {
   onOpenChange: (value: boolean) => void;
   title: string;
   documentId: string;
+  config: AccidentDocumentConfig;
   onFinished: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
@@ -389,7 +394,12 @@ function FinishDialog(props: {
       const response = await fetch(`/api/journal-documents/${props.documentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "closed" }),
+        // Дату закрытия штампуем в конфиг тем же запросом: закрытый
+        // документ править уже нельзя, а в шапке нужна реальная дата.
+        body: JSON.stringify({
+          status: "closed",
+          config: { ...props.config, finishedAt: localDayKey() },
+        }),
       });
 
       if (!response.ok) {
@@ -633,7 +643,7 @@ export function AccidentDocumentClient(props: Props) {
               orgName={props.organizationName || ORG_NAME_FALLBACK}
               title={ACCIDENT_DOCUMENT_TITLE}
               startedAt={dateFrom}
-              finishedAt={isActive ? null : new Date()}
+              finishedAt={isActive ? null : config.finishedAt || dateFrom}
             />
           }
           sheetTitle={ACCIDENT_DOCUMENT_TITLE}
@@ -806,6 +816,7 @@ export function AccidentDocumentClient(props: Props) {
         onOpenChange={setFinishOpen}
         title={title || ACCIDENT_DOCUMENT_TITLE}
         documentId={props.documentId}
+        config={config}
         onFinished={() => startTransition(() => router.refresh())}
       />
     </div>

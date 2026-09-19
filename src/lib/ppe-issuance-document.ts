@@ -1,3 +1,4 @@
+import { localDayKey } from "@/lib/entry-defaults";
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 import { normalizeUserRole, pickPrimaryManager } from "@/lib/user-roles";
 
@@ -15,8 +16,16 @@ export type PpeIssuanceRow = {
   capCount: number;
   recipientUserId: string;
   recipientTitle: string;
+  /**
+   * ФИО на момент выдачи. Сохраняем в строку, потому что ростер журнала
+   * — только активные сотрудники: после увольнения получатель пропадал
+   * из журнала и печати, и оставалась пустая фамилия.
+   */
+  recipientName: string;
   issuerUserId: string;
   issuerTitle: string;
+  /** ФИО выдавшего на момент выдачи (см. `recipientName`). */
+  issuerName: string;
 };
 
 export type PpeIssuanceConfig = {
@@ -63,7 +72,8 @@ function pickDefaultIssuer(users: UserLike[]) {
 export function createPpeIssuanceRow(
   overrides?: Partial<PpeIssuanceRow>
 ): PpeIssuanceRow {
-  const today = new Date().toISOString().slice(0, 10);
+  // Местная дата, а не UTC: ночная смена получала вчерашнее число.
+  const today = localDayKey();
   return {
     id: overrides?.id || createId("ppe-row"),
     issueDate: normalizeText(overrides?.issueDate) || today,
@@ -74,8 +84,10 @@ export function createPpeIssuanceRow(
     capCount: normalizeNumber(overrides?.capCount, 0),
     recipientUserId: normalizeText(overrides?.recipientUserId),
     recipientTitle: normalizeText(overrides?.recipientTitle),
+    recipientName: normalizeText(overrides?.recipientName),
     issuerUserId: normalizeText(overrides?.issuerUserId),
     issuerTitle: normalizeText(overrides?.issuerTitle),
+    issuerName: normalizeText(overrides?.issuerName),
   };
 }
 
@@ -197,7 +209,12 @@ export function getPpeIssuanceRecipientLabel(
   row: PpeIssuanceRow,
   users: Array<{ id: string; name: string }>
 ) {
-  const name = users.find((user) => user.id === row.recipientUserId)?.name || "";
+  // Сохранённое имя — запасной вариант: уволенного сотрудника в
+  // `users` уже нет, а строка журнала должна остаться читаемой.
+  const name =
+    users.find((user) => user.id === row.recipientUserId)?.name ||
+    row.recipientName ||
+    "";
   return [row.recipientTitle, name].filter(Boolean).join(", ");
 }
 
@@ -205,7 +222,11 @@ export function getPpeIssuanceIssuerLabel(
   row: PpeIssuanceRow,
   users: Array<{ id: string; name: string }>
 ) {
-  return users.find((user) => user.id === row.issuerUserId)?.name || "";
+  return (
+    users.find((user) => user.id === row.issuerUserId)?.name ||
+    row.issuerName ||
+    ""
+  );
 }
 
 export function getPpeIssuanceDocumentPeriodBounds(referenceDate = new Date()) {

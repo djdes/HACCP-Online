@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDays,
@@ -212,6 +212,15 @@ function RoomDialog(props: {
   const [linkRoomId, setLinkRoomId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Окно открывают снаружи (setRoomDialogOpen), и onOpenChange(true) при этом
+  // не срабатывает: без ресинка окно показывало прошлую строку, а «Сохранить»
+  // с пустым id создавал дубль вместо правки.
+  useEffect(() => {
+    if (!props.open) return;
+    setState(props.initial);
+    setLinkRoomId("");
+  }, [props.open, props.initial]);
+
   return (
     <Dialog
       open={props.open}
@@ -351,6 +360,11 @@ function DocumentSettingsDialog(props: {
 }) {
   const [state, setState] = useState<SettingsState>(props.initial);
   const [submitting, setSubmitting] = useState(false);
+  // Тот же ресинк, что и в RoomDialog: окно открывается снаружи.
+  useEffect(() => {
+    if (!props.open) return;
+    setState(props.initial);
+  }, [props.open, props.initial]);
   const roles = useMemo(() => roleOptionsFromUsers(props.users), [props.users]);
   const resolveRoleCandidates = (roleLabel: string) =>
     usersForRole(props.users, roleLabel);
@@ -763,6 +777,17 @@ export function SanitationDayDocumentClient({
     normalizeSanitationDayConfig(config),
     directoryRooms,
   );
+  // Последнее локальное состояние конфига + очередь сохранений: быстрый
+  // ввод по ячейкам месяцев раньше строил каждый PATCH от серверного пропа.
+  const configRef = useRef(normalized);
+  useEffect(() => {
+    // Пришли свежие серверные данные — начинаем от них.
+    configRef.current = normalized;
+    // Намеренно только по пропу `config`: `normalized` пересоздаётся
+    // на каждый рендер и затирал бы локальное состояние.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]);
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const userNameById = useMemo(
     () => new Map(users.map((u) => [u.id, u.name])),
     [users],
@@ -780,41 +805,71 @@ export function SanitationDayDocumentClient({
     ? pathname.split("/documents/")[0]
     : "/journals/general_cleaning";
 
-  const settingsState: SettingsState = {
-    title,
-    documentDate: normalized.documentDate,
-    year: String(normalized.year),
-    approveRole: normalized.approveRole,
-    approveEmployeeId: normalized.approveEmployeeId || "",
-    approveEmployee: normalized.approveEmployee,
-    responsibleRole: normalized.responsibleRole,
-    responsibleEmployeeId: normalized.responsibleEmployeeId || "",
-    responsibleEmployee: normalized.responsibleEmployee,
-  };
+  // useMemo обязателен: объект уходит в диалог как `initial`, а тот
+  // ресинкается по его ссылке — новый объект на каждый рендер стирал бы
+  // ввод пользователя.
+  const settingsState: SettingsState = useMemo(
+    () => ({
+      title,
+      documentDate: normalized.documentDate,
+      year: String(normalized.year),
+      approveRole: normalized.approveRole,
+      approveEmployeeId: normalized.approveEmployeeId || "",
+      approveEmployee: normalized.approveEmployee,
+      responsibleRole: normalized.responsibleRole,
+      responsibleEmployeeId: normalized.responsibleEmployeeId || "",
+      responsibleEmployee: normalized.responsibleEmployee,
+    }),
+    [
+      title,
+      normalized.documentDate,
+      normalized.year,
+      normalized.approveRole,
+      normalized.approveEmployeeId,
+      normalized.approveEmployee,
+      normalized.responsibleRole,
+      normalized.responsibleEmployeeId,
+      normalized.responsibleEmployee,
+    ],
+  );
 
   async function patchConfig(
     nextConfig: SanitationDayConfig,
     nextTitle = title,
   ) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: nextTitle,
-        dateFrom: nextConfig.documentDate,
-        dateTo: nextConfig.documentDate,
-        responsibleTitle: nextConfig.responsibleRole,
-        config: nextConfig,
-      }),
+    // Следующая правка строится от этого состояния, а не от серверного
+    // пропа: 24 ячейки на blur успевали перезаписать друг друга.
+    const previousConfig = configRef.current;
+    configRef.current = nextConfig;
+    // Сохранения — строго по очереди, двойной клик не создаёт дубль.
+    const run = saveChainRef.current.catch(() => {}).then(async () => {
+      const response = await fetch(`/api/journal-documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: nextTitle,
+          dateFrom: nextConfig.documentDate,
+          dateTo: nextConfig.documentDate,
+          responsibleTitle: nextConfig.responsibleRole,
+          config: nextConfig,
+        }),
+      });
+
+      if (!response.ok) {
+        configRef.current = previousConfig;
+        const body = await response.json().catch(() => null);
+        toast.error(
+          (body && typeof body.error === "string" && body.error) ||
+            "Не удалось сохранить документ",
+        );
+        return;
+      }
+
+      setSelectedRowIds([]);
+      router.refresh();
     });
-
-    if (!response.ok) {
-      toast.error("Не удалось сохранить документ");
-      return;
-    }
-
-    setSelectedRowIds([]);
-    router.refresh();
+    saveChainRef.current = run;
+    await run;
   }
 
   async function saveMonthValue(
@@ -823,7 +878,8 @@ export function SanitationDayDocumentClient({
     value: string,
     mode: "plan" | "fact",
   ) {
-    const nextRows = normalized.rows.map((row) => {
+    const current = configRef.current;
+    const nextRows = current.rows.map((row) => {
       if (row.id !== rowId) return row;
       return {
         ...row,
@@ -833,7 +889,7 @@ export function SanitationDayDocumentClient({
         },
       };
     });
-    await patchConfig({ ...normalized, rows: nextRows });
+    await patchConfig({ ...current, rows: nextRows });
   }
 
   /** Двенадцать полей «день месяца» — по одному на месяц. */
@@ -1368,6 +1424,7 @@ export function SanitationDayDocumentClient({
       </section>
 
       <RoomDialog
+        key={`room-dialog-${roomDialogState.id || "new"}`}
         open={roomDialogOpen}
         onOpenChange={setRoomDialogOpen}
         initial={roomDialogState}

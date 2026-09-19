@@ -44,6 +44,11 @@ export type PerishableRejectionConfig = {
   showNote: boolean;
   /** Набор колонок документа, см. `src/lib/journal-columns.ts`. */
   columns?: JournalColumnsConfig;
+  /**
+   * Реальный день закрытия журнала (YYYY-MM-DD) для бумажной шапки:
+   * раньше в «Окончен» печаталась дата НАЧАЛА документа.
+   */
+  finishedAt?: string | null;
 };
 
 function createId(prefix: string) {
@@ -213,6 +218,9 @@ export function normalizePerishableRejectionConfig(
         ? record.showNote
         : defaults.showNote,
     ...(columns ? { columns } : {}),
+    ...(typeof record.finishedAt === "string" && record.finishedAt.trim() !== ""
+      ? { finishedAt: record.finishedAt }
+      : {}),
   };
 }
 

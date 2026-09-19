@@ -44,6 +44,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { localDayKey } from "@/lib/entry-defaults";
 type EmployeeItem = {
   id: string;
@@ -481,12 +482,25 @@ export function ComplaintDocumentClient({
 
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
+    const count = selectedRowIds.length;
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные строки?",
+      description: "Записи из реестра обращений исчезнут безвозвратно.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Строк будет удалено: ${count}`, tone: "warn" },
+        { label: `Останется строк: ${config.rows.length - count}`, tone: "default" },
+      ],
+    });
+    if (!confirmed) return;
     const nextConfig = {
       ...config,
       rows: config.rows.filter((row) => !selectedRowIds.includes(row.id)),
     };
     await persist(documentTitle, nextConfig);
     setSelectedRowIds([]);
+    toast.success(`Удалено строк: ${count}`);
   }
 
   async function handleSaveSettings(params: { title: string; dateFrom: string }) {

@@ -35,7 +35,11 @@ export type SdcConfig = {
   responsibleName: string;
   checkerName: string;
 };
-export type SdcEntryData = { marks: Record<string, string> }; // itemId -> "HH:MM"
+export type SdcEntryData = {
+  marks: Record<string, string>; // itemId -> "HH:MM"
+  /** Отметки «выполнено». Раньше жили только в useState и терялись на F5. */
+  done: Record<string, boolean>;
+};
 
 function createId(): string {
   return typeof globalThis.crypto?.randomUUID === "function"
@@ -233,24 +237,34 @@ export function normalizeSdcConfig(value: unknown): SdcConfig {
 
 export function normalizeSdcEntryData(value: unknown): SdcEntryData {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { marks: {} };
+    return { marks: {}, done: {} };
   }
 
   const record = value as Record<string, unknown>;
   const rawMarks = record.marks;
-
-  if (!rawMarks || typeof rawMarks !== "object" || Array.isArray(rawMarks)) {
-    return { marks: {} };
-  }
+  const rawDone = record.done;
 
   const marks: Record<string, string> = {};
-  for (const [key, val] of Object.entries(rawMarks as Record<string, unknown>)) {
-    if (typeof val === "string") {
-      marks[key] = val;
+  if (rawMarks && typeof rawMarks === "object" && !Array.isArray(rawMarks)) {
+    for (const [key, val] of Object.entries(
+      rawMarks as Record<string, unknown>
+    )) {
+      if (typeof val === "string") {
+        marks[key] = val;
+      }
     }
   }
 
-  return { marks };
+  const done: Record<string, boolean> = {};
+  if (rawDone && typeof rawDone === "object" && !Array.isArray(rawDone)) {
+    for (const [key, val] of Object.entries(
+      rawDone as Record<string, unknown>
+    )) {
+      if (val === true) done[key] = true;
+    }
+  }
+
+  return { marks, done };
 }
 
 export function getItemNumber(config: SdcConfig, item: SdcItem): string {

@@ -383,6 +383,35 @@ async function JournalDocumentBody({
     notFound();
   }
 
+  // Уволенные / архивные сотрудники, на которых ссылаются записи этого
+  // документа. Ростер выше берёт только активных (ORG_ROSTER_WHERE), и
+  // после увольнения строка задним числом пропадала из журнала и печати.
+  // Эти люди нужны ТОЛЬКО для отображения — в списки выбора новых
+  // ответственных (`enrichedEmployees`) они не попадают.
+  const rosterIds = new Set(employees.map((user) => user.id));
+  const inactiveReferencedIds = [
+    ...new Set(document.entries.map((entry) => entry.employeeId)),
+  ].filter((id) => id && !rosterIds.has(id));
+  const inactiveEmployees =
+    inactiveReferencedIds.length > 0
+      ? await db.user.findMany({
+          where: {
+            id: { in: inactiveReferencedIds },
+            organizationId: getActiveOrgId(session),
+          },
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            email: true,
+            positionTitle: true,
+            jobPosition: { select: { name: true, categoryKey: true } },
+          },
+        })
+      : [];
+  /** Ростер + уволенные: только для рендера ФИО и должностей. */
+  const displayEmployees = [...enrichedEmployees, ...inactiveEmployees];
+
   // Точки: в шапке бланка под организацией — точка с адресом.
   // Название — сокращённое для журналов (своё у документа → общее →
   // ЕГРЮЛ → полное), см. src/lib/org-journal-name.ts.
@@ -453,6 +482,7 @@ async function JournalDocumentBody({
         status={document.status}
         autoFill={document.autoFill}
         employees={enrichedEmployees}
+        inactiveEmployees={inactiveEmployees}
         initialEntries={document.entries.map((entry) => ({
           employeeId: entry.employeeId,
           date: toDateKey(entry.date),
@@ -484,6 +514,7 @@ async function JournalDocumentBody({
         status={document.status}
         autoFill={document.autoFill}
         employees={enrichedEmployees}
+        inactiveEmployees={inactiveEmployees}
         printEmptyRows={
           document.config &&
           typeof document.config === "object" &&
@@ -498,6 +529,15 @@ async function JournalDocumentBody({
           data: normalizeHealthEntryData(entry.data),
         }))}
         useV2={organization?.experimentalUiV2 ?? true}
+        // «Сегодня» и права — с сервера, как у гигиены: без них журнал
+        // здоровья нельзя было заполнить вообще.
+        todayKey={todayKey}
+        pastDaysLocked={automationLocked}
+        viewer={{
+          id: session.user.id,
+          role: session.user.role,
+          isRoot: session.user.isRoot === true,
+        }}
       />
     );
   }
@@ -561,7 +601,9 @@ async function JournalDocumentBody({
     }
 
     const medRows = Array.from(rowMap.values()).map((entry) => {
-      const emp = enrichedEmployees.find((e) => e.id === entry.employeeId);
+      // Ищем в displayEmployees: у уволенного сотрудника вместо ФИО
+      // в журнале появлялось слово «Сотрудник».
+      const emp = displayEmployees.find((e) => e.id === entry.employeeId);
       return {
         id: entry.id,
         employeeId: entry.employeeId,
@@ -757,6 +799,11 @@ async function JournalDocumentBody({
           data: normalizeColdEquipmentEntryData(entry.data),
         }))}
         useV2={organization?.experimentalUiV2 ?? true}
+        viewer={{
+          id: session.user.id,
+          role: session.user.role,
+          isRoot: session.user.isRoot === true,
+        }}
       />
     );
   }
@@ -901,6 +948,7 @@ async function JournalDocumentBody({
         title={document.title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
         organizationName={organizationName}
         dateFrom={toDateKey(document.dateFrom)}
+        dateTo={toDateKey(document.dateTo)}
         status={document.status}
         config={document.config}
         users={enrichedEmployees}
@@ -957,6 +1005,7 @@ async function JournalDocumentBody({
           organizationName={organizationName}
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
+          dateTo={toIsoDate(document.dateTo)}
           config={fryerConfig}
           users={enrichedEmployees}
           initialEntries={document.entries.map((entry) => ({
@@ -1029,6 +1078,7 @@ async function JournalDocumentBody({
           status={document.status}
           dateFrom={toIsoDate(document.dateFrom)}
           users={enrichedEmployees}
+          responsibleUserId={document.responsibleUserId}
           config={normalizeSdcConfig(document.config)}
           initialEntries={document.entries.map((entry) => ({
             id: entry.id,
@@ -1128,6 +1178,11 @@ async function JournalDocumentBody({
           data: normalizeClimateEntryData(entry.data),
         }))}
         useV2={organization?.experimentalUiV2 ?? true}
+        viewer={{
+          id: session.user.id,
+          role: session.user.role,
+          isRoot: session.user.isRoot === true,
+        }}
       />
     );
   }

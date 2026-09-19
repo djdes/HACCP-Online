@@ -8,6 +8,7 @@ import {
   Paperclip,
   Pencil,
   Plus,
+  Trash2,
   Upload,
 } from "lucide-react";
 import Link from "next/link";
@@ -83,6 +84,7 @@ import {
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { toast } from "sonner";
 import { useMobileView } from "@/lib/use-mobile-view";
 import {
   MobileViewToggle,
@@ -148,7 +150,8 @@ const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"))
 const POSITION_OPTIONS = USER_ROLE_LABEL_VALUES;
 function getResponsibleLabel(row: AcceptanceRow, users: User[]) {
   const user = users.find((u) => u.id === row.responsibleUserId);
-  return user?.name || "";
+  // Сотрудника могли удалить — тогда читаем ФИО, записанное в строке.
+  return user?.name || row.responsibleName || "";
 }
 
 function getErrorMessage(error: unknown, fallback = "Ошибка") {
@@ -182,9 +185,15 @@ function parseImportTime(value: string) {
   };
 }
 
-function parseImportBoolean(value: string) {
+/**
+ * `null` — ячейка пустая. Раньше пустое читалось как «Удовл./Соотв.»:
+ * импорт проставлял оценку, которой в файле не было, а у типа
+ * `AcceptanceRow` незаполненного варианта нет — поэтому строка с пустой
+ * оценкой уходит в ошибки импорта.
+ */
+function parseImportBoolean(value: string): boolean | null {
   const normalized = normalizeImportText(value).toLowerCase();
-  if (!normalized) return true;
+  if (!normalized) return null;
   return ["1", "да", "yes", "ok", "удовл.", "удовл", "соотв.", "соотв", "соответствует"].includes(normalized);
 }
 
@@ -377,8 +386,14 @@ function RowDialog(props: {
       if (newProduct.trim() && !finalRow.productName) finalRow.productName = newProduct.trim();
       if (newManufacturer.trim() && !finalRow.manufacturer) finalRow.manufacturer = newManufacturer.trim();
       if (newSupplier.trim() && !finalRow.supplier) finalRow.supplier = newSupplier.trim();
+      // ФИО кладём в строку: после удаления сотрудника оно останется.
+      const responsible = props.users.find((u) => u.id === finalRow.responsibleUserId);
+      if (responsible?.name) finalRow.responsibleName = responsible.name;
       await props.onSave(finalRow, { products: newProducts, manufacturers: newManufacturers, suppliers: newSuppliers });
       props.onOpenChange(false);
+    } catch (error) {
+      // Без catch ошибка сохранения глохла: окно висело, тоста не было.
+      toast.error(getErrorMessage(error, "Не удалось сохранить строку"));
     } finally {
       setIsSubmitting(false);
     }
@@ -784,6 +799,9 @@ function IncomingControlRowDialog(props: {
       // годности), корректирующие действия → note (карточки, mini).
       finalRow.expiryDate = finalRow.shelfLifeDate;
       finalRow.note = finalRow.correctiveActions;
+      // ФИО кладём в строку: после удаления сотрудника оно останется.
+      const responsible = props.users.find((u) => u.id === finalRow.responsibleUserId);
+      if (responsible?.name) finalRow.responsibleName = responsible.name;
       await props.onSave(finalRow, {
         products,
         // Объединённая колонка — новые контрагенты кладём в справочник
@@ -792,6 +810,8 @@ function IncomingControlRowDialog(props: {
         suppliers: [],
       });
       props.onOpenChange(false);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Не удалось сохранить строку"));
     } finally {
       setIsSubmitting(false);
     }
@@ -1160,100 +1180,6 @@ function IncomingControlRowDialog(props: {
   );
 }
 
-/* ─── Edit Lists Dialog ─── */
-
-function EditListsDialog(props: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  config: AcceptanceDocumentConfig;
-  setConfig: (config: AcceptanceDocumentConfig) => void;
-}) {
-  const [products, setProducts] = useState<string[]>([...props.config.products]);
-  const [manufacturers, setManufacturers] = useState<string[]>([
-    ...props.config.manufacturers,
-  ]);
-  const [suppliers, setSuppliers] = useState<string[]>([...props.config.suppliers]);
-  const [newProduct, setNewProduct] = useState("");
-  const [newManufacturer, setNewManufacturer] = useState("");
-  const [newSupplier, setNewSupplier] = useState("");
-
-  function addItem(list: string[], setList: (l: string[]) => void, value: string, setInput: (v: string) => void) {
-    const v = value.trim();
-    if (!v || list.includes(v)) return;
-    setList([...list, v]);
-    setInput("");
-  }
-
-  function removeItem(list: string[], setList: (l: string[]) => void, value: string) {
-    setList(list.filter((item) => item !== value));
-  }
-
-  function handleClose() {
-    props.setConfig({ ...props.config, products, manufacturers, suppliers });
-    props.onOpenChange(false);
-  }
-
-  return (
-    <Dialog open={props.open} onOpenChange={(open) => { if (!open) handleClose(); else props.onOpenChange(true); }}>
-      <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
-        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
-          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>Редактировать список</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-6 px-6 py-5">
-          {/* Продукция */}
-          <div className="space-y-2">
-            <div className="text-[16px] font-semibold">Продукция</div>
-            {Array.from(new Set(products)).map((item) => (
-              <div key={item} className="flex items-center justify-between rounded-xl bg-[#f9f9fc] px-4 py-2">
-                <span className="text-[15px]">{item}</span>
-                <button type="button" onClick={() => removeItem(products, setProducts, item)} className="text-[#999] hover:text-red-500"><Pencil className="size-4" /></button>
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Введите название нового изделия" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addItem(products, setProducts, newProduct, setNewProduct)}><Plus className="size-5" /></Button>
-            </div>
-          </div>
-
-          {/* Производители */}
-          <div className="space-y-2">
-            <div className="text-[16px] font-semibold">Производители</div>
-            {Array.from(new Set(manufacturers)).map((item) => (
-              <div key={item} className="flex items-center justify-between rounded-xl bg-[#f9f9fc] px-4 py-2">
-                <span className="text-[15px]">{item}</span>
-                <button type="button" onClick={() => removeItem(manufacturers, setManufacturers, item)} className="text-[#999] hover:text-red-500"><Pencil className="size-4" /></button>
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <Input value={newManufacturer} onChange={(e) => setNewManufacturer(e.target.value)} placeholder="Введите название нового производителя" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addItem(manufacturers, setManufacturers, newManufacturer, setNewManufacturer)}><Plus className="size-5" /></Button>
-            </div>
-          </div>
-
-          {/* Поставщики */}
-          <div className="space-y-2">
-            <div className="text-[16px] font-semibold">Поставщики</div>
-            {Array.from(new Set(suppliers)).map((item) => (
-              <div key={item} className="flex items-center justify-between rounded-xl bg-[#f9f9fc] px-4 py-2">
-                <span className="text-[15px]">{item}</span>
-                <button type="button" onClick={() => removeItem(suppliers, setSuppliers, item)} className="text-[#999] hover:text-red-500"><Pencil className="size-4" /></button>
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <Input value={newSupplier} onChange={(e) => setNewSupplier(e.target.value)} placeholder="Введите название нового поставщика" className="h-12 rounded-xl border-[#dcdfed] px-4 text-[15px]" />
-              <Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => addItem(suppliers, setSuppliers, newSupplier, setNewSupplier)}><Plus className="size-5" /></Button>
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button type="button" onClick={handleClose} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]">Закрыть</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 /* ─── Settings Dialog ─── */
 
 function EditableListSection(props: {
@@ -1261,6 +1187,8 @@ function EditableListSection(props: {
   items: string[];
   placeholder: string;
   onChange: (items: string[]) => void;
+  /** Встречается ли позиция в строках журнала — для предупреждения. */
+  isUsed?: (item: string) => boolean;
 }) {
   const [draft, setDraft] = useState("");
   const [editingValue, setEditingValue] = useState<string | null>(null);
@@ -1283,6 +1211,32 @@ function EditableListSection(props: {
     props.onChange([...withoutEdited, trimmed]);
     setDraft("");
     setEditingValue(null);
+  }
+
+  /** Удаление ошибочно добавленной позиции справочника. */
+  async function removeValue(item: string) {
+    const used = props.isUsed?.(item) === true;
+    const confirmed = await confirmAsync({
+      title: `Удалить «${item}» из списка?`,
+      description: "Позиция исчезнет из подсказок этого журнала.",
+      variant: used ? "warn" : "danger",
+      confirmLabel: "Удалить",
+      bullets: used
+        ? [
+            {
+              label: "Позиция уже стоит в записях журнала — там название останется как есть",
+              tone: "warn" as const,
+            },
+          ]
+        : undefined,
+    });
+    if (!confirmed) return;
+    props.onChange(props.items.filter((value) => value !== item));
+    if (editingValue === item) {
+      setEditingValue(null);
+      setDraft("");
+    }
+    toast.success(`Удалено из списка: ${item}`);
   }
 
   async function handleImport(file: File) {
@@ -1312,20 +1266,29 @@ function EditableListSection(props: {
           key={item}
           className="flex items-center justify-between rounded-xl bg-[#f9f9fc] px-4 py-3"
         >
-          <div className="flex items-center gap-3">
-            <Checkbox checked={false} className="pointer-events-none size-5 rounded-md" />
-            <span className="text-[15px]">{item}</span>
+          {/* Чекбокс убран: он ничего не выбирал и вводил в заблуждение. */}
+          <span className="text-[15px]">{item}</span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="rounded-lg p-2 text-[#5566f6] transition-colors duration-150 hover:bg-[#eef1ff] hover:text-[#4a5bf0]"
+              title="Переименовать"
+              onClick={() => {
+                setDraft(item);
+                setEditingValue(item);
+              }}
+            >
+              <Pencil className="size-4" />
+            </button>
+            <button
+              type="button"
+              className="rounded-lg p-2 text-[#9a9db0] transition-colors duration-150 hover:bg-[#fff2f1] hover:text-[#ff3b30]"
+              title="Удалить из списка"
+              onClick={() => void removeValue(item)}
+            >
+              <Trash2 className="size-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            className="text-[#5566f6] hover:text-[#4a5bf0]"
-            onClick={() => {
-              setDraft(item);
-              setEditingValue(item);
-            }}
-          >
-            <Pencil className="size-4" />
-          </button>
         </div>
       ))}
       <div className="flex gap-2">
@@ -1437,18 +1400,30 @@ function IncomingControlEditListsDialog(props: {
             items={products}
             placeholder="Введите название новой продукции"
             onChange={setProducts}
+            isUsed={(item) => props.config.rows.some((row) => row.productName === item)}
           />
           <EditableListSection
             title="Производители"
             items={manufacturers}
             placeholder="Введите название нового производителя"
             onChange={setManufacturers}
+            isUsed={(item) =>
+              props.config.rows.some(
+                (row) =>
+                  row.manufacturer === item || row.manufacturerSupplier.includes(item)
+              )
+            }
           />
           <EditableListSection
             title="Поставщики"
             items={suppliers}
             placeholder="Введите название нового поставщика"
             onChange={setSuppliers}
+            isUsed={(item) =>
+              props.config.rows.some(
+                (row) => row.supplier === item || row.manufacturerSupplier.includes(item)
+              )
+            }
           />
           <div className="flex justify-end">
             <Button type="button" onClick={handleClose} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4a5bf0]">
@@ -1978,7 +1953,25 @@ export function AcceptanceDocumentClient(props: Props) {
   const { setStatus } = useJournalDocumentActions(props.documentId);
   const [title, setTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
-  const [sortByExpiry, setSortByExpiry] = useState(false);
+  // Тумблер сортировки сбрасывался при каждом заходе в документ — держим
+  // выбор в localStorage по id документа.
+  const sortStorageKey = `wesetup.acceptance-sort-by-expiry.${props.documentId}`;
+  const [sortByExpiry, setSortByExpiryState] = useState(false);
+  useEffect(() => {
+    try {
+      setSortByExpiryState(window.localStorage.getItem(sortStorageKey) === "1");
+    } catch {
+      /* приватное окно / заблокированные site data */
+    }
+  }, [sortStorageKey]);
+  const setSortByExpiry = (next: boolean) => {
+    setSortByExpiryState(next);
+    try {
+      window.localStorage.setItem(sortStorageKey, next ? "1" : "0");
+    } catch {
+      /* см. выше */
+    }
+  };
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editListsOpen, setEditListsOpen] = useState(false);
@@ -2146,8 +2139,10 @@ export function AcceptanceDocumentClient(props: Props) {
       ],
     });
     if (!confirmed) return;
+    const count = selectedRowIds.length;
     await persist(title, dateFrom, { ...config, rows: config.rows.filter((r) => !selectedRowIds.includes(r.id)) });
     setSelectedRowIds([]);
+    toast.success(`Удалено строк: ${count}`);
   }
 
   async function handleCloseJournal() {
@@ -2252,12 +2247,27 @@ export function AcceptanceDocumentClient(props: Props) {
       const expiryDateRaw = normalizeImportText(cols[8]);
       const expiryDate = parseImportDate(expiryDateRaw);
       const expiryTime = parseImportTime(cols[9] || "");
+      const transportCondition = parseImportBoolean(cols[5] || "");
+      const packagingCompliance = parseImportBoolean(cols[6] || "");
+      const organolepticResult = parseImportBoolean(cols[7] || "");
 
       if (!deliveryDate) errors.push(`Строка ${rowNumber}: заполните корректную дату поступления`);
       if (!productName) errors.push(`Строка ${rowNumber}: заполните наименование продукции`);
       if (!supplier) errors.push(`Строка ${rowNumber}: заполните поставщика`);
+      if (transportCondition === null) errors.push(`Строка ${rowNumber}: заполните условия транспортировки`);
+      if (packagingCompliance === null) errors.push(`Строка ${rowNumber}: заполните соответствие упаковки`);
+      if (organolepticResult === null) errors.push(`Строка ${rowNumber}: заполните результаты орг. оценки`);
       if (expiryDateRaw && !expiryDate) errors.push(`Строка ${rowNumber}: заполните корректную дату срока реализации`);
-      if (!deliveryDate || !productName || !supplier || (expiryDateRaw && !expiryDate)) return [];
+      if (
+        !deliveryDate ||
+        !productName ||
+        !supplier ||
+        transportCondition === null ||
+        packagingCompliance === null ||
+        organolepticResult === null ||
+        (expiryDateRaw && !expiryDate)
+      )
+        return [];
 
       if (productName) productsToAdd.push(productName);
       if (manufacturer) manufacturersToAdd.push(manufacturer);
@@ -2271,9 +2281,9 @@ export function AcceptanceDocumentClient(props: Props) {
           productName,
           manufacturer,
           supplier,
-          transportCondition: parseImportBoolean(cols[5] || "") ? "satisfactory" : "unsatisfactory",
-          packagingCompliance: parseImportBoolean(cols[6] || "") ? "compliant" : "non_compliant",
-          organolepticResult: parseImportBoolean(cols[7] || "") ? "satisfactory" : "unsatisfactory",
+          transportCondition: transportCondition ? "satisfactory" : "unsatisfactory",
+          packagingCompliance: packagingCompliance ? "compliant" : "non_compliant",
+          organolepticResult: organolepticResult ? "satisfactory" : "unsatisfactory",
           expiryDate,
           expiryHour: expiryTime.hour,
           expiryMinute: expiryTime.minute,
@@ -2311,7 +2321,11 @@ export function AcceptanceDocumentClient(props: Props) {
           <JournalSelectionBar
             count={selectedRowIds.length}
             onClear={() => setSelectedRowIds([])}
-            onDelete={() => void handleDeleteSelected()}
+            onDelete={() =>
+              void handleDeleteSelected().catch((error) =>
+                toast.error(getErrorMessage(error, "Не удалось удалить строки"))
+              )
+            }
             hint="Записи приёмки будут удалены без возможности отмены"
           />
         ) : null}

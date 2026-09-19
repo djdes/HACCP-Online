@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 import { toast } from "sonner";
@@ -57,15 +56,12 @@ export function StaffTrainingDocumentsClient({
   const [editingDocument, setEditingDocument] = useState<JournalListDocument | null>(null);
   const [title, setTitle] = useState("");
   const [dateFrom, setDateFrom] = useState("");
-  const [showSignature, setShowSignature] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!editingDocument) return;
     setTitle(editingDocument.title);
     setDateFrom(editingDocument.dateFrom);
-    const cfg = editingDocument.config as Record<string, unknown> | null;
-    setShowSignature(cfg?.showSignatureField === true);
   }, [editingDocument]);
 
   async function handleDelete(documentId: string, titleValue: string) {
@@ -91,7 +87,7 @@ export function StaffTrainingDocumentsClient({
         body: JSON.stringify({
           title,
           dateFrom,
-          config: { ...prevConfig, showSignatureField: showSignature },
+          config: prevConfig,
         }),
       });
       if (!response.ok) throw new Error();
@@ -153,10 +149,6 @@ export function StaffTrainingDocumentsClient({
               <Label>Дата начала</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
-            <label className="flex items-center gap-3">
-              <Switch checked={showSignature} onCheckedChange={setShowSignature} />
-              <span className="text-sm">Добавить поле &quot;Подпись инструктируемого&quot;</span>
-            </label>
             <div className="flex justify-end">
               <Button onClick={saveSettings} disabled={isSaving}>
                 {isSaving ? "Сохранение..." : "Сохранить"}

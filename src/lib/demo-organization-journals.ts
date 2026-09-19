@@ -910,7 +910,12 @@ function buildSanitaryDayRows(ctx: DemoJournalContext): EntryRow[] {
     const minutes = 9 * 60 + i * 12;
     marks[item.id] = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
   });
-  const data: SdcEntryData = { marks };
+  // Демо-данные: все пункты отмечены выполненными.
+  const done: Record<string, boolean> = {};
+  config.items.forEach((item) => {
+    done[item.id] = true;
+  });
+  const data: SdcEntryData = { marks, done };
   return [
     {
       documentId: ctx.documentId,

@@ -458,6 +458,8 @@ export function CreateDocumentDialog({
                   showCorrectiveAction: fpShowCorrectiveAction,
                   showOxygenLevel: fpShowOxygenLevel,
                   showCourierTime: fpShowCourierTime,
+                  // Решение «выпускать / не выпускать» должно быть видно в таблице и в печати.
+                  showReleaseAllowed: true,
                   footerNote: fpShowFooterNote ? fpFooterNote.trim() : "",
                 }
             : templateCode === FRYER_OIL_TEMPLATE_CODE

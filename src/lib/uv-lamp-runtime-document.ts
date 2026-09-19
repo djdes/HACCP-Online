@@ -26,10 +26,49 @@ export type UvRuntimeDocumentConfig = {
   spec: UvSpecification;
 };
 
-export type UvRuntimeEntryData = {
+/** Один сеанс работы установки. */
+export type UvRuntimeSession = {
   startTime: string;
   endTime: string;
 };
+
+export type UvRuntimeEntryData = {
+  /** Первый сеанс — плоские поля, чтобы старые записи читались как раньше. */
+  startTime: string;
+  endTime: string;
+  /**
+   * Регламент допускает 2-3 сеанса за смену. Здесь лежат ДОПОЛНИТЕЛЬНЫЕ
+   * сеансы (второй и далее); первый — в startTime/endTime выше.
+   */
+  extraSessions?: UvRuntimeSession[];
+};
+
+/** Все сеансы дня — первый плюс дополнительные. */
+export function listUvRuntimeSessions(
+  data: UvRuntimeEntryData
+): UvRuntimeSession[] {
+  const sessions: UvRuntimeSession[] = [];
+  if (data.startTime || data.endTime) {
+    sessions.push({ startTime: data.startTime, endTime: data.endTime });
+  }
+  for (const session of data.extraSessions ?? []) {
+    if (session.startTime || session.endTime) sessions.push(session);
+  }
+  return sessions;
+}
+
+/** Суммарная длительность всех сеансов дня, минут. */
+export function calculateEntryDurationMinutes(
+  data: UvRuntimeEntryData
+): number | null {
+  let total: number | null = null;
+  for (const session of listUvRuntimeSessions(data)) {
+    const duration = calculateDurationMinutes(session.startTime, session.endTime);
+    if (duration === null) continue;
+    total = (total ?? 0) + duration;
+  }
+  return total;
+}
 
 /** Типовое время включения установки по умолчанию (начало смены). */
 export const UV_AUTOFILL_DEFAULT_START_TIME = "09:00";
@@ -113,7 +152,7 @@ export function buildUvRuntimeAutoFillEntryData(
 }
 
 export function isUvRuntimeEntryDataEmpty(data: UvRuntimeEntryData): boolean {
-  return !data.startTime && !data.endTime;
+  return listUvRuntimeSessions(data).length === 0;
 }
 
 export function normalizeUvRuntimeDocumentConfig(value: unknown): UvRuntimeDocumentConfig {
@@ -160,9 +199,24 @@ export function normalizeUvRuntimeEntryData(value: unknown): UvRuntimeEntryData 
   }
 
   const item = value as Record<string, unknown>;
+  const extraSessions: UvRuntimeSession[] = Array.isArray(item.extraSessions)
+    ? (item.extraSessions as unknown[])
+        .filter(
+          (session): session is Record<string, unknown> =>
+            !!session && typeof session === "object" && !Array.isArray(session)
+        )
+        .map((session) => ({
+          startTime:
+            typeof session.startTime === "string" ? session.startTime : "",
+          endTime: typeof session.endTime === "string" ? session.endTime : "",
+        }))
+        .filter((session) => session.startTime || session.endTime)
+    : [];
+
   return {
     startTime: typeof item.startTime === "string" ? item.startTime : "",
     endTime: typeof item.endTime === "string" ? item.endTime : "",
+    ...(extraSessions.length > 0 ? { extraSessions } : {}),
   };
 }
 
@@ -259,7 +313,8 @@ export function calculateMonthlyHours(
   const monthMap = new Map<string, number>();
 
   for (const entry of entries) {
-    const duration = calculateDurationMinutes(entry.data.startTime, entry.data.endTime);
+    // Все сеансы дня, а не только первый.
+    const duration = calculateEntryDurationMinutes(entry.data);
     if (duration === null || duration === 0) continue;
 
     const date = new Date(`${entry.date}T00:00:00.000Z`);

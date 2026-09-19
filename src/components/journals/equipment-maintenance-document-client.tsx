@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ import {
   MONTH_KEYS,
   MONTH_LABELS,
   MONTH_FULL_LABELS,
-  DAY_OPTIONS,
+  getMonthDayOptions,
   formatMaintenanceDate,
 } from "@/lib/equipment-maintenance-document";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
@@ -93,6 +93,9 @@ export function EquipmentMaintenanceDocumentClient({
   const [config, setConfig] = useState(() =>
     normalizeEquipmentMaintenanceConfig(initialConfig)
   );
+  // Последний применённый конфиг — источник правды для быстрых подряд
+  // идущих правок (см. mutateConfig).
+  const configRef = useRef(config);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -146,9 +149,19 @@ export function EquipmentMaintenanceDocumentClient({
     Object.fromEntries(MONTH_KEYS.map((k) => [k, "-"]))
   );
 
-  // Edit row draft state
+  // Edit row draft state — те же поля, что и при добавлении: раньше в
+  // окне правки нельзя было изменить тип обслуживания и план, а факт
+  // нельзя было отметить с телефона (в «Карточках» нет таблицы).
   const [editEquipmentName, setEditEquipmentName] = useState("");
   const [editWorkType, setEditWorkType] = useState("");
+  const [editMaintenanceType, setEditMaintenanceType] =
+    useState<MaintenanceType>("A");
+  const [editPlan, setEditPlan] = useState<Record<string, string>>(() =>
+    Object.fromEntries(MONTH_KEYS.map((k) => [k, "-"]))
+  );
+  const [editFact, setEditFact] = useState<Record<string, string>>(() =>
+    Object.fromEntries(MONTH_KEYS.map((k) => [k, ""]))
+  );
 
   const isClosed = status === "closed";
   const organizationLabel = organizationName || ORG_NAME_FALLBACK;
@@ -198,25 +211,46 @@ export function EquipmentMaintenanceDocumentClient({
   /* ---------- persistence ---------- */
 
   async function saveConfig(nextConfig: EquipmentMaintenanceConfig) {
+    const response = await fetch(`/api/journal-documents/${documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: nextConfig }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(result?.error || "Не удалось сохранить журнал");
+    }
+    startTransition(() => router.refresh());
+  }
+
+  /**
+   * ПОЧЕМУ ref + функциональная правка: отметки факта ставят подряд, а
+   * `next` строился из `config` из замыкания — второй клик до re-render'а
+   * затирал первый. И при отказе сервера оптимистичное состояние
+   * оставалось на экране, хотя в базу ничего не легло.
+   */
+  function applyConfig(next: EquipmentMaintenanceConfig) {
+    configRef.current = next;
+    setConfig(next);
+  }
+
+  async function mutateConfig(
+    mutate: (current: EquipmentMaintenanceConfig) => EquipmentMaintenanceConfig
+  ) {
+    const previous = configRef.current;
+    const next = mutate(previous);
+    applyConfig(next);
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/journal-documents/${documentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: nextConfig }),
-      });
-      if (!response.ok) throw new Error();
-      startTransition(() => router.refresh());
-    } catch {
-      toast.error("Не удалось сохранить журнал");
+      await saveConfig(next);
+    } catch (error) {
+      applyConfig(previous);
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить журнал"
+      );
     } finally {
       setIsSaving(false);
     }
-  }
-
-  function updateConfigAndSave(next: EquipmentMaintenanceConfig) {
-    setConfig(next);
-    saveConfig(next);
   }
 
   /* ---------- row helpers ---------- */
@@ -229,12 +263,12 @@ export function EquipmentMaintenanceDocumentClient({
 
   function removeSelectedRows() {
     if (selectedRows.length === 0) return;
-    const next = {
-      ...config,
-      rows: config.rows.filter((row) => !selectedRows.includes(row.id)),
-    };
+    const doomed = selectedRows;
     setSelectedRows([]);
-    updateConfigAndSave(next);
+    void mutateConfig((current) => ({
+      ...current,
+      rows: current.rows.filter((row) => !doomed.includes(row.id)),
+    }));
   }
 
   /* ---------- add row ---------- */
@@ -254,8 +288,10 @@ export function EquipmentMaintenanceDocumentClient({
       plan: { ...draftPlan },
       fact: Object.fromEntries(MONTH_KEYS.map((k) => [k, ""])),
     });
-    const next = { ...config, rows: [...config.rows, newRow] };
-    updateConfigAndSave(next);
+    void mutateConfig((current) => ({
+      ...current,
+      rows: [...current.rows, newRow],
+    }));
     resetDraft();
     setAddModalOpen(false);
   }
@@ -263,25 +299,37 @@ export function EquipmentMaintenanceDocumentClient({
   /* ---------- edit row ---------- */
 
   function openEditRow(rowId: string) {
-    const row = config.rows.find((r) => r.id === rowId);
+    const row = configRef.current.rows.find((r) => r.id === rowId);
     if (!row) return;
     setEditingRowId(rowId);
     setEditEquipmentName(row.equipmentName);
     setEditWorkType(row.workType);
+    setEditMaintenanceType(row.maintenanceType);
+    setEditPlan(
+      Object.fromEntries(MONTH_KEYS.map((k) => [k, row.plan[k] || "-"]))
+    );
+    setEditFact(
+      Object.fromEntries(MONTH_KEYS.map((k) => [k, row.fact[k] || ""]))
+    );
     setEditModalOpen(true);
   }
 
   function saveEditRow() {
     if (!editingRowId) return;
-    const next = {
-      ...config,
-      rows: config.rows.map((row) =>
-        row.id === editingRowId
-          ? { ...row, equipmentName: editEquipmentName, workType: editWorkType }
-          : row
-      ),
+    const rowId = editingRowId;
+    const patch = {
+      equipmentName: editEquipmentName,
+      workType: editWorkType,
+      maintenanceType: editMaintenanceType,
+      plan: { ...editPlan },
+      fact: { ...editFact },
     };
-    updateConfigAndSave(next);
+    void mutateConfig((current) => ({
+      ...current,
+      rows: current.rows.map((row) =>
+        row.id === rowId ? { ...row, ...patch } : row
+      ),
+    }));
     setEditModalOpen(false);
     setEditingRowId(null);
   }
@@ -289,15 +337,14 @@ export function EquipmentMaintenanceDocumentClient({
   /* ---------- fact cell change ---------- */
 
   function handleFactChange(rowId: string, monthKey: string, value: string) {
-    const next = {
-      ...config,
-      rows: config.rows.map((row) =>
+    void mutateConfig((current) => ({
+      ...current,
+      rows: current.rows.map((row) =>
         row.id === rowId
           ? { ...row, fact: { ...row.fact, [monthKey]: value } }
           : row
       ),
-    };
-    updateConfigAndSave(next);
+    }));
   }
 
   /* ---------- settings save ---------- */
@@ -317,7 +364,7 @@ export function EquipmentMaintenanceDocumentClient({
 
   async function handleSaveSettings() {
     const nextConfig: EquipmentMaintenanceConfig = {
-      ...config,
+      ...configRef.current,
       documentDate: settingsDate,
       year: settingsYear,
       approveRole: settingsApproveRole,
@@ -327,7 +374,8 @@ export function EquipmentMaintenanceDocumentClient({
       responsibleEmployeeId: settingsResponsibleEmployeeId || null,
       responsibleEmployee: settingsResponsibleEmployee,
     };
-    setConfig(nextConfig);
+    const previous = configRef.current;
+    applyConfig(nextConfig);
 
     setIsSaving(true);
     try {
@@ -336,11 +384,18 @@ export function EquipmentMaintenanceDocumentClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ config: nextConfig, title: settingsTitle }),
       });
-      if (!response.ok) throw new Error();
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || "Не удалось сохранить настройки");
+      }
       setSettingsOpen(false);
       startTransition(() => router.refresh());
-    } catch {
-      toast.error("Не удалось сохранить настройки");
+    } catch (error) {
+      // Откат: иначе на экране остаются настройки, которых нет в базе.
+      applyConfig(previous);
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить настройки"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -569,7 +624,7 @@ export function EquipmentMaintenanceDocumentClient({
                           }
                         >
                           <option value="">--</option>
-                          {DAY_OPTIONS.map((opt) => (
+                          {getMonthDayOptions(key, config.year).map((opt) => (
                             <option key={opt} value={opt}>
                               {opt}
                             </option>
@@ -716,7 +771,7 @@ export function EquipmentMaintenanceDocumentClient({
                         setDraftPlan((prev) => ({ ...prev, [key]: e.target.value }))
                       }
                     >
-                      {DAY_OPTIONS.map((opt) => (
+                      {getMonthDayOptions(key, config.year).map((opt) => (
                         <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
@@ -775,6 +830,83 @@ export function EquipmentMaintenanceDocumentClient({
                 onChange={(e) => setEditWorkType(e.target.value)}
                 rows={2}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Тип обслуживания</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["A", "A = Ежемесячно"],
+                  ["B", "B = Ежегодно"],
+                ] as const).map(([value, label]) => {
+                  const active = editMaintenanceType === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setEditMaintenanceType(value)}
+                      className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors ${
+                        active
+                          ? "border-[#5566f6] bg-[#5566f6] text-white"
+                          : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">Плановые дни по месяцам</Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {MONTH_KEYS.map((key) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="w-20 text-[13px] text-[#3c4053]">{MONTH_FULL_LABELS[key]}</span>
+                    <select
+                      className="h-10 flex-1 rounded-xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024]"
+                      value={editPlan[key] || "-"}
+                      onChange={(e) =>
+                        setEditPlan((prev) => ({ ...prev, [key]: e.target.value }))
+                      }
+                    >
+                      {getMonthDayOptions(key, config.year).map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Факт — чтобы обслуживание можно было отметить с телефона:
+                в «Карточках» таблицы нет, а факт живёт только в ней. */}
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">
+                Фактические дни обслуживания
+              </Label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {MONTH_KEYS.map((key) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="w-20 text-[13px] text-[#3c4053]">{MONTH_FULL_LABELS[key]}</span>
+                    <select
+                      className="h-10 flex-1 rounded-xl border border-[#dcdfed] bg-white px-3 text-[14px] text-[#0b1024]"
+                      value={editFact[key] || ""}
+                      onChange={(e) =>
+                        setEditFact((prev) => ({ ...prev, [key]: e.target.value }))
+                      }
+                    >
+                      <option value="">--</option>
+                      {getMonthDayOptions(key, config.year)
+                        .filter((opt) => opt !== "-")
+                        .map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

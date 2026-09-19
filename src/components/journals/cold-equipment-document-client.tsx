@@ -59,7 +59,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CONTROL_PERIODICITY_MAX_LENGTH } from "@/lib/control-periodicity";
 import { Label } from "@/components/ui/label";
 import { VoiceNumberInput } from "@/components/ui/voice-number-input";
-import { NumberField } from "@/components/journals/number-field";
+import { NumberField, parseNumeric } from "@/components/journals/number-field";
 import {
   BluetoothProbeButton,
   DisplayOcrButton,
@@ -76,6 +76,8 @@ import { Switch } from "@/components/ui/switch";
 import { getCleaningGridMonthLabel } from "@/lib/cleaning-document";
 import {
   createColdEquipmentConfigItem,
+  coldEquipmentSlotKeys,
+  countColdEquipmentValues,
   createEmptyColdEquipmentEntryData,
   getColdEquipmentDateLabel,
   normalizeColdEquipmentDocumentConfig,
@@ -117,6 +119,10 @@ import {
 
 import { useTodayKey } from "@/lib/use-today-key";
 import { NO_ROW_EMPLOYEE_MESSAGE, useRosterViewerId } from "@/components/journals/use-roster-viewer";
+import {
+  NOT_TODAY_MESSAGE,
+  hasFullDocumentAccess,
+} from "@/lib/journal-entry-scope";
 /**
  * Screen ↔ print duality tokens (тот же приём, что в
  * `cleaning-document-client.tsx` / `hygiene-document-client.tsx`).
@@ -154,6 +160,12 @@ type Props = {
   employees: EmployeeItem[];
   config: ColdEquipmentDocumentConfig;
   initialEntries: EntryRow[];
+  /**
+   * Кто смотрит. Сервер (`checkEntryScope`) пускает рядового сотрудника
+   * только в свою строку и только за сегодня; без этих данных сетка
+   * предлагала править любой день, а сохранение падало.
+   */
+  viewer?: { id: string; role: string; isRoot: boolean };
   /** Design v2 toggle. Settings dialog → JournalSettingsModal style. */
   useV2?: boolean;
 };
@@ -215,6 +227,7 @@ function EquipmentDialog({
   canDelete,
   onSave,
   onDelete,
+  countLostOnModeChange,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
@@ -222,7 +235,13 @@ function EquipmentDialog({
   canDelete: boolean;
   /** Возвращает сохранённую строку — уже со ссылкой на справочник. */
   onSave: (item: ColdEquipmentConfigItem) => Promise<ColdEquipmentConfigItem>;
-  onDelete: (itemId: string) => Promise<void>;
+  /** `false` — удаление отменено в подтверждении, окно оставляем открытым. */
+  onDelete: (itemId: string) => Promise<boolean | void>;
+  /** Сколько уже внесённых замеров сотрёт переход на более редкий режим. */
+  countLostOnModeChange: (
+    item: ColdEquipmentConfigItem,
+    nextMode: ColdEquipmentReadingModeId
+  ) => number;
 }) {
   const [name, setName] = useState(initialItem?.name || "");
   const [min, setMin] = useState(initialItem?.min?.toString() || "");
@@ -277,12 +296,44 @@ function EquipmentDialog({
   }
 
   async function handleSave() {
+    // Переход «3 раза в день» → «1 раз» убирает 2-й и 3-й замеры за весь
+    // период — раньше это происходило молча при сохранении строки.
+    if (initialItem && readingMode !== (initialItem.readingMode ?? "once")) {
+      const lostValues = countLostOnModeChange(initialItem, readingMode);
+      if (lostValues > 0) {
+        const previousMode = initialItem.readingMode ?? "once";
+        const confirmed = await confirmAsync({
+          title: "Сократить число замеров в день?",
+          description:
+            "Лишние замеры будут удалены из журнала за весь период документа.",
+          variant: "danger",
+          confirmLabel: "Сократить и удалить замеры",
+          bullets: [
+            { label: `Будет удалено замеров: ${lostValues}`, tone: "warn" },
+            {
+              label: `Строка: ${initialItem.name || "без названия"}`,
+              tone: "info",
+            },
+            {
+              label: "Отмена оставит прежний режим замеров",
+              tone: "default",
+            },
+          ],
+        });
+        if (!confirmed) {
+          setReadingMode(previousMode);
+          return;
+        }
+      }
+    }
+
     const item = createColdEquipmentConfigItem({
       id: initialItem?.id,
       sourceEquipmentId: linkedEquipmentId || initialItem?.sourceEquipmentId || null,
       name,
-      min: min === "" ? null : Number(min),
-      max: max === "" ? null : Number(max),
+      // Нормы тоже вводят с запятой («-18,5») — Number() дал бы NaN.
+      min: parseNumeric(min),
+      max: parseNumeric(max),
       readingMode,
     });
 
@@ -308,7 +359,8 @@ function EquipmentDialog({
     if (!initialItem) return;
     setIsSubmitting(true);
     try {
-      await onDelete(initialItem.id);
+      const removed = await onDelete(initialItem.id);
+      if (removed === false) return;
       onOpenChange(false);
     } finally {
       setIsSubmitting(false);
@@ -814,7 +866,7 @@ function ColdTemperatureCell({
             <VoiceNumberInput
             // `VoiceNumberInput` ждёт число, а черновик — строка (в ней
             // может стоять русская запятая и незаконченный ввод).
-            value={draft === "" ? "" : Number(draft.replace(",", ".")) || ""}
+            value={parseNumeric(draft) ?? ""}
             inputId={inputId}
             onChange={(n) => {
               if (n === null) return;
@@ -843,6 +895,7 @@ export function ColdEquipmentDocumentClient({
   employees,
   config,
   initialEntries,
+  viewer,
   useV2 = false,
 }: Props) {
   const router = useRouter();
@@ -851,6 +904,21 @@ export function ColdEquipmentDocumentClient({
   // «Сегодня» считаем после mount (см. useTodayKey): new Date() в
   // рендере давал hydration mismatch и подсветку не того дня.
   const todayKey = useTodayKey();
+  /**
+   * Те же правила, что на сервере (`journal-entry-scope`): руководство и
+   * ответственный правят любой день, рядовой сотрудник — только сегодня
+   * и только свою запись.
+   */
+  const viewerHasFullAccess = viewer
+    ? hasFullDocumentAccess({ actor: viewer, responsibleUserId })
+    : true;
+
+  /** Причина, по которой день закрыт для зрителя, или null. */
+  function dayLockReason(dateKey: string): string | null {
+    if (viewerHasFullAccess || !viewer) return null;
+    if (todayKey !== "" && dateKey !== todayKey) return NOT_TODAY_MESSAGE;
+    return null;
+  }
   const [rows, setRows] = useState<EntryRow[]>(initialEntries);
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [checkedAutoFill, setCheckedAutoFill] = useState(autoFill);
@@ -1158,12 +1226,48 @@ export function ColdEquipmentDocumentClient({
     }
   }
 
+  /**
+   * Замеры, которые пропадут при уменьшении режима: слоты старого режима
+   * минус слоты нового (напр. «3 раза» → «1 раз» уносит `id#2` и `id#3`).
+   */
+  function countLostOnModeChange(
+    item: ColdEquipmentConfigItem,
+    nextMode: ColdEquipmentReadingModeId
+  ) {
+    const keep = new Set(coldEquipmentSlotKeys(item.id, nextMode));
+    const dropped = coldEquipmentSlotKeys(item.id, item.readingMode).filter(
+      (key) => !keep.has(key)
+    );
+    return countColdEquipmentValues(rows, dropped);
+  }
+
   async function handleDeleteEquipment(itemId: string) {
+    const doomed = config.equipment.find((item) => item.id === itemId);
     const nextEquipment = config.equipment.filter((item) => item.id !== itemId);
     if (nextEquipment.length === 0) {
       toast.error("В журнале должна остаться хотя бы одна строка оборудования.");
-      return;
+      return false;
     }
+
+    // Удаление строки вычищает её замеры за весь период — раньше молча.
+    const lostValues = countColdEquipmentValues(
+      rows,
+      coldEquipmentSlotKeys(itemId, doomed?.readingMode)
+    );
+    const confirmed = await confirmAsync({
+      title: `Удалить строку «${doomed?.name || "без названия"}»?`,
+      description:
+        "Оборудование исчезнет из журнала вместе со всеми замерами температуры за весь период.",
+      variant: "danger",
+      confirmLabel: "Удалить строку",
+      bullets: [
+        lostValues > 0
+          ? { label: `Будет удалено замеров: ${lostValues}`, tone: "warn" as const }
+          : { label: "Замеров по этой строке ещё нет", tone: "info" as const },
+        { label: `Останется строк: ${nextEquipment.length}`, tone: "default" as const },
+      ],
+    });
+    if (!confirmed) return false;
 
     setIsDeleting(true);
     try {
@@ -1176,11 +1280,17 @@ export function ColdEquipmentDocumentClient({
       await syncEntries();
       setSelectedEquipmentIds((current) => current.filter((value) => value !== itemId));
       router.refresh();
-      toast.success("Строка удалена");
+      toast.success(
+        lostValues > 0
+          ? `Строка удалена. Удалено замеров: ${lostValues}`
+          : "Строка удалена"
+      );
+      return true;
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось удалить строку"
       );
+      return false;
     } finally {
       setIsDeleting(false);
     }
@@ -1197,7 +1307,27 @@ export function ColdEquipmentDocumentClient({
       return;
     }
 
-    if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${selectedEquipmentIds.length}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
+    const lostValues = countColdEquipmentValues(
+      rows,
+      config.equipment
+        .filter((item) => selectedEquipmentIds.includes(item.id))
+        .flatMap((item) => coldEquipmentSlotKeys(item.id, item.readingMode))
+    );
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные строки?",
+      description:
+        "Оборудование исчезнет из журнала вместе со всеми замерами температуры за весь период.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Строк будет удалено: ${selectedEquipmentIds.length}`, tone: "warn" },
+        lostValues > 0
+          ? { label: `Будет удалено замеров: ${lostValues}`, tone: "warn" as const }
+          : { label: "Замеров по этим строкам ещё нет", tone: "info" as const },
+        { label: `Останется строк: ${nextEquipment.length}`, tone: "default" },
+      ],
+    });
+    if (!confirmed) return;
 
     setIsDeleting(true);
     try {
@@ -1210,7 +1340,9 @@ export function ColdEquipmentDocumentClient({
       await syncEntries();
       setSelectedEquipmentIds([]);
       router.refresh();
-      toast.success(`Удалено строк: ${selectedEquipmentIds.length}`);
+      toast.success(
+        `Удалено строк: ${selectedEquipmentIds.length}; замеров: ${lostValues}`
+      );
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Не удалось удалить выбранные строки"
@@ -1275,10 +1407,25 @@ export function ColdEquipmentDocumentClient({
     // За день могли писать разные сотрудники (замеры по QR). Правим ту запись,
     // где значение уже лежит; иначе — первую запись дня. Сливать чужие значения
     // в одну запись нельзя: старое значение у второго сотрудника «воскресало» бы.
+    const lockReason = dayLockReason(dateKey);
+    if (lockReason) {
+      toast.error(lockReason);
+      return;
+    }
     const dayRows = rows.filter((row) => row.date === dateKey);
+    // Рядовой сотрудник пишет ТОЛЬКО в свою запись дня — сервер иначе
+    // отвечает «Можно заполнять только свою строку».
+    const scopedDayRows =
+      viewerHasFullAccess || !viewer
+        ? dayRows
+        : dayRows.filter((row) => row.employeeId === viewer.id);
     const ownerRow =
-      dayRows.find((row) => row.data.temperatures?.[equipmentId] != null) ?? dayRows[0];
-    const employeeId = ownerRow?.employeeId || responsibleUserId || viewerId;
+      scopedDayRows.find((row) => row.data.temperatures?.[equipmentId] != null) ??
+      scopedDayRows[0];
+    const employeeId =
+      viewerHasFullAccess || !viewer
+        ? ownerRow?.employeeId || responsibleUserId || viewerId
+        : viewer.id;
     if (!employeeId) {
       toast.error(NO_ROW_EMPLOYEE_MESSAGE);
       return;
@@ -1302,7 +1449,9 @@ export function ColdEquipmentDocumentClient({
         }
       : createEmptyColdEquipmentEntryData(config, responsibleTitle);
 
-    nextData.temperatures[equipmentId] = rawValue === "" ? null : Number(rawValue);
+    // `Number("-18,5")` → NaN: на экране «NaN», в базе пусто. parseNumeric
+    // понимает и запятую, и точку, и возвращает null на мусор.
+    nextData.temperatures[equipmentId] = parseNumeric(rawValue);
 
     const submit = await submitWithOfflineFallback({
       method: "PUT",
@@ -1825,7 +1974,7 @@ export function ColdEquipmentDocumentClient({
                               {getDayNumber(dateKey)}{" "}
                               {getWeekdayShort(dateKey)}.
                             </span>
-                            {status === "active" ? (
+                            {status === "active" && !dayLockReason(dateKey) ? (
                               <ColdTemperatureCell
                                 inputId={`temp-${item.slotKey}-${dateKey}`}
                                 value={value ?? ""}
@@ -1835,7 +1984,10 @@ export function ColdEquipmentDocumentClient({
                                 }
                               />
                             ) : (
-                              <span className="flex-1 rounded-lg bg-[#fafbff] px-3 py-2 text-[14px] text-[#0b1024]">
+                              <span
+                                title={dayLockReason(dateKey) ?? undefined}
+                                className="flex-1 rounded-lg bg-[#fafbff] px-3 py-2 text-[14px] text-[#0b1024]"
+                              >
                                 {value ?? "—"}
                               </span>
                             )}
@@ -1854,6 +2006,12 @@ export function ColdEquipmentDocumentClient({
             })}
           </div>
         ) : null}
+
+        {/* Панель выделения — ОДНА на экран и вне табличного полотна:
+            раньше она лежала внутри `viewClasses.table`, и в «Карточках»
+            на телефоне чекбоксы выделяли строки, а кнопок «QR-коды» и
+            «Удалить» не было видно вовсе. */}
+        {selectionBar}
 
         {/* R1: бумажное полотно — во всю ширину контентной колонки.
             Сетка на 15 дней шире полотна и продолжает скроллиться внутри
@@ -1917,7 +2075,6 @@ export function ColdEquipmentDocumentClient({
             рендерится выше в своей обёртке — на экране всегда ровно один
             экземпляр кнопки «Добавить ХО». */}
         {equipmentAddBar}
-        {selectionBar}
           <table className="w-full border-collapse text-[13px]" data-journal-grid>
             {/* Ширины колонок на узком экране задаются здесь: у таблицы
                 там `table-layout: fixed`, и без colgroup ширину диктовала
@@ -2078,7 +2235,7 @@ export function ColdEquipmentDocumentClient({
                         data-grid-day
                         className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                       >
-                        {status === "active" ? (
+                        {status === "active" && !dayLockReason(dateKey) ? (
                           <Input
                             type="number"
                             step="0.1"
@@ -2094,6 +2251,7 @@ export function ColdEquipmentDocumentClient({
                           />
                         ) : (
                           <span
+                            title={dayLockReason(dateKey) ?? undefined}
                             className={cn(
                               "text-[13px]",
                               isColdEquipmentValueOutOfRange(value, item) &&
@@ -2279,6 +2437,7 @@ export function ColdEquipmentDocumentClient({
         canDelete={config.equipment.length > 1}
         onSave={handleSaveEquipment}
         onDelete={handleDeleteEquipment}
+        countLostOnModeChange={countLostOnModeChange}
       />
 
       {/* Конвейер: один холодильник — один экран, крупное поле,

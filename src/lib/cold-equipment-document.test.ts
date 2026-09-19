@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  coldEquipmentSlotKeys,
   coldReadingSlotKey,
+  countColdEquipmentValues,
   collectColdEquipmentDeviations,
   createEmptyColdEquipmentEntryData,
   expandColdEquipmentReadingSlots,
@@ -52,4 +54,18 @@ test("замеры: отклонение считается по каждому 
     { id: "row", date: "2026-09-18", data: { responsibleTitle: null, temperatures: { fridge: 4, "fridge#2": 9, freezer: -20 } } },
   ]);
   assert.deepEqual(deviations.map((item) => [item.equipmentId, item.equipmentName, item.value]), [["fridge#2", "Холодильник · 2-й замер", 9]]);
+});
+
+test("замеры: считаем, сколько значений потеряет удаление слотов", () => {
+  const entries = [
+    { data: { temperatures: { fridge: 4, "fridge#2": 5, freezer: -20 } } },
+    { data: { temperatures: { fridge: 3, "fridge#2": null, freezer: -21 } } },
+    { data: {} },
+  ];
+  assert.deepEqual(coldEquipmentSlotKeys("fridge", "thrice"), ["fridge", "fridge#2", "fridge#3"]);
+  assert.deepEqual(coldEquipmentSlotKeys("fridge", "once"), ["fridge"]);
+  assert.equal(countColdEquipmentValues(entries, coldEquipmentSlotKeys("fridge", "twice")), 3);
+  assert.equal(countColdEquipmentValues(entries, ["fridge#2"]), 1);
+  assert.equal(countColdEquipmentValues(entries, ["freezer"]), 2);
+  assert.equal(countColdEquipmentValues(entries, []), 0);
 });

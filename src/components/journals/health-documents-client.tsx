@@ -77,6 +77,11 @@ type Props = {
     canManage: boolean;
     noticeSeen: boolean;
   };
+  /**
+   * Есть ли право создавать / настраивать / удалять документы. Раньше
+   * повар видел эти действия, а API отвечал 403.
+   */
+  canManageDocuments?: boolean;
 };
 
 const EMPTY_ROWS_OPTIONS = [0, 1, 2, 3, 4, 5, 10, 15, 20];
@@ -184,12 +189,13 @@ function EditDocumentDialog(props: {
 function HealthDocumentRow(props: {
   document: HealthListDocument;
   templateCode: string;
+  canManage?: boolean;
   onEdit: (document: HealthListDocument) => void;
   onPrint: (document: HealthListDocument) => void;
   onDelete: (document: HealthListDocument) => void;
 }) {
   const href = `/journals/${props.templateCode}/documents/${props.document.id}`;
-  const canManage = props.document.status === "active";
+  const canManage = props.document.status === "active" && props.canManage !== false;
 
   return (
     <div className={JOURNAL_LIST_CARD_CLASS}>
@@ -245,6 +251,7 @@ export function HealthDocumentsClient(props: Props) {
           templateName={props.templateName}
           users={props.users}
           documentCount={props.documents.length}
+          canManage={props.canManageDocuments !== false}
         />
 
         <JournalTabs activeTab={props.activeTab} templateCode={props.templateCode} />
@@ -280,6 +287,7 @@ export function HealthDocumentsClient(props: Props) {
               templateCode={props.templateCode}
               templateName={props.templateName}
               users={props.users}
+              canManage={props.canManageDocuments !== false}
             />
           )}
           {props.documents.map((document) => (
@@ -287,6 +295,7 @@ export function HealthDocumentsClient(props: Props) {
               key={document.id}
               document={document}
               templateCode={props.templateCode}
+              canManage={props.canManageDocuments !== false}
               onEdit={setEditingDocument}
               onPrint={(doc) => openPdf({ documentId: doc.id })}
               onDelete={handleDelete}

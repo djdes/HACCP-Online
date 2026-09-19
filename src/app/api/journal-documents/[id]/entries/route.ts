@@ -25,6 +25,7 @@ import {
 } from "@/lib/journal-entry-write";
 import { checkEntryScope } from "@/lib/journal-entry-write";
 import { orgTodayKey } from "@/lib/timezone";
+import { decideEntryMove } from "@/lib/tracked-document";
 
 /**
  * Контекст автоматического запрета «день в день» — для PATCH/DELETE,
@@ -74,6 +75,9 @@ export async function PUT(
 
   const body = await request.json();
   const { employeeId, date, data } = body;
+  // Правка существующей строки шлёт её id: без него смена даты или
+  // сотрудника делала upsert по новой паре и оставляла дубль.
+  const entryId = typeof body.entryId === "string" && body.entryId ? body.entryId : null;
 
   if (!employeeId || !date || !data) {
     return NextResponse.json({ error: "employeeId, date, data обязательны" }, { status: 400 });
@@ -166,22 +170,54 @@ export async function PUT(
     });
   }
 
-  const entry = await db.journalDocumentEntry.upsert({
-    where: {
-      documentId_employeeId_date: {
+  const nextData = toPrismaJsonValue(reconcileEntryStaffFields(data, employee));
+
+  let entry;
+  if (entryId) {
+    const [current, occupant] = await Promise.all([
+      db.journalDocumentEntry.findUnique({
+        where: { id: entryId },
+        select: { id: true, documentId: true },
+      }),
+      db.journalDocumentEntry.findUnique({
+        where: {
+          documentId_employeeId_date: { documentId, employeeId, date: dateObj },
+        },
+        select: { id: true },
+      }),
+    ]);
+    const move = decideEntryMove({ documentId, current, occupant });
+    if (move.action === "not_found") {
+      return NextResponse.json({ error: move.error }, { status: 404 });
+    }
+    if (move.action === "conflict") {
+      return NextResponse.json(
+        { error: move.error, code: "entry_slot_taken" },
+        { status: 409 }
+      );
+    }
+    entry = await db.journalDocumentEntry.update({
+      where: { id: move.entryId },
+      data: { employeeId, date: dateObj, data: nextData },
+    });
+  } else {
+    entry = await db.journalDocumentEntry.upsert({
+      where: {
+        documentId_employeeId_date: {
+          documentId,
+          employeeId,
+          date: dateObj,
+        },
+      },
+      update: { data: nextData },
+      create: {
         documentId,
         employeeId,
         date: dateObj,
+        data: nextData,
       },
-    },
-    update: { data: toPrismaJsonValue(reconcileEntryStaffFields(data, employee)) },
-    create: {
-      documentId,
-      employeeId,
-      date: dateObj,
-      data: toPrismaJsonValue(reconcileEntryStaffFields(data, employee)),
-    },
-  });
+    });
+  }
 
   maybeTriggerColdEquipmentCapaDetection(
     doc.template?.code,
@@ -230,12 +266,21 @@ export async function PATCH(
   }
 
   const body = (await request.json().catch(() => null)) as
-    | { entries?: Array<{ employeeId?: string; date?: string; data?: unknown }> }
+    | {
+        entries?: Array<{ employeeId?: string; date?: string; data?: unknown }>;
+        replaceAll?: boolean;
+      }
     | null;
 
   if (!body || !Array.isArray(body.entries)) {
     return NextResponse.json({ error: "entries должны быть массивом" }, { status: 400 });
   }
+
+  // ПОЧЕМУ по умолчанию НЕ «заменить всё»: клиент шлёт только те строки,
+  // которые правил. Прежнее поведение удаляло записи, добавленные другим
+  // человеком уже после загрузки страницы. Удаление строки — отдельный
+  // DELETE. Старую семантику можно запросить явным `replaceAll: true`.
+  const replaceAll = body.replaceAll === true;
 
   const payloadEntries = body.entries;
   const docDateFrom = new Date(doc.dateFrom);
@@ -341,25 +386,27 @@ export async function PATCH(
         )
       );
 
-      const staleEntries = await tx.journalDocumentEntry.findMany({
-        where: { documentId },
-        select: { id: true, employeeId: true, date: true },
-      });
-
-      const keepKeys = new Set(
-        normalizedEntries.map((entry) => `${entry.employeeId}:${entry.date.toISOString()}`)
-      );
-      const deleteIds = staleEntries
-        .filter((entry) => !keepKeys.has(`${entry.employeeId}:${entry.date.toISOString()}`))
-        .map((entry) => entry.id);
-
-      if (deleteIds.length > 0) {
-        await tx.journalDocumentEntry.deleteMany({
-          where: {
-            documentId,
-            id: { in: deleteIds },
-          },
+      if (replaceAll) {
+        const staleEntries = await tx.journalDocumentEntry.findMany({
+          where: { documentId },
+          select: { id: true, employeeId: true, date: true },
         });
+
+        const keepKeys = new Set(
+          normalizedEntries.map((entry) => `${entry.employeeId}:${entry.date.toISOString()}`)
+        );
+        const deleteIds = staleEntries
+          .filter((entry) => !keepKeys.has(`${entry.employeeId}:${entry.date.toISOString()}`))
+          .map((entry) => entry.id);
+
+        if (deleteIds.length > 0) {
+          await tx.journalDocumentEntry.deleteMany({
+            where: {
+              documentId,
+              id: { in: deleteIds },
+            },
+          });
+        }
       }
 
       return tx.journalDocumentEntry.findMany({

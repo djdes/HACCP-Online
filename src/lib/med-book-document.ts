@@ -1,3 +1,5 @@
+import { localDayKey } from "@/lib/entry-defaults";
+
 export const MED_BOOK_TEMPLATE_CODE = "med_books";
 export const MED_BOOK_DOCUMENT_TITLE = "Медицинские книжки";
 
@@ -203,29 +205,39 @@ export function remapMedBookColumnKeys<T>(
   return result;
 }
 
-export function isExaminationExpired(exam: MedBookExamination): boolean {
+/**
+ * ПОЧЕМУ не `toISOString().slice(0, 10)`: тот отдаёт дату по UTC, и в
+ * Москве с полуночи до трёх ночи «сегодня» было вчерашним числом —
+ * медкнижка на сутки раньше загоралась просрочкой. `todayKey` можно
+ * передать снаружи (сервер считает его в зоне организации).
+ */
+export function isExaminationExpired(
+  exam: MedBookExamination,
+  todayKey: string = localDayKey()
+): boolean {
   if (!exam.expiryDate) return false;
-  return exam.expiryDate < new Date().toISOString().slice(0, 10);
+  return exam.expiryDate < todayKey;
 }
 
 export function isExaminationExpiringSoon(
   exam: MedBookExamination,
-  daysThreshold = 30
+  daysThreshold = 30,
+  todayKey: string = localDayKey()
 ): boolean {
   if (!exam.expiryDate) return false;
 
-  const today = new Date();
-  const threshold = new Date(today);
+  const threshold = new Date(`${todayKey}T00:00:00`);
   threshold.setDate(threshold.getDate() + daysThreshold);
-
-  const todayKey = today.toISOString().slice(0, 10);
-  const thresholdKey = threshold.toISOString().slice(0, 10);
+  const thresholdKey = localDayKey(threshold);
 
   return exam.expiryDate >= todayKey && exam.expiryDate <= thresholdKey;
 }
 
-export function isVaccinationExpired(vaccination: MedBookVaccination): boolean {
-  return Boolean(vaccination.expiryDate && vaccination.expiryDate < new Date().toISOString().slice(0, 10));
+export function isVaccinationExpired(
+  vaccination: MedBookVaccination,
+  todayKey: string = localDayKey()
+): boolean {
+  return Boolean(vaccination.expiryDate && vaccination.expiryDate < todayKey);
 }
 
 export function formatMedBookDate(dateStr: string | null): string {

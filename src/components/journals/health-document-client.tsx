@@ -1,18 +1,10 @@
 "use client";
 
 import { getJournalDocumentPeriodLabel } from "@/lib/journal-document-helpers";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, Lock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -33,9 +25,6 @@ import {
   DOC_NOTE_TEXT_CLASS,
   DOC_PAPER_CANVAS_CLASS,
   DOC_PAPER_HEADER_CLASS,
-  JOURNAL_DIALOG_CONTENT_CLASS,
-  JOURNAL_DIALOG_HEADER_CLASS,
-  JOURNAL_DIALOG_TITLE_CLASS,
 } from "@/components/journals/journal-responsive";
 import { JournalSelectionBar } from "@/components/journals/journal-selection-bar";
 import { JournalClosedBanner } from "@/components/journals/journal-closed-banner";
@@ -51,7 +40,6 @@ import {
   getHygienePositionLabel,
   getWeekdayShort,
   normalizeHealthEntryData,
-  toDateKey,
   type HealthEntryData,
 } from "@/lib/hygiene-document";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
@@ -73,7 +61,19 @@ import {
   getDayColumnPrintKeepBg,
 } from "@/components/journals/journal-grid";
 import { JournalAddRow } from "@/components/journals/journal-add-row";
-import { useTodayKey } from "@/lib/use-today-key";
+import {
+  TableContextMenu,
+  type TableContextMenuItem,
+} from "@/components/journals/table-context-menu";
+import { confirmAsync } from "@/components/ui/confirm-async";
+import { promptAsync } from "@/components/ui/prompt-async";
+import { PAST_DAY_LOCKED_MESSAGE } from "@/lib/closed-day";
+import {
+  FOREIGN_ROW_MESSAGE,
+  FUTURE_DAY_LOCKED_MESSAGE,
+  NOT_TODAY_MESSAGE,
+  hasFullDocumentAccess,
+} from "@/lib/journal-entry-scope";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
 
 type Props = {
@@ -93,10 +93,27 @@ type Props = {
   status: string;
   autoFill?: boolean;
   employees: { id: string; name: string; role: string }[];
+  /**
+   * Уволенные / архивные сотрудники, на которых ссылаются записи.
+   * ТОЛЬКО для отображения строки в бланке.
+   */
+  inactiveEmployees?: { id: string; name: string; role: string }[];
   initialEntries: { employeeId: string; date: string; data: HealthEntryData }[];
   printEmptyRows?: number;
   /** Design v2 flag — пробрасывается в StaffJournalToolbar для v2-модалки. */
   useV2?: boolean;
+  /**
+   * Сегодняшний день (YYYY-MM-DD) с сервера, в зоне организации. Часы
+   * планшета на кухне врут чаще, чем сервер.
+   */
+  todayKey?: string;
+  /** Документ ведёт автоматика: прошлые дни закрыты на редактирование. */
+  pastDaysLocked?: boolean;
+  /**
+   * Кто смотрит. Нужен, чтобы гасить чужие строки и не-сегодняшние дни
+   * прямо в сетке — теми же правилами, что и сервер.
+   */
+  viewer?: { id: string; role: string; isRoot: boolean };
 };
 
 /**
@@ -156,6 +173,28 @@ function makeCellKey(employeeId: string, dateKey: string) {
   return `${employeeId}:${dateKey}`;
 }
 
+function buildEntryMap(entries: Props["initialEntries"]) {
+  const result: Record<string, HealthEntryData> = {};
+  entries.forEach((entry) => {
+    result[makeCellKey(entry.employeeId, entry.date)] = normalizeHealthEntryData(
+      entry.data
+    );
+  });
+  return result;
+}
+
+/**
+ * Меню ячейки дня — тот же приём, что в гигиеническом журнале: одно меню
+ * на документ (в сетке 31 день × N сотрудников это тысячи ячеек), правая
+ * кнопка на ПК и обычный тап в карточках/на телефоне.
+ */
+type HealthCellMenu = {
+  x: number;
+  y: number;
+  employeeId: string;
+  dateKey: string;
+};
+
 async function requestJson(url: string, init: RequestInit) {
   const response = await fetch(url, init);
   const result = await response.json().catch(() => null);
@@ -183,9 +222,6 @@ function getHealthMeasures(
 
 export function HealthDocumentClient(props: Props) {
   const router = useRouter();
-  // «Сегодня» считаем после mount (см. useTodayKey): new Date() в
-  // рендере давал hydration mismatch и подсветку не того дня.
-  const todayKey = useTodayKey();
   const {
     documentId,
     title,
@@ -196,16 +232,31 @@ export function HealthDocumentClient(props: Props) {
     status,
     autoFill = false,
     employees,
+    inactiveEmployees = [],
     initialEntries,
     printEmptyRows = 0,
     useV2 = false,
+    // «Сегодня» приходит с сервера в зоне организации: браузер в рендере
+    // считать дату не вправе (react-hooks/purity), да и часы планшета на
+    // кухне врут чаще сервера.
+    todayKey = "",
+    pastDaysLocked = false,
+    viewer,
   } = props;
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsDocTitle, setSettingsDocTitle] = useState(title || "Журнал здоровья");
   const [emptyRows, setEmptyRows] = useState(String(printEmptyRows));
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [savingCellKey, setSavingCellKey] = useState<string | null>(null);
+  const [cellMenu, setCellMenu] = useState<HealthCellMenu | null>(null);
+  const [entryMap, setEntryMap] = useState<Record<string, HealthEntryData>>(() =>
+    buildEntryMap(initialEntries)
+  );
+
+  useEffect(() => {
+    setEntryMap(buildEntryMap(initialEntries));
+  }, [initialEntries]);
+
+  const closeCellMenu = useCallback(() => setCellMenu(null), []);
   // Mobile-only view preference: общий хук useMobileView, ключ
   // `journal-mobile-view:health_check`. Desktop и печать всегда рендерят
   // таблицу.
@@ -231,7 +282,11 @@ export function HealthDocumentClient(props: Props) {
 
   const dateKeys = buildDateKeys(dateFrom, dateTo);
   const includedEmployeeIds = [...new Set(initialEntries.map((entry) => entry.employeeId))];
-  const rosterUsers = employees.filter((employee) => includedEmployeeIds.includes(employee.id));
+  // Уволенных ищем ТОЖЕ: иначе их строка исчезала из журнала задним
+  // числом вместе со всеми отметками за прошлые месяцы.
+  const rosterUsers = [...employees, ...inactiveEmployees].filter((employee) =>
+    includedEmployeeIds.includes(employee.id)
+  );
   const printableEmployees = buildHygieneExampleEmployees(
     rosterUsers,
     // Ровно сотрудники + запрошенные под печать пустые строки. Прежний
@@ -242,11 +297,6 @@ export function HealthDocumentClient(props: Props) {
   const monthLabel = formatMonthLabel(dateFrom, dateTo);
   const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const documentTitle = title || "Журнал здоровья";
-  const entryMap: Record<string, HealthEntryData> = {};
-
-  initialEntries.forEach((entry) => {
-    entryMap[makeCellKey(entry.employeeId, entry.date)] = normalizeHealthEntryData(entry.data);
-  });
 
   const selectedCount = selectedEmployeeIds.length;
   const allSelected = rosterUsers.length > 0 && selectedCount === rosterUsers.length;
@@ -310,9 +360,187 @@ export function HealthDocumentClient(props: Props) {
     );
   }
 
+  /**
+   * Кто и что вправе править — ровно то же правило, что на сервере
+   * (`journal-entry-scope.ts`): руководство и ответственный правят любые
+   * строки и дни, рядовой сотрудник — только свою строку и только сегодня.
+   */
+  const viewerHasFullAccess = viewer
+    ? hasFullDocumentAccess({ actor: viewer, responsibleUserId: props.responsibleUserId ?? null })
+    : true;
+
+  /** Причина, по которой ячейка закрыта, или null. */
+  function cellLockReason(employeeId: string, dateKey: string): string | null {
+    if (todayKey !== "" && dateKey > todayKey) return FUTURE_DAY_LOCKED_MESSAGE;
+    if (pastDaysLocked && todayKey !== "" && dateKey < todayKey) {
+      return PAST_DAY_LOCKED_MESSAGE;
+    }
+    if (viewerHasFullAccess || !viewer) return null;
+    if (employeeId !== viewer.id) return FOREIGN_ROW_MESSAGE;
+    if (todayKey !== "" && dateKey !== todayKey) return NOT_TODAY_MESSAGE;
+    return null;
+  }
+
+  /** Записать ячейку с оптимистичным применением и откатом при ошибке. */
+  async function persistEntry(
+    employeeId: string,
+    dateKey: string,
+    nextData: HealthEntryData
+  ) {
+    const key = makeCellKey(employeeId, dateKey);
+    const previous = entryMap[key];
+    const isEmpty = !nextData.signed && !nextData.measures;
+
+    setEntryMap((current) => {
+      const copy = { ...current };
+      if (isEmpty) delete copy[key];
+      else copy[key] = nextData;
+      return copy;
+    });
+    setSavingCellKey(key);
+
+    try {
+      await requestJson(`/api/journal-documents/${documentId}/entries`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          date: dateKey,
+          // Пустой объект сервер отвергает (`data` обязательна), поэтому
+          // «очистить» — это явные null'ы, а не отсутствие полей.
+          data: {
+            signed: nextData.signed ?? null,
+            measures: nextData.measures ?? null,
+          },
+        }),
+      });
+      router.refresh();
+    } catch (error) {
+      setEntryMap((current) => {
+        const copy = { ...current };
+        if (previous) copy[key] = previous;
+        else delete copy[key];
+        return copy;
+      });
+      toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
+    } finally {
+      setSavingCellKey((current) => (current === key ? null : current));
+    }
+  }
+
+  /** Открыть меню ячейки (ПКМ в таблице, обычный тап в карточках). */
+  function openCellMenu(
+    event: React.MouseEvent,
+    employeeId: string,
+    dateKey: string,
+    interactive: boolean
+  ) {
+    if (!isActive || !interactive) return;
+    const reason = cellLockReason(employeeId, dateKey);
+    if (reason) {
+      toast.error(reason);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setCellMenu({ x: event.clientX, y: event.clientY, employeeId, dateKey });
+  }
+
+  /** Спросить «Принятые меры» и записать их в ту же ячейку. */
+  async function editMeasures(menu: HealthCellMenu) {
+    const current = normalizeHealthEntryData(
+      entryMap[makeCellKey(menu.employeeId, menu.dateKey)]
+    );
+    const value = await promptAsync({
+      title: "Принятые меры",
+      description:
+        "Что сделали по результатам осмотра: отстранение от работы, направление к врачу и т. п. Пусто — меры не потребовались.",
+      label: "Принятые меры",
+      defaultValue: current.measures || "",
+      confirmLabel: "Сохранить",
+    });
+    if (value === null) return;
+    await persistEntry(menu.employeeId, menu.dateKey, {
+      signed: current.signed ?? null,
+      measures: value.trim() || null,
+    });
+  }
+
+  function buildCellMenuItems(menu: HealthCellMenu): TableContextMenuItem[] {
+    const current = normalizeHealthEntryData(
+      entryMap[makeCellKey(menu.employeeId, menu.dateKey)]
+    );
+
+    return [
+      {
+        key: "signed",
+        code: "+",
+        label: "Подпись есть",
+        active: current.signed === true,
+        onSelect: () => {
+          void persistEntry(menu.employeeId, menu.dateKey, {
+            signed: true,
+            measures: current.measures ?? null,
+          });
+        },
+      },
+      {
+        key: "not-signed",
+        code: "—",
+        label: "Нет подписи",
+        active: current.signed === false,
+        onSelect: () => {
+          void persistEntry(menu.employeeId, menu.dateKey, {
+            signed: false,
+            measures: current.measures ?? null,
+          });
+        },
+      },
+      {
+        key: "measures",
+        label: current.measures ? "Изменить принятые меры" : "Принятые меры…",
+        separatorBefore: true,
+        onSelect: () => {
+          void editMeasures(menu);
+        },
+      },
+      {
+        key: "clear",
+        label: "Очистить",
+        danger: true,
+        separatorBefore: true,
+        onSelect: () => {
+          void persistEntry(menu.employeeId, menu.dateKey, {
+            signed: null,
+            measures: null,
+          });
+        },
+      },
+    ];
+  }
+
   async function handleDeleteSelected() {
     if (selectedEmployeeIds.length === 0) return;
     if (!isActive) return;
+
+    // Удаление строки уносит с собой все отметки за период — без
+    // подтверждения это слишком дёшево для необратимого действия.
+    const marks = initialEntries.filter((entry) =>
+      selectedEmployeeIds.includes(entry.employeeId)
+    ).length;
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранных сотрудников из журнала?",
+      description:
+        "Строки исчезнут из бланка вместе со всеми отметками за период документа.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Строк сотрудников: ${selectedEmployeeIds.length}`, tone: "warn" },
+        { label: `Отметок будет удалено: ${marks}`, tone: "warn" },
+        { label: "Восстановить данные будет нельзя", tone: "warn" },
+      ],
+    });
+    if (!confirmed) return;
 
     setIsDeleting(true);
     try {
@@ -325,35 +553,17 @@ export function HealthDocumentClient(props: Props) {
           })
         )
       );
+      toast.success(
+        `Удалено: ${selectedEmployeeIds.length} ${
+          selectedEmployeeIds.length === 1 ? "строка" : "строк"
+        }, отметок: ${marks}`
+      );
       setSelectedEmployeeIds([]);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ошибка удаления строк");
     } finally {
       setIsDeleting(false);
-    }
-  }
-
-  async function handleSaveSettings() {
-    if (!isActive) return;
-    setIsSavingSettings(true);
-    try {
-      await requestJson(`/api/journal-documents/${documentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: settingsDocTitle.trim() || "Журнал здоровья",
-          config: {
-            printEmptyRows: Math.max(0, Number(emptyRows) || 0),
-          },
-        }),
-      });
-      setSettingsOpen(false);
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ошибка сохранения настроек");
-    } finally {
-      setIsSavingSettings(false);
     }
   }
 
@@ -451,11 +661,40 @@ export function HealthDocumentClient(props: Props) {
             organizationName={organizationLabel}
             showHeaderActions
             useV2={useV2}
-            onSettingsClick={() => {
-              setSettingsDocTitle(documentTitle);
-              setEmptyRows(String(printEmptyRows));
-              setSettingsOpen(true);
+            // Раньше кнопку «Настройки» перехватывал собственный диалог
+            // журнала здоровья: там не было ни ответственного, ни
+            // «Периодичности контроля», и сохранение стирало её из шапки.
+            // Теперь общий диалог, а своё поле приходит доп. блоком.
+            controlPeriodicity={controlPeriodicity}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            countOutsidePeriod={(from, to) =>
+              initialEntries.filter(
+                (entry) => entry.date < from || entry.date > to
+              ).length
+            }
+            settingsExtraConfig={{
+              printEmptyRows: Math.max(0, Number(emptyRows) || 0),
             }}
+            settingsExtraFields={
+              <div className="space-y-2">
+                <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                  Добавлять пустых строк при печати
+                </Label>
+                <Select value={emptyRows} onValueChange={setEmptyRows}>
+                  <SelectTrigger className="h-10 w-full rounded-xl border-[#dcdfed] bg-white px-3.5 text-[13.5px] transition-colors duration-150 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EMPTY_ROWS_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            }
           />
 
           <TodayProgressStrip
@@ -553,29 +792,64 @@ export function HealthDocumentClient(props: Props) {
                     {expanded ? (
                       <div className="space-y-1.5 border-t border-[#ececf4] p-3">
                         {dateKeys.map((dateKey) => {
-                          const d = entryMap[makeCellKey(employee.id, dateKey)];
-                          const signed = Boolean(d?.signed);
+                          const key = makeCellKey(employee.id, dateKey);
+                          const d = entryMap[key];
+                          const signed = d?.signed === true;
+                          const refused = d?.signed === false;
+                          const lockReason = cellLockReason(employee.id, dateKey);
+                          const locked = lockReason !== null;
                           return (
                             <div
-                              key={`${employee.id}:${dateKey}`}
-                              className="flex items-center gap-2 rounded-xl px-1 py-1.5"
+                              key={key}
+                              className={`flex items-center gap-2 rounded-xl px-1 py-1.5 ${
+                                savingCellKey === key ? "bg-[#f7f8ff]" : ""
+                              }`}
                             >
                               <span className="w-12 shrink-0 text-center text-[13px] font-medium text-[#6f7282]">
                                 {getDayNumber(dateKey)}{" "}
                                 {getWeekdayShort(dateKey)}.
                               </span>
-                              <span
-                                className={`min-w-0 flex-1 rounded-lg px-3 py-2 text-[12px] font-medium ${
+                              {locked ? (
+                                <Lock
+                                  className="size-3.5 shrink-0 text-[#9b9fb3]"
+                                  aria-label={lockReason ?? undefined}
+                                />
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={(event) =>
+                                  openCellMenu(event, employee.id, dateKey, true)
+                                }
+                                disabled={!isActive || locked}
+                                title={lockReason ?? undefined}
+                                className={`min-w-0 flex-1 rounded-lg px-3 py-2 text-left text-[12px] font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
                                   signed
-                                    ? "bg-[#f5f6ff] text-[#5566f6]"
-                                    : "bg-[#fafbff] text-[#9b9fb3]"
+                                    ? "bg-[#f5f6ff] text-[#5566f6] hover:bg-[#eef1ff]"
+                                    : refused
+                                      ? "bg-[#fff2f1] text-[#d2453d] hover:bg-[#ffe8e6]"
+                                      : "bg-[#fafbff] text-[#9b9fb3] hover:bg-[#f5f6ff]"
                                 }`}
                               >
-                                {signed ? "Подпись есть" : "— не заполнено"}
-                              </span>
+                                {signed
+                                  ? "Подпись есть"
+                                  : refused
+                                    ? "Нет подписи"
+                                    : "— не заполнено"}
+                                {d?.measures ? (
+                                  <span className="ml-1.5 text-[#6f7282]">
+                                    · {d.measures}
+                                  </span>
+                                ) : null}
+                              </button>
                             </div>
                           );
                         })}
+                        {isActive ? (
+                          <div className="pt-1 text-[11px] text-[#6f7282]">
+                            Нажмите на день, чтобы отметить подпись или
+                            записать принятые меры.
+                          </div>
+                        ) : null}
                         {measures.length > 0 ? (
                           <div className="mt-2 rounded-xl border border-[#ececf4] bg-[#fafbff] p-3 text-[13px] leading-5 text-[#3c4053]">
                             <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6f7282]">
@@ -738,17 +1012,40 @@ export function HealthDocumentClient(props: Props) {
                         : ""}
                     </td>
                     {dateKeys.map((dateKey) => {
-                      const data = entryMap[makeCellKey(employee.id, dateKey)];
+                      const key = makeCellKey(employee.id, dateKey);
+                      const data = entryMap[key];
+                      const interactive = Boolean(employee.name);
+                      const lockReason = interactive
+                        ? cellLockReason(employee.id, dateKey)
+                        : null;
+                      const locked = lockReason !== null;
 
                       return (
                         <td
-                          key={`${employee.id}:${dateKey}`}
+                          key={key}
+                          title={lockReason ?? undefined}
                           className={`${GRID_CELL_CLASS} px-2 py-1 text-center align-middle leading-tight ${getDayColumnBgClass(
                             dateKey
-                          )}`}
+                          )} ${
+                            locked
+                              ? "cursor-not-allowed text-[#9b9fb3]"
+                              : isActive && interactive
+                                ? "cursor-pointer transition-colors duration-150 hover:bg-[#f5f6ff]"
+                                : ""
+                          } ${savingCellKey === key ? "bg-[#f7f8ff]" : ""}`}
                           data-print-keep-bg={getDayColumnPrintKeepBg(dateKey)}
+                          onClick={(event) =>
+                            openCellMenu(event, employee.id, dateKey, interactive)
+                          }
+                          onContextMenu={(event) =>
+                            openCellMenu(event, employee.id, dateKey, interactive)
+                          }
                         >
-                          {data?.signed ? "+" : ""}
+                          {data?.signed === true
+                            ? "+"
+                            : data?.signed === false
+                              ? "—"
+                              : ""}
                         </td>
                       );
                     })}
@@ -817,52 +1114,17 @@ export function HealthDocumentClient(props: Props) {
         </div>
       </div>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className={JOURNAL_DIALOG_CONTENT_CLASS}>
-          <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
-            <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
-              Настройки журнала
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 px-6 py-5">
-            <div className="space-y-2">
-              <Label htmlFor="health-doc-title">Название документа</Label>
-              <Input
-                id="health-doc-title"
-                value={settingsDocTitle}
-                onChange={(event) => setSettingsDocTitle(event.target.value)}
-                placeholder="Введите название документа"
-                className="h-9 rounded-xl border-[#dfe1ec] px-3.5"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Добавлять пустых строк при печати</Label>
-              <Select value={emptyRows} onValueChange={setEmptyRows}>
-                <SelectTrigger className="h-10 w-full rounded-xl border-[#dfe1ec] bg-[#fafbff] px-3.5 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {EMPTY_ROWS_OPTIONS.map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                onClick={handleSaveSettings}
-                disabled={isSavingSettings}
-                className="h-10 rounded-xl bg-[#5566f6] px-5 text-[13.5px] text-white transition-colors hover:bg-[#4a5bf0]"
-              >
-                {isSavingSettings ? "Сохранение..." : "Сохранить"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Меню ячейки дня — то же, что ПКМ в гигиеническом журнале;
+          на телефоне приходит листом снизу. */}
+      {cellMenu ? (
+        <TableContextMenu
+          x={cellMenu.x}
+          y={cellMenu.y}
+          onClose={closeCellMenu}
+          ariaLabel="Отметка о состоянии здоровья"
+          items={buildCellMenuItems(cellMenu)}
+        />
+      ) : null}
     </div>
   );
 }

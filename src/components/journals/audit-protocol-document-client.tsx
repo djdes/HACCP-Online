@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,40 @@ function RowDialog({
             <Label className="text-[14px] text-[#73738a]">Требование</Label>
             <Textarea value={draft.text} onChange={(e) => setDraft({ ...draft, text: e.target.value })} className="min-h-[160px] rounded-2xl border-[#d8dae6] px-4 py-3 text-[18px]" />
           </div>
+          {/* Результат и примечание были только в таблице: на телефоне
+              окно строки не давало поставить Да/Нет вообще. */}
+          <div className="space-y-2">
+            <Label className="text-[14px] text-[#73738a]">Результат</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  ["yes", "Да"],
+                  ["no", "Нет"],
+                  ["", "Не проверено"],
+                ] as const
+              ).map(([value, label]) => {
+                const active = draft.result === value;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setDraft({ ...draft, result: value })}
+                    className={`flex h-10 items-center justify-center rounded-xl border px-3 text-[14px] font-medium transition-colors duration-150 ${
+                      active
+                        ? "border-[#5566f6] bg-[#5566f6] text-white"
+                        : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[14px] text-[#73738a]">Примечания</Label>
+            <Textarea value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} className="min-h-[90px] rounded-2xl border-[#d8dae6] px-4 py-3 text-[15px]" />
+          </div>
           <div className="flex justify-end">
             <Button type="button" onClick={async () => { await onSave(draft); onOpenChange(false); }} className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]">
               Сохранить
@@ -159,6 +193,36 @@ export function AuditProtocolDocumentClient({
   useEffect(() => {
     setConfig(normalizeAuditProtocolConfig(initialConfig));
   }, [initialConfig]);
+
+  // Клики «Да/Нет» по разным строкам строились от ОДНОГО снимка config —
+  // второй запрос затирал первый. Держим актуальный config в ref и шлём
+  // правки по очереди.
+  const configRef = useRef(config);
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+  const rowQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+  function toggleRowResult(rowId: string, result: "yes" | "no") {
+    rowQueueRef.current = rowQueueRef.current
+      .then(async () => {
+        const current = configRef.current;
+        const next: AuditProtocolConfig = {
+          ...current,
+          rows: current.rows.map((item) =>
+            item.id === rowId
+              ? { ...item, result: item.result === result ? "" : result }
+              : item
+          ),
+        };
+        configRef.current = next;
+        await persist(documentTitle, next);
+      })
+      .catch((error) => {
+        configRef.current = config;
+        toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
+      });
+  }
 
   useEffect(() => {
     setDocumentTitle(title || AUDIT_PROTOCOL_DOCUMENT_TITLE);
@@ -403,10 +467,10 @@ export function AuditProtocolDocumentClient({
                           </button>
                         </td>
                         <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
-                          <Checkbox checked={row.result === "yes"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "yes" ? "" : "yes" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
+                          <Checkbox checked={row.result === "yes"} disabled={status !== "active"} onCheckedChange={() => toggleRowResult(row.id, "yes")} />
                         </td>
                         <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
-                          <Checkbox checked={row.result === "no"} disabled={status !== "active"} onCheckedChange={() => persist(documentTitle, { ...config, rows: config.rows.map((item) => item.id === row.id ? { ...item, result: item.result === "no" ? "" : "no" } : item) }).catch((error) => toast.error(error instanceof Error ? error.message : "Ошибка сохранения"))} />
+                          <Checkbox checked={row.result === "no"} disabled={status !== "active"} onCheckedChange={() => toggleRowResult(row.id, "no")} />
                         </td>
                         <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                           {status === "active" ? (

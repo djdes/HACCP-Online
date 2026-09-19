@@ -124,6 +124,8 @@ type Props = {
   controlPeriodicity?: string;
   status: string;
   dateFrom: string;
+  /** Дата окончания документа — запасной вариант для шапки закрытого журнала. */
+  dateTo?: string;
   config: FryerOilDocumentConfig;
   users: UserItem[];
   initialEntries: EntryItem[];
@@ -732,6 +734,7 @@ function EntryDialog(props: {
 
 function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => void; lists: FryerOilSelectLists; onSave: (lists: FryerOilSelectLists) => Promise<void> }) {
   const [lists, setLists] = useState(props.lists);
+  const [isSaving, setIsSaving] = useState(false);
   const tabs: Array<[keyof FryerOilSelectLists, string]> = [["fatTypes", "Вид жира"], ["equipmentTypes", "Оборудование"], ["productTypes", "Вид продукции"]];
 
   /**
@@ -844,7 +847,19 @@ function ListsDialog(props: { open: boolean; onOpenChange: (open: boolean) => vo
               </TabsContent>
             ))}
           </Tabs>
-          <div className="mt-6 flex justify-end"><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => { void props.onSave(lists); props.onOpenChange(false); }}>Сохранить</Button></div>
+          {/* Раньше окно закрывалось сразу, не дожидаясь ответа сервера, —
+              при отказе пользователь видел «сохранено», а списки терялись. */}
+          <div className="mt-6 flex justify-end"><Button type="button" disabled={isSaving} className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={async () => {
+            setIsSaving(true);
+            try {
+              await props.onSave(lists);
+              props.onOpenChange(false);
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Не удалось сохранить списки");
+            } finally {
+              setIsSaving(false);
+            }
+          }}>{isSaving ? "Сохранение..." : "Сохранить"}</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -856,6 +871,23 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
   const [status, setStatus] = useState<"active" | "closed">(props.status);
   const [shift, setShift] = useState<FryerOilShift>(props.shift);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Окно закрывалось, не дожидаясь ответа сервера: при отказе на экране
+  // было «сохранено», а настройки не применялись.
+  async function submit() {
+    setIsSaving(true);
+    try {
+      await props.onSave({ title, dateFrom, status, shift });
+      props.onOpenChange(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить настройки"
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   if (props.useV2) {
     return (
@@ -865,9 +897,8 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
         title="Настройки журнала"
         description="Название журнала, дата начала и статус."
         size="md"
-        onSave={async () => {
-          await props.onSave({ title, dateFrom, status, shift });
-        }}
+        isSaving={isSaving}
+        onSave={submit}
         onCancel={() => props.onOpenChange(false)}
       >
         <div className="space-y-2">
@@ -945,7 +976,7 @@ function SettingsDialog(props: { open: boolean; onOpenChange: (open: boolean) =>
           <div className="space-y-1"><Label>Дата начала</Label><Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl" /></div>
           <div className="space-y-1"><Label>Статус документа</Label><Select value={status} onValueChange={(v: "active" | "closed") => setStatus(v)}><SelectTrigger className="h-10 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Активный</SelectItem><SelectItem value="closed">Закрытый</SelectItem></SelectContent></Select></div>
           <div className="space-y-1"><Label>Часы смены</Label><div className="grid grid-cols-2 gap-2"><Input type="time" value={shift.startTime} onChange={(e) => setShift((v) => ({ ...v, startTime: e.target.value }))} className="h-10 rounded-xl" /><Input type="time" value={shift.endTime} onChange={(e) => setShift((v) => ({ ...v, endTime: e.target.value }))} className="h-10 rounded-xl" /></div><p className="text-[12px] text-[#6f7282]">Подставляются в новую строку как время начала и окончания жарки.</p></div>
-          <div className="flex justify-end"><Button type="button" className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => { void props.onSave({ title, dateFrom, status, shift }); props.onOpenChange(false); }}>Сохранить</Button></div>
+          <div className="flex justify-end"><Button type="button" disabled={isSaving} className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#4a5bf0]" onClick={() => void submit()}>{isSaving ? "Сохранение..." : "Сохранить"}</Button></div>
         </div>
       </DialogContent>
     </Dialog>
@@ -1316,7 +1347,11 @@ export function FryerOilDocumentClient(props: Props) {
                   orgName={props.organizationName}
                   title="Журнал учета использования фритюрных жиров"
                   startedAt={dateFrom}
-                  finishedAt={isActive ? null : dateFrom}
+                  // Реальная дата закрытия, иначе конец периода: раньше в
+                  // «Окончен» стояла дата НАЧАЛА журнала.
+                  finishedAt={
+                    isActive ? null : config.finishedAt || props.dateTo || dateFrom
+                  }
                   controlPeriodicity={props.controlPeriodicity}
                   orgCellClass="w-[240px]"
                   sideCellClass="w-[280px]"
@@ -1379,7 +1414,7 @@ export function FryerOilDocumentClient(props: Props) {
 
       <EntryDialog key={dialogSeq} open={entryOpen} onOpenChange={(open) => { setEntryOpen(open); if (!open) { setDayEntries([]); setFocusEntryId(null); } }} lists={config.lists} users={props.users} currentUserId={props.currentUserId} shift={config.shift} dayEntries={dayEntries} focusEntryId={focusEntryId} onSave={saveDay} />
       <ListsDialog key={JSON.stringify(config.lists)} open={listsOpen} onOpenChange={setListsOpen} lists={config.lists} onSave={async (lists) => { const nextConfig = { ...config, lists }; const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config: nextConfig }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить списки"); setConfig(nextConfig); router.refresh(); }} />
-      <SettingsDialog key={`${title}-${dateFrom}-${status}`} open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} status={status} shift={config.shift} useV2={props.useV2} onSave={async (v) => { const nextConfig = { ...config, shift: v.shift }; const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: v.title, dateFrom: v.dateFrom, status: v.status, config: nextConfig }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить настройки"); setTitle(v.title); setDateFrom(v.dateFrom); setStatus(v.status); setConfig(nextConfig); router.refresh(); }} />
+      <SettingsDialog key={`${title}-${dateFrom}-${status}`} open={settingsOpen} onOpenChange={setSettingsOpen} title={title} dateFrom={dateFrom} status={status} shift={config.shift} useV2={props.useV2} onSave={async (v) => { const nextConfig = { ...config, shift: v.shift, finishedAt: v.status === "closed" ? config.finishedAt || new Date().toISOString() : null }; const response = await fetch(`/api/journal-documents/${props.documentId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: v.title, dateFrom: v.dateFrom, status: v.status, config: nextConfig }) }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.error || "Не удалось сохранить настройки"); setTitle(v.title); setDateFrom(v.dateFrom); setStatus(v.status); setConfig(nextConfig); router.refresh(); }} />
     </div>
   );
 }

@@ -104,6 +104,11 @@ export type RoomEditorSavedSnapshot = {
   cleanerUserIds: string[];
   verifierUserIds: string[];
   climateNorms: ClimateRoomNorms | null;
+  /**
+   * Изменилось ли само расписание. Правка одного названия не должна
+   * запускать пересчёт плана в матрице журнала уборки.
+   */
+  scheduleChanged: boolean;
 };
 
 /** Какую секцию раскрыть при открытии — журнал вызывает «свою». */
@@ -295,7 +300,17 @@ export function RoomEditorDialog({
       }
       toast.success("Помещение сохранено");
       onOpenChange(false);
+      const sameList = (a: string[], b: string[]) =>
+        a.length === b.length && a.every((v, i) => v === b[i]);
+      const scheduleChanged =
+        currentDays !== (initial.currentDays ?? 127) ||
+        generalDays !== (initial.generalDays ?? 0) ||
+        currentScheduleType !== (initial.currentScheduleType ?? "weekly") ||
+        generalScheduleType !== (initial.generalScheduleType ?? "weekly") ||
+        !sameList(currentMonthDays, initial.currentMonthDays ?? []) ||
+        !sameList(generalMonthDays, initial.generalMonthDays ?? []);
       onSaved?.({
+        scheduleChanged,
         id: initial.id,
         name: name.trim(),
         detergent: detergent.trim(),

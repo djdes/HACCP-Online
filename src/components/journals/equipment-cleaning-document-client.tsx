@@ -139,7 +139,9 @@ export function EquipmentCleaningDocumentClient({
   const [draft, setDraft] = useState<RowDraftState>({
     id: null,
     data: emptyEquipmentCleaningRow({
-      washerPosition: "Мойщик",
+      // «Мойщик» в списке должностей отсутствует — селект оказывался
+      // пустым. Должность подставляем из реальной роли сотрудника.
+      washerPosition: "",
       controllerPosition: "Управляющий",
     }),
   });
@@ -205,7 +207,9 @@ export function EquipmentCleaningDocumentClient({
       id: null,
       data: emptyEquipmentCleaningRow({
         equipmentName: equipmentOptions[0] || "",
-        washerPosition: "Мойщик",
+        // Должность мойщика — из роли вошедшего: строки «Мойщик» в списке
+        // должностей нет, и селект открывался пустым.
+        washerPosition: washer ? userRoleLabel(washer.role) : "",
         washerName: washer?.name || "",
         washerUserId: washer?.id || null,
         controllerPosition: userRoleLabel(controller?.role || "owner"),
@@ -247,6 +251,24 @@ export function EquipmentCleaningDocumentClient({
     options?: { silent?: boolean }
   ) {
     const target = override ?? draft;
+    // Валидация до запроса: пустая строка и дата в будущем / вне периода
+    // уходили на сервер молча.
+    if (!options?.silent) {
+      if (!target.data.equipmentName.trim()) {
+        toast.error("Укажите наименование оборудования");
+        return;
+      }
+      if (!target.data.washDate) {
+        toast.error("Укажите дату мойки");
+        return;
+      }
+      const todayKey = new Date().toLocaleDateString("en-CA");
+      if (target.data.washDate > todayKey) {
+        toast.error("Дата мойки не может быть в будущем");
+        return;
+      }
+      // Границы периода проверяет сервер: он знает dateTo документа.
+    }
     const previousRow = target.id
       ? rows.find((row) => row.id === target.id)
       : undefined;

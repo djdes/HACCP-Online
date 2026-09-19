@@ -184,6 +184,45 @@ function mergeHM(h: string, m: string) {
   return `${h}:${m}`;
 }
 
+/**
+ * Ячейка «только показать, править в окне строки».
+ *
+ * Нужна там, где в одной колонке бланка живут ДВА поля строки
+ * («Изготовитель / поставщик», «Фасовка / Кол-во», «Условия хранения,
+ * срок») или значение — код, а не текст (органолептика). Правка на месте
+ * писала всю склейку в одно поле: данные портились и удлинялись с каждым
+ * заходом, а органолептика молча становилась «Соответствует» при любом
+ * написании, кроме «не соответ».
+ */
+function JournalCellOpensRow({
+  value,
+  onOpen,
+  disabled,
+}: {
+  value: string;
+  onOpen: () => void;
+  disabled?: boolean;
+}) {
+  const text = value.trim();
+  if (disabled) {
+    return (
+      <div className="min-h-7 px-1.5 py-[5px] text-[12.5px] leading-[1.35] text-[#0b1024]">
+        {text}
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title="Нажмите, чтобы открыть окно записи"
+      className="block min-h-7 w-full rounded-md px-1.5 py-[5px] text-left text-[12.5px] leading-[1.35] text-[#0b1024] transition-colors duration-150 hover:bg-[#f5f6ff] focus-visible:bg-[#f5f6ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+    >
+      {text || <span className="text-[#9b9fb3]">—</span>}
+    </button>
+  );
+}
+
 export function PerishableRejectionDocumentClient({
   documentId,
   title,
@@ -437,6 +476,16 @@ export function PerishableRejectionDocumentClient({
     onChange: (next) => applyConfig((prev) => withColumns(prev, next), true),
   });
 
+  /**
+   * «Закончить журнал». Штамп даты закрытия кладём в конфиг ДО PATCH со
+   * статусом: закрытый документ править уже нельзя, а в шапке бланка
+   * раньше печаталась дата начала.
+   */
+  async function closeJournal() {
+    applyConfig((prev) => ({ ...prev, finishedAt: localDayKey() }), true);
+    await closeAction.closeDocument();
+  }
+
   function updateRow(id: string, patch: Partial<PerishableRejectionRow>) {
     applyConfig((prev) => ({
       ...prev,
@@ -600,9 +649,12 @@ export function PerishableRejectionDocumentClient({
   async function saveDraftRow() {
     if (readOnly) return;
     const user = users.find((u) => u.id === draftUserId);
+    // Сотрудника в списке может не быть (уволен, ФИО вписано руками) —
+    // тогда сохраняем то, что уже стояло в строке, иначе ФИО стиралось
+    // и оставалась одна должность.
     const responsible = user
       ? `${user.name}, ${draftPosition}`
-      : draftPosition;
+      : draftRow.responsiblePerson.trim() || draftPosition;
     const nextRow = { ...draftRow, responsiblePerson: responsible };
     const rowId = editingRowId;
     applyConfig(
@@ -782,7 +834,7 @@ export function PerishableRejectionDocumentClient({
                   key: "close-journal",
                   label: "Закончить журнал",
                   icon: <Archive className="size-4" />,
-                  onSelect: () => void closeAction.closeDocument(),
+                  onSelect: () => void closeJournal(),
                   disabled: closeAction.isClosing,
                 },
               ]
@@ -828,7 +880,7 @@ export function PerishableRejectionDocumentClient({
               orgName={organizationName}
               title="ЖУРНАЛ БРАКЕРАЖА СКОРОПОРТЯЩЕЙСЯ ПИЩЕВОЙ ПРОДУКЦИИ"
               startedAt={dateFrom}
-              finishedAt={readOnly ? dateFrom : null}
+              finishedAt={readOnly ? config.finishedAt || dateFrom : null}
               controlPeriodicity={controlPeriodicity}
               orgCellClass="w-[18%]"
               sideCellClass="w-[20%]"
@@ -1060,30 +1112,24 @@ export function PerishableRejectionDocumentClient({
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("manufacturer") ? "" : " hidden"}`}>
-                    <JournalCellInput
+                    <JournalCellOpensRow
                       value={
                         [row.manufacturer, row.supplier]
                           .filter(Boolean)
                           .join(" / ") || ""
                       }
-                      onChange={(e) =>
-                        updateRow(row.id, { manufacturer: e.target.value })
-                      }
-                      onBlur={flushConfigSave}
+                      onOpen={() => openEditRow(row)}
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("packaging") ? "" : " hidden"}`}>
-                    <JournalCellInput
+                    <JournalCellOpensRow
                       value={
                         [row.packaging, row.quantity]
                           .filter(Boolean)
                           .join(" / ") || ""
                       }
-                      onChange={(e) =>
-                        updateRow(row.id, { packaging: e.target.value })
-                      }
-                      onBlur={flushConfigSave}
+                      onOpen={() => openEditRow(row)}
                       disabled={readOnly}
                     />
                   </td>
@@ -1100,31 +1146,19 @@ export function PerishableRejectionDocumentClient({
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight`}>
-                    <JournalCellInput
+                    <JournalCellOpensRow
                       value={
                         ORGANOLEPTIC_LABELS[row.organolepticResult] ||
                         row.organolepticResult
                       }
-                      onChange={(e) =>
-                        updateRow(row.id, {
-                          organolepticResult: e.target.value
-                            .toLowerCase()
-                            .includes("не соответ")
-                            ? "non_compliant"
-                            : "compliant",
-                        })
-                      }
-                      onBlur={flushConfigSave}
+                      onOpen={() => openEditRow(row)}
                       disabled={readOnly}
                     />
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("storage") ? "" : " hidden"}`}>
-                    <JournalCellInput
+                    <JournalCellOpensRow
                       value={`${STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition}, ${row.expiryDate}`}
-                      onChange={(e) =>
-                        updateRow(row.id, { expiryDate: e.target.value })
-                      }
-                      onBlur={flushConfigSave}
+                      onOpen={() => openEditRow(row)}
                       disabled={readOnly}
                     />
                   </td>

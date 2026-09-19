@@ -46,6 +46,11 @@ import { useMobileView } from "@/lib/use-mobile-view";
 import { toast } from "sonner";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { ORG_NAME_FALLBACK } from "@/lib/journal-constants";
+import { confirmAsync } from "@/components/ui/confirm-async";
+import {
+  NO_ROW_EMPLOYEE_MESSAGE,
+  useRosterViewerId,
+} from "@/components/journals/use-roster-viewer";
 
 /* ─── Types ─── */
 
@@ -58,6 +63,8 @@ type Props = {
   status: string;
   dateFrom: string;
   users: UserItem[];
+  /** Ответственный документа — на него пишется запись отметок. */
+  responsibleUserId?: string | null;
   config: SdcConfig;
   initialEntries: { id: string; date: string; data: SdcEntryData }[];
   routeCode: string;
@@ -112,21 +119,40 @@ function SettingsDialog(props: {
   documentId: string;
   title: string;
   dateFrom: string;
-  onSaved: () => void;
+  users: UserItem[];
+  config: SdcConfig;
+  onSaved: (config: SdcConfig) => void;
   useV2?: boolean;
 }) {
   const [docTitle, setDocTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
+  const [responsibleName, setResponsibleName] = useState(
+    props.config.responsibleName
+  );
+  const [checkerName, setCheckerName] = useState(props.config.checkerName);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!props.open) return;
     setDocTitle(props.title);
     setDateFrom(props.dateFrom);
-  }, [props.open, props.title, props.dateFrom]);
+    setResponsibleName(props.config.responsibleName);
+    setCheckerName(props.config.checkerName);
+  }, [
+    props.open,
+    props.title,
+    props.dateFrom,
+    props.config.responsibleName,
+    props.config.checkerName,
+  ]);
 
   async function handleSave() {
     setSubmitting(true);
+    const nextConfig: SdcConfig = {
+      ...props.config,
+      responsibleName,
+      checkerName,
+    };
     try {
       await requestJson(`/api/journal-documents/${props.documentId}`, {
         method: "PATCH",
@@ -134,10 +160,11 @@ function SettingsDialog(props: {
         body: JSON.stringify({
           title: docTitle.trim() || props.title,
           dateFrom,
+          config: nextConfig,
         }),
       });
       props.onOpenChange(false);
-      props.onSaved();
+      props.onSaved(nextConfig);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Ошибка сохранения"
@@ -146,6 +173,51 @@ function SettingsDialog(props: {
       setSubmitting(false);
     }
   }
+
+  // «Выполнил» и «Проверил» — из сотрудников организации; на бланке и в PDF
+  // печатается имя, поэтому храним имя (совместимо со старыми документами).
+  const peopleSelects = (
+    <>
+      <div className="space-y-1">
+        <Label className="text-[16px] text-[#6f7282]">Выполнил</Label>
+        <Select
+          value={responsibleName || "__none__"}
+          onValueChange={(v) => setResponsibleName(v === "__none__" ? "" : v)}
+        >
+          <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]">
+            <SelectValue placeholder="- Не выбран -" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">- Не выбран -</SelectItem>
+            {props.users.map((user) => (
+              <SelectItem key={user.id} value={user.name}>
+                {user.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-[16px] text-[#6f7282]">Проверил</Label>
+        <Select
+          value={checkerName || "__none__"}
+          onValueChange={(v) => setCheckerName(v === "__none__" ? "" : v)}
+        >
+          <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]">
+            <SelectValue placeholder="- Не выбран -" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">- Не выбран -</SelectItem>
+            {props.users.map((user) => (
+              <SelectItem key={user.id} value={user.name}>
+                {user.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
 
   if (props.useV2) {
     return (
@@ -180,6 +252,7 @@ function SettingsDialog(props: {
             className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
           />
         </div>
+        {peopleSelects}
       </JournalSettingsModal>
     );
   }
@@ -219,6 +292,7 @@ function SettingsDialog(props: {
               className="h-9 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]"
             />
           </div>
+          {peopleSelects}
           <div className="flex justify-end pt-1">
             <Button
               type="button"
@@ -387,11 +461,23 @@ function EditZonesDialog(props: {
   zones: SdcZone[];
   onSave: (zones: SdcZone[]) => void;
 }) {
-  const [zones, setZones] = useState<SdcZone[]>([]);
+  // Состояние окна — копия текущих зон. Раньше стартовало пустым списком,
+  // и «Закрыть» сохраняло пустоту, стирая весь чек-лист.
+  const [zones, setZones] = useState<SdcZone[]>(() =>
+    props.zones.map((zone) => ({ ...zone }))
+  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [newName, setNewName] = useState("");
+
+  useEffect(() => {
+    if (!props.open) return;
+    setZones(props.zones.map((zone) => ({ ...zone })));
+    setSelected(new Set());
+    setEditingId(null);
+    setNewName("");
+  }, [props.open, props.zones]);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -409,12 +495,27 @@ function EditZonesDialog(props: {
     setNewName("");
   }
 
-  function handleDeleteSelected() {
+  async function handleDeleteSelected() {
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные зоны?",
+      description: `Будет удалено зон: ${selected.size}. Вместе с зоной исчезнут её пункты чек-листа.`,
+      variant: "danger",
+      confirmLabel: "Удалить",
+    });
+    if (!confirmed) return;
     setZones((prev) => prev.filter((z) => !selected.has(z.id)));
     setSelected(new Set());
   }
 
-  function handleDeleteAll() {
+  async function handleDeleteAll() {
+    const confirmed = await confirmAsync({
+      title: "Удалить все зоны?",
+      description:
+        "Чек-лист станет пустым: исчезнут все зоны и все их пункты. Восстановить нельзя.",
+      variant: "danger",
+      confirmLabel: "Удалить всё",
+    });
+    if (!confirmed) return;
     setZones([]);
     setSelected(new Set());
   }
@@ -507,14 +608,14 @@ function EditZonesDialog(props: {
               <button
                 type="button"
                 className="text-[14px] font-medium text-[#ff3b30] hover:underline"
-                onClick={handleDeleteSelected}
+                onClick={() => void handleDeleteSelected()}
               >
                 Удалить
               </button>
               <button
                 type="button"
                 className="text-[14px] font-medium text-[#ff3b30] hover:underline"
-                onClick={handleDeleteAll}
+                onClick={() => void handleDeleteAll()}
               >
                 Удалить все
               </button>
@@ -543,7 +644,15 @@ function EditZonesDialog(props: {
             </Button>
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => props.onOpenChange(false)}
+              className="h-9 rounded-xl px-3.5 text-[13.5px] font-medium"
+            >
+              Отмена
+            </Button>
             <Button
               type="button"
               onClick={() => {
@@ -552,7 +661,7 @@ function EditZonesDialog(props: {
               }}
               className="h-9 rounded-xl bg-[#5863f8] px-3.5 text-[13.5px] font-medium text-white hover:bg-[#4b57f3]"
             >
-              Закрыть
+              Сохранить
             </Button>
           </div>
         </div>
@@ -653,6 +762,7 @@ export function SanitaryDayChecklistDocumentClient({
   status,
   dateFrom,
   users,
+  responsibleUserId,
   config: initialConfig,
   initialEntries,
   routeCode,
@@ -666,7 +776,15 @@ export function SanitaryDayChecklistDocumentClient({
     const entry = initialEntries[0];
     return entry ? normalizeSdcEntryData(entry.data).marks : {};
   });
-  const [checked, setChecked] = useState<Set<string>>(new Set());
+  // Отметки «выполнено» приходят с сервера: раньше жили только в useState
+  // и обнулялись на F5.
+  const [checked, setChecked] = useState<Set<string>>(() => {
+    const entry = initialEntries[0];
+    if (!entry) return new Set<string>();
+    const done = normalizeSdcEntryData(entry.data).done;
+    return new Set(Object.keys(done).filter((key) => done[key]));
+  });
+  const viewerId = useRosterViewerId(users);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addItemOpen, setAddItemOpen] = useState(false);
@@ -722,65 +840,82 @@ export function SanitaryDayChecklistDocumentClient({
    * `silent` — вызов из истории: нового шага не кладём и пробрасываем
    * ошибку наружу, чтобы протухший шаг вылетел из стека.
    */
-  const saveMarks = useCallback(
-    async (
-      newMarks: Record<string, string>,
-      options?: { silent?: boolean; previous?: Record<string, string> }
-    ) => {
-      const previousMarks = options?.previous ?? marks;
+  // Запись пишется на ответственного документа, иначе на вошедшего: такого
+  // сотрудника как "system" в организации нет, и сервер отвечал 404.
+  const entryEmployeeId =
+    (responsibleUserId && users.some((u) => u.id === responsibleUserId)
+      ? responsibleUserId
+      : "") || viewerId;
+
+  type Snapshot = {
+    marks: Record<string, string>;
+    done: Record<string, boolean>;
+  };
+
+  const saveEntry = useCallback(
+    async (next: Snapshot, options?: { silent?: boolean; previous?: Snapshot }) => {
+      const previous: Snapshot = options?.previous ?? {
+        marks,
+        done: Object.fromEntries([...checked].map((id) => [id, true])),
+      };
+      if (!entryEmployeeId) {
+        toast.error(NO_ROW_EMPLOYEE_MESSAGE);
+        setMarks(previous.marks);
+        setChecked(new Set(Object.keys(previous.done)));
+        return;
+      }
       try {
         await requestJson(`/api/journal-documents/${documentId}/entries`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            employeeId: "system",
+            employeeId: entryEmployeeId,
             date: entryDate,
-            data: { marks: newMarks },
+            data: { marks: next.marks, done: next.done },
           }),
         });
         if (!options?.silent) {
           undoStack.push({
             undo: () => {
-              setMarks(previousMarks);
-              return saveMarks(previousMarks, {
-                silent: true,
-                previous: newMarks,
-              });
+              setMarks(previous.marks);
+              setChecked(new Set(Object.keys(previous.done)));
+              return saveEntry(previous, { silent: true, previous: next });
             },
             redo: () => {
-              setMarks(newMarks);
-              return saveMarks(newMarks, {
-                silent: true,
-                previous: previousMarks,
-              });
+              setMarks(next.marks);
+              setChecked(new Set(Object.keys(next.done)));
+              return saveEntry(next, { silent: true, previous });
             },
           });
         }
       } catch (error) {
-        setMarks(previousMarks);
+        setMarks(previous.marks);
+        setChecked(new Set(Object.keys(previous.done)));
         if (options?.silent) throw error;
         toast.error(
           error instanceof Error ? error.message : "Ошибка сохранения"
         );
       }
     },
-    [documentId, entryDate, marks, undoStack]
+    [documentId, entryDate, entryEmployeeId, marks, checked, undoStack]
   );
 
   // Handlers
   function handleToggleCheck(itemId: string) {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) next.delete(itemId);
-      else next.add(itemId);
-      return next;
-    });
+    const nextDone = Object.fromEntries([...checked].map((id) => [id, true]));
+    if (checked.has(itemId)) delete nextDone[itemId];
+    else nextDone[itemId] = true;
+    setChecked(new Set(Object.keys(nextDone)));
+    void saveEntry({ marks, done: nextDone });
   }
 
   function handleTimeChange(itemId: string, time: string) {
     const newMarks = { ...marks, [itemId]: time };
     setMarks(newMarks);
-    saveMarks(newMarks);
+    void saveEntry({
+      marks: newMarks,
+      done: Object.fromEntries([...checked].map((id) => [id, true])),
+    });
   }
 
   function handleAddItem(zoneId: string, text: string) {
@@ -1076,7 +1211,12 @@ export function SanitaryDayChecklistDocumentClient({
         documentId={documentId}
         title={documentTitle}
         dateFrom={entryDate}
-        onSaved={() => router.refresh()}
+        users={users}
+        config={config}
+        onSaved={(nextConfig) => {
+          setConfig(nextConfig);
+          router.refresh();
+        }}
         useV2={useV2}
       />
       {addItemOpen && (

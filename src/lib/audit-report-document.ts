@@ -1,3 +1,5 @@
+import { localDayKey } from "@/lib/entry-defaults";
+
 export const AUDIT_REPORT_TEMPLATE_CODE = "audit_report";
 export const AUDIT_REPORT_SOURCE_SLUG = "auditreport";
 export const AUDIT_REPORT_DOCUMENT_TITLE = "Отчет о внутреннем аудите";
@@ -59,7 +61,7 @@ export function createAuditReportFinding(
     correctiveActions: params?.correctiveActions || "",
     responsibleName: params?.responsibleName || "",
     responsiblePosition: params?.responsiblePosition || "",
-    dueDatePlan: params?.dueDatePlan || new Date().toISOString().slice(0, 10),
+    dueDatePlan: params?.dueDatePlan || localDayKey(),
     dueDateFact: params?.dueDateFact || "",
   };
 }
@@ -72,12 +74,13 @@ export function createAuditReportSignature(
     role: params?.role || "",
     name: params?.name || "",
     position: params?.position || "",
-    signedAt: params?.signedAt || new Date().toISOString().slice(0, 10),
+    signedAt: params?.signedAt || localDayKey(),
   };
 }
 
 export function getDefaultAuditReportConfig(): AuditReportConfig {
-  const documentDate = new Date().toISOString().slice(0, 10);
+  // Местная дата, а не UTC: ночью документ создавался вчерашним числом.
+  const documentDate = localDayKey();
   return {
     documentDate,
     auditType: "planned",

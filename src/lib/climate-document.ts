@@ -143,6 +143,27 @@ export function isClimateValueOutOfRange(
  * строку из корректирующих действий сразу, без перезагрузки страницы, а
  * заново вышедшее за норму — возвращает.
  */
+/**
+ * Сколько внесённых замеров пропадёт, если убрать помещение из документа.
+ * Нужно для подтверждения удаления: раньше удаление молча вычищало
+ * значения во всех днях периода.
+ */
+export function countClimateRoomValues(
+  entries: Array<{ data: { measurements?: Record<string, Record<string, ClimateMeasurement>> } }>,
+  roomId: string
+): number {
+  let total = 0;
+  for (const entry of entries) {
+    const byTime = entry.data?.measurements?.[roomId];
+    if (!byTime) continue;
+    for (const measurement of Object.values(byTime)) {
+      if (typeof measurement?.temperature === "number") total += 1;
+      if (typeof measurement?.humidity === "number") total += 1;
+    }
+  }
+  return total;
+}
+
 export function collectClimateDeviations(
   config: ClimateDocumentConfig,
   rows: Array<{ id: string; date: string; data: ClimateEntryData }>,

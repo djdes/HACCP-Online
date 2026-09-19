@@ -89,17 +89,11 @@ export function getDefaultEquipmentCalibrationConfig(
     approveRole: "Управляющий",
     approveEmployeeId: null,
     approveEmployee: "",
-    rows: [
-      createCalibrationRow({
-        equipmentName: "Весы платформенные 012-В",
-        equipmentNumber: "11231411",
-        location: "склад",
-        purpose: "Масса, кг",
-        measurementRange: "20...500 кг",
-        calibrationInterval: 12,
-        lastCalibrationDate: "2022-10-14",
-      }),
-    ],
+    // ПОЧЕМУ пусто: журнал предъявляют инспектору. Раньше здесь лежали
+    // выдуманные «Весы платформенные 012-В» с датой поверки — запись о
+    // приборе и поверке, которых у организации нет. Строки приходят из
+    // справочника оборудования, иначе их заводит человек.
+    rows: [],
   };
 
   if (equipment.length === 0) {

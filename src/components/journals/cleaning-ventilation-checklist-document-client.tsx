@@ -37,6 +37,7 @@ import {
   getMonthBoundsFromDate,
   normalizeCleaningVentilationConfig,
   normalizeCleaningVentilationEntryData,
+  toLocalIsoDate,
   type CleaningVentilationChecklistConfig,
   type CleaningVentilationChecklistEntryData,
   type CleaningVentilationResponsible,
@@ -212,6 +213,9 @@ async function requestJson(url: string, init: RequestInit) {
 const CHECKLIST_TIME_TRIGGER_CLASS =
   "h-9 w-[64px] justify-between rounded-lg border-[#dcdfed] bg-white px-2 text-[13px]";
 
+/** Значение «слот пустой» для Radix Select — пустая строка запрещена. */
+const TIME_EMPTY = "__empty__";
+
 function TimeSelect({
   value,
   onChange,
@@ -221,19 +225,26 @@ function TimeSelect({
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
-  const [hour = "00", minute = "00"] = value.split(":");
+  // Пустой слот больше не притворяется «00:00»: иначе незаполненное время
+  // выглядело как реальный замер и его нельзя было стереть.
+  const [hour = "", minute = ""] = value ? value.split(":") : [];
 
   return (
     <div className="flex items-center justify-center gap-1.5">
       <Select
-        value={hour}
-        onValueChange={(nextHour) => onChange(`${nextHour}:${minute}`)}
+        value={hour || TIME_EMPTY}
+        onValueChange={(nextHour) =>
+          onChange(
+            nextHour === TIME_EMPTY ? "" : `${nextHour}:${minute || "00"}`
+          )
+        }
         disabled={disabled}
       >
         <SelectTrigger className={CHECKLIST_TIME_TRIGGER_CLASS}>
-          <SelectValue />
+          <SelectValue placeholder="—" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value={TIME_EMPTY}>—</SelectItem>
           {HOURS.map((item) => (
             <SelectItem key={item} value={item}>
               {item}
@@ -242,14 +253,19 @@ function TimeSelect({
         </SelectContent>
       </Select>
       <Select
-        value={minute}
-        onValueChange={(nextMinute) => onChange(`${hour}:${nextMinute}`)}
+        value={minute || TIME_EMPTY}
+        onValueChange={(nextMinute) =>
+          onChange(
+            nextMinute === TIME_EMPTY ? "" : `${hour || "00"}:${nextMinute}`
+          )
+        }
         disabled={disabled}
       >
         <SelectTrigger className={CHECKLIST_TIME_TRIGGER_CLASS}>
-          <SelectValue />
+          <SelectValue placeholder="—" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value={TIME_EMPTY}>—</SelectItem>
           {MINUTES.map((item) => (
             <SelectItem key={item} value={item}>
               {item}
@@ -699,14 +715,33 @@ export function CleaningVentilationChecklistDocumentClient({
   );
   const [entryMap, setEntryMap] = useState<
     Record<string, { id?: string; data: CleaningVentilationChecklistEntryData }>
-  >(() =>
-    Object.fromEntries(
-      initialEntries.map((entry) => [
-        entry.date,
-        { id: entry.id, data: normalizeCleaningVentilationEntryData(entry.data) },
-      ])
-    )
-  );
+  >(() => {
+    // Уникальность в БД — (документ, сотрудник, дата), а карта ключуется
+    // только по дате: несколько записей за один день надо СЛИВАТЬ,
+    // иначе отметки коллег просто пропадали с экрана.
+    const map: Record<
+      string,
+      { id?: string; data: CleaningVentilationChecklistEntryData }
+    > = {};
+    for (const entry of initialEntries) {
+      const data = normalizeCleaningVentilationEntryData(entry.data);
+      const existing = map[entry.date];
+      if (!existing) {
+        map[entry.date] = { id: entry.id, data };
+        continue;
+      }
+      map[entry.date] = {
+        id: existing.id,
+        data: {
+          ...existing.data,
+          procedures: { ...existing.data.procedures, ...data.procedures },
+          responsibleUserId:
+            existing.data.responsibleUserId || data.responsibleUserId,
+        },
+      };
+    }
+    return map;
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const copyYesterday = useCopyYesterdayAction(documentId);
   const [responsibleDialogOpen, setResponsibleDialogOpen] = useState(false);
@@ -754,7 +789,13 @@ export function CleaningVentilationChecklistDocumentClient({
           dateKey,
           procedures: activeProcedures.map((procedure) => ({
             ...procedure,
-            times: entry?.procedures[procedure.id] || procedure.times,
+            // Без записи слот пустой. Раньше подставлялось ПЛАНОВОЕ время
+            // из конфига, и пустой документ печатался заполненным за весь
+            // месяц, включая будущие даты.
+            times: entry?.procedures[procedure.id] ?? [],
+            // Сколько замеров положено по плану — для розовой подсветки
+            // незаполненных слотов (в сами ячейки план НЕ подставляем).
+            plannedCount: procedure.times.filter(Boolean).length,
             responsibleUserId:
               entry?.responsibleUserId ||
               procedure.responsibleUserId ||
@@ -798,13 +839,20 @@ export function CleaningVentilationChecklistDocumentClient({
 
   const persistConfig = async (
     nextConfig: CleaningVentilationChecklistConfig,
-    options?: { title?: string; dateFrom?: string }
+    options?: { title?: string; dateFrom?: string; dateTo?: string }
   ) => {
     const safeConfig = normalizeCleaningVentilationConfig(nextConfig, users);
     const nextDateFrom = options?.dateFrom || dateFrom;
     // V1: дату начала не выравниваем по первому числу месяца — иначе
     // документ, начатый 10.08, снова расползался бы на весь август.
-    const monthBounds = getMonthBoundsFromDate(nextDateFrom);
+    const bounds = getMonthBoundsFromDate(nextDateFrom);
+    // Ручная дата может выйти за конец месяца — тогда период расширяем.
+    const monthBounds = {
+      dateTo:
+        options?.dateTo && options.dateTo > bounds.dateTo
+          ? options.dateTo
+          : bounds.dateTo,
+    };
     await requestJson(`/api/journal-documents/${documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -813,6 +861,9 @@ export function CleaningVentilationChecklistDocumentClient({
         dateFrom: nextDateFrom,
         dateTo: monthBounds.dateTo,
         config: safeConfig,
+        // Cron смотрит колонку JournalDocument.autoFill, а тумблер писал
+        // только config.autoFillEnabled — держим оба в одном состоянии.
+        autoFill: safeConfig.autoFillEnabled,
       }),
     });
     setConfig(safeConfig);
@@ -829,10 +880,12 @@ export function CleaningVentilationChecklistDocumentClient({
     nextData: CleaningVentilationChecklistEntryData,
     options?: { silent?: boolean }
   ) => {
-    // Запись — на выбранного ответственного, иначе на вошедшего. «Первого
-    // в списке» не берём: запись ушла бы от случайного человека.
+    // Запись пишется на ТОГО, КТО ЗАПОЛНЯЕТ. Раньше уходила на
+    // mainResponsibleUserId (управляющую), и сервер отвечал рядовому
+    // сотруднику «Можно заполнять только свою строку». Ответственный за
+    // процедуру остаётся в data.responsibleUserId и печатается на бланке.
     const employeeId =
-      nextData.responsibleUserId || config.mainResponsibleUserId || viewerId;
+      viewerId || nextData.responsibleUserId || config.mainResponsibleUserId;
     if (!employeeId) {
       toast.error(NO_ROW_EMPLOYEE_MESSAGE);
       return;
@@ -877,9 +930,13 @@ export function CleaningVentilationChecklistDocumentClient({
     values: CardEditValues
   ) => {
     const existing = entryMap[dateKey]?.data || { procedures: {} };
-    const nextTimes = procedure.times
-      .map((_, index) => String(values[`time${index}`] ?? ""))
-      .filter(Boolean);
+    // Позиции слотов не сдвигаем — только обрезаем пустой хвост.
+    const nextTimes = [0, 1, 2].map((index) =>
+      String(values[`time${index}`] ?? "")
+    );
+    while (nextTimes.length > 0 && !nextTimes[nextTimes.length - 1]) {
+      nextTimes.pop();
+    }
     setEditingProcedure(null);
     await persistEntry(dateKey, {
       procedures: {
@@ -900,16 +957,21 @@ export function CleaningVentilationChecklistDocumentClient({
     value: string
   ) => {
     const existing = entryMap[dateKey]?.data || { procedures: {} };
-    const sourceTimes =
-      existing.procedures[procedure.id] ||
-      config.procedures.find((item) => item.id === procedure.id)?.times ||
-      [];
+    // Источник — только запись: плановые времена из конфига подставлять
+    // нельзя (иначе пустой документ «заполняется» сам).
+    const sourceTimes = existing.procedures[procedure.id] || [];
     const nextTimes = [...sourceTimes];
+    while (nextTimes.length <= timeIndex) nextTimes.push("");
     nextTimes[timeIndex] = value;
+    // Позиции слотов сохраняем: filter(Boolean) сдвигал «Время 3»
+    // во «Время 2», стоило очистить второй слот. Убираем только хвост.
+    while (nextTimes.length > 0 && !nextTimes[nextTimes.length - 1]) {
+      nextTimes.pop();
+    }
     await persistEntry(dateKey, {
       procedures: {
         ...existing.procedures,
-        [procedure.id]: nextTimes.filter(Boolean),
+        [procedure.id]: nextTimes,
       },
       responsibleUserId:
         existing.responsibleUserId || procedure.responsibleUserId || config.mainResponsibleUserId,
@@ -945,12 +1007,20 @@ export function CleaningVentilationChecklistDocumentClient({
     const lastDate = existingDates[existingDates.length - 1] || dateFrom;
     const nextDate = new Date(`${lastDate}T00:00:00`);
     nextDate.setDate(nextDate.getDate() + 1);
-    const nextIso = nextDate.toISOString().slice(0, 10);
-    await persistConfig({
-      ...config,
-      hiddenDates: config.hiddenDates.filter((item) => item !== nextIso),
-      customDates: [...new Set([...config.customDates, nextIso])],
-    });
+    // Местная дата: toISOString() в МСК откатывал день назад, и «Добавить»
+    // всегда пыталось добавить уже существующую дату — кнопка не работала.
+    const nextIso = toLocalIsoDate(nextDate);
+    // Новая дата может выйти за конец месяца документа — тогда расширяем
+    // период, иначе запись за неё не сохранить.
+    const monthEnd = getMonthBoundsFromDate(dateFrom).dateTo;
+    await persistConfig(
+      {
+        ...config,
+        hiddenDates: config.hiddenDates.filter((item) => item !== nextIso),
+        customDates: [...new Set([...config.customDates, nextIso])],
+      },
+      nextIso > monthEnd ? { dateTo: nextIso } : undefined
+    );
   };
 
   return (
@@ -1524,7 +1594,14 @@ export function CleaningVentilationChecklistDocumentClient({
                       {[0, 1, 2].map((timeIndex) => (
                         <td
                           key={`${row.dateKey}-${procedure.id}-${timeIndex}`}
-                          className="border-b border-r border-[#333] print:border-black px-2 py-1 leading-tight"
+                          className={`border-b border-r border-[#333] print:border-black px-2 py-1 leading-tight ${
+                            // Незаполненный слот — розовая заливка: инспектор
+                            // сразу видит недооформленный документ.
+                            timeIndex < procedure.plannedCount &&
+                            !procedure.times[timeIndex]
+                              ? CHECKLIST_EMPTY_CELL_CLASS
+                              : ""
+                          }`}
                         >
                           {/* Q2-10: на бумаге печатаем ФАКТИЧЕСКОЕ время
                               и ничего, если его нет. Селект подставляет
@@ -1536,7 +1613,7 @@ export function CleaningVentilationChecklistDocumentClient({
                           </span>
                           <span className="print:hidden">
                             <TimeSelect
-                              value={procedure.times[timeIndex] || "00:00"}
+                              value={procedure.times[timeIndex] || ""}
                               disabled={!isActive}
                               onChange={(value) => {
                                 updateProcedureTime(row.dateKey, procedure, timeIndex, value).catch(

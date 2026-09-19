@@ -78,11 +78,12 @@ export function RecordCardsView({
         const bodyFields = item.fields.filter(
           (f) => !f.header && !(f.hideIfEmpty && isEmpty(f.value))
         );
-        // Show expand/collapse behaviour only when:
-        //   - there are body fields to reveal, AND
-        //   - item.onClick is NOT set (if it is, tapping the card fires
-        //     the edit dialog directly, mirroring table row-click)
-        const canExpand = !item.onClick && bodyFields.length > 0;
+        // Раскрытие есть всегда, когда есть что показать. Раньше при заданном
+        // `item.onClick` тело не рендерилось вовсе: с телефона нельзя было
+        // просто ПОСМОТРЕТЬ запись (органолептика, срок, ответственный) —
+        // только открыть форму правки. Теперь тап по карточке раскрывает её,
+        // а правка — отдельной кнопкой «изменить».
+        const canExpand = bodyFields.length > 0;
 
         return (
           <div
@@ -101,17 +102,13 @@ export function RecordCardsView({
               <button
                 type="button"
                 onClick={() => {
-                  // Row-dialog journals (accident, complaint, etc.) pass
-                  // item.onClick — tapping the card opens the edit form
-                  // directly, matching table row-click behaviour. Per-cell
-                  // journals (staff_training) leave onClick undefined and
-                  // rely on expand → per-field taps instead.
-                  if (item.onClick) {
-                    item.onClick();
-                  } else {
+                  if (canExpand) {
                     setExpanded(isExpanded ? null : item.id);
+                  } else {
+                    item.onClick?.();
                   }
                 }}
+                aria-expanded={canExpand ? isExpanded : undefined}
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
               >
                 <div className="min-w-0 flex-1">
@@ -143,12 +140,17 @@ export function RecordCardsView({
                       isExpanded ? "rotate-180" : ""
                     }`}
                   />
-                ) : item.onClick ? (
-                  <span className="shrink-0 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[10px] font-semibold text-[#5566f6]">
-                    изменить
-                  </span>
                 ) : null}
               </button>
+              {item.onClick ? (
+                <button
+                  type="button"
+                  onClick={item.onClick}
+                  className="shrink-0 rounded-full bg-[#f5f6ff] px-3 py-1.5 text-[12px] font-semibold text-[#5566f6] transition-colors duration-150 hover:bg-[#eef1ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                >
+                  изменить
+                </button>
+              ) : null}
             </div>
             {isExpanded && canExpand ? (
               <div className="space-y-2 border-t border-[#ececf4] p-3 text-[13px]">

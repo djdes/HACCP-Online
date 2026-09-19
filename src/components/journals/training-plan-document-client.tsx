@@ -929,9 +929,55 @@ export function TrainingPlanDocumentClient({
         initial={settingsState}
         useV2={useV2}
         onSubmit={async (value) => {
+          const nextYear = Number(value.year);
+          // Даты ячеек хранятся как `MM.YY`: при смене года они оставались
+          // от прошлого, и план на новый год печатался старыми датами.
+          const oldSuffix = String(normalized.year).slice(-2);
+          const newSuffix = String(nextYear).slice(-2);
+          let rows = normalized.rows;
+          if (nextYear !== normalized.year && oldSuffix !== newSuffix) {
+            const stale = normalized.rows.reduce(
+              (count, row) =>
+                count +
+                Object.values(row.cells).filter((cell) =>
+                  cell.date.endsWith(`.${oldSuffix}`)
+                ).length,
+              0
+            );
+            if (stale > 0) {
+              const confirmed = await confirmAsync({
+                title: `Перенести даты на ${nextYear} год?`,
+                description:
+                  "Месяцы останутся прежними, поменяется только год в датах ячеек.",
+                variant: "info",
+                confirmLabel: "Перенести",
+                bullets: [
+                  { label: `Дат будет обновлено: ${stale}`, tone: "info" },
+                  {
+                    label: "Отказ оставит в плане даты прошлого года",
+                    tone: "warn",
+                  },
+                ],
+              });
+              if (confirmed) {
+                rows = normalized.rows.map((row) => ({
+                  ...row,
+                  cells: Object.fromEntries(
+                    Object.entries(row.cells).map(([key, cell]) => [
+                      key,
+                      cell.date.endsWith(`.${oldSuffix}`)
+                        ? { ...cell, date: `${cell.date.slice(0, 3)}${newSuffix}` }
+                        : cell,
+                    ])
+                  ),
+                }));
+              }
+            }
+          }
           const nextConfig = normalizeTrainingPlanConfig({
             ...normalized,
-            year: Number(value.year),
+            rows,
+            year: nextYear,
             documentDate: value.documentDate,
             approveRole: value.approveRole,
             approveEmployeeId: value.approveEmployeeId || null,

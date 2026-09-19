@@ -189,6 +189,21 @@ function TrackedDocumentClientImpl({
     title: formatDateLabel(entry.date),
     subtitle: employeeMap[entry.employeeId]?.name || "",
     onClick: status === "active" ? () => setEditingEntryId(entry.id) : undefined,
+    // Без чекбокса строку нельзя было выделить и удалить с телефона.
+    leading:
+      status === "active" ? (
+        <Checkbox
+          checked={selectedRowIds.includes(entry.id)}
+          onCheckedChange={(checked) =>
+            setSelectedRowIds((current) =>
+              checked === true
+                ? [...new Set([...current, entry.id])]
+                : current.filter((id) => id !== entry.id)
+            )
+          }
+          className="size-5"
+        />
+      ) : null,
     fields: fields.map((field) => {
       const value = entry.data[field.key];
       return {
@@ -292,6 +307,9 @@ function TrackedDocumentClientImpl({
 
   async function saveEntry(nextEntry: EntryItem, options?: { silent?: boolean }) {
     const previousEntry = entries.find((item) => item.id === nextEntry.id);
+    // Строка уже существует ⇒ шлём её id: сервер ПЕРЕНОСИТ запись, а не
+    // создаёт вторую с новой парой (сотрудник, дата).
+    const entryId = previousEntry ? nextEntry.id : undefined;
     // Generic-клиент обслуживает большинство документных журналов, и
     // заполняют их там же, где и работают — в цеху, на складе, у линии.
     // Без связи запись раньше просто терялась.
@@ -299,6 +317,7 @@ function TrackedDocumentClientImpl({
       method: "PUT",
       url: `/api/journal-documents/${documentId}/entries`,
       body: {
+        ...(entryId ? { entryId } : {}),
         employeeId: nextEntry.employeeId,
         date: nextEntry.date,
         data: nextEntry.data,
@@ -417,7 +436,15 @@ function TrackedDocumentClientImpl({
   }
 
   async function removeEntry(entryId: string) {
-    if (!window.confirm("Удалить строку?")) return;
+    if (
+      !(await confirmAsync({
+        title: "Удалить строку?",
+        description: "Запись исчезнет из журнала. Восстановить нельзя.",
+        variant: "danger",
+        confirmLabel: "Удалить",
+      }))
+    )
+      return;
 
     const response = await fetch(`/api/journal-documents/${documentId}/entries`, {
       method: "DELETE",
@@ -624,16 +651,21 @@ function TrackedDocumentClientImpl({
                       type="date"
                       defaultValue={entry.date}
                       className="h-10 rounded-xl border-[#dfe1ec]"
-                      onBlur={(event) =>
+                      onBlur={(event) => {
+                        // Поле неуправляемое: если сервер отверг перенос
+                        // (у сотрудника уже есть запись на эту дату),
+                        // возвращаем прежнюю дату руками.
+                        const input = event.currentTarget;
                         saveEntry({
                           ...entry,
-                          date: event.target.value,
-                        }).catch((error) =>
+                          date: input.value,
+                        }).catch((error) => {
+                          input.value = entry.date;
                           toast.error(
                             error instanceof Error ? error.message : "Ошибка сохранения"
-                          )
-                        )
-                      }
+                          );
+                        });
+                      }}
                     />
                   ) : (
                     <div className="px-2 py-2 text-[15px] text-black">

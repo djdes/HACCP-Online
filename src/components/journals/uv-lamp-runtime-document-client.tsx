@@ -25,8 +25,9 @@ import {
 } from "@/components/ui/select";
 import {
   buildUvRuntimeDocumentTitle,
-  calculateDurationMinutes,
+  calculateEntryDurationMinutes,
   calculateMonthlyHours,
+  listUvRuntimeSessions,
   CONTROL_FREQUENCY_OPTIONS,
   formatControlFrequencyLabel,
   formatMonthLabel,
@@ -1293,19 +1294,31 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     endTime: string;
     employeeId: string;
   }) {
-    const newRow: GridRow = {
-      id: `virtual:${data.date}:new`,
-      date: data.date,
-      employeeId: data.employeeId,
-      data: { startTime: data.startTime, endTime: data.endTime },
-    };
+    const existing = rows.find((r) => r.date === data.date);
+    // Регламент допускает 2-3 сеанса в смену: вторая запись за ту же дату
+    // раньше молча затирала первую. Теперь она ДОПИСЫВАЕТСЯ сеансом.
+    const newRow: GridRow = existing
+      ? {
+          ...existing,
+          employeeId: data.employeeId,
+          data: {
+            ...existing.data,
+            extraSessions: [
+              ...(existing.data.extraSessions ?? []),
+              { startTime: data.startTime, endTime: data.endTime },
+            ],
+          },
+        }
+      : {
+          id: `virtual:${data.date}:new`,
+          date: data.date,
+          employeeId: data.employeeId,
+          data: { startTime: data.startTime, endTime: data.endTime },
+        };
 
     setRows((current) => {
-      const existing = current.find((r) => r.date === data.date);
       if (existing) {
-        return current.map((r) =>
-          r.date === data.date ? { ...r, data: newRow.data, employeeId: newRow.employeeId } : r
-        );
+        return current.map((r) => (r.date === data.date ? newRow : r));
       }
       const updated = [...current, newRow];
       updated.sort((a, b) => a.date.localeCompare(b.date));
@@ -1314,6 +1327,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
 
     try {
       await saveRow(newRow);
+      if (existing) toast.success("Добавлен ещё один сеанс за эту дату");
     } catch (error) {
       toast.error(rowSaveErrorMessage(error));
     }
@@ -1585,7 +1599,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       {mobileView === "cards" ? (
         <RecordCardsView
           items={rows.map((row, index) => {
-            const duration = calculateDurationMinutes(row.data.startTime, row.data.endTime);
+            const duration = calculateEntryDurationMinutes(row.data);
             return {
               id: row.id,
               title: `№${index + 1} · ${formatRuDateDash(row.date)}`,
@@ -1616,12 +1630,17 @@ export function UvLampRuntimeDocumentClient(props: Props) {
               fields: [
                 {
                   label: "Время ВКЛ",
-                  value: row.data.startTime || "",
+                  // Все сеансы дня, а не только первый.
+                  value: listUvRuntimeSessions(row.data)
+                    .map((s) => s.startTime || "—")
+                    .join(" · "),
                   warnIfEmpty: props.status === "active",
                 },
                 {
                   label: "Время ВЫКЛ",
-                  value: row.data.endTime || "",
+                  value: listUvRuntimeSessions(row.data)
+                    .map((s) => s.endTime || "—")
+                    .join(" · "),
                   warnIfEmpty: props.status === "active",
                 },
                 {
@@ -1715,7 +1734,7 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           </thead>
           <tbody>
             {rows.map((row, rowIndex) => {
-              const duration = calculateDurationMinutes(row.data.startTime, row.data.endTime);
+              const duration = calculateEntryDurationMinutes(row.data);
               return (
                 <tr
                   key={row.id}
@@ -1762,6 +1781,15 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                     ) : (
                       <span className="text-[14px] text-black">{row.data.startTime || "—"}</span>
                     )}
+                    {/* Второй и третий сеансы смены — под первым. */}
+                    {(row.data.extraSessions ?? []).map((session, i) => (
+                      <div
+                        key={`start-${row.id}-${i}`}
+                        className="mt-1 text-[13px] text-[#5b6075]"
+                      >
+                        {session.startTime || "—"}
+                      </div>
+                    ))}
                   </td>
                   <td className="border border-[#eceef5] px-2 py-1 text-center print:border-[#ccc] leading-tight">
                     {props.status === "active" ? (
@@ -1786,6 +1814,14 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                     ) : (
                       <span className="text-[14px] text-black">{row.data.endTime || "—"}</span>
                     )}
+                    {(row.data.extraSessions ?? []).map((session, i) => (
+                      <div
+                        key={`end-${row.id}-${i}`}
+                        className="mt-1 text-[13px] text-[#5b6075]"
+                      >
+                        {session.endTime || "—"}
+                      </div>
+                    ))}
                   </td>
                   <td className="border border-[#eceef5] px-2 py-1 text-center print:border-[#ccc] leading-tight">
                     <span className="text-[14px] text-black">{duration !== null ? duration : "—"}</span>

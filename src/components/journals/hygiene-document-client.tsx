@@ -93,6 +93,12 @@ type Props = {
   status: string;
   autoFill?: boolean;
   employees: { id: string; name: string; role: string }[];
+  /**
+   * Уволенные / архивные сотрудники, на которых ссылаются записи.
+   * ТОЛЬКО для отображения строки в бланке: в «Добавить сотрудника» и
+   * в выбор ответственного они не попадают.
+   */
+  inactiveEmployees?: { id: string; name: string; role: string }[];
   initialEntries: { employeeId: string; date: string; data: HygieneEntryData }[];
   /** Design v2 flag — пробрасывается в StaffJournalToolbar для v2-модалки. */
   useV2?: boolean;
@@ -303,6 +309,7 @@ export function HygieneDocumentClient({
   status,
   autoFill = false,
   employees,
+  inactiveEmployees = [],
   initialEntries,
   useV2 = false,
   pastDaysLocked = false,
@@ -369,8 +376,10 @@ export function HygieneDocumentClient({
   // ростер организации. Без этого fallback'а сетка рисовала 7 безымянных
   // строк-заглушек: «№ п/п», «Ф.И.О.» и «Должность» пустые у всех строк,
   // а чекбокс выделения не рендерился вовсе (он привязан к employee.name).
-  const matchedRosterUsers = employees.filter((employee) =>
-    includedEmployeeIds.includes(employee.id)
+  // Уволенных ищем ТОЖЕ: иначе их строка исчезала из журнала задним
+  // числом вместе со всеми отметками за прошлые месяцы.
+  const matchedRosterUsers = [...employees, ...inactiveEmployees].filter(
+    (employee) => includedEmployeeIds.includes(employee.id)
   );
   const rosterUsers = matchedRosterUsers.length > 0 ? matchedRosterUsers : employees;
   // Строк ровно столько, сколько сотрудников. Раньше бланк дорисовывал
@@ -759,6 +768,25 @@ export function HygieneDocumentClient({
   async function handleDeleteSelected() {
     if (!isActive || selectedEmployeeIds.length === 0) return;
 
+    // Удаление строки уносит все отметки сотрудника за период — без
+    // подтверждения это слишком дёшево для необратимого действия.
+    const marks = initialEntries.filter((entry) =>
+      selectedEmployeeIds.includes(entry.employeeId)
+    ).length;
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранных сотрудников из журнала?",
+      description:
+        "Строки исчезнут из бланка вместе со всеми отметками за период документа.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Строк сотрудников: ${selectedEmployeeIds.length}`, tone: "warn" },
+        { label: `Отметок будет удалено: ${marks}`, tone: "warn" },
+        { label: "Восстановить данные будет нельзя", tone: "warn" },
+      ],
+    });
+    if (!confirmed) return;
+
     setIsDeleting(true);
     try {
       await Promise.all(
@@ -769,6 +797,11 @@ export function HygieneDocumentClient({
             body: JSON.stringify({ employeeId }),
           })
         )
+      );
+      toast.success(
+        `Удалено: ${selectedEmployeeIds.length} ${
+          selectedEmployeeIds.length === 1 ? "строка" : "строк"
+        }, отметок: ${marks}`
       );
       setSelectedEmployeeIds([]);
       router.refresh();
@@ -849,16 +882,18 @@ export function HygieneDocumentClient({
     const key = makeCellKey(employeeId, dateKey);
     const current = normalizeHygieneEntryData(entryMap[key]);
 
-    const nextData: HygieneEntryData =
-      current.status === "healthy"
-        ? {
-            status: "healthy",
-            temperatureAbove37: current.temperatureAbove37 === true ? false : true,
-          }
-        : {
-            status: "healthy",
-            temperatureAbove37: false,
-          };
+    // Статус сотрудника за этот день сохраняем: клик по клетке
+    // температуры превращал «Отп»/«Б/л»/«В» в «Зд.» и стирал отметку.
+    // Та же семантика, что в `applyMenuTemperature`.
+    const nextData: HygieneEntryData = {
+      status: current.status ?? "healthy",
+      temperatureAbove37:
+        current.status === "healthy"
+          ? current.temperatureAbove37 === true
+            ? false
+            : true
+          : false,
+    };
 
     await persistEntry(employeeId, dateKey, nextData);
   }
@@ -1155,6 +1190,16 @@ export function HygieneDocumentClient({
           users={employees}
           includedEmployeeIds={includedEmployeeIds}
           routeCode={routeCode}
+          // Без этого пропа поле в «Настройках журнала» открывалось
+          // пустым и сохранение стирало строку из шапки и печати.
+          controlPeriodicity={controlPeriodicity}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          countOutsidePeriod={(from, to) =>
+            initialEntries.filter(
+              (entry) => entry.date < from || entry.date > to
+            ).length
+          }
           organizationName={organizationLabel}
           showHeaderActions
           useV2={useV2}

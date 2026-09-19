@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Trash2, X } from "lucide-react";
 import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
@@ -1216,35 +1216,90 @@ export function DisinfectantDocumentClient({
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Свежая пустая строка на каждое открытие «Добавить»: раньше объект
+  // пересоздавался на каждый рендер, а диалог держал первый — второе
+  // добавление уходило с уже использованным id.
+  const emptyReceipt = useMemo(
+    () =>
+      createEmptyReceipt(
+        normalized.responsibleRole,
+        normalized.responsibleEmployee,
+        normalized.responsibleEmployeeId
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      addRecOpen,
+      normalized.responsibleRole,
+      normalized.responsibleEmployee,
+      normalized.responsibleEmployeeId,
+    ]
+  );
+  const emptyConsumption = useMemo(
+    () =>
+      createEmptyConsumption(
+        normalized.responsibleRole,
+        normalized.responsibleEmployee,
+        normalized.responsibleEmployeeId
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      addConOpen,
+      normalized.responsibleRole,
+      normalized.responsibleEmployee,
+      normalized.responsibleEmployeeId,
+    ]
+  );
+
+  // Последнее локальное состояние + очередь: быстрые правки подряд раньше
+  // строили PATCH от серверного пропа и теряли друг друга.
+  const configRef = useRef(normalized);
+  useEffect(() => {
+    // Свежие серверные данные — начинаем от них.
+    configRef.current = normalized;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]);
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+
   async function patchConfig(
     nextConfig: DisinfectantDocumentConfig,
     nextTitle = title
   ) {
-    const response = await fetch(`/api/journal-documents/${documentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: nextTitle, config: nextConfig }),
+    const previousConfig = configRef.current;
+    configRef.current = nextConfig;
+    const run = saveChainRef.current.catch(() => {}).then(async () => {
+      const response = await fetch(`/api/journal-documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: nextTitle, config: nextConfig }),
+      });
+      if (!response.ok) {
+        configRef.current = previousConfig;
+        const body = await response.json().catch(() => null);
+        toast.error(
+          (body && typeof body.error === "string" && body.error) ||
+            "Не удалось сохранить документ"
+        );
+        return;
+      }
+      router.refresh();
     });
-    if (!response.ok) {
-      toast.error("Не удалось сохранить документ");
-      return;
-    }
-    router.refresh();
+    saveChainRef.current = run;
+    await run;
   }
 
   // --- Subdivision CRUD ---
   async function addSubdivision(row: SubdivisionRow) {
     await patchConfig({
-      ...normalized,
-      subdivisions: [...normalized.subdivisions, row],
+      ...configRef.current,
+      subdivisions: [...configRef.current.subdivisions, row],
     });
   }
 
   async function updateSubdivision(row: SubdivisionRow) {
-    const next = normalized.subdivisions.map((s) =>
+    const next = configRef.current.subdivisions.map((s) =>
       s.id === row.id ? row : s
     );
-    await patchConfig({ ...normalized, subdivisions: next });
+    await patchConfig({ ...configRef.current, subdivisions: next });
   }
 
   async function deleteSelectedSubs() {
@@ -1263,24 +1318,24 @@ export function DisinfectantDocumentClient({
       }))
     )
       return;
-    const next = normalized.subdivisions.filter(
+    const next = configRef.current.subdivisions.filter(
       (s) => !selectedSubIds.includes(s.id)
     );
     setSelectedSubIds([]);
-    await patchConfig({ ...normalized, subdivisions: next });
+    await patchConfig({ ...configRef.current, subdivisions: next });
   }
 
   // --- Receipt CRUD ---
   async function addReceipt(row: ReceiptRow) {
     await patchConfig({
-      ...normalized,
-      receipts: [...normalized.receipts, row],
+      ...configRef.current,
+      receipts: [...configRef.current.receipts, row],
     });
   }
 
   async function updateReceipt(row: ReceiptRow) {
-    const next = normalized.receipts.map((r) => (r.id === row.id ? row : r));
-    await patchConfig({ ...normalized, receipts: next });
+    const next = configRef.current.receipts.map((r) => (r.id === row.id ? row : r));
+    await patchConfig({ ...configRef.current, receipts: next });
   }
 
   async function deleteSelectedReceipts() {
@@ -1299,26 +1354,26 @@ export function DisinfectantDocumentClient({
       }))
     )
       return;
-    const next = normalized.receipts.filter(
+    const next = configRef.current.receipts.filter(
       (r) => !selectedRecIds.includes(r.id)
     );
     setSelectedRecIds([]);
-    await patchConfig({ ...normalized, receipts: next });
+    await patchConfig({ ...configRef.current, receipts: next });
   }
 
   // --- Consumption CRUD ---
   async function addConsumption(row: ConsumptionRow) {
     await patchConfig({
-      ...normalized,
-      consumptions: [...normalized.consumptions, row],
+      ...configRef.current,
+      consumptions: [...configRef.current.consumptions, row],
     });
   }
 
   async function updateConsumption(row: ConsumptionRow) {
-    const next = normalized.consumptions.map((c) =>
+    const next = configRef.current.consumptions.map((c) =>
       c.id === row.id ? row : c
     );
-    await patchConfig({ ...normalized, consumptions: next });
+    await patchConfig({ ...configRef.current, consumptions: next });
   }
 
   async function deleteSelectedConsumptions() {
@@ -1337,11 +1392,11 @@ export function DisinfectantDocumentClient({
       }))
     )
       return;
-    const next = normalized.consumptions.filter(
+    const next = configRef.current.consumptions.filter(
       (c) => !selectedConIds.includes(c.id)
     );
     setSelectedConIds([]);
-    await patchConfig({ ...normalized, consumptions: next });
+    await patchConfig({ ...configRef.current, consumptions: next });
   }
 
   // --- Totals ---
@@ -1357,10 +1412,18 @@ export function DisinfectantDocumentClient({
     (sum, s) => sum + computeNeedPerYear(s),
     0
   );
-  const totalReceiptQuantity = normalized.receipts.reduce(
-    (sum, r) => sum + r.quantity,
-    0
-  );
+  // Итог считаем ПО ЕДИНИЦАМ: раньше кг, л и флаконы складывались в одно
+  // бессмысленное число.
+  const totalReceiptQuantity = useMemo(() => {
+    const byUnit = new Map<MeasureUnit, number>();
+    for (const r of normalized.receipts) {
+      byUnit.set(r.unit, (byUnit.get(r.unit) ?? 0) + r.quantity);
+    }
+    const parts = [...byUnit.entries()]
+      .filter(([, value]) => value > 0)
+      .map(([unit, value]) => formatQuantityWithUnit(value, unit));
+    return parts.length > 0 ? parts.join(" · ") : "—";
+  }, [normalized.receipts]);
 
   const allSubsSelected =
     normalized.subdivisions.length > 0 &&
@@ -1982,25 +2045,27 @@ export function DisinfectantDocumentClient({
       />
       <EditSubdivisionDialog
         open={!!editSubTarget}
+        key={`edit-sub-${editSubTarget?.id ?? "none"}`}
         onOpenChange={(v) => {
           if (!v) setEditSubTarget(null);
         }}
         initial={editSubTarget}
         onSubmit={updateSubdivision}
       />
+      {/* key по цели: без него диалог держал прошлую строку в useState —
+          открываешь строку №2, а видишь и перезаписываешь №1. У «Добавить»
+          key по флагу открытия: каждое открытие — новая запись с новым id. */}
       <ReceiptDialog
+        key={`add-rec-${addRecOpen}`}
         open={addRecOpen}
         onOpenChange={setAddRecOpen}
         users={users}
-        initial={createEmptyReceipt(
-          normalized.responsibleRole,
-          normalized.responsibleEmployee,
-          normalized.responsibleEmployeeId
-        )}
+        initial={emptyReceipt}
         onSubmit={addReceipt}
         dialogTitle="Добавление новой строки"
       />
       <ReceiptDialog
+        key={`edit-rec-${editRecTarget?.id ?? "none"}`}
         open={!!editRecTarget}
         onOpenChange={(v) => {
           if (!v) setEditRecTarget(null);
@@ -2011,18 +2076,16 @@ export function DisinfectantDocumentClient({
         dialogTitle="Редактирование строки"
       />
       <ConsumptionDialog
+        key={`add-con-${addConOpen}`}
         open={addConOpen}
         onOpenChange={setAddConOpen}
         users={users}
-        initial={createEmptyConsumption(
-          normalized.responsibleRole,
-          normalized.responsibleEmployee,
-          normalized.responsibleEmployeeId
-        )}
+        initial={emptyConsumption}
         onSubmit={addConsumption}
         dialogTitle="Добавление новой строки"
       />
       <ConsumptionDialog
+        key={`edit-con-${editConTarget?.id ?? "none"}`}
         open={!!editConTarget}
         onOpenChange={(v) => {
           if (!v) setEditConTarget(null);

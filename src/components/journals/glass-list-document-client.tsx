@@ -32,6 +32,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { PositionNativeOptions } from "@/components/shared/position-select";
 type UserItem = {
   id: string;
@@ -90,31 +91,43 @@ export function GlassListDocumentClient({
   );
   const { closeDocument } = useDocumentCloseAction({ documentId, title });
 
-  async function persist(nextConfig: GlassListConfig) {
+  /**
+   * `withHeader` — поля шапки (название, дата, ответственный). Они
+   * management-only, поэтому правка самих позиций шлёт ТОЛЬКО `config`:
+   * иначе у рядового сотрудника любой PATCH падал 403.
+   */
+  async function persist(nextConfig: GlassListConfig, withHeader = false) {
     setSaving(true);
     try {
       const response = await fetch(`/api/journal-documents/${documentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: nextConfig.documentName || title,
-          dateFrom: nextConfig.documentDate,
-          dateTo: nextConfig.documentDate,
-          responsibleTitle: nextConfig.responsibleTitle || null,
-          responsibleUserId: nextConfig.responsibleUserId || null,
-          config: nextConfig,
-        }),
+        body: JSON.stringify(
+          withHeader
+            ? {
+                title: nextConfig.documentName || title,
+                dateFrom: nextConfig.documentDate,
+                dateTo: nextConfig.documentDate,
+                responsibleTitle: nextConfig.responsibleTitle || null,
+                responsibleUserId: nextConfig.responsibleUserId || null,
+                config: nextConfig,
+              }
+            : { config: nextConfig }
+        ),
       });
 
+      const result = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error();
+        throw new Error(result?.error || "Не удалось сохранить документ");
       }
 
       setConfig(nextConfig);
       router.refresh();
       return true;
-    } catch {
-      toast.error("Не удалось сохранить документ");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить документ"
+      );
       return false;
     } finally {
       setSaving(false);
@@ -122,7 +135,7 @@ export function GlassListDocumentClient({
   }
 
   async function saveSettings() {
-    const ok = await persist(config);
+    const ok = await persist(config, true);
     if (ok) setSettingsOpen(false);
   }
 
@@ -143,12 +156,43 @@ export function GlassListDocumentClient({
 
   async function deleteSelectedRows() {
     if (selectedRows.length === 0) return;
+    const doomed = config.rows.filter((row) => selectedRows.includes(row.id));
+    // Удаление позиции стирает и её количество — считаем, что теряется.
+    const filledValues = doomed.reduce(
+      (total, row) =>
+        total +
+        [row.itemName, row.quantity, row.location].filter(
+          (value) => (value || "").trim() !== ""
+        ).length,
+      0
+    );
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные позиции?",
+      description:
+        "Позиции перечня изделий из стекла и хрупкого пластика будут удалены безвозвратно.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Позиций будет удалено: ${doomed.length}`, tone: "warn" },
+        { label: `Заполненных значений потеряется: ${filledValues}`, tone: "warn" },
+        {
+          label: `Останется позиций: ${config.rows.length - doomed.length}`,
+          tone: "default",
+        },
+      ],
+    });
+    if (!confirmed) return;
     const nextConfig: GlassListConfig = {
       ...config,
       rows: config.rows.filter((row) => !selectedRows.includes(row.id)),
     };
     const ok = await persist(nextConfig);
-    if (ok) setSelectedRows([]);
+    if (ok) {
+      setSelectedRows([]);
+      toast.success(
+        `Удалено позиций: ${doomed.length}; значений: ${filledValues}`
+      );
+    }
   }
 
   return (

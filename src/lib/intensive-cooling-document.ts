@@ -1,3 +1,4 @@
+import { localDayKey } from "@/lib/entry-defaults";
 import { getUserRoleLabel, normalizeUserRole, pickPrimaryManager } from "@/lib/user-roles";
 
 export const INTENSIVE_COOLING_TEMPLATE_CODE = "intensive_cooling";
@@ -101,18 +102,30 @@ export function getResponsibleTitleByRole(role?: string | null) {
   return "Управляющий";
 }
 
+/**
+ * Температура без единиц измерения. Печать и таблица сами дописывают
+ * «°C», поэтому введённое «5 °C» превращалось в «5 °C °C». Запятую
+ * сохраняем — это русская запись дробной температуры.
+ */
+export function normalizeTemperatureValue(value: unknown): string {
+  const raw = normalizeText(value);
+  if (!raw) return "";
+  return raw.replace(/\s*°?\s*[cCсС]?\s*$/u, "").trim();
+}
+
 export function createIntensiveCoolingRow(
   overrides?: Partial<IntensiveCoolingRow>
 ): IntensiveCoolingRow {
-  const today = new Date().toISOString().slice(0, 10);
+  // Дата по местным часам: UTC до 03:00 в Москве давал вчерашнее число.
+  const today = localDayKey();
   return {
     id: overrides?.id || createId("intensive-cooling-row"),
     productionDate: normalizeText(overrides?.productionDate) || today,
     productionHour: normalizeText(overrides?.productionHour),
     productionMinute: normalizeText(overrides?.productionMinute),
     dishName: normalizeText(overrides?.dishName),
-    startTemperature: normalizeText(overrides?.startTemperature),
-    endTemperature: normalizeText(overrides?.endTemperature),
+    startTemperature: normalizeTemperatureValue(overrides?.startTemperature),
+    endTemperature: normalizeTemperatureValue(overrides?.endTemperature),
     correctiveAction: normalizeText(overrides?.correctiveAction),
     comment: normalizeText(overrides?.comment),
     responsibleTitle: normalizeText(overrides?.responsibleTitle),
@@ -253,7 +266,8 @@ export function formatIntensiveCoolingDateTime(row: IntensiveCoolingRow) {
 }
 
 export function formatTemperatureLabel(value: string) {
-  const normalized = normalizeText(value);
+  // Единицы срезаем и здесь — в уже сохранённых строках лежит «5 °C».
+  const normalized = normalizeTemperatureValue(value);
   if (!normalized) return "—";
   return `${normalized} °C`;
 }

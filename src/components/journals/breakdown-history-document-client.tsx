@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   createBreakdownRow,
+  formatBreakdownEnd,
+  getBreakdownRowDateError,
   normalizeBreakdownHistoryDocumentConfig,
   BREAKDOWN_HISTORY_HEADING,
   BREAKDOWN_HISTORY_DOCUMENT_TITLE,
@@ -90,11 +92,23 @@ function RowDialog(props: {
     setRow((current) => ({ ...current, [key]: value }));
   }
 
+  const dateError = getBreakdownRowDateError(row);
+
   async function handleSave() {
+    if (dateError) {
+      toast.error(dateError);
+      return;
+    }
     setIsSubmitting(true);
     try {
       await props.onSave(row);
       props.onOpenChange(false);
+    } catch (error) {
+      // ПОЧЕМУ: окно закрывалось в finally — сотрудник видел «сохранено»,
+      // хотя сервер отказал, и запись о поломке терялась.
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить строку"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -179,6 +193,9 @@ function RowDialog(props: {
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">
               Дата и время окончания работ
+              <span className="ml-1 font-normal text-[#6f7282]">
+                — оставьте пустым, пока ремонт идёт
+              </span>
             </Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1.6fr]">
               <Input
@@ -218,6 +235,12 @@ function RowDialog(props: {
               onChange={(e) => setValue("responsiblePerson", e.target.value)}
             />
           </div>
+
+          {dateError ? (
+            <p className="rounded-2xl bg-[#fff4f2] px-4 py-3 text-[13px] text-[#ff3b30]">
+              {dateError}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
@@ -233,7 +256,7 @@ function RowDialog(props: {
             type="button"
             className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto"
             onClick={handleSave}
-            disabled={isSubmitting}
+            disabled={isSubmitting || dateError !== null}
           >
             {isSubmitting ? "Сохранение..." : props.initialRow ? "Сохранить" : "Добавить"}
           </Button>
@@ -264,6 +287,11 @@ function SettingsDialog(props: {
     try {
       await props.onSave({ title: title.trim(), dateFrom });
       props.onOpenChange(false);
+    } catch (error) {
+      // Не закрываем окно при отказе сервера — иначе правка теряется молча.
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить настройки"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -459,10 +487,8 @@ export function BreakdownHistoryDocumentClient(props: Props) {
       { label: "Описание поломки", value: row.breakdownDescription, hideIfEmpty: true },
       { label: "Выполненный ремонт", value: row.repairPerformed, hideIfEmpty: true },
       { label: "Замена частей", value: row.partsReplaced, hideIfEmpty: true },
-      {
-        label: "Окончание работ",
-        value: `${formatDateLabel(row.endDate)} ${formatTime(row.endHour, row.endMinute)}`,
-      },
+      // Пустое окончание — «ремонт идёт», а не «закончен 00:00».
+      { label: "Окончание работ", value: formatBreakdownEnd(row), hideIfEmpty: true },
       { label: "Часы простоя", value: row.downtimeHours, hideIfEmpty: true },
       { label: "Ответственный", value: row.responsiblePerson, hideIfEmpty: true },
     ],
@@ -511,11 +537,32 @@ export function BreakdownHistoryDocumentClient(props: Props) {
     startTransition(() => router.refresh());
   }
 
+  /**
+   * Запись строк шлёт ТОЛЬКО `config`: `title`/`dateFrom` — поля шапки,
+   * они management-only, и у рядового сотрудника такой PATCH падал 403.
+   */
+  async function persistConfig(nextConfig: BreakdownHistoryDocumentConfig) {
+    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: nextConfig }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(result?.error || "Не удалось сохранить документ");
+    }
+    setConfig(nextConfig);
+    startTransition(() => router.refresh());
+  }
+
   async function handleSaveRow(row: BreakdownRow) {
-    const nextRows = editingRow
-      ? config.rows.map((item) => (item.id === editingRow.id ? row : item))
-      : [...config.rows, row];
-    await persist(title, dateFrom, { ...config, rows: nextRows });
+    const editingId = editingRow?.id ?? null;
+    await persistConfig({
+      ...config,
+      rows: config.rows.some((item) => item.id === editingId)
+        ? config.rows.map((item) => (item.id === editingId ? row : item))
+        : [...config.rows, row],
+    });
     setEditingRow(null);
   }
 
@@ -524,11 +571,10 @@ export function BreakdownHistoryDocumentClient(props: Props) {
     const count = selectedRowIds.length;
     if (!(await confirmAsync({ title: "Удалить выбранные строки?", description: `Будет удалено строк: ${count}. Восстановить нельзя.`, variant: "danger", confirmLabel: "Удалить" }))) return;
     try {
-      const nextConfig = {
+      await persistConfig({
         ...config,
         rows: config.rows.filter((row) => !selectedRowIds.includes(row.id)),
-      };
-      await persist(title, dateFrom, nextConfig);
+      });
       setSelectedRowIds([]);
       toast.success(`Удалено строк: ${count}`);
     } catch (error) {
@@ -717,8 +763,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                     {row.partsReplaced || "—"}
                   </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
-                    {formatDateLabel(row.endDate)}{" "}
-                    {formatTime(row.endHour, row.endMinute)}
+                    {formatBreakdownEnd(row) || "—"}
                   </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.downtimeHours || "—"}

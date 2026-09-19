@@ -319,6 +319,13 @@ export function CleaningDocumentClient(props: Props) {
   const todayKey = useTodayKey();
   const normalized = useMemo(() => normalizeCleaningDocumentConfig(props.config, { users: props.users }), [props.config, props.users]);
   const [config, setConfig] = useState(normalized);
+  // Последнее локальное состояние конфига. Быстрый ввод (несколько кликов
+  // до перерисовки) раньше строил каждый PATCH от протухшего `config` и
+  // терял предыдущие правки.
+  const configRef = useRef(config);
+  configRef.current = config;
+  // Очередь сохранений: PATCH'и идут строго по одному.
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const [saving, setSaving] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
   // Multi-select cells (rowId::dateKey) для bulk-edit. Когда `cellSelectMode`
@@ -609,6 +616,9 @@ export function CleaningDocumentClient(props: Props) {
       futureDayKeys,
       "overwrite",
       overrideMap,
+      // Только изменённое помещение: overwrite по всем стирал будущие
+      // отметки, проставленные вручную в остальных строках.
+      { roomIds: [snapshot.id] },
     );
     await patchDocument(next);
     // После patch: подтолкнём requiresPhoto-апдейт на существующих TF-tasks
@@ -1496,13 +1506,49 @@ export function CleaningDocumentClient(props: Props) {
           ...overrides,
         }),
       });
-      if (!response.ok) throw new Error("save failed");
+      if (!response.ok) {
+        // Раньше бросали «save failed», а вызовы глушили .catch(() => {}) —
+        // любая ошибка сохранения пропадала бесследно.
+        const body = await response.json().catch(() => null);
+        const message =
+          (body && typeof body.error === "string" && body.error) ||
+          "Не удалось сохранить изменения";
+        throw new Error(message);
+      }
       setConfig(payload);
       setSettingsState(buildSettingsState(payload));
       router.refresh();
     } finally {
       setSaving(false);
     }
+  }
+
+  /**
+   * Оптимистичная правка ячеек: локальное состояние применяем сразу,
+   * при ошибке сервера откатываем и показываем текст ошибки.
+   */
+  async function patchCellsOptimistic(nextConfig: CleaningDocumentConfig) {
+    const previousConfig = configRef.current;
+    configRef.current = nextConfig;
+    setConfig(nextConfig);
+    // Сериализация: следующий PATCH стартует только после предыдущего.
+    const run = saveChainRef.current.catch(() => {}).then(async () => {
+      try {
+        await patchDocument(nextConfig);
+      } catch (error) {
+        configRef.current = previousConfig;
+        setConfig(previousConfig);
+        setSettingsState(buildSettingsState(previousConfig));
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Не удалось сохранить изменения",
+        );
+        throw error;
+      }
+    });
+    saveChainRef.current = run;
+    await run;
   }
 
   /**
@@ -1514,7 +1560,7 @@ export function CleaningDocumentClient(props: Props) {
    */
   async function patchCellsWithUndo(nextConfig: CleaningDocumentConfig) {
     const previousConfig = config;
-    await patchDocument(nextConfig);
+    await patchCellsOptimistic(nextConfig);
     undoStack.push({
       undo: () => patchDocument(previousConfig),
       redo: () => patchDocument(nextConfig),
@@ -1604,8 +1650,9 @@ export function CleaningDocumentClient(props: Props) {
     value: CleaningMatrixValue
   ) {
     if (props.status !== "active") return;
+    // От последнего локального состояния, а не от протухшего `config`.
     const nextConfig = setCleaningMatrixValue({
-      config,
+      config: configRef.current,
       rowId,
       dateKey,
       value,
@@ -1652,7 +1699,7 @@ export function CleaningDocumentClient(props: Props) {
     const visualValue = cellValue(row, dateKey);
     const nextValue = toggleCleaningMatrixValue(visualValue);
     const nextConfig = setCleaningMatrixValue({
-      config,
+      config: configRef.current,
       rowId: row.id,
       dateKey,
       value: nextValue,
@@ -1730,14 +1777,20 @@ export function CleaningDocumentClient(props: Props) {
     // остались бы визуально с «Т»/«Г» — менеджер жаловался: «при
     // очистке некоторые дни не очищаются».
     const storedValue = value === "" ? "—" : value;
-    let nextConfig = config;
+    let nextConfig = configRef.current;
     const touchedDateKeys = new Set<string>();
+    // Считаем РЕАЛЬНО изменённые ячейки: раньше в тосте показывался
+    // размер выделения, даже если значение уже было таким же.
+    let changedCells = 0;
     for (const k of selectedCells) {
       const [rowId, dateKey] = k.split("::");
       if (!rowId || !dateKey) continue;
       // responsible-rows используют свой code как значение, не T/G/«/».
       // Bulk-edit предназначен для room-rows; для responsible пропустим.
       if (!allowedRoomIds.has(rowId)) continue;
+      const before = nextConfig.matrix?.[rowId]?.[dateKey] ?? "";
+      if (before === storedValue) continue;
+      changedCells += 1;
       touchedDateKeys.add(dateKey);
       nextConfig = setCleaningMatrixValue({
         config: nextConfig,
@@ -1745,6 +1798,11 @@ export function CleaningDocumentClient(props: Props) {
         dateKey,
         value: storedValue,
       });
+    }
+    if (changedCells === 0) {
+      toast.info("Выбранные ячейки уже с этим значением");
+      setSelectedCells(new Set());
+      return;
     }
     try {
       await patchCellsWithUndo(
@@ -1757,7 +1815,7 @@ export function CleaningDocumentClient(props: Props) {
         "/": "помечены «Не проводилась»",
       };
       toast.success(
-        `Ячеек обновлено: ${selectedCells.size} (${labelMap[value] ?? "обновлены"})`,
+        `Ячеек обновлено: ${changedCells} (${labelMap[value] ?? "обновлены"})`,
       );
       clearCellSelection();
     } catch (err) {
@@ -2901,7 +2959,9 @@ export function CleaningDocumentClient(props: Props) {
           // syncTodayMatrixChanges → TF tasks обновляются).
           // Потом router.refresh() для re-build dbScheduleMap из БД.
           try {
-            await autoApplyScheduleForRoom({
+            // Правка только названия/состава — план не пересчитываем.
+            if (snapshot.scheduleChanged) {
+              await autoApplyScheduleForRoom({
               id: snapshot.id,
               currentDays: snapshot.currentDays,
               generalDays: snapshot.generalDays,
@@ -2909,7 +2969,8 @@ export function CleaningDocumentClient(props: Props) {
               generalScheduleType: snapshot.generalScheduleType,
               currentMonthDays: snapshot.currentMonthDays,
               generalMonthDays: snapshot.generalMonthDays,
-            });
+              });
+            }
           } catch (err) {
             console.error("[room-editor] auto-apply failed", err);
           }

@@ -1181,10 +1181,15 @@ export function normalizeCleaningDocumentConfig(
     record.cleaningMode === "rooms" &&
     Array.isArray(record.selectedRoomIds) &&
     record.selectedRoomIds.length > 0;
+  // Явный пустой `rooms: []` — это «пользователь удалил все строки», а не
+  // «данных нет»: раньше на его месте воскресали четыре blueprint'а с
+  // новыми id.
+  const roomsExplicitlyEmpty =
+    Array.isArray(record.rooms) && record.rooms.length === 0;
   const rooms = normalizeRooms(
     record.rooms ?? record.referenceTable,
     context.areas,
-    isRoomFirstConfig,
+    isRoomFirstConfig || roomsExplicitlyEmpty,
   );
   const cleaningResponsibles = normalizeResponsibleArray(
     "cleaning",
@@ -1527,24 +1532,34 @@ export function countPinnedRooms(config: Pick<CleaningDocumentConfig, "cleanerBy
 export function validateCleaningDocumentConfig(
   config: CleaningDocumentConfig,
 ): void {
-  if (config.cleaningMode === "rooms") {
-    if (!config.selectedRoomIds || config.selectedRoomIds.length === 0) {
-      throw new Error(
-        "Режим «По комнатам» требует выбрать хотя бы одну комнату " +
-          "(selectedRoomIds). Открой настройки документа и отметь " +
-          "комнаты для уборки.",
-      );
-    }
-    if (
-      !config.selectedCleanerUserIds ||
-      config.selectedCleanerUserIds.length === 0
-    ) {
-      throw new Error(
-        "Режим «По комнатам» требует хотя бы одного уборщика: выберите " +
-          "уборщиков в пуле документа или назначьте их помещениям в " +
-          "«Настройки → Помещения».",
-      );
-    }
+  if (config.cleaningMode !== "rooms") return;
+
+  // Строки бланка могут приходить из справочника Room (selectedRoomIds)
+  // ЛИБО из самого конфига (config.rooms). Требовать первое всегда нельзя:
+  // у организации без «Помещений» валидатор отбивал каждое сохранение.
+  const hasRoomRows =
+    (config.selectedRoomIds?.length ?? 0) > 0 || (config.rooms?.length ?? 0) > 0;
+  if (!hasRoomRows) {
+    throw new Error(
+      "Режим «По комнатам» требует выбрать хотя бы одну комнату " +
+        "(selectedRoomIds). Открой настройки документа и отметь " +
+        "комнаты для уборки.",
+    );
+  }
+
+  // Уборщик тоже может быть задан «по-старому» — списком ответственных
+  // за уборку; пул selectedCleanerUserIds появляется только в rooms-mode
+  // со справочником.
+  const hasCleaners =
+    (config.selectedCleanerUserIds?.length ?? 0) > 0 ||
+    (config.cleaningResponsibles?.length ?? 0) > 0 ||
+    Object.keys(config.cleanerByRoomId ?? {}).length > 0;
+  if (!hasCleaners) {
+    throw new Error(
+      "Режим «По комнатам» требует хотя бы одного уборщика: выберите " +
+        "уборщиков в пуле документа или назначьте их помещениям в " +
+        "«Настройки → Помещения».",
+    );
   }
 }
 
@@ -2092,8 +2107,15 @@ export function applyRoomScheduleToMatrix(
    *  в Room (DB), не в config.rooms. Если caller передаёт map dbRooms —
    *  они приоритетны для определения plan'a (scheduleType + monthDays). */
   dbRooms?: Map<string, RoomScheduleFromDb>,
+  /** Ограничить применение плана этими помещениями. Без него overwrite по
+   *  одному изменённому помещению стирал будущие отметки у всех. */
+  options?: { roomIds?: string[] },
 ): CleaningDocumentConfig {
   const next = cloneConfig(config);
+  const roomIdFilter =
+    options?.roomIds && options.roomIds.length > 0
+      ? new Set(options.roomIds)
+      : null;
   // В overwrite-режиме («План заново») — выходные/праздники по умолчанию
   // помечаем «/» (не проводилась). Менеджер всё равно подтверждает overwrite
   // в confirm-dialog'е, так что неожиданности нет; зато новый период сразу
@@ -2119,6 +2141,7 @@ export function applyRoomScheduleToMatrix(
   }
 
   for (const room of schedulable) {
+    if (roomIdFilter && !roomIdFilter.has(room.id)) continue;
     // Cleaning unification: предпочитаем Room (DB) если caller её передал.
     const dbRoom = dbRooms?.get(room.id);
     const currentMask = typeof (dbRoom?.currentDays ?? room.currentDays) === "number"

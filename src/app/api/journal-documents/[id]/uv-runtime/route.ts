@@ -10,6 +10,7 @@ import {
 } from "@/lib/uv-lamp-runtime-document";
 import { applyUvRuntimeAutoFill } from "@/lib/uv-lamp-runtime-autofill";
 import { isManagementRole, pickPrimaryManager } from "@/lib/user-roles";
+import { orgTodayKey } from "@/lib/timezone";
 
 type UvRuntimeAction = "apply_auto_fill";
 
@@ -80,11 +81,22 @@ export async function POST(
 
   const config = normalizeUvRuntimeDocumentConfig(document.config);
 
+  // Автозаполнение не должно «отработать» за будущие дни: установка ещё
+  // не включалась. Обрезаем период по сегодняшней дате организации.
+  const organization = await db.organization.findUnique({
+    where: { id: getActiveOrgId(session) },
+    select: { timezone: true },
+  });
+  const todayKey = orgTodayKey(organization?.timezone ?? "Europe/Moscow");
+  const dateKeys = buildDateKeys(document.dateFrom, document.dateTo).filter(
+    (dateKey) => dateKey <= todayKey
+  );
+
   const result = await applyUvRuntimeAutoFill(db, {
     documentId: document.id,
     spec: config.spec,
     responsibleUserId,
-    dateKeys: buildDateKeys(document.dateFrom, document.dateTo),
+    dateKeys,
     entries: document.entries,
   });
 

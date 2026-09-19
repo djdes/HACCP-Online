@@ -16,8 +16,9 @@ import {
 
 const keys = (columns: Array<{ key: string }>) => columns.map((column) => column.key);
 
-test("реестр: 11 колонок бракеража готовой продукции и 11 — скоропорта", () => {
-  assert.equal(resolveColumns("finished_product", {}).length, 11);
+test("реестр: 12 колонок бракеража готовой продукции и 11 — скоропорта", () => {
+  // 12-я — «Разрешение к реализации: Да/Нет», заведена позже остальных.
+  assert.equal(resolveColumns("finished_product", {}).length, 12);
   assert.equal(resolveColumns("perishable_rejection", {}).length, 11);
   assert.deepEqual(resolveColumns("hygiene", {}), []);
 });
@@ -82,13 +83,18 @@ test("legacyFlagsFromColumns ↔ columnsConfigFromResolved", () => {
     showProductTemp: false,
     showCorrectiveAction: true,
     showOxygenLevel: false,
+    showReleaseAllowed: true,
     showCourierTime: true,
   });
   assert.deepEqual(legacyFlagsFromColumns("perishable_rejection", { hidden: ["note"], labels: {} }), { showNote: false });
 
   const resolved = resolveColumns("finished_product", { columns: { hidden: ["courier"], labels: { name: "Блюдо" } } });
   assert.deepEqual(columnsConfigFromResolved(resolved), {
-    hidden: ["temp", "corrective", "oxygen", "courier"].filter((key) => resolved.find((c) => c.key === key)?.hidden),
+    // `release_allowed` заведена позже: у документа со старым набором
+    // колонок флага в конфиге нет, поэтому она скрыта.
+    hidden: ["temp", "corrective", "oxygen", "release_allowed", "courier"].filter(
+      (key) => resolved.find((c) => c.key === key)?.hidden
+    ),
     labels: { name: "Блюдо" },
   });
 });

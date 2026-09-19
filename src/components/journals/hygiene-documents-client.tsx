@@ -31,6 +31,7 @@ import {
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -63,6 +64,9 @@ type JournalListDocument = {
   periodLabel: string;
   /** Текст «Периодичность контроля» документа (config.controlPeriodicity). */
   controlPeriodicity?: string;
+  /** Период документа `YYYY-MM-DD`. Передан — его можно менять в настройках. */
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 type UserProp = {
@@ -90,6 +94,11 @@ type Props = {
     canManage: boolean;
     noticeSeen: boolean;
   };
+  /**
+   * Есть ли у смотрящего право создавать / настраивать / удалять
+   * документы. Раньше повар видел эти действия, а API отвечал 403.
+   */
+  canManageDocuments?: boolean;
 };
 
 function EditDocumentDialog({
@@ -112,6 +121,8 @@ function EditDocumentDialog({
   const [responsibleTitle, setResponsibleTitle] = useState("");
   const [responsibleUserId, setResponsibleUserId] = useState("");
   const [periodicity, setPeriodicity] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -122,10 +133,46 @@ function EditDocumentDialog({
     setPeriodicity(
       document.controlPeriodicity ?? getDefaultControlPeriodicity(templateCode)
     );
+    setFrom(document.dateFrom || "");
+    setTo(document.dateTo || "");
   }, [document, open, responsibleOptions, templateCode]);
+
+  const periodEditable = Boolean(document?.dateFrom && document?.dateTo);
 
   async function handleSave() {
     if (!document) return;
+    if (periodEditable) {
+      if (!from || !to) {
+        toast.error("Укажите период документа");
+        return;
+      }
+      if (from > to) {
+        toast.error("Дата начала не может быть позже даты окончания");
+        return;
+      }
+    }
+
+    // Сокращение периода сервер принимает только с явным shrinkPeriod:
+    // предупреждаем, что записи за его пределами уйдут из бланка.
+    const shrinks =
+      periodEditable &&
+      (from > (document.dateFrom || "") || to < (document.dateTo || ""));
+    if (shrinks) {
+      const confirmed = await confirmAsync({
+        title: "Сократить период документа?",
+        description: `Новый период: ${from} — ${to}.`,
+        variant: "warn",
+        confirmLabel: "Сократить период",
+        bullets: [
+          {
+            label: "Записи вне нового периода пропадут из бланка и печати",
+            tone: "warn",
+          },
+          { label: "Из базы они не удаляются", tone: "info" },
+        ],
+      });
+      if (!confirmed) return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -137,6 +184,13 @@ function EditDocumentDialog({
           responsibleTitle,
           responsibleUserId: responsibleUserId || null,
           controlPeriodicity: periodicity,
+          ...(periodEditable
+            ? {
+                dateFrom: from,
+                dateTo: to,
+                ...(shrinks ? { shrinkPeriod: true } : {}),
+              }
+            : {}),
         }),
       });
       if (!response.ok) {
@@ -187,6 +241,32 @@ function EditDocumentDialog({
             value={periodicity}
             onChange={setPeriodicity}
           />
+
+          {/* Период документа сервер умеет менять давно, а UI не давал. */}
+          {periodEditable ? (
+            <div className="space-y-2">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Период документа
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
+                  aria-label="Период документа: с"
+                  className="h-10 w-[165px] rounded-xl border border-[#dcdfed] px-3.5 text-[13.5px] text-[#0b1024] outline-none transition-colors duration-150 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+                <span className="text-[13.5px] text-[#6f7282]">по</span>
+                <input
+                  type="date"
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
+                  aria-label="Период документа: по"
+                  className="h-10 w-[165px] rounded-xl border border-[#dcdfed] px-3.5 text-[13.5px] text-[#0b1024] outline-none transition-colors duration-150 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className={JOURNAL_DIALOG_FOOTER_CLASS}>
@@ -249,7 +329,14 @@ function DocumentRow({
 }
 
 export function HygieneDocumentsClient(props: Props) {
-  const { activeTab, templateCode, templateName, users, documents } = props;
+  const {
+    activeTab,
+    templateCode,
+    templateName,
+    users,
+    documents,
+    canManageDocuments = true,
+  } = props;
   const [editingDocument, setEditingDocument] = useState<JournalListDocument | null>(null);
   const responsibleOptions = getStaffJournalResponsibleTitleOptions(users);
   // Единый источник delete / status / pdf для журнальных документов.
@@ -284,6 +371,7 @@ export function HygieneDocumentsClient(props: Props) {
           users={users}
           documentCount={documents.length}
           firstDocumentId={activeTab === "active" ? documents[0]?.id : undefined}
+          canManage={canManageDocuments}
         />
 
         <JournalTabs activeTab={activeTab} templateCode={templateCode} />
@@ -319,6 +407,7 @@ export function HygieneDocumentsClient(props: Props) {
               templateCode={templateCode}
               templateName={templateName}
               users={users}
+              canManage={canManageDocuments}
             />
           )}
           {documents.map((document) => (
@@ -326,7 +415,9 @@ export function HygieneDocumentsClient(props: Props) {
               key={document.id}
               templateCode={templateCode}
               document={document}
-              canManage={document.status === "active"}
+              // Настройки и удаление — только у руководства: у повара
+              // эти пункты были видны, а API отвечал 403.
+              canManage={document.status === "active" && canManageDocuments}
               onEdit={setEditingDocument}
               onPrint={(doc) => openPdf({ documentId: doc.id })}
               onDelete={handleDelete}

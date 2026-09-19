@@ -30,6 +30,7 @@ import {
   getAuditPlanPrintDateLabel,
   normalizeAuditPlanConfig,
   type AuditPlanConfig,
+  type AuditPlanRow,
   type AuditPlanSection,
 } from "@/lib/audit-plan-document";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
@@ -486,6 +487,8 @@ function AddRowDialog(props: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
   sections: AuditPlanSection[];
+  /** Правка существующей строки; null — добавление новой. */
+  editRow?: AuditPlanRow | null;
   onCreate: (sectionId: string, text: string) => Promise<void>;
   onOpenAddSection: () => void;
   onOpenManageSections: () => void;
@@ -493,14 +496,15 @@ function AddRowDialog(props: {
   const [sectionId, setSectionId] = useState(props.sections[0]?.id || "");
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const editRow = props.editRow ?? null;
 
   useEffect(() => {
     if (props.open) {
-      setSectionId(props.sections[0]?.id || "");
-      setText("");
+      setSectionId(props.editRow?.sectionId || props.sections[0]?.id || "");
+      setText(props.editRow?.text || "");
       setSubmitting(false);
     }
-  }, [props.open, props.sections]);
+  }, [props.editRow, props.open, props.sections]);
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -508,7 +512,7 @@ function AddRowDialog(props: {
         <DialogHeader className="border-b px-8 py-6">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em] text-black">
-              Добавление новой строки
+              {editRow ? "Редактирование строки" : "Добавление новой строки"}
             </DialogTitle>
             <button type="button" className="rounded-xl p-2" onClick={() => props.onOpenChange(false)}>
               <X className="size-7" />
@@ -663,6 +667,9 @@ export function AuditPlanDocumentClient({
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [addColumnOpen, setAddColumnOpen] = useState(false);
   const [addRowOpen, setAddRowOpen] = useState(false);
+  // Текст требования нельзя было исправить нигде: то же окно работает и
+  // как правка — проставленные по колонкам даты не трогаются.
+  const [editingRow, setEditingRow] = useState<AuditPlanRow | null>(null);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [cellEditor, setCellEditor] = useState<{
     rowId: string;
@@ -736,6 +743,18 @@ export function AuditPlanDocumentClient({
   }
 
   async function addRow(sectionId: string, textValue: string) {
+    if (editingRow) {
+      await patchConfig({
+        ...normalized,
+        rows: normalized.rows.map((row) =>
+          row.id === editingRow.id
+            ? { ...row, sectionId, text: textValue }
+            : row
+        ),
+      });
+      setEditingRow(null);
+      return;
+    }
     await patchConfig({
       ...normalized,
       rows: [
@@ -802,6 +821,12 @@ export function AuditPlanDocumentClient({
           className="size-5"
         />
       ) : null,
+      onClick: !readOnly
+        ? () => {
+            setEditingRow(row);
+            setAddRowOpen(true);
+          }
+        : undefined,
       fields: normalized.columns.map((column) => ({
         label: `${column.title}${column.auditorName ? ` — ${column.auditorName}` : ""}`,
         value: row.values[column.id] || "",
@@ -899,8 +924,13 @@ export function AuditPlanDocumentClient({
                   {readOnly ? (
                     column.auditorName || "—"
                   ) : (
-                    <select className="w-full bg-transparent text-center text-[16px] outline-none" value={users.find((user) => user.name === column.auditorName)?.id || ""} onChange={(e) => void updateColumnAuditor(column.id, users.find((user) => user.id === e.target.value)?.name || "")}>
+                    <select className="w-full bg-transparent text-center text-[16px] outline-none" value={users.find((user) => user.name === column.auditorName)?.id || (column.auditorName ? "__saved" : "")} onChange={(e) => void updateColumnAuditor(column.id, e.target.value === "__saved" ? column.auditorName : users.find((user) => user.id === e.target.value)?.name || "")}>
                       <option value="">Добавить ФИО</option>
+                      {/* Сохранённое имя: аудитор мог уволиться, и тогда
+                          в шапке рисовалось «Добавить ФИО» вместо него. */}
+                      {column.auditorName && !users.some((user) => user.name === column.auditorName) ? (
+                        <option value="__saved">{column.auditorName}</option>
+                      ) : null}
                       {users.map((user) => (
                         <option key={user.id} value={user.id}>{user.name}</option>
                       ))}
@@ -929,7 +959,20 @@ export function AuditPlanDocumentClient({
                       <td className={`${GRID_CELL_CLASS} px-3 py-1 leading-tight`}>
                         <div className="flex items-start gap-3">
                           {!readOnly && <Checkbox checked={row.checked} onCheckedChange={(checked) => void updateRowChecked(row.id, checked === true)} />}
-                          <span>{row.text}</span>
+                          {readOnly ? (
+                            <span>{row.text}</span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="flex-1 rounded px-1 text-left transition-colors duration-150 hover:bg-[#f5f6ff]"
+                              onClick={() => {
+                                setEditingRow(row);
+                                setAddRowOpen(true);
+                              }}
+                            >
+                              {row.text}
+                            </button>
+                          )}
                         </div>
                       </td>
                       {normalized.columns.map((column) => (
@@ -971,7 +1014,7 @@ export function AuditPlanDocumentClient({
       <ManageSectionsDialog open={manageSectionsOpen} onOpenChange={setManageSectionsOpen} sections={normalized.sections} onRename={renameSection} />
       <AddSectionDialog open={addSectionOpen} onOpenChange={setAddSectionOpen} onCreate={addSection} title="Добавить новый раздел" placeholder="Введите название раздела" />
       <AddSectionDialog open={addColumnOpen} onOpenChange={setAddColumnOpen} onCreate={addColumn} title="Добавление нового подразделения" placeholder="Введите название подразделения" />
-      <AddRowDialog open={addRowOpen} onOpenChange={setAddRowOpen} sections={normalized.sections} onCreate={addRow} onOpenAddSection={() => setAddSectionOpen(true)} onOpenManageSections={() => setManageSectionsOpen(true)} />
+      <AddRowDialog open={addRowOpen} onOpenChange={(open) => { setAddRowOpen(open); if (!open) setEditingRow(null); }} sections={normalized.sections} editRow={editingRow} onCreate={addRow} onOpenAddSection={() => setAddSectionOpen(true)} onOpenManageSections={() => setManageSectionsOpen(true)} />
       <CellValueDialog open={!!cellEditor} onOpenChange={(open) => { if (!open) setCellEditor(null); }} initialValue={cellEditor?.value || ""} title={cellEditor?.title || "Редактирование ячейки"} onSave={async (value) => {
         if (!cellEditor) return;
         await updateCellValue(cellEditor.rowId, cellEditor.columnId, value);

@@ -316,7 +316,10 @@ function normalizeColumns(value: unknown, fallback: AuditPlanColumn[]) {
     })
     .filter((item): item is AuditPlanColumn => item !== null);
 
-  return items.length > 0 ? items : fallback;
+  // ПОЧЕМУ не `items.length > 0 ? items : fallback`: сохранённый пустой
+  // массив — это осознанное «в документе ничего нет». Fallback воскрешал
+  // демо-строки, и сервер записывал их обратно в документ.
+  return items;
 }
 
 function normalizeSections(value: unknown, fallback: AuditPlanSection[]) {
@@ -334,7 +337,8 @@ function normalizeSections(value: unknown, fallback: AuditPlanSection[]) {
     })
     .filter((item): item is AuditPlanSection => item !== null);
 
-  return items.length > 0 ? items : fallback;
+  // Пустой сохранённый массив остаётся пустым (см. normalizeColumns).
+  return items;
 }
 
 function normalizeRows(
@@ -367,7 +371,8 @@ function normalizeRows(
     })
     .filter((item): item is AuditPlanRow => item !== null && item.text.length > 0);
 
-  return items.length > 0 ? items : fallback;
+  // Пустой сохранённый массив остаётся пустым (см. normalizeColumns).
+  return items;
 }
 
 export function normalizeAuditPlanConfig(

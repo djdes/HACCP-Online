@@ -168,6 +168,12 @@ export const DEFAULT_FRYER_OIL_SHIFT: FryerOilShift = {
 export type FryerOilDocumentConfig = {
   lists: FryerOilSelectLists;
   shift: FryerOilShift;
+  /**
+   * Когда журнал закончили. В шапке закрытого документа стояла дата
+   * НАЧАЛА («Окончен 01-09-2026»), потому что реальной даты закрытия
+   * нигде не хранилось.
+   */
+  finishedAt?: string | null;
 };
 
 /** `HH:MM` → часы и минуты. Мусор на входе даёт `null`. */
@@ -238,6 +244,7 @@ export function defaultFryerOilDocumentConfig(): FryerOilDocumentConfig {
       equipmentTypes: [...DEFAULT_EQUIPMENT_TYPES],
       productTypes: [...DEFAULT_PRODUCT_TYPES],
     },
+    finishedAt: null,
   };
 }
 
@@ -268,6 +275,10 @@ export function normalizeFryerOilDocumentConfig(value: unknown): FryerOilDocumen
   return {
     lists: normalizeFryerOilSelectLists(item.lists),
     shift: normalizeFryerOilShift(item.shift),
+    finishedAt:
+      typeof item.finishedAt === "string" && item.finishedAt.trim()
+        ? item.finishedAt.trim()
+        : null,
   };
 }
 

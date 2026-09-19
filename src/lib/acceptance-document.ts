@@ -79,6 +79,13 @@ export type AcceptanceRow = {
   note: string;
   responsibleTitle: string;
   responsibleUserId: string;
+  /**
+   * ФИО ответственного, как оно было на момент записи. Нужно потому, что
+   * после удаления сотрудника `responsibleUserId` больше ни с кем не
+   * сопоставляется и в старых строках ответственный становился пустым.
+   * Необязательное поле в JSON — миграция не нужна.
+   */
+  responsibleName?: string;
   /** v2 · «Годен до». Fallback — legacy `expiryDate`. */
   shelfLifeDate: string;
   /** v2 · «Производитель/поставщик» одной колонкой. Fallback — `manufacturer / supplier`. */
@@ -264,6 +271,9 @@ export function createAcceptanceRow(
     note: note || correctiveActions,
     responsibleTitle: normalizeText(overrides?.responsibleTitle),
     responsibleUserId: normalizeText(overrides?.responsibleUserId),
+    ...(has("responsibleName") && normalizeText(raw.responsibleName)
+      ? { responsibleName: normalizeText(raw.responsibleName) }
+      : {}),
     shelfLifeDate,
     manufacturerSupplier,
     accompanyingDocs: normalizeText(raw.accompanyingDocs),

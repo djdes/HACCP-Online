@@ -44,7 +44,7 @@ import { syncDocumentToTasksFlow } from "@/lib/tasksflow-sync";
 import { isJournalSupported } from "@/lib/tasksflow-adapters";
 import { syncTodayMatrixChanges } from "@/lib/cleaning-cell-override-sync";
 import { isManagementRole } from "@/lib/user-roles";
-import { hasJournalAccess } from "@/lib/journal-acl";
+import { canWriteJournal, hasJournalAccess } from "@/lib/journal-acl";
 import {
   ORG_ROSTER_WHERE,
   RESPONSIBLE_NOT_IN_ORG_ERROR,
@@ -111,10 +111,6 @@ export async function PATCH(
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  if (!isManagementRole(session.user.role)) {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
-  }
-
   const doc = await db.journalDocument.findUnique({ where: { id } });
   if (!doc || doc.organizationId !== getActiveOrgId(session)) {
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
@@ -133,6 +129,36 @@ export async function PATCH(
         select: { code: true },
       })
     : null;
+
+  // ПОЧЕМУ: у ППР, поверки, поломок, интенсивного охлаждения и перечня
+  // стекла ВСЕ записи журнала лежат в `config`. При management-only PATCH
+  // рядовой сотрудник с доступом к журналу не мог внести ни одной записи.
+  // Поэтому PATCH, меняющий ТОЛЬКО `config` активного документа, разрешён
+  // тому, у кого есть право записи в этот журнал. Любое другое поле
+  // (status, title, dateFrom/dateTo, responsibleUserId, шапка…) остаётся
+  // management-only — как раньше.
+  if (!isManagementRole(session.user.role)) {
+    const touchedKeys = Object.keys(body ?? {}).filter(
+      (key) => body[key] !== undefined
+    );
+    const configOnly =
+      touchedKeys.length > 0 && touchedKeys.every((key) => key === "config");
+    const canEditConfig =
+      configOnly &&
+      doc.status === "active" &&
+      Boolean(template?.code) &&
+      (await canWriteJournal(
+        {
+          id: session.user.id,
+          role: session.user.role,
+          isRoot: session.user.isRoot === true,
+        },
+        template!.code
+      ));
+    if (!canEditConfig) {
+      return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    }
+  }
   // Ростер документа — живые сотрудники этой организации без ROOT: только
   // их можно поставить ответственным и подставить в поля бланка.
   const allUsers =

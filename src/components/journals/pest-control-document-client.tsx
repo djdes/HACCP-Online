@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { isManagementRole } from "@/lib/user-roles";
 import { toast } from "sonner";
 import { useJournalUndo } from "@/lib/journal-undo";
 import { Archive, Plus, Trash2, X } from "lucide-react";
@@ -457,7 +459,30 @@ function EntryDialog(props: {
 
 export function PestControlDocumentClient(props: Props) {
   const router = useRouter();
-  const entries = props.initialEntries;
+  // DELETE на сервере требует управленческой роли — кнопку «Удалить»
+  // рядовому сотруднику не показываем, иначе она просто отдавала 403.
+  const { data: sessionData } = useSession();
+  const canDelete =
+    sessionData?.user?.isRoot === true ||
+    isManagementRole(sessionData?.user?.role ?? "");
+  // Сервер отдаёт записи в порядке (employeeId, date) — нумерация «№»
+  // получалась не хронологической. Сортируем по дате и времени.
+  const entries = useMemo(
+    () =>
+      [...props.initialEntries].sort((a, b) => {
+        const keyOf = (item: EntryItem) =>
+          `${item.data.performedDate || ""}T${
+            item.data.timeSpecified
+              ? `${(item.data.performedHour || "00").padStart(2, "0")}:${(
+                  item.data.performedMinute || "00"
+                ).padStart(2, "0")}`
+              : "00:00"
+          }`;
+        const diff = keyOf(a).localeCompare(keyOf(b));
+        return diff !== 0 ? diff : a.id.localeCompare(b.id);
+      }),
+    [props.initialEntries]
+  );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -655,14 +680,20 @@ export function PestControlDocumentClient(props: Props) {
             <X className="size-5" />
             Выбрано: {selectedIds.length}
           </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 text-[#ff3b30]"
-            onClick={() => deleteEntries(selectedIds)}
-          >
-            <Trash2 className="size-5" />
-            Удалить
-          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              className="flex items-center gap-2 text-[#ff3b30]"
+              onClick={() => deleteEntries(selectedIds)}
+            >
+              <Trash2 className="size-5" />
+              Удалить
+            </button>
+          ) : (
+            <span className="text-[13px] text-[#6f7282]">
+              Удалять записи может только управляющий
+            </span>
+          )}
         </div>
       )}
 

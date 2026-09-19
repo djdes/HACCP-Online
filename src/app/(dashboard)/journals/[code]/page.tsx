@@ -1537,6 +1537,10 @@ export default async function JournalDocumentsPage({
         periodLabel: getJournalDocumentPeriodLabel(resolvedCode, document.dateFrom, document.dateTo),
         printEmptyRows: typeof config.printEmptyRows === "number" ? config.printEmptyRows : 0,
         controlPeriodicity: readControlPeriodicity(document.config, resolvedCode),
+        // Период документа — чтобы его можно было поменять в настройках
+        // из списка (сервер это умеет давно, UI не давал).
+        dateFrom: document.dateFrom.toISOString().slice(0, 10),
+        dateTo: document.dateTo.toISOString().slice(0, 10),
       };
     });
 
@@ -1562,6 +1566,7 @@ export default async function JournalDocumentsPage({
           users={orgUsers}
           documents={mappedDocuments}
           automation={automation}
+          canManageDocuments={hasFullWorkspaceAccess(session.user)}
         />
       );
     }
@@ -1574,6 +1579,7 @@ export default async function JournalDocumentsPage({
         users={orgUsers}
         documents={mappedDocuments}
         automation={automation}
+        canManageDocuments={hasFullWorkspaceAccess(session.user)}
       />
     );
   }
@@ -4014,7 +4020,10 @@ export default async function JournalDocumentsPage({
           responsibleTitle: document.responsibleTitle,
           responsibleUserId: document.responsibleUserId,
           periodLabel: getJournalDocumentPeriodLabel(resolvedCode, document.dateFrom, document.dateTo),
+          dateFrom: document.dateFrom.toISOString().slice(0, 10),
+          dateTo: document.dateTo.toISOString().slice(0, 10),
         }))}
+        canManageDocuments={hasFullWorkspaceAccess(session.user)}
       />
     );
   }

@@ -83,7 +83,12 @@ export function emptyEquipmentCleaningRow(
   const now = new Date();
 
   return {
-    washDate: now.toISOString().slice(0, 10),
+    // Дата — МЕСТНАЯ: toISOString() отдавал UTC-день, и рядом с местным
+    // washTime строка уезжала на сутки назад (в МСК — до 03:00).
+    washDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(now.getDate()).padStart(2, "0")}`,
     washTime: `${String(now.getHours()).padStart(2, "0")}:${String(
       now.getMinutes()
     ).padStart(2, "0")}`,

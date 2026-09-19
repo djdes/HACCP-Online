@@ -58,6 +58,7 @@ import {
 } from "@/lib/intensive-cooling-document";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   PositionSelectItems,
   usePositionEmployeeCascade,
@@ -82,6 +83,8 @@ type Props = {
   title: string;
   organizationName: string;
   dateFrom: string;
+  /** Дата окончания документа — запасной вариант для шапки закрытого журнала. */
+  dateTo?: string;
   status: string;
   config: unknown;
   users: UserItem[];
@@ -172,6 +175,13 @@ function RowDialog(props: {
     try {
       await props.onSave(row);
       props.onOpenChange(false);
+    } catch (error) {
+      // ПОЧЕМУ: окно закрывалось в finally — сотрудник видел «сохранено»,
+      // хотя сервер отказал, и правка терялась. Показываем текст сервера
+      // и оставляем окно открытым.
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить строку"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -459,6 +469,11 @@ function SettingsDialog(props: {
     try {
       await props.onSave({ title: title.trim(), dateFrom });
       props.onOpenChange(false);
+    } catch (error) {
+      // Не закрываем окно при отказе сервера — иначе правка теряется молча.
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить настройки"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -568,6 +583,10 @@ function FinishDialog(props: {
     try {
       await props.onConfirm();
       props.onOpenChange(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось закончить журнал"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -653,23 +672,90 @@ export function IntensiveCoolingDocumentClient(props: Props) {
     startTransition(() => router.refresh());
   }
 
+  /**
+   * ПОЧЕМУ: `config` — снимок, сделанный при загрузке страницы. PATCH шлёт
+   * конфиг целиком, поэтому правка одной строки затирала строки, которые
+   * за это время добавил другой человек с другого устройства. Перед каждой
+   * записью подтягиваем свежий конфиг и применяем операцию по `row.id`
+   * именно к нему. Тело запроса — только `config`: остальные поля
+   * management-only, и рядовой сотрудник получал бы 403.
+   */
+  async function persistRows(
+    mutate: (current: IntensiveCoolingConfig) => IntensiveCoolingConfig
+  ) {
+    const fresh = await fetch(`/api/journal-documents/${props.documentId}`, {
+      cache: "no-store",
+    });
+    const freshResult = await fresh.json().catch(() => null);
+    if (!fresh.ok) {
+      throw new Error(freshResult?.error || "Не удалось загрузить журнал");
+    }
+    const nextConfig = mutate(
+      normalizeIntensiveCoolingConfig(freshResult?.document?.config, props.users)
+    );
+
+    const response = await fetch(`/api/journal-documents/${props.documentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ config: nextConfig }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(result?.error || "Не удалось сохранить журнал");
+    }
+    setConfig(nextConfig);
+    startTransition(() => router.refresh());
+  }
+
   async function handleSaveRow(row: IntensiveCoolingRow) {
-    const nextRows = editingRow
-      ? config.rows.map((item) => (item.id === editingRow.id ? row : item))
-      : [...config.rows, row];
-    await persist(title, dateFrom, { ...config, rows: nextRows });
+    const editingId = editingRow?.id ?? null;
+    await persistRows((current) => ({
+      ...current,
+      rows: current.rows.some((item) => item.id === editingId)
+        ? current.rows.map((item) => (item.id === editingId ? row : item))
+        : [...current.rows, row],
+    }));
     void dishSuggestions.remember([row.dishName]);
     setEditingRow(null);
   }
 
   async function handleDeleteSelected() {
     if (selectedRowIds.length === 0) return;
-    const nextConfig = {
-      ...config,
-      rows: config.rows.filter((row) => !selectedRowIds.includes(row.id)),
-    };
-    await persist(title, dateFrom, nextConfig);
+    const doomed = rows.filter((row) => selectedRowIds.includes(row.id));
+    const filledValues = doomed.reduce(
+      (total, row) =>
+        total +
+        [
+          row.dishName,
+          row.startTemperature,
+          row.endTemperature,
+          row.correctiveAction,
+          row.comment,
+        ].filter((value) => value.trim() !== "").length,
+      0
+    );
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные строки?",
+      description:
+        "Записи интенсивного охлаждения будут удалены безвозвратно — вместе с историей их правок.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Строк будет удалено: ${doomed.length}`, tone: "warn" },
+        { label: `Заполненных значений потеряется: ${filledValues}`, tone: "warn" },
+        { label: `Останется строк: ${rows.length - doomed.length}`, tone: "default" },
+      ],
+    });
+    if (!confirmed) return;
+    const removedIds = selectedRowIds;
+    await persistRows((current) => ({
+      ...current,
+      rows: current.rows.filter((row) => !removedIds.includes(row.id)),
+    }));
     setSelectedRowIds([]);
+    toast.success(
+      `Удалено строк: ${doomed.length}; значений: ${filledValues}`
+    );
   }
 
   async function handleSaveSettings(payload: { title: string; dateFrom: string }) {
@@ -794,7 +880,11 @@ export function IntensiveCoolingDocumentClient(props: Props) {
             orgName={props.organizationName || ORG_NAME_FALLBACK}
             title={INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
             startedAt={dateFrom}
-            finishedAt={null}
+            /* Закрытый журнал: реальная дата закрытия, иначе конец периода.
+               Раньше в шапке всегда было пусто. */
+            finishedAt={
+              isActive ? null : config.finishedAt || props.dateTo || dateFrom
+            }
           />
         }
         sheetTitle={INTENSIVE_COOLING_DOCUMENT_TITLE.toUpperCase()}
@@ -949,11 +1039,7 @@ export function IntensiveCoolingDocumentClient(props: Props) {
         onOpenChange={setSettingsOpen}
         title={title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
         dateFrom={dateFrom}
-        onSave={(payload) =>
-          handleSaveSettings(payload).catch((error) => {
-            toast.error(error instanceof Error ? error.message : "Ошибка");
-          })
-        }
+        onSave={handleSaveSettings}
         useV2={props.useV2}
       />
 
@@ -967,22 +1053,14 @@ export function IntensiveCoolingDocumentClient(props: Props) {
         config={config}
         users={props.users}
         dishOptions={dishSuggestions.options(config.dishSuggestions)}
-        onSave={(row) =>
-          handleSaveRow(row).catch((error) => {
-            toast.error(error instanceof Error ? error.message : "Ошибка");
-          })
-        }
+        onSave={handleSaveRow}
       />
 
       <FinishDialog
         open={finishOpen}
         onOpenChange={setFinishOpen}
         title={title || INTENSIVE_COOLING_DEFAULT_DOCUMENT_NAME}
-        onConfirm={() =>
-          handleFinish().catch((error) => {
-            toast.error(error instanceof Error ? error.message : "Ошибка");
-          })
-        }
+        onConfirm={handleFinish}
       />
     </div>
   );

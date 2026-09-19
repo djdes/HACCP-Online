@@ -33,6 +33,7 @@ import {
   CLIMATE_DOCUMENT_TITLE,
   climateCorrectionKey,
   collectClimateDeviations,
+  countClimateRoomValues,
   isClimateValueOutOfRange,
   CLIMATE_FREQUENCY_HINT,
   CLIMATE_SCOPE_HINT,
@@ -54,6 +55,12 @@ import {
 } from "@/components/cleaning/room-editor-dialog";
 import { RoomDirectoryPickerDialog } from "@/components/cleaning/room-directory-picker-dialog";
 import { TimeField } from "@/components/journals/time-field";
+import { parseNumeric } from "@/components/journals/number-field";
+import {
+  FOREIGN_ROW_MESSAGE,
+  NOT_TODAY_MESSAGE,
+  hasFullDocumentAccess,
+} from "@/lib/journal-entry-scope";
 import { directoryRoomToEditorInitial } from "@/components/cleaning/room-editor-initial";
 import type { DirectoryBuilding, DirectoryRoom } from "@/lib/room-directory";
 import { buildDateKeys, isWeekend } from "@/lib/hygiene-document";
@@ -158,6 +165,12 @@ type Props = {
   buildings?: DirectoryBuilding[];
   config: ClimateDocumentConfig;
   initialEntries: RowItem[];
+  /**
+   * Кто смотрит. Сервер (`checkEntryScope`) пускает рядового сотрудника
+   * только в свою строку и только за сегодня; без этих данных сетка
+   * показывала все ячейки редактируемыми, а каждая правка падала.
+   */
+  viewer?: { id: string; role: string; isRoot: boolean };
   /** Design v2 toggle. */
   useV2?: boolean;
 };
@@ -180,10 +193,12 @@ function getSortedRows(rows: RowItem[]) {
   });
 }
 
+/**
+ * ПОЧЕМУ parseNumeric: `Number("21,5")` → NaN, и введённая с русской
+ * запятой температура показывалась как «NaN», а в базу шло пусто.
+ */
 function parseMetricInput(rawValue: string) {
-  if (rawValue.trim() === "") return null;
-  const parsed = Number(rawValue);
-  return Number.isFinite(parsed) ? parsed : null;
+  return parseNumeric(rawValue);
 }
 
 function isDateWithinDocumentPeriod(dateKey: string, dateFrom: string, dateTo: string) {
@@ -293,7 +308,8 @@ function RoomDialog({
   /** Помещения справочника, с которыми можно связать legacy-строку. */
   linkOptions?: Array<{ id: string; name: string }>;
   onSave: (room: ClimateRoomConfig, linkRoomId?: string | null) => Promise<void>;
-  onDelete: (roomId: string) => Promise<void>;
+  /** `false` — удаление отменено в подтверждении, окно оставляем открытым. */
+  onDelete: (roomId: string) => Promise<boolean | void>;
 }) {
   const [name, setName] = useState("");
   const [linkRoomId, setLinkRoomId] = useState("");
@@ -359,7 +375,8 @@ function RoomDialog({
     if (!initialRoom) return;
     setIsSubmitting(true);
     try {
-      await onDelete(initialRoom.id);
+      const removed = await onDelete(initialRoom.id);
+      if (removed === false) return;
       onOpenChange(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Ошибка удаления помещения");
@@ -795,7 +812,10 @@ function JournalSettingsDialog({
   const [position, setPosition] = useState(responsibleTitle || "");
   const [userId, setUserId] = useState(responsibleUserId || "");
   const [timeOne, setTimeOne] = useState(config.controlTimes[0] || "10:00");
-  const [timeTwo, setTimeTwo] = useState(config.controlTimes[1] || "17:00");
+  // ПОЧЕМУ пусто, а не «17:00»: второе время подставлялось всегда, и
+  // любое сохранение настроек у документа с ОДНИМ временем контроля
+  // добавляло второе — сетка замеров удваивалась сама собой.
+  const [timeTwo, setTimeTwo] = useState(config.controlTimes[1] || "");
   const [skipWeekends, setSkipWeekends] = useState(config.skipWeekends);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -806,7 +826,7 @@ function JournalSettingsDialog({
     setPosition(responsibleTitle || "");
     setUserId(responsibleUserId || "");
     setTimeOne(config.controlTimes[0] || "10:00");
-    setTimeTwo(config.controlTimes[1] || "17:00");
+    setTimeTwo(config.controlTimes[1] || "");
     setSkipWeekends(config.skipWeekends);
   }, [config.controlTimes, config.skipWeekends, open, responsibleTitle, responsibleUserId, title]);
 
@@ -941,13 +961,32 @@ function JournalSettingsDialog({
             >
               Время контроля 2
             </Label>
-            <Input
-              id="climate-time-two-v2"
-              type="time"
-              value={timeTwo}
-              onChange={(event) => setTimeTwo(event.target.value)}
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
-            />
+            {timeTwo ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  id="climate-time-two-v2"
+                  type="time"
+                  value={timeTwo}
+                  onChange={(event) => setTimeTwo(event.target.value)}
+                  className="h-9 flex-1 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTimeTwo("")}
+                  className="h-9 shrink-0 rounded-xl border border-[#ffd7d3] px-3 text-[13px] font-medium text-[#ff3b30] transition-colors hover:bg-[#fff3f2]"
+                >
+                  Убрать
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTimeTwo("17:00")}
+                className="flex h-9 w-full items-center justify-center rounded-xl border border-dashed border-[#dcdfed] px-3.5 text-[13.5px] font-medium text-[#5566f6] transition-colors hover:bg-[#f5f6ff]"
+              >
+                Добавить второе время
+              </button>
+            )}
           </div>
         </div>
         <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#ececf4] bg-[#fafbff] px-4 py-3 transition-colors hover:bg-[#f5f6ff]">
@@ -1039,13 +1078,32 @@ function JournalSettingsDialog({
               <Label htmlFor="time-two" className="text-[13px] font-medium text-[#3c4053]">
                 Время контроля 2
               </Label>
-              <Input
-                id="time-two"
-                type="time"
-                value={timeTwo}
-                onChange={(event) => setTimeTwo(event.target.value)}
-                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
-              />
+              {timeTwo ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="time-two"
+                    type="time"
+                    value={timeTwo}
+                    onChange={(event) => setTimeTwo(event.target.value)}
+                    className="h-9 flex-1 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTimeTwo("")}
+                    className="h-9 shrink-0 rounded-xl border border-[#ffd7d3] px-3 text-[13px] font-medium text-[#ff3b30] transition-colors hover:bg-[#fff3f2]"
+                  >
+                    Убрать
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setTimeTwo("17:00")}
+                  className="flex h-9 w-full items-center justify-center rounded-xl border border-dashed border-[#dcdfed] px-3.5 text-[13.5px] font-medium text-[#5566f6] transition-colors hover:bg-[#f5f6ff]"
+                >
+                  Добавить второе время
+                </button>
+              )}
             </div>
           </div>
 
@@ -1092,6 +1150,7 @@ export function ClimateDocumentClient({
   buildings = [],
   config: initialConfig,
   initialEntries,
+  viewer,
   useV2 = false,
 }: Props) {
   const router = useRouter();
@@ -1106,6 +1165,22 @@ export function ClimateDocumentClient({
   const [config, setConfig] = useState(() =>
     applyRoomDirectoryToClimateConfig(initialConfig, directoryRooms),
   );
+  /**
+   * Те же правила, что на сервере (общий чистый модуль
+   * `journal-entry-scope`): руководство и ответственный правят любые
+   * строки и дни, рядовой сотрудник — только свою строку за сегодня.
+   */
+  const viewerHasFullAccess = viewer
+    ? hasFullDocumentAccess({ actor: viewer, responsibleUserId })
+    : true;
+
+  /** Причина, по которой строка закрыта для зрителя, или null. */
+  function rowLockReason(row: { employeeId: string; date: string }): string | null {
+    if (viewerHasFullAccess || !viewer) return null;
+    if (row.employeeId !== viewer.id) return FOREIGN_ROW_MESSAGE;
+    if (todayKey !== "" && row.date !== todayKey) return NOT_TODAY_MESSAGE;
+    return null;
+  }
   const [pickerOpen, setPickerOpen] = useState(false);
   const [roomEditor, setRoomEditor] = useState<RoomEditorInitial | null>(null);
   const [rows, setRows] = useState(getSortedRows(initialEntries));
@@ -1216,8 +1291,11 @@ export function ClimateDocumentClient({
   const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
-    setConfig(initialConfig);
-  }, [initialConfig]);
+    // ПОЧЕМУ с директорией: сырой конфиг затирал результат
+    // applyRoomDirectoryToClimateConfig из useState — имя и нормы
+    // помещения из справочника пропадали с экрана (в PDF применялись).
+    setConfig(applyRoomDirectoryToClimateConfig(initialConfig, directoryRooms));
+  }, [directoryRooms, initialConfig]);
 
   useEffect(() => {
     setRows(getSortedRows(initialEntries));
@@ -1467,13 +1545,41 @@ export function ClimateDocumentClient({
   }
 
   async function handleDeleteRoom(roomId: string) {
+    const room = config.rooms.find((item) => item.id === roomId);
+    // Удаление помещения вычищает его замеры во ВСЕХ днях документа —
+    // раньше это происходило молча, без подтверждения.
+    const lostValues = countClimateRoomValues(rows, roomId);
+    const confirmed = await confirmAsync({
+      title: `Удалить помещение «${room?.name || "без названия"}»?`,
+      description:
+        "Помещение исчезнет из документа вместе со всеми замерами за весь период.",
+      variant: "danger",
+      confirmLabel: "Удалить помещение",
+      bullets: [
+        lostValues > 0
+          ? { label: `Будет удалено замеров: ${lostValues}`, tone: "warn" as const }
+          : { label: "Замеров по этому помещению ещё нет", tone: "info" as const },
+        {
+          label: `Останется помещений: ${config.rooms.length - 1}`,
+          tone: "default" as const,
+        },
+      ],
+    });
+    if (!confirmed) return false;
+
     const nextConfig = normalizeClimateDocumentConfig({
       ...config,
-      rooms: config.rooms.filter((room) => room.id !== roomId),
+      rooms: config.rooms.filter((item) => item.id !== roomId),
     });
 
     await persistDocument({ config: nextConfig });
     await syncEntriesWithConfig(nextConfig);
+    toast.success(
+      lostValues > 0
+        ? `Помещение удалено. Удалено замеров: ${lostValues}`
+        : "Помещение удалено"
+    );
+    return true;
   }
 
   async function handleCreateRow(params: {
@@ -2355,10 +2461,29 @@ export function ClimateDocumentClient({
           <RecordCardsView
             items={rows.map((row, index) => {
               const employee = employeeMap[row.employeeId];
+              const lockReason = rowLockReason(row);
+              const canEditRow = status === "active" && lockReason === null;
               return {
                 id: row.id,
                 title: `№${index + 1} · ${getClimateDateLabel(row.date)}`,
                 subtitle: employee?.name || undefined,
+                // В таблице кнопка смены ответственного была, в карточках —
+                // нет, и на телефоне строку было не переподписать.
+                actions: canEditRow ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingResponsibleRow(row);
+                      setResponsibleDialogOpen(true);
+                    }}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[#dcdfed] px-4 text-[14px] font-medium text-[#0b1024] transition-colors duration-150 hover:bg-[#f5f6ff]"
+                  >
+                    <Pencil className="size-4 text-[#9b9fb3]" />
+                    Сменить ответственного
+                  </button>
+                ) : lockReason ? (
+                  <span className="text-[13px] text-[#9b9fb3]">{lockReason}</span>
+                ) : null,
                 leading: status === "active" ? (
                   <Checkbox
                     checked={selectedRowIds.includes(row.id)}
@@ -2391,16 +2516,15 @@ export function ClimateDocumentClient({
                     label: room.name,
                     value: lines.length > 0 ? lines.join(" · ") : "",
                     hideIfEmpty: false,
-                    warnIfEmpty: status === "active",
+                    warnIfEmpty: canEditRow,
                     // Тап по помещению открывает лист со всеми замерами
                     // этого помещения за день.
-                    onClick:
-                      status === "active"
-                        ? () =>
-                            setEditingCell({ rowId: row.id, roomId: room.id })
-                        : undefined,
-                    hint:
-                      status === "active" && lines.length === 0
+                    onClick: canEditRow
+                      ? () => setEditingCell({ rowId: row.id, roomId: room.id })
+                      : undefined,
+                    hint: !canEditRow
+                      ? lockReason ?? undefined
+                      : lines.length === 0
                         ? "нажмите, чтобы внести замеры"
                         : undefined,
                   };
@@ -2513,6 +2637,10 @@ export function ClimateDocumentClient({
               {rows.map((row) => {
                 const employee = employeeMap[row.employeeId];
                 const isToday = row.date === todayKey;
+                // Недоступная строка гасится здесь же — иначе сотрудник
+                // правил ячейку и получал отказ уже на сохранении.
+                const lockReason = rowLockReason(row);
+                const canEditRow = status === "active" && lockReason === null;
                 return (
                   <tr
                     key={row.id}
@@ -2547,7 +2675,7 @@ export function ClimateDocumentClient({
                             key={`${row.id}:${room.id}:${time}:temperature`}
                             className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                           >
-                            {status === "active" ? (
+                            {canEditRow ? (
                               <Input
                                 type="number"
                                 inputMode="decimal"
@@ -2581,7 +2709,9 @@ export function ClimateDocumentClient({
                                 )}
                               />
                             ) : (
-                              row.data.measurements[room.id]?.[time]?.temperature ?? ""
+                              <span title={lockReason ?? undefined} className={lockReason ? "text-[#9b9fb3]" : undefined}>
+                                {row.data.measurements[room.id]?.[time]?.temperature ?? ""}
+                              </span>
                             )}
                           </td>
                         ) : null,
@@ -2590,7 +2720,7 @@ export function ClimateDocumentClient({
                             key={`${row.id}:${room.id}:${time}:humidity`}
                             className={`${GRID_CELL_CLASS} p-1 text-center leading-tight`}
                           >
-                            {status === "active" ? (
+                            {canEditRow ? (
                               <Input
                                 type="number"
                                 inputMode="decimal"
@@ -2624,7 +2754,9 @@ export function ClimateDocumentClient({
                                 )}
                               />
                             ) : (
-                              row.data.measurements[room.id]?.[time]?.humidity ?? ""
+                              <span title={lockReason ?? undefined} className={lockReason ? "text-[#9b9fb3]" : undefined}>
+                                {row.data.measurements[room.id]?.[time]?.humidity ?? ""}
+                              </span>
                             )}
                           </td>
                         ) : null,
@@ -2633,12 +2765,13 @@ export function ClimateDocumentClient({
                     <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                       <button
                         type="button"
-                        disabled={status !== "active"}
+                        disabled={!canEditRow}
+                        title={lockReason ?? undefined}
                         onClick={() => {
                           setEditingResponsibleRow(row);
                           setResponsibleDialogOpen(true);
                         }}
-                        className={`w-full text-center ${status === "active" ? "cursor-pointer hover:text-[5566f6]" : ""}`}
+                        className={`w-full text-center ${canEditRow ? "cursor-pointer hover:text-[5566f6]" : ""}`}
                       >
                         <div className="font-medium">{employee?.name || "—"}</div>
                         <div className="text-[13px] text-[#6f7282]">

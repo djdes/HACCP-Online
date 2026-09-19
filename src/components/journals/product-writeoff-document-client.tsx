@@ -293,6 +293,24 @@ export function ProductWriteoffDocumentClient({
     ) : null,
   }));
 
+  /** Состав комиссии — один и тот же блок для бланка и для телефона. */
+  const commissionBlock = (
+    <div>
+      Комиссия в составе:
+      <div className="ml-5 mt-1 space-y-1">
+        {config.commissionMembers.map((member, index) => (
+          <div key={member.id} className="flex items-center gap-3">
+            <button type="button" className="underline" disabled={isClosed} onClick={() => !isClosed && setCommissionDialog({ open: true, index, member })}>
+              {member.role} {member.employeeName}
+            </button>
+            {!isClosed && <button type="button" className="rounded-full p-1 text-[#5566f6]" onClick={() => setCommissionDialog({ open: true, index, member })}><Pencil className="size-4" /></button>}
+          </div>
+        ))}
+        {!isClosed && <button type="button" className="text-left underline" onClick={() => setCommissionDialog({ open: true, index: null, member: emptyCommissionMember() })}>Добавить</button>}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6 text-black">
       <FocusTodayScroller selector="[data-focus-today]" emptyTitle="Записей пока нет" emptyBody="Нажмите «Добавить» в таблице ниже, чтобы создать запись." />
@@ -313,6 +331,17 @@ export function ProductWriteoffDocumentClient({
         title={title}
         documentId={documentId}
         backHref="/journals/product_writeoff"
+        // В режиме «Карточки» бланк (а с ним и состав комиссии) скрыт —
+        // на телефоне комиссию было не поправить. Дублируем блок над
+        // переключателем ТОЛЬКО для этого режима: на печати и на десктопе
+        // он остаётся на своём месте внутри бланка.
+        beforeToggle={
+          mobileView === "cards" ? (
+            <div className="mb-4 rounded-[20px] bg-white px-4 py-4 text-[16px] leading-7 sm:hidden print:hidden">
+              {commissionBlock}
+            </div>
+          ) : undefined
+        }
         onSettings={isClosed ? undefined : () => setSettingsOpen(true)}
         closed={isClosed}
         closedHint="Откройте журнал заново, чтобы добавлять и редактировать акт."
@@ -374,20 +403,7 @@ export function ProductWriteoffDocumentClient({
         }
       >
         <div className="space-y-5 py-4 text-[18px] leading-8">
-          <div>
-            Комиссия в составе:
-            <div className="ml-5 mt-1 space-y-1">
-              {config.commissionMembers.map((member, index) => (
-                <div key={member.id} className="flex items-center gap-3">
-                  <button type="button" className="underline" disabled={isClosed} onClick={() => !isClosed && setCommissionDialog({ open: true, index, member })}>
-                    {member.role} {member.employeeName}
-                  </button>
-                  {!isClosed && <button type="button" className="rounded-full p-1 text-[#5566f6]" onClick={() => setCommissionDialog({ open: true, index, member })}><Pencil className="size-4" /></button>}
-                </div>
-              ))}
-              {!isClosed && <button type="button" className="text-left underline" onClick={() => setCommissionDialog({ open: true, index: null, member: emptyCommissionMember() })}>Добавить</button>}
-            </div>
-          </div>
+          {commissionBlock}
 
           <p>составила настоящий АКТ о том, что « {actDate.day} » {actDate.month} {actDate.year} г. на предприятии выявлены ТМЦ с несоответствиями по качеству и (или) безопасности согласно списку ниже.</p>
           <p className="flex flex-wrap items-center gap-2">
@@ -738,7 +754,15 @@ export function ProductWriteoffDocumentClient({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={listsOpen} onOpenChange={setListsOpen}>
+      {/* Правки списка сохраняем при ЛЮБОМ закрытии окна (крестик, Esc,
+          клик мимо), а не только по кнопке «Закрыть». */}
+      <Dialog
+        open={listsOpen}
+        onOpenChange={(open) => {
+          setListsOpen(open);
+          if (!open) void persistConfig(config).catch(() => undefined);
+        }}
+      >
         <DialogContent className="max-h-[92vh] supports-[height:100dvh]:max-h-[92dvh] w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-[28px] border-0 p-0 sm:max-w-[720px]">
           <DialogHeader className="border-b px-8 py-6">
             <DialogTitle className="text-[24px] font-medium text-black">Редактировать список продукции</DialogTitle>
@@ -794,7 +818,7 @@ export function ProductWriteoffDocumentClient({
             )}
 
             <div className="flex justify-end">
-              <Button type="button" onClick={() => persistConfig(config).then((ok) => ok && setListsOpen(false))} disabled={saving} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]">
+              <Button type="button" onClick={() => setListsOpen(false)} disabled={saving} className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white hover:bg-[#4a5bf0]">
                 {saving ? "Сохранение..." : "Закрыть"}
               </Button>
             </div>

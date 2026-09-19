@@ -9,6 +9,7 @@ import {
 } from "@/lib/equipment-cleaning-document";
 import { isManagementRole } from "@/lib/user-roles";
 import { canWriteJournal } from "@/lib/journal-acl";
+import { orgTodayKey } from "@/lib/timezone";
 
 function aclActorFromSession(session: {
   user: { id: string; role: string; isRoot?: boolean };
@@ -72,6 +73,38 @@ export async function POST(
     data?: unknown;
   };
   const data = normalizeEquipmentCleaningRowData(body.data);
+
+  // Пустую строку не сохраняем: раньше «Добавить» плодило пустые записи.
+  if (!data.equipmentName.trim()) {
+    return NextResponse.json(
+      { error: "Укажите наименование оборудования" },
+      { status: 400 }
+    );
+  }
+  if (!data.washDate) {
+    return NextResponse.json({ error: "Укажите дату мойки" }, { status: 400 });
+  }
+
+  // Дата — в периоде документа и не в будущем (по зоне организации).
+  const organization = await db.organization.findUnique({
+    where: { id: getActiveOrgId(session) },
+    select: { timezone: true },
+  });
+  const todayKey = orgTodayKey(organization?.timezone ?? "Europe/Moscow");
+  if (data.washDate > todayKey) {
+    return NextResponse.json(
+      { error: "Дата мойки не может быть в будущем" },
+      { status: 400 }
+    );
+  }
+  const periodFrom = document.dateFrom.toISOString().slice(0, 10);
+  const periodTo = document.dateTo.toISOString().slice(0, 10);
+  if (data.washDate < periodFrom || data.washDate > periodTo) {
+    return NextResponse.json(
+      { error: `Дата мойки должна быть в периоде документа (${periodFrom} — ${periodTo})` },
+      { status: 400 }
+    );
+  }
 
   const employeeId =
     data.washerUserId || data.controllerUserId || document.createdById || null;

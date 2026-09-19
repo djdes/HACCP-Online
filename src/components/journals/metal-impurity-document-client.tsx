@@ -53,6 +53,7 @@ import {
 } from "@/components/journals/record-cards-view";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   EMPTY_SELECT_VALUE,
   PositionSelectItems,
@@ -97,6 +98,8 @@ type ListEditorSectionProps = {
   addPlaceholder: string;
   onImportClick: () => void;
   onImportFile: (file: File) => void;
+  /** Удаление ошибочно добавленной позиции. */
+  onDelete: (item: MetalImpurityOption) => void;
 };
 
 function formatRuDate(value: string) {
@@ -397,6 +400,11 @@ function RowDialog({
                     }
                   );
                   onOpenChange(false);
+                } catch (error) {
+                  // Без catch ошибка глохла: окно висело, тоста не было.
+                  toast.error(
+                    error instanceof Error ? error.message : "Не удалось сохранить строку"
+                  );
                 } finally {
                   setSubmitting(false);
                 }
@@ -666,6 +674,7 @@ function ListEditorSection({
   addPlaceholder,
   onImportClick,
   onImportFile,
+  onDelete,
 }: ListEditorSectionProps) {
   return (
     <div className="space-y-4">
@@ -676,7 +685,7 @@ function ListEditorSection({
             key={item.id}
             className="flex items-center gap-3 rounded-[18px] bg-[#f6f7fb] px-4 py-4"
           >
-            <span className="size-6 rounded-[8px] border-2 border-[#73788d] bg-white" />
+            {/* Декоративный «чекбокс» убран: он ничего не выбирал. */}
             {editingId === item.id ? (
               <Input
                 autoFocus
@@ -694,9 +703,18 @@ function ListEditorSection({
             <button
               type="button"
               onClick={() => onEditStart(item.id, item.name)}
-              className="rounded-md p-1 text-[#5566f6]"
+              className="rounded-lg p-2 text-[#5566f6] transition-colors duration-150 hover:bg-[#eef1ff] hover:text-[#4b57ff]"
+              title="Переименовать"
             >
               <Pencil className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(item)}
+              className="rounded-lg p-2 text-[#9a9db0] transition-colors duration-150 hover:bg-[#fff3f2] hover:text-[#ff3b30]"
+              title="Удалить из списка"
+            >
+              <Trash2 className="size-4" />
             </button>
           </div>
         ))}
@@ -822,6 +840,30 @@ function ListsDialog({
     setEditingValue("");
   }
 
+  /**
+   * Удаление позиции справочника. Пока она стоит в строках журнала,
+   * удалять нельзя: строки ссылаются на неё по id и остались бы без
+   * наименования.
+   */
+  function removeOption(target: "materials" | "suppliers", item: MetalImpurityOption) {
+    const used = draft.rows.some(
+      (row) => (target === "materials" ? row.materialId : row.supplierId) === item.id
+    );
+    if (used) {
+      toast.error(
+        `«${item.name}» уже стоит в записях журнала — сначала измените эти строки`
+      );
+      return;
+    }
+    setDraft((current) => ({
+      ...current,
+      [target]: (target === "materials" ? current.materials : current.suppliers).filter(
+        (option) => option.id !== item.id
+      ),
+    }));
+    toast.success(`Удалено из списка: ${item.name}`);
+  }
+
   async function importItems(file: File, target: "materials" | "suppliers") {
     try {
       // xlsx (SheetJS) — 402 КБ / 135 КБ gzip. При статическом импорте она
@@ -892,6 +934,7 @@ function ListsDialog({
             onImportFile={(file) => {
               importItems(file, "materials").catch(() => undefined);
             }}
+            onDelete={(item) => removeOption("materials", item)}
           />
 
           <ListEditorSection
@@ -925,6 +968,7 @@ function ListsDialog({
             onImportFile={(file) => {
               importItems(file, "suppliers").catch(() => undefined);
             }}
+            onDelete={(item) => removeOption("suppliers", item)}
           />
 
           <div className="flex justify-end">
@@ -1134,11 +1178,24 @@ export function MetalImpurityDocumentClient({
 
   async function deleteSelectedRows() {
     if (selectedRowIds.length === 0) return;
+    const count = selectedRowIds.length;
+    const confirmed = await confirmAsync({
+      title: "Удалить выбранные строки?",
+      description: "Записи контроля металлопримесей исчезнут из журнала.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+      bullets: [
+        { label: `Строк будет удалено: ${count}`, tone: "warn" },
+        { label: `Останется строк: ${config.rows.length - count}`, tone: "default" },
+      ],
+    });
+    if (!confirmed) return;
     await persist(documentTitle, {
       ...config,
       rows: config.rows.filter((row) => !selectedRowIds.includes(row.id)),
     });
     setSelectedRowIds([]);
+    toast.success(`Удалено строк: ${count}`);
   }
 
   async function finishJournal() {
@@ -1344,7 +1401,15 @@ export function MetalImpurityDocumentClient({
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight whitespace-pre-wrap`}>
                     {row.impurityCharacteristic || "—"}
                   </td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>{row.valuePerKg || "—"}</td>
+                  {/* Норма — не более 3 мг/кг: превышение подсвечиваем,
+                      как отклонения в других журналах. */}
+                  <td
+                    className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight${
+                      Number(row.valuePerKg) > 3 ? " bg-[#fff2f1] font-semibold text-[#d43a2f]" : ""
+                    }`}
+                  >
+                    {row.valuePerKg || "—"}
+                  </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 align-top leading-tight`}>
                     {row.responsibleName || "—"}
                   </td>

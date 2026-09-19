@@ -1,3 +1,5 @@
+import { localDayKey } from "@/lib/entry-defaults";
+
 export const BREAKDOWN_HISTORY_TEMPLATE_CODE = "breakdown_history";
 export const BREAKDOWN_HISTORY_SOURCE_SLUG = "breakdownhistoryjournal";
 export const BREAKDOWN_HISTORY_HEADING = "Карточка истории поломок";
@@ -38,7 +40,8 @@ function normalizeText(value: unknown) {
 export function createBreakdownRow(
   overrides?: Partial<BreakdownRow>
 ): BreakdownRow {
-  const today = new Date().toISOString().slice(0, 10);
+  // Дата по местным часам: UTC до 03:00 в Москве давал вчерашнее число.
+  const today = localDayKey();
   return {
     id: overrides?.id || createId("breakdown-row"),
     startDate: normalizeText(overrides?.startDate) || today,
@@ -48,12 +51,42 @@ export function createBreakdownRow(
     breakdownDescription: normalizeText(overrides?.breakdownDescription),
     repairPerformed: normalizeText(overrides?.repairPerformed),
     partsReplaced: normalizeText(overrides?.partsReplaced),
-    endDate: normalizeText(overrides?.endDate) || today,
-    endHour: normalizeText(overrides?.endHour) || "00",
-    endMinute: normalizeText(overrides?.endMinute) || "00",
+    // ПОЧЕМУ пусто: поломку заводят в момент, когда её ещё не починили.
+    // Раньше окончание по умолчанию было «сегодня 00:00» — журнал
+    // показывал ремонт законченным до того, как он начался.
+    endDate: normalizeText(overrides?.endDate),
+    endHour: normalizeText(overrides?.endHour),
+    endMinute: normalizeText(overrides?.endMinute),
     downtimeHours: normalizeText(overrides?.downtimeHours),
     responsiblePerson: normalizeText(overrides?.responsiblePerson),
   };
+}
+
+/** `YYYY-MM-DDTHH:MM` — строки такого вида сравнимы лексикографически. */
+function toSortableStamp(date: string, hour: string, minute: string) {
+  return `${date}T${(hour || "00").padStart(2, "0")}:${(minute || "00").padStart(2, "0")}`;
+}
+
+/**
+ * Проверка «окончание не раньше начала». Пустое окончание — законно:
+ * ремонт ещё идёт.
+ */
+export function getBreakdownRowDateError(row: BreakdownRow): string | null {
+  if (!row.startDate || !row.endDate) return null;
+  const start = toSortableStamp(row.startDate, row.startHour, row.startMinute);
+  const end = toSortableStamp(row.endDate, row.endHour, row.endMinute);
+  return end < start
+    ? "Окончание работ не может быть раньше их начала"
+    : null;
+}
+
+/** Метка окончания работ для таблицы и карточек; пусто — ремонт не закончен. */
+export function formatBreakdownEnd(row: BreakdownRow): string {
+  if (!row.endDate) return "";
+  const [year, month, day] = row.endDate.split("-");
+  const dateLabel = year && month && day ? `${day}-${month}-${year}` : row.endDate;
+  if (!row.endHour && !row.endMinute) return dateLabel;
+  return `${dateLabel} ${(row.endHour || "00").padStart(2, "0")}:${(row.endMinute || "00").padStart(2, "0")}`;
 }
 
 export function getBreakdownHistoryDefaultConfig(): BreakdownHistoryDocumentConfig {

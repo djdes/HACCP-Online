@@ -68,6 +68,8 @@ export type FinishedProductDocumentConfig = {
   showCorrectiveAction: boolean;
   showOxygenLevel: boolean;
   showCourierTime: boolean;
+  /** Колонка «Разрешение к реализации: Да/Нет» (поле `releaseAllowed`). */
+  showReleaseAllowed: boolean;
   footerNote: string;
   productLists: Array<{ id: string; name: string; items: string[] }>;
   itemsCatalog: string[];
@@ -129,6 +131,7 @@ export function getDefaultFinishedProductDocumentConfig(): FinishedProductDocume
     showCorrectiveAction: true,
     showOxygenLevel: false,
     showCourierTime: true,
+    showReleaseAllowed: true,
     footerNote: "",
     productLists: [
       { id: createId("finished-product-list"), name: "Основной список", items: [] },
@@ -217,6 +220,10 @@ export function normalizeFinishedProductDocumentConfig(
     showCorrectiveAction: flag("showCorrectiveAction"),
     showOxygenLevel: flag("showOxygenLevel"),
     showCourierTime: flag("showCourierTime"),
+    // Колонка заведена позже: у старого документа ключа в конфиге нет, и
+    // выводить её из сохранённого набора колонок нельзя — там её тоже
+    // нет, а это не то же самое, что «показывать».
+    showReleaseAllowed: record.showReleaseAllowed === true,
     footerNote: normalizeFooterNote(record.footerNote),
     productLists: Array.isArray(record.productLists)
       ? (record.productLists as Array<Record<string, unknown>>)

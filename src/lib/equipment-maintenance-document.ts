@@ -136,13 +136,11 @@ export function buildEquipmentMaintenanceConfigFromEquipment(
 export function getDefaultEquipmentMaintenanceConfig(
   year = new Date().getUTCFullYear()
 ): EquipmentMaintenanceConfig {
-  const emptyPlan: Record<string, string> = {};
-  const emptyFact: Record<string, string> = {};
-  for (const key of MONTH_KEYS) {
-    emptyPlan[key] = "-";
-    emptyFact[key] = "";
-  }
-
+  // ПОЧЕМУ пусто: журнал предъявляют инспектору. Раньше здесь лежали
+  // четыре выдуманные единицы оборудования с проставленными планом И
+  // фактом — каждый новый документ и его печать содержали отметки о
+  // работах, которых не было. Строки берутся из справочника оборудования
+  // при создании документа, факт проставляет человек.
   return {
     year,
     documentDate: `${year}-01-01`,
@@ -152,32 +150,7 @@ export function getDefaultEquipmentMaintenanceConfig(
     responsibleRole: "Шеф-повар",
     responsibleEmployeeId: null,
     responsibleEmployee: "",
-    rows: [
-      createEquipmentMaintenanceRow({
-        equipmentName: "Морозильный ларь 1",
-        maintenanceType: "B",
-        plan: { ...emptyPlan, jul: "21" },
-        fact: { ...emptyFact, jul: "21" },
-      }),
-      createEquipmentMaintenanceRow({
-        equipmentName: "Холодильная камера",
-        maintenanceType: "B",
-        plan: { ...emptyPlan, jan: "23" },
-        fact: { ...emptyFact, jan: "23" },
-      }),
-      createEquipmentMaintenanceRow({
-        equipmentName: "Фритюрница",
-        maintenanceType: "B",
-        plan: { ...emptyPlan, jul: "18" },
-        fact: { ...emptyFact, jul: "18" },
-      }),
-      createEquipmentMaintenanceRow({
-        equipmentName: "Оборудования",
-        maintenanceType: "A",
-        plan: Object.fromEntries(MONTH_KEYS.map((k) => [k, "01"])),
-        fact: Object.fromEntries(MONTH_KEYS.map((k) => [k, "01"])),
-      }),
-    ],
+    rows: [],
   };
 }
 
@@ -233,4 +206,19 @@ export function getMaintenanceCreatePeriodBounds(referenceDate = new Date()) {
   };
 }
 
-export const DAY_OPTIONS = ["-", ...Array.from({ length: 28 }, (_, i) => String(i + 1).padStart(2, "0"))];
+export const DAY_OPTIONS = ["-", ...Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"))];
+
+/**
+ * Дни месяца для выпадающего списка плана/факта. Раньше список был
+ * жёстко 1–28, и ППР нельзя было назначить на 29–31 число.
+ */
+export function getMonthDayOptions(monthKey: string, year: number): string[] {
+  const monthIndex = MONTH_KEYS.indexOf(monthKey as (typeof MONTH_KEYS)[number]);
+  const safeYear = Number.isFinite(year) ? Math.trunc(year) : new Date().getFullYear();
+  const daysInMonth =
+    monthIndex >= 0 ? new Date(Date.UTC(safeYear, monthIndex + 1, 0)).getUTCDate() : 31;
+  return [
+    "-",
+    ...Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, "0")),
+  ];
+}

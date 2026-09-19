@@ -79,12 +79,28 @@ export function drawCleaningVentilationChecklistPdf(
     [...config.customDates, ...existingDates],
     config.hiddenDates
   );
-  const entryMap = new Map(
-    params.entries.map((entry) => [
-      entry.date.toISOString().slice(0, 10),
-      normalizeCleaningVentilationEntryData(entry.data),
-    ])
-  );
+  // Записей за дату может быть несколько (уникальность в БД — по
+  // документу+сотруднику+дате), поэтому сливаем, а не перезатираем.
+  const entryMap = new Map<
+    string,
+    ReturnType<typeof normalizeCleaningVentilationEntryData>
+  >();
+  for (const entry of params.entries) {
+    const key = entry.date.toISOString().slice(0, 10);
+    const data = normalizeCleaningVentilationEntryData(entry.data);
+    const existing = entryMap.get(key);
+    entryMap.set(
+      key,
+      existing
+        ? {
+            ...existing,
+            procedures: { ...existing.procedures, ...data.procedures },
+            responsibleUserId:
+              existing.responsibleUserId || data.responsibleUserId,
+          }
+        : data
+    );
+  }
 
   const fontName = ensureUnicodeFont(doc);
   doc.setFont(fontName, "bold");
@@ -220,7 +236,9 @@ export function drawCleaningVentilationChecklistPdf(
   for (const dateKey of dateKeys) {
     const entry = entryMap.get(dateKey);
     procedures.forEach((procedure, index) => {
-      const times = entry?.procedures[procedure.id] || procedure.times;
+      // Без записи слот пустой: плановое время из конфига печаталось как
+      // факт, и пустой документ выходил «заполненным» за весь месяц.
+      const times = entry?.procedures[procedure.id] ?? [];
       const responsibleName =
         params.users.find(
           (user) => user.id === (entry?.responsibleUserId || procedure.responsibleUserId || config.mainResponsibleUserId)

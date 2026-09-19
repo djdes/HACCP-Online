@@ -97,6 +97,11 @@ import {
   normalizeEquipmentCalibrationConfig,
 } from "@/lib/equipment-calibration-document";
 import {
+  buildEquipmentMaintenanceConfigFromEquipment,
+  EQUIPMENT_MAINTENANCE_TEMPLATE_CODE,
+  normalizeEquipmentMaintenanceConfig,
+} from "@/lib/equipment-maintenance-document";
+import {
   CLEANING_VENTILATION_CHECKLIST_TEMPLATE_CODE,
   getDefaultCleaningVentilationConfig,
   normalizeCleaningVentilationConfig,
@@ -507,9 +512,48 @@ export async function POST(request: Request) {
         })
       : [];
 
+  // ППР: строки графика — реальное оборудование организации. Раньше
+  // дефолт подставлял четыре выдуманные единицы с готовыми отметками.
+  const equipmentMaintenanceSource =
+    resolvedTemplateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
+      ? await db.equipment.findMany({
+          where: {
+            area: {
+              organizationId: getActiveOrgId(session),
+            },
+          },
+          select: { id: true, name: true, type: true },
+          orderBy: [{ area: { name: "asc" } }, { name: "asc" }],
+        })
+      : [];
+
   const rawConfig =
     config && typeof config === "object" && !Array.isArray(config)
       ? (config as Record<string, unknown>)
+      : undefined;
+
+  const equipmentMaintenanceConfig =
+    resolvedTemplateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
+      ? (() => {
+          const year =
+            Number(String(dateFrom).slice(0, 4)) || new Date().getUTCFullYear();
+          const providedRows =
+            rawConfig && Array.isArray(rawConfig.rows) && rawConfig.rows.length > 0
+              ? normalizeEquipmentMaintenanceConfig(rawConfig).rows
+              : null;
+          const built = buildEquipmentMaintenanceConfigFromEquipment(
+            equipmentMaintenanceSource,
+            year
+          );
+          return {
+            ...built,
+            ...(rawConfig
+              ? normalizeEquipmentMaintenanceConfig({ ...built, ...rawConfig })
+              : {}),
+            year,
+            rows: providedRows || built.rows,
+          };
+        })()
       : undefined;
 
 
@@ -544,6 +588,8 @@ export async function POST(request: Request) {
       ? coldEquipmentConfig
       : resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? equipmentCalibrationConfig
+      : resolvedTemplateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
+      ? equipmentMaintenanceConfig
       : resolvedTemplateCode === CLIMATE_DOCUMENT_TEMPLATE_CODE
       ? buildClimateConfigFromRooms(directoryRooms)
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
@@ -726,6 +772,8 @@ export async function POST(request: Request) {
   const configForDocument =
     resolvedTemplateCode === EQUIPMENT_CALIBRATION_TEMPLATE_CODE
       ? equipmentCalibrationConfig
+      : resolvedTemplateCode === EQUIPMENT_MAINTENANCE_TEMPLATE_CODE
+      ? equipmentMaintenanceConfig
       : resolvedTemplateCode === CLEANING_DOCUMENT_TEMPLATE_CODE
       ? // Cleaning: используем уже-merged initialConfig (содержит prev doc
         // как базу + body responsibles/title), НЕ rawConfig напрямую.

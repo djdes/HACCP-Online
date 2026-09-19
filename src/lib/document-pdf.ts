@@ -177,6 +177,7 @@ import {
 import {
   AUDIT_PLAN_DOCUMENT_TITLE,
   AUDIT_PLAN_TEMPLATE_CODE,
+  getAuditPlanPrintDateLabel,
   normalizeAuditPlanConfig,
 } from "@/lib/audit-plan-document";
 import {
@@ -415,6 +416,9 @@ function drawMedBookPdf(doc: jsPDF, params: {
         { content: "№ п/п", rowSpan: 2, styles: { halign: "center" as const, valign: "middle" as const } },
         { content: "Ф.И.О. сотрудника", rowSpan: 2, styles: { halign: "center" as const, valign: "middle" as const } },
         { content: "Должность", rowSpan: 2, styles: { halign: "center" as const, valign: "middle" as const } },
+        // Номер медкнижки вводится в журнале, но в печать не попадал —
+        // инспектор проверяет именно его.
+        { content: "№ мед. книжки", rowSpan: 2, styles: { halign: "center" as const, valign: "middle" as const } },
         {
           content: "Наименование специалиста / исследования:",
           colSpan: Math.max(params.config.examinations.length, 1),
@@ -433,6 +437,7 @@ function drawMedBookPdf(doc: jsPDF, params: {
           String(row.index),
           row.name,
           row.data.positionTitle || "",
+          row.data.medBookNumber || "",
           ...params.config.examinations.map((column) => {
             const exam = row.data.examinations[column];
             if (!exam?.date) return "";
@@ -442,7 +447,7 @@ function drawMedBookPdf(doc: jsPDF, params: {
           }),
         ])
       // Пустой бланк — ОДНА строка, как на экране (было три-четыре).
-      : ensurePlainRows(3 + params.config.examinations.length, 1),
+      : ensurePlainRows(4 + params.config.examinations.length, 1),
     theme: "grid",
     styles: {
       font: "JournalUnicode",
@@ -2496,6 +2501,9 @@ function drawFinishedProductPdf(doc: jsPDF, params: {
   if (columns.visible("corrective")) headRow.push(centerCell(columns.label("corrective", "Корректирующие действия")));
   if (columns.visible("oxygen")) headRow.push(centerCell(columns.label("oxygen", "Остаточный кислород, %")));
   headRow.push(centerCell(columns.label("release", "Разрешение к реализации (время)")));
+  if (columns.visible("release_allowed")) {
+    headRow.push(centerCell(columns.label("release_allowed", "Разрешение к реализации: Да/Нет")));
+  }
   if (columns.visible("courier")) headRow.push(centerCell(columns.label("courier", "Передача курьеру")));
   if (columns.visible("responsible")) {
     headRow.push(centerCell(columns.label("responsible", "Ответственный исполнитель (ФИО, должность)")));
@@ -2526,6 +2534,9 @@ function drawFinishedProductPdf(doc: jsPDF, params: {
     }
     if (columns.visible("oxygen")) line.push(centerCell(row.oxygenLevel || ""));
     line.push(centerCell(row.releasePermissionTime || ""));
+    if (columns.visible("release_allowed")) {
+      line.push(centerCell(row.releaseAllowed === "no" ? "Нет" : "Да"));
+    }
     if (columns.visible("courier")) line.push(centerCell(row.courierTransferTime || ""));
     if (columns.visible("responsible")) line.push(centerCell(row.responsiblePerson || ""));
     line.push(centerCell(row.inspectorName || ""));
@@ -5172,6 +5183,29 @@ function drawAuditPlanPdf(doc: jsPDF, params: {
     dateTo: params.dateTo,
   });
 
+  // Блок «УТВЕРЖДАЮ» есть на экране (audit-plan-document-client), а в
+  // печати терялся — инспектор получал план без утверждающего лица.
+  let approveBottom = metaBottom;
+  {
+    const lines = [
+      "УТВЕРЖДАЮ",
+      params.config.approveRole,
+      params.config.approveEmployee,
+      getAuditPlanPrintDateLabel(params.config.documentDate),
+    ].filter((line) => Boolean(line && line.trim()));
+    const right = doc.internal.pageSize.getWidth() - 10;
+    let y = afterHeader(metaBottom, 66) - 4;
+    doc.setFont("JournalUnicode", "normal");
+    doc.setFontSize(9);
+    lines.forEach((line, index) => {
+      doc.setFont("JournalUnicode", index === 0 ? "bold" : "normal");
+      doc.text(line, right, y, { align: "right" });
+      y += 4.4;
+    });
+    doc.setFont("JournalUnicode", "normal");
+    approveBottom = y;
+  }
+
   const head: RowInput[] = [[
     centerCell("№"),
     centerCell("Требование"),
@@ -5202,7 +5236,7 @@ function drawAuditPlanPdf(doc: jsPDF, params: {
   });
 
   autoTable(doc, {
-    startY: afterHeader(metaBottom, 66),
+    startY: approveBottom + 3,
     head,
     body: body.length > 0 ? body : [[{ content: "", colSpan: 3 + Math.max(params.config.columns.length, 1) }]],
     theme: "grid",
@@ -6079,10 +6113,16 @@ export async function loadJournalDocumentPdfInput(params: {
   // jobPosition.name → positionTitle → лейбл роли (getUserDisplayTitle).
   // Раньше PDF печатал только лейбл роли и расходился с экраном
   // («Управляющий» вместо «Менеджер», «Повар» вместо «Кондитер»).
+  // Плюс уволенные, на которых ссылаются записи документа: бланк — это
+  // архивный документ, и после увольнения строка не должна исчезать из
+  // печати (или печататься без фамилии).
+  const referencedEmployeeIds = [
+    ...new Set(document.entries.map((entry) => entry.employeeId).filter(Boolean)),
+  ];
   const dbUsers = await db.user.findMany({
     where: {
       organizationId,
-      isActive: true,
+      OR: [{ isActive: true }, { id: { in: referencedEmployeeIds } }],
     },
     select: {
       id: true,

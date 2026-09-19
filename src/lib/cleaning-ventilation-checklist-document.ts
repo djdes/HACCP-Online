@@ -302,9 +302,10 @@ export function normalizeCleaningVentilationConfig(
             };
           })
       : fallback.responsibles.map((item) => ({ ...item })),
-    procedures: procedures
-      .filter((item) => item.id !== "ventilation" || ventilationEnabled)
-      .map((item) => ({ ...item })),
+    // Процедуру проветривания НЕ выбрасываем при выключенном тумблере:
+    // вместе с ней терялись настроенные времена, и включить обратно было
+    // нечего. Видимость решает `ventilationEnabled` у потребителей.
+    procedures: procedures.map((item) => ({ ...item })),
   };
 }
 
@@ -363,6 +364,9 @@ export function buildCleaningVentilationAutoFillEntryData(
   };
   for (const procedure of config.procedures) {
     if (!procedure.enabled) continue;
+    // Проветривание теперь остаётся в конфиге и при выключённом тумблере
+    // (чтобы не терять времена) — фильтруем его здесь.
+    if (procedure.id === "ventilation" && !config.ventilationEnabled) continue;
     data.procedures[procedure.id] = [...procedure.times];
   }
   return data;
@@ -373,7 +377,7 @@ export function buildCleaningVentilationAutoFillEntryData(
  * из локальных компонентов, сдвигал сутки назад в положительных TZ —
  * именно отсюда в таблицу заезжало «30.07» при дате начала 10.08 (V1).
  */
-function toLocalIsoDate(value: Date) {
+export function toLocalIsoDate(value: Date) {
   const year = value.getFullYear();
   const month = String(value.getMonth() + 1).padStart(2, "0");
   const day = String(value.getDate()).padStart(2, "0");

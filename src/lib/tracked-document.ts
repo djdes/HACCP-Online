@@ -84,6 +84,41 @@ export function getTrackedDocumentTitle(templateCode: string) {
   return TRACKED_DOCUMENT_TITLES[templateCode as TrackedDocumentTemplateCode] || "Журнал";
 }
 
+export const ENTRY_MOVE_CONFLICT_ERROR =
+  "У этого сотрудника на эту дату уже есть запись. Откройте её и дополните или выберите другую дату.";
+export const ENTRY_MOVE_NOT_FOUND_ERROR = "Строка не найдена в этом документе";
+
+export type EntryMoveDecision =
+  | { action: "update"; entryId: string }
+  | { action: "conflict"; error: string }
+  | { action: "not_found"; error: string };
+
+/**
+ * Перенос существующей строки на другого сотрудника/другую дату.
+ *
+ * Раньше клиент слал только (employeeId, date, data), а роут делал upsert
+ * по уникальной паре: смена даты или сотрудника РОЖДАЛА вторую запись
+ * (старая оставалась), а если у нового сотрудника на этот день запись уже
+ * была — её data молча затиралась. Поэтому решение принимаем явно.
+ *
+ * `current` — строка по присланному `entryId`, `occupant` — строка,
+ * которая уже занимает целевую пару (employeeId, date), если она есть.
+ */
+export function decideEntryMove(params: {
+  documentId: string;
+  current: { id: string; documentId: string } | null;
+  occupant: { id: string } | null;
+}): EntryMoveDecision {
+  const { documentId, current, occupant } = params;
+  if (!current || current.documentId !== documentId) {
+    return { action: "not_found", error: ENTRY_MOVE_NOT_FOUND_ERROR };
+  }
+  if (occupant && occupant.id !== current.id) {
+    return { action: "conflict", error: ENTRY_MOVE_CONFLICT_ERROR };
+  }
+  return { action: "update", entryId: current.id };
+}
+
 export function getTrackedDocumentCreateMode(templateCode: string) {
   if (
     templateCode === "incoming_control" ||

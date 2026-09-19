@@ -156,7 +156,8 @@ type FinishedProductColumn = {
   label: string;
   /** Доля ширины: процент = weight / Σweight. */
   weight: number;
-  field: FinishedProductTextField;
+  /** Нет у колонок, которые рисуются своим контролом (Да/Нет). */
+  field?: FinishedProductTextField;
   align?: "center";
   /** id `<datalist>` с подсказками, если у колонки есть справочник. */
   list?: string;
@@ -362,6 +363,13 @@ export function FinishedProductDocumentClient({
         ? { label: cardLabel("oxygen", "Остаточный уровень кислорода, % об."), value: row.oxygenLevel, hideIfEmpty: true }
         : null,
       { label: cardLabel("release", "Разрешение к реализации"), value: row.releasePermissionTime, hideIfEmpty: true },
+      cardVisible("release_allowed")
+        ? {
+            label: cardLabel("release_allowed", "Разрешение к реализации: Да/Нет"),
+            value: row.releaseAllowed === "no" ? "Нет" : "Да",
+            hideIfEmpty: false,
+          }
+        : null,
       cardVisible("courier")
         ? { label: cardLabel("courier", "Передача курьеру"), value: row.courierTransferTime, hideIfEmpty: true }
         : null,
@@ -433,7 +441,11 @@ export function FinishedProductDocumentClient({
     columns: next,
     ...(legacyFlagsFromColumns("finished_product", next) as Pick<
       FinishedProductDocumentConfig,
-      "showProductTemp" | "showCorrectiveAction" | "showOxygenLevel" | "showCourierTime"
+      | "showProductTemp"
+      | "showCorrectiveAction"
+      | "showOxygenLevel"
+      | "showCourierTime"
+      | "showReleaseAllowed"
     >),
   });
   const headerEdit = useJournalHeaderEdit();
@@ -960,18 +972,45 @@ export function FinishedProductDocumentClient({
                       (`column.list`) на время правки подменяются
                       настоящим <input list>, поэтому подсказки из
                       каталога остаются на месте. */}
-                  <JournalCellInput
-                    value={row[column.field]}
-                    onChange={(event) =>
-                      updateRow(row.id, {
-                        [column.field]: event.target.value,
-                      } as Partial<FinishedProductDocumentRow>)
-                    }
-                    onBlur={flushConfigSave}
-                    className={`rounded-none ${column.align === "center" ? "text-center" : ""}`}
-                    disabled={readOnly}
-                    list={column.list}
-                  />
+                  {column.field ? (
+                    <JournalCellInput
+                      value={row[column.field]}
+                      onChange={(event) =>
+                        updateRow(row.id, {
+                          [column.field as FinishedProductTextField]: event.target.value,
+                        } as Partial<FinishedProductDocumentRow>)
+                      }
+                      onBlur={flushConfigSave}
+                      className={`rounded-none ${column.align === "center" ? "text-center" : ""}`}
+                      disabled={readOnly}
+                      list={column.list}
+                    />
+                  ) : (
+                    /* «Разрешение к реализации: Да/Нет» — не текст, а две
+                       кнопки: свободный ввод здесь только портил бы поле. */
+                    <div className="flex items-center justify-center gap-1 py-0.5">
+                      {(["yes", "no"] as const).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => {
+                            updateRow(row.id, { releaseAllowed: value });
+                            flushConfigSave();
+                          }}
+                          className={`rounded-lg px-2 py-1 text-[12px] leading-none transition-colors duration-150 disabled:opacity-60 ${
+                            row.releaseAllowed === value
+                              ? value === "yes"
+                                ? "bg-[#e9f7ee] font-semibold text-[#1f8a45]"
+                                : "bg-[#fff2f1] font-semibold text-[#d43a2f]"
+                              : "text-[#9b9fb3] hover:bg-[#f5f6ff]"
+                          }`}
+                        >
+                          {value === "yes" ? "Да" : "Нет"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </td>
               ))}
             </tr>)}

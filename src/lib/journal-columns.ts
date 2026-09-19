@@ -45,6 +45,14 @@ export type JournalColumnDef = {
    * `defaultVisible` — как вёл себя документ без флага.
    */
   legacyFlag?: { key: string; defaultVisible: boolean };
+  /**
+   * Колонка заведена позже остальных. У документа, созданного до неё, ни
+   * флага в конфиге, ни ключа в сохранённом наборе колонок нет — и она не
+   * должна появиться сама собой: без явного булева флага считаем её
+   * скрытой, даже когда у документа есть свой набор колонок. Новый
+   * документ получает флаг из дефолтного конфига и видит колонку.
+   */
+  introducedWithFlag?: boolean;
   align?: "center";
 };
 
@@ -95,6 +103,14 @@ const FINISHED_PRODUCT_COLUMNS: JournalColumnDef[] = [
     align: "center",
   },
   { key: "release", label: "Разрешение к реализации (время)", weight: 13, required: true, align: "center" },
+  {
+    key: "release_allowed",
+    label: "Разрешение к реализации: Да/Нет",
+    weight: 8,
+    legacyFlag: { key: "showReleaseAllowed", defaultVisible: false },
+    introducedWithFlag: true,
+    align: "center",
+  },
   {
     key: "courier",
     label: "Время передачи блюд курьеру",
@@ -212,6 +228,12 @@ export function resolveColumns(
     let hidden: boolean;
     if (column.required) {
       hidden = false;
+    } else if (
+      column.introducedWithFlag &&
+      column.legacyFlag &&
+      typeof configRecord[column.legacyFlag.key] !== "boolean"
+    ) {
+      hidden = !column.legacyFlag.defaultVisible;
     } else if (source) {
       hidden = source.hidden.includes(column.key);
     } else if (column.legacyFlag) {

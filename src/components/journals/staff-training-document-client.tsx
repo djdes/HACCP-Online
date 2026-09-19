@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { Button } from "@/components/ui/button";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
@@ -92,7 +92,6 @@ export function StaffTrainingDocumentClient({
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const { mobileView, switchMobileView } = useMobileView("staff_training");
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [planModalOpen, setPlanModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTitle, setSettingsTitle] = useState(title);
   const [editingCell, setEditingCell] = useState<{
@@ -100,6 +99,10 @@ export function StaffTrainingDocumentClient({
     field: string;
   } | null>(null);
   const [cellEditValue, setCellEditValue] = useState("");
+  // Выбор сотрудника в окне правки идёт ПО ID: раньше выбиралось имя, а
+  // `employeeId` строки оставался прежним, и сервер пересобирал строку по
+  // старому человеку — смена молча откатывалась после перезагрузки.
+  const [cellEditUserId, setCellEditUserId] = useState("");
 
   // Сотрудника в новой строке выбирают сами: «первый в списке» —
   // случайный человек, и инструктаж записывался бы не на того.
@@ -303,21 +306,40 @@ export function StaffTrainingDocumentClient({
     const row = config.rows.find((r) => r.id === rowId);
     if (!row) return;
     setCellEditValue((row as Record<string, unknown>)[field] as string || "");
+    setCellEditUserId(field === "employeeName" ? row.employeeId || "" : "");
     setEditingCell({ rowId, field });
   }
 
   function saveCellEdit() {
     if (!editingCell) return;
     const { rowId, field } = editingCell;
+    const picked =
+      field === "employeeName"
+        ? users.find((user) => user.id === cellEditUserId)
+        : undefined;
     const next = {
       ...config,
       rows: config.rows.map((row) =>
-        row.id === rowId ? { ...row, [field]: cellEditValue } : row
+        row.id === rowId
+          ? field === "employeeName"
+            ? {
+                ...row,
+                // Пара «id + имя» едет вместе, иначе сервер восстановит
+                // строку по прежнему сотруднику.
+                employeeId: picked?.id || null,
+                employeeName: picked?.name || cellEditValue,
+                employeePosition: picked
+                  ? getHygienePositionLabel(picked.role)
+                  : row.employeePosition,
+              }
+            : { ...row, [field]: cellEditValue }
+          : row
       ),
     };
     updateConfigAndSave(next);
     setEditingCell(null);
     setCellEditValue("");
+    setCellEditUserId("");
   }
 
   function getCellEditLabel(): string {
@@ -375,7 +397,9 @@ export function StaffTrainingDocumentClient({
         title={title}
         documentId={documentId}
         backHref="/journals/staff_training"
-        onSettings={() => setSettingsOpen(true)}
+        closed={isClosed}
+        closedHint="Верните журнал в активные, чтобы добавлять и править записи инструктажей."
+        onSettings={!isClosed ? () => setSettingsOpen(true) : undefined}
         menuItems={
           !isClosed
             ? [
@@ -425,12 +449,6 @@ export function StaffTrainingDocumentClient({
                   label: "Добавить сотрудника",
                   icon: <Plus className="size-4 text-[#6f7282]" />,
                   onSelect: () => setAddModalOpen(true),
-                },
-                {
-                  key: "fill-from-plan",
-                  label: "Заполнить из плана обучения",
-                  icon: <ClipboardList className="size-4 text-[#6f7282]" />,
-                  onSelect: () => setPlanModalOpen(true),
                 },
               ]}
               trigger={
@@ -744,36 +762,44 @@ export function StaffTrainingDocumentClient({
             )}
 
             {editingCell?.field === "employeeName" && (
-              <Select
-                value={cellEditValue || "__custom__"}
-                onValueChange={(value) => setCellEditValue(value === "__custom__" ? "" : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="- Выберите сотрудника -" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__custom__">Без привязки (ввести вручную ниже)</SelectItem>
-                  {(() => {
-                    // Two staff records can carry the same full name —
-                    // Radix Select uses `value` as identity and would
-                    // attach both to the same option. Pick the first
-                    // user per unique name (label keeps role suffix
-                    // for visual disambiguation when needed).
-                    const seen = new Set<string>();
-                    return users
-                      .filter((u) => {
-                        if (!u.name || seen.has(u.name)) return false;
-                        seen.add(u.name);
-                        return true;
-                      })
-                      .map((u) => (
-                        <SelectItem key={u.id} value={u.name}>
-                          {buildStaffOptionLabel({ id: u.id, name: u.name, role: u.role })}
-                        </SelectItem>
-                      ));
-                  })()}
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={cellEditUserId || "__custom__"}
+                  onValueChange={(value) => {
+                    if (value === "__custom__") {
+                      setCellEditUserId("");
+                      return;
+                    }
+                    setCellEditUserId(value);
+                    setCellEditValue(
+                      users.find((user) => user.id === value)?.name || ""
+                    );
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="- Выберите сотрудника -" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__custom__">
+                      Без привязки (ввести вручную ниже)
+                    </SelectItem>
+                    {/* Ключ выбора — id, а не ФИО: двух однофамильцев
+                        Radix склеивал в один вариант. */}
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {buildStaffOptionLabel({ id: u.id, name: u.name, role: u.role })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!cellEditUserId ? (
+                  <Input
+                    value={cellEditValue}
+                    onChange={(e) => setCellEditValue(e.target.value)}
+                    placeholder="Ф.И.О. вручную"
+                  />
+                ) : null}
+              </>
             )}
 
             {editingCell?.field === "employeePosition" && (
@@ -857,29 +883,6 @@ export function StaffTrainingDocumentClient({
                 Отмена
               </Button>
               <Button onClick={saveCellEdit}>Сохранить</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ---------- Plan Fill Dialog ---------- */}
-      <Dialog open={planModalOpen} onOpenChange={setPlanModalOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Заполнение журнала</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Label>План</Label>
-            <Select disabled>
-              <SelectTrigger>
-                <SelectValue placeholder="- Выберите значение -" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none">Нет доступных планов</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex justify-end">
-              <Button disabled>Добавить</Button>
             </div>
           </div>
         </DialogContent>

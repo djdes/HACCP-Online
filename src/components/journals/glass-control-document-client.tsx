@@ -48,6 +48,7 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
+import { localDayKey } from "@/lib/entry-defaults";
 import { NO_ROW_EMPLOYEE_MESSAGE, useRosterViewerId } from "@/components/journals/use-roster-viewer";
 type UserItem = {
   id: string;
@@ -136,6 +137,15 @@ function rowKey(row: { employeeId: string; date: string }) {
   return `${row.employeeId}:${row.date}`;
 }
 
+/**
+ * Виртуальная строка — день периода, за который записи в БД НЕТ.
+ * Она рисуется, чтобы в бланке была строка на каждый день, но
+ * заполненной считаться не должна: журнал предъявляют инспектору.
+ */
+function isVirtualRow(row: { id: string }) {
+  return row.id.startsWith("virtual:");
+}
+
 function buildRows(params: {
   dateFrom: string;
   dateTo: string;
@@ -143,7 +153,7 @@ function buildRows(params: {
   entries: EntryItem[];
   fallbackEmployeeId: string;
 }) {
-  const today = toIsoDate(new Date());
+  const today = localDayKey();
   const effectiveTo =
     params.status === "closed" && params.dateTo ? params.dateTo : today;
   const days = buildDailyRange(params.dateFrom, effectiveTo);
@@ -680,7 +690,7 @@ export function GlassControlDocumentClient(props: Props) {
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [rowDialog, setRowDialog] = useState<RowDialogState>({
     open: false,
-    row: createVirtualRow(toIsoDate(new Date()), fallbackEmployeeId),
+    row: createVirtualRow(localDayKey(), fallbackEmployeeId),
     originalRow: null,
   });
 
@@ -701,11 +711,20 @@ export function GlassControlDocumentClient(props: Props) {
 
   const cardItems: RecordCardItem[] = rows.map((row, index) => {
     const userName = props.users.find((user) => user.id === row.employeeId)?.name || "";
+    const virtual = isVirtualRow(row);
     return {
       id: row.id,
       title: `№${index + 1} · ${formatRuDateDash(row.date)}`,
-      subtitle: userName || undefined,
-      badge: row.data.damagesDetected ? (
+      // Виртуальная строка не подписана человеком — записи за день нет.
+      subtitle: virtual ? undefined : userName || undefined,
+      badge: virtual ? (
+        <span
+          title="Контроль за этот день не внесён"
+          className="rounded-full bg-[#f2f3f8] px-2 py-0.5 text-[11px] font-semibold text-[#6f7282]"
+        >
+          Не заполнено
+        </span>
+      ) : row.data.damagesDetected ? (
         <span className="rounded-full bg-[#fff2f1] px-2 py-0.5 text-[11px] font-semibold text-[#d2453d]">
           Повреждения
         </span>
@@ -834,8 +853,13 @@ export function GlassControlDocumentClient(props: Props) {
     }
 
     if (nextValue) {
-      const dates = buildDailyRange(props.dateFrom, toIsoDate(new Date()));
-      const existingDates = new Set(rows.map((row) => row.date));
+      const dates = buildDailyRange(props.dateFrom, localDayKey());
+      // ПОЧЕМУ только реальные: `rows` содержит виртуальную строку на
+      // каждый день периода, поэтому «уже есть» было верно всегда и
+      // автозаполнение не записывало НИЧЕГО.
+      const existingDates = new Set(
+        rows.filter((row) => !isVirtualRow(row)).map((row) => row.date)
+      );
 
       for (const date of dates) {
         if (existingDates.has(date)) continue;
@@ -895,7 +919,7 @@ export function GlassControlDocumentClient(props: Props) {
     const response = await fetch(`/api/journal-documents/${props.documentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "closed", dateTo: toIsoDate(new Date()) }),
+      body: JSON.stringify({ status: "closed", dateTo: localDayKey() }),
     });
 
     if (!response.ok) {
@@ -984,7 +1008,7 @@ export function GlassControlDocumentClient(props: Props) {
               onClick={() =>
                 setRowDialog({
                   open: true,
-                  row: createVirtualRow(toIsoDate(new Date()), fallbackEmployeeId),
+                  row: createVirtualRow(localDayKey(), fallbackEmployeeId),
                   originalRow: null,
                 })
               }
@@ -1030,6 +1054,7 @@ export function GlassControlDocumentClient(props: Props) {
           <tbody>
             {rows.map((row) => {
               const userName = props.users.find((user) => user.id === row.employeeId)?.name || "";
+              const virtual = isVirtualRow(row);
               return (
                 <tr
                   key={row.id}
@@ -1056,12 +1081,14 @@ export function GlassControlDocumentClient(props: Props) {
                     </td>
                   )}
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{formatRuDateDash(row.date)}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.damagesDetected ? "V" : ""}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.damagesDetected ? "" : "V"}</td>
+                  {/* Записи за день нет — ни отметки, ни фамилии: строка
+                      «не заполнено», а не «осмотрено, повреждений нет». */}
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{!virtual && row.data.damagesDetected ? "V" : ""}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{!virtual && !row.data.damagesDetected ? "V" : ""}</td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{row.data.itemName}</td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.quantity}</td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>{row.data.damageInfo}</td>
-                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{userName}</td>
+                  <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{virtual ? "" : userName}</td>
                 </tr>
               );
             })}
@@ -1078,7 +1105,7 @@ export function GlassControlDocumentClient(props: Props) {
                 onClick={() =>
                   setRowDialog({
                     open: true,
-                    row: createVirtualRow(toIsoDate(new Date()), fallbackEmployeeId),
+                    row: createVirtualRow(localDayKey(), fallbackEmployeeId),
                     originalRow: null,
                   })
                 }

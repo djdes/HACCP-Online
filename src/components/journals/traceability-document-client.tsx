@@ -125,6 +125,20 @@ function uniqueStrings(values: string[]) {
 }
 function mergeUnique(base: string[], extra: string[]) { return uniqueStrings([...base, ...extra]); }
 
+/** Позиция справочника в окне «Редактировать списки». */
+type ListDraftItem = { original: string | null; value: string };
+
+/** Карта «старое наименование → новое» по переименованным позициям. */
+function renameMap(items: ListDraftItem[]) {
+  const map = new Map<string, string>();
+  for (const item of items) {
+    const next = item.value.trim();
+    if (!item.original || !next || item.original === next) continue;
+    map.set(item.original, next);
+  }
+  return map;
+}
+
 function defaultSettings(config: TraceabilityDocumentConfig, title: string, dateFrom: string): TraceabilitySettingsDraft {
   return {
     title: title || config.documentTitle || DEFAULT_TITLE,
@@ -133,10 +147,12 @@ function defaultSettings(config: TraceabilityDocumentConfig, title: string, date
     showShipmentBlock: config.showShipmentBlock,
   };
 }
-function defaultRow(config: TraceabilityDocumentConfig, dateFrom: string): TraceabilityRow {
+function defaultRow(config: TraceabilityDocumentConfig): TraceabilityRow {
+  // Новая строка — про СЕГОДНЯ, а не про дату начала журнала; дату
+  // фасовки подставлять нельзя, её знает только человек.
   return createTraceabilityRow({
-    date: dateFrom,
-    incoming: { rawMaterialName: config.rawMaterialList[0] || "", batchNumber: "", packagingDate: dateFrom, quantityPieces: null, quantityKg: null },
+    date: todayIso(),
+    incoming: { rawMaterialName: config.rawMaterialList[0] || "", batchNumber: "", packagingDate: "", quantityPieces: null, quantityKg: null },
     outgoing: { productName: config.productList[0] || "", quantityPacksPieces: null, quantityPacksKg: null, shockTemp: null },
     responsibleRole: config.defaultResponsibleRole || "",
     responsibleEmployeeId: config.defaultResponsibleEmployeeId || "",
@@ -146,10 +162,12 @@ function defaultRow(config: TraceabilityDocumentConfig, dateFrom: string): Trace
 function rowToDraft(row: TraceabilityRow, config: TraceabilityDocumentConfig): TraceabilityRowDraft {
   return {
     id: row.id,
-    date: normalizeIsoDate(row.date || config.dateFrom || todayIso()),
+    date: normalizeIsoDate(row.date || todayIso()),
     incomingRawMaterialName: row.incoming.rawMaterialName || config.rawMaterialList[0] || "",
     incomingBatchNumber: row.incoming.batchNumber || "",
-    incomingPackagingDate: normalizeIsoDate(row.incoming.packagingDate || config.dateFrom || todayIso()),
+    // Пустая дата фасовки остаётся пустой: подставленная дата журнала
+    // выглядела как заполненная и уезжала в бланк.
+    incomingPackagingDate: row.incoming.packagingDate ? normalizeIsoDate(row.incoming.packagingDate) : "",
     incomingQuantityPieces: row.incoming.quantityPieces != null ? String(row.incoming.quantityPieces) : "",
     incomingQuantityKg: row.incoming.quantityKg != null ? String(row.incoming.quantityKg) : "",
     outgoingProductName: row.outgoing.productName || config.productList[0] || "",
@@ -201,7 +219,15 @@ function SettingsDialog(props: {
   async function save() {
     if (!draft) return;
     setLoading(true);
-    try { await props.onSave(draft); props.onOpenChange(false); } finally { setLoading(false); }
+    try {
+      await props.onSave(draft);
+      props.onOpenChange(false);
+    } catch (error) {
+      // Без catch ошибка сохранения глохла: окно висело, тоста не было.
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить настройки");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (props.useV2) {
@@ -293,23 +319,29 @@ function ListsDialog(props: {
   config: TraceabilityDocumentConfig;
   onSave: (nextConfig: TraceabilityDocumentConfig) => Promise<void>;
 }) {
-  const [rawMaterials, setRawMaterials] = useState<string[]>([]);
-  const [products, setProducts] = useState<string[]>([]);
+  // `original` — имя позиции на момент открытия окна (null у только что
+  // добавленной). По нему строится карта переименований: строки журнала
+  // хранят наименование ТЕКСТОМ, и без переноса Select переставал
+  // находить значение — строка «осиротевала».
+  const [rawMaterials, setRawMaterials] = useState<ListDraftItem[]>([]);
+  const [products, setProducts] = useState<ListDraftItem[]>([]);
   const [newRaw, setNewRaw] = useState("");
   const [newProduct, setNewProduct] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!props.open) return;
-    setRawMaterials(props.config.rawMaterialList);
-    setProducts(props.config.productList);
+    setRawMaterials(props.config.rawMaterialList.map((value) => ({ original: value, value })));
+    setProducts(props.config.productList.map((value) => ({ original: value, value })));
     setNewRaw("");
     setNewProduct("");
   }, [props.config.productList, props.config.rawMaterialList, props.open]);
 
   function update(list: "raw" | "product", index: number, value: string) {
-    if (list === "raw") setRawMaterials((current) => current.map((item, i) => (i === index ? value : item)));
-    else setProducts((current) => current.map((item, i) => (i === index ? value : item)));
+    const patch = (current: ListDraftItem[]) =>
+      current.map((item, i) => (i === index ? { ...item, value } : item));
+    if (list === "raw") setRawMaterials(patch);
+    else setProducts(patch);
   }
 
   function remove(list: "raw" | "product", index: number) {
@@ -320,8 +352,33 @@ function ListsDialog(props: {
   async function save() {
     setLoading(true);
     try {
-      await props.onSave({ ...props.config, rawMaterialList: uniqueStrings(rawMaterials), productList: uniqueStrings(products) });
+      const rawRenames = renameMap(rawMaterials);
+      const productRenames = renameMap(products);
+      const rows =
+        rawRenames.size === 0 && productRenames.size === 0
+          ? props.config.rows
+          : props.config.rows.map((row) => ({
+              ...row,
+              incoming: {
+                ...row.incoming,
+                rawMaterialName:
+                  rawRenames.get(row.incoming.rawMaterialName) ?? row.incoming.rawMaterialName,
+              },
+              outgoing: {
+                ...row.outgoing,
+                productName:
+                  productRenames.get(row.outgoing.productName) ?? row.outgoing.productName,
+              },
+            }));
+      await props.onSave({
+        ...props.config,
+        rawMaterialList: uniqueStrings(rawMaterials.map((item) => item.value)),
+        productList: uniqueStrings(products.map((item) => item.value)),
+        rows,
+      });
       props.onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить списки");
     } finally {
       setLoading(false);
     }
@@ -342,27 +399,27 @@ function ListsDialog(props: {
             <div className="text-[20px] font-semibold tracking-[-0.02em] text-black">Сырье</div>
             <div className="space-y-2">
               {rawMaterials.map((item, index) => (
-                <div key={`${item}-${index}`} className="flex items-center gap-2">
-                  <Input value={item} onChange={(e) => update("raw", index, e.target.value)} className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" />
+                <div key={`${item.original ?? "new"}-${index}`} className="flex items-center gap-2">
+                  <Input value={item.value} onChange={(e) => update("raw", index, e.target.value)} className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" />
                   <button type="button" className="rounded-xl p-2 text-[#6f7282] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => remove("raw", index)}><Trash2 className="size-5" /></button>
                 </div>
               ))}
               {rawMaterials.length === 0 && <div className="rounded-2xl border border-dashed border-[#dfe1ec] px-4 py-4 text-[15px] text-[#6f7282]">Список пуст</div>}
             </div>
-            <div className="flex items-center gap-2"><Input value={newRaw} onChange={(e) => setNewRaw(e.target.value)} placeholder="Добавить новое сырье" className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" /><Button type="button" onClick={() => { const v = newRaw.trim(); if (!v) return; setRawMaterials((current) => [...current, v]); setNewRaw(""); }} className="h-12 rounded-2xl bg-[#5563ff] px-4 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
+            <div className="flex items-center gap-2"><Input value={newRaw} onChange={(e) => setNewRaw(e.target.value)} placeholder="Добавить новое сырье" className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" /><Button type="button" onClick={() => { const v = newRaw.trim(); if (!v) return; setRawMaterials((current) => [...current, { original: null, value: v }]); setNewRaw(""); }} className="h-12 rounded-2xl bg-[#5563ff] px-4 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
           </section>
           <section className="space-y-4 rounded-[24px] border border-[#e6e9f5] p-5">
             <div className="text-[20px] font-semibold tracking-[-0.02em] text-black">Продукция</div>
             <div className="space-y-2">
               {products.map((item, index) => (
-                <div key={`${item}-${index}`} className="flex items-center gap-2">
-                  <Input value={item} onChange={(e) => update("product", index, e.target.value)} className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" />
+                <div key={`${item.original ?? "new"}-${index}`} className="flex items-center gap-2">
+                  <Input value={item.value} onChange={(e) => update("product", index, e.target.value)} className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" />
                   <button type="button" className="rounded-xl p-2 text-[#6f7282] hover:bg-[#fff2f1] hover:text-[#ff3b30]" onClick={() => remove("product", index)}><Trash2 className="size-5" /></button>
                 </div>
               ))}
               {products.length === 0 && <div className="rounded-2xl border border-dashed border-[#dfe1ec] px-4 py-4 text-[15px] text-[#6f7282]">Список пуст</div>}
             </div>
-            <div className="flex items-center gap-2"><Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить новую продукцию" className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" /><Button type="button" onClick={() => { const v = newProduct.trim(); if (!v) return; setProducts((current) => [...current, v]); setNewProduct(""); }} className="h-12 rounded-2xl bg-[#5563ff] px-4 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
+            <div className="flex items-center gap-2"><Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить новую продукцию" className="h-12 rounded-2xl border-[#dfe1ec] px-4 text-[16px]" /><Button type="button" onClick={() => { const v = newProduct.trim(); if (!v) return; setProducts((current) => [...current, { original: null, value: v }]); setNewProduct(""); }} className="h-12 rounded-2xl bg-[#5563ff] px-4 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
           </section>
         </div>
 
@@ -393,7 +450,7 @@ function RowDialog(props: {
 
   useEffect(() => {
     if (!props.open) return;
-    const base = props.initialRow ?? defaultRow(props.config, props.dateFrom);
+    const base = props.initialRow ?? defaultRow(props.config);
     setDraft(rowToDraft(base, props.config));
     setRawOptions(props.config.rawMaterialList);
     setProductOptions(props.config.productList);
@@ -402,7 +459,7 @@ function RowDialog(props: {
     setCreatedRaw([]);
     setCreatedProducts([]);
     setError("");
-  }, [props.config, props.dateFrom, props.initialRow, props.open]);
+  }, [props.config, props.initialRow, props.open]);
 
   function setField<K extends keyof TraceabilityRowDraft>(key: K, value: TraceabilityRowDraft[K]) {
     if (!draft) return;
@@ -440,6 +497,8 @@ function RowDialog(props: {
     try {
       await props.onSave(row, { rawMaterials: createdRaw, products: createdProducts });
       props.onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Не удалось сохранить строку");
     } finally {
       setLoading(false);
     }
@@ -532,7 +591,14 @@ function ImportDialog(props: {
   async function save() {
     if (!file) return;
     setLoading(true);
-    try { await props.onImport(file); props.onOpenChange(false); } finally { setLoading(false); }
+    try {
+      await props.onImport(file);
+      props.onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось импортировать файл");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -551,7 +617,17 @@ function ImportDialog(props: {
 
 function FinishDialog(props: { open: boolean; onOpenChange: (open: boolean) => void; title: string; onFinish: () => Promise<void> }) {
   const [loading, setLoading] = useState(false);
-  async function finish() { setLoading(true); try { await props.onFinish(); props.onOpenChange(false); } finally { setLoading(false); } }
+  async function finish() {
+    setLoading(true);
+    try {
+      await props.onFinish();
+      props.onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Не удалось закончить журнал");
+    } finally {
+      setLoading(false);
+    }
+  }
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent showCloseButton={false} className="w-[calc(100vw-2rem)] max-w-[calc(100vw-1rem)] rounded-[28px] border-0 p-0 sm:max-w-[640px]">
@@ -686,7 +762,9 @@ export function TraceabilityDocumentClient(props: Props) {
   }
 
   async function saveLists(nextConfig: TraceabilityDocumentConfig) {
-    await persistConfig({ ...config, rawMaterialList: uniqueStrings(nextConfig.rawMaterialList), productList: uniqueStrings(nextConfig.productList) });
+    // `rows` берём из nextConfig: окно списков переносит переименования
+    // в строки, иначе они бы терялись здесь.
+    await persistConfig({ ...config, rows: nextConfig.rows, rawMaterialList: uniqueStrings(nextConfig.rawMaterialList), productList: uniqueStrings(nextConfig.productList) });
   }
 
   /**
@@ -738,7 +816,7 @@ export function TraceabilityDocumentClient(props: Props) {
       await persistConfig({ ...config, rows: [...config.rows, ...rows], rawMaterialList: mergeUnique(config.rawMaterialList, rows.map((row) => row.incoming.rawMaterialName).filter(Boolean)), productList: mergeUnique(config.productList, rows.map((row) => row.outgoing.productName).filter(Boolean)) });
     }
     if (errors.length > 0) toast.error(`Импорт выполнен частично.\n\n${formatImportErrors(errors)}`);
-    else toast.error(`Импортировано строк: ${rows.length}`);
+    else toast.success(`Импортировано строк: ${rows.length}`);
     return { importedCount: rows.length, errors };
   }
 

@@ -102,8 +102,24 @@ function rowToState(row: PpeIssuanceRow): RowDialogState {
   };
 }
 
-function stateToRow(state: RowDialogState, initialRow: PpeIssuanceRow | null) {
+function stateToRow(
+  state: RowDialogState,
+  initialRow: PpeIssuanceRow | null,
+  users: UserItem[] = []
+) {
+  // ФИО фиксируем в строке на момент выдачи: ростер журнала — только
+  // активные сотрудники, и после увольнения фамилия пропадала.
+  const recipientName =
+    users.find((user) => user.id === state.recipientUserId)?.name ||
+    initialRow?.recipientName ||
+    "";
+  const issuerName =
+    users.find((user) => user.id === state.issuerUserId)?.name ||
+    initialRow?.issuerName ||
+    "";
   return createPpeIssuanceRow({
+    recipientName,
+    issuerName,
     id: initialRow?.id,
     issueDate: state.issueDate,
     maskCount: Number(state.maskCount || 0),
@@ -185,6 +201,11 @@ function SettingsDialog(props: {
         config: state,
       });
       props.onOpenChange(false);
+    } catch (error) {
+      // Без catch ошибка сохранения уходила в никуда (см. RowDialog).
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить настройки"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -433,8 +454,14 @@ function RowDialog(props: {
     if (!state) return;
     setSubmitting(true);
     try {
-      await props.onSave(stateToRow(state, props.initialRow));
+      await props.onSave(stateToRow(state, props.initialRow, props.users));
       props.onOpenChange(false);
+    } catch (error) {
+      // Ошибку сохранения раньше глотал `finally` без `catch`: окно
+      // закрывалось молча, введённая строка терялась.
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось сохранить строку"
+      );
     } finally {
       setSubmitting(false);
     }

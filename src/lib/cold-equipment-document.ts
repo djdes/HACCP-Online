@@ -489,6 +489,38 @@ function normalizeCorrections(value: unknown): Record<string, string> | undefine
   return Object.keys(corrections).length ? corrections : undefined;
 }
 
+/**
+ * Сколько внесённых замеров потеряется, если убрать эти слоты.
+ * Нужно для подтверждений: удаление строки оборудования и уменьшение
+ * режима «3 раза в день» → «1 раз» молча стирали значения за весь период.
+ */
+export function countColdEquipmentValues(
+  entries: Array<{ data: { temperatures?: Record<string, number | null> } }>,
+  slotKeys: string[]
+): number {
+  const keys = new Set(slotKeys);
+  let total = 0;
+  for (const entry of entries) {
+    const temperatures = entry.data?.temperatures;
+    if (!temperatures) continue;
+    for (const key of keys) {
+      if (typeof temperatures[key] === "number") total += 1;
+    }
+  }
+  return total;
+}
+
+/** Ключи слотов оборудования при заданном режиме замеров. */
+export function coldEquipmentSlotKeys(
+  equipmentId: string,
+  readingMode?: ColdEquipmentReadingModeId
+): string[] {
+  const count = getColdEquipmentReadingCount({ readingMode });
+  return Array.from({ length: count }, (_, index) =>
+    coldReadingSlotKey(equipmentId, index)
+  );
+}
+
 export function syncColdEquipmentEntryDataWithConfig(
   entryData: ColdEquipmentEntryData,
   config: ColdEquipmentDocumentConfig

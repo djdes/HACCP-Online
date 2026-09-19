@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentActionsBar } from "@/components/journals/document-actions-bar";
 import { useJournalUndo } from "@/lib/journal-undo";
@@ -303,6 +303,22 @@ export function MedBookDocumentClient({
   const { setStatus, isChangingStatus } = useJournalDocumentActions(documentId);
   const { mobileView, switchMobileView } = useMobileView("med_books");
   const [rows, setRows] = useState(initialRows);
+  /**
+   * Что, по нашим сведениям, уже лежит на сервере: `employeeId → JSON
+   * данных`. Нужен, чтобы слать в PATCH только изменённые строки и
+   * понимать, какие строки удалены.
+   */
+  const syncedRowsRef = useRef(
+    new Map(initialRows.map((row) => [row.employeeId, JSON.stringify(row.data)])),
+  );
+  // Ресинк после router.refresh(): без него состояние вкладки оставалось
+  // тем, каким было на момент загрузки страницы, и затирало чужие правки.
+  useEffect(() => {
+    setRows(initialRows);
+    syncedRowsRef.current = new Map(
+      initialRows.map((row) => [row.employeeId, JSON.stringify(row.data)]),
+    );
+  }, [initialRows]);
   const [docTitle, setDocTitle] = useState(title);
   const [settingsTitle, setSettingsTitle] = useState(title);
   const [examColumns, setExamColumns] = useState(config.examinations);
@@ -357,26 +373,59 @@ export function MedBookDocumentClient({
     ) => {
       setSaving(true);
       try {
-        const entriesResponse = await fetch(
-          `/api/journal-documents/${documentId}/entries`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              entries: nextRows.map((row) => ({
-                employeeId: row.employeeId,
-                date: documentDateKey,
-                data: row.data,
-              })),
-            }),
-          },
+        // Шлём ТОЛЬКО изменённые строки и отдельным DELETE — удалённые.
+        // Раньше уходил весь список из состояния вкладки, а сервер
+        // удалял всё, чего в нём нет: строка, добавленная коллегой уже
+        // после загрузки страницы, исчезала при сохранении одной ячейки.
+        const synced = syncedRowsRef.current;
+        const changed = nextRows.filter(
+          (row) => synced.get(row.employeeId) !== JSON.stringify(row.data),
         );
-        if (!entriesResponse.ok) {
-          const payload = await entriesResponse.json().catch(() => null);
-          throw new Error(
-            payload?.error || "Не удалось сохранить строки журнала",
+        const removedEmployeeIds = [...synced.keys()].filter(
+          (employeeId) => !nextRows.some((row) => row.employeeId === employeeId),
+        );
+
+        if (changed.length > 0) {
+          const entriesResponse = await fetch(
+            `/api/journal-documents/${documentId}/entries`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                entries: changed.map((row) => ({
+                  employeeId: row.employeeId,
+                  date: documentDateKey,
+                  data: row.data,
+                })),
+              }),
+            },
           );
+          if (!entriesResponse.ok) {
+            const payload = await entriesResponse.json().catch(() => null);
+            throw new Error(
+              payload?.error || "Не удалось сохранить строки журнала",
+            );
+          }
         }
+
+        for (const employeeId of removedEmployeeIds) {
+          const deleteResponse = await fetch(
+            `/api/journal-documents/${documentId}/entries`,
+            {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ employeeId }),
+            },
+          );
+          if (!deleteResponse.ok) {
+            const payload = await deleteResponse.json().catch(() => null);
+            throw new Error(payload?.error || "Не удалось удалить строку");
+          }
+        }
+
+        syncedRowsRef.current = new Map(
+          nextRows.map((row) => [row.employeeId, JSON.stringify(row.data)]),
+        );
         if (nextTitle !== undefined || nextConfig) {
           const response = await fetch(`/api/journal-documents/${documentId}`, {
             method: "PATCH",
@@ -576,7 +625,9 @@ export function MedBookDocumentClient({
         return null;
       },
     });
-    if (expiryDate === null) return;
+    // Отмена на втором шаге раньше выбрасывала уже введённую дату
+    // осмотра. Сохраняем то, что человек успел ввести.
+    const nextExpiry = expiryDate === null ? current?.expiryDate || "" : expiryDate;
 
     saveRows(
       rows.map((item) =>
@@ -589,7 +640,7 @@ export function MedBookDocumentClient({
                   ...item.data.examinations,
                   [column]: {
                     date: date || null,
-                    expiryDate: expiryDate || null,
+                    expiryDate: nextExpiry || null,
                   },
                 },
               },
@@ -632,8 +683,8 @@ export function MedBookDocumentClient({
         defaultValue: current?.dose || "",
         confirmLabel: "Далее",
       });
-      if (doseValue === null) return;
-      dose = doseValue;
+      // Отмена на шаге дозы/дат раньше выбрасывала всё введённое.
+      dose = doseValue === null ? current?.dose || "" : doseValue;
 
       const dateValue = await promptAsync({
         title: `Дата прививки — ${column}`,
@@ -645,8 +696,7 @@ export function MedBookDocumentClient({
         validate: (value) =>
           value && !ISO_DATE_RE.test(value) ? "Укажите дату в формате ГГГГ-ММ-ДД" : null,
       });
-      if (dateValue === null) return;
-      date = dateValue;
+      date = dateValue === null ? current?.date || "" : dateValue;
 
       const expiryValue = await promptAsync({
         title: `Действует до — ${column}`,
@@ -662,8 +712,7 @@ export function MedBookDocumentClient({
           return null;
         },
       });
-      if (expiryValue === null) return;
-      expiryDate = expiryValue;
+      expiryDate = expiryValue === null ? current?.expiryDate || "" : expiryValue;
     }
 
     saveRows(
@@ -886,7 +935,37 @@ export function MedBookDocumentClient({
                       {`Скоро: ${soonCount}`}
                     </span>
                   ) : undefined,
-                fields: examColumns.map((column) => {
+                fields: [
+                  // Номер медкнижки и даты вводятся при добавлении строки,
+                  // но в карточке их не было видно вообще.
+                  {
+                    label: "№ мед. книжки",
+                    value: row.data.medBookNumber || "",
+                    warnIfEmpty: true,
+                    onClick: !isClosed ? () => setEditId(row.id) : undefined,
+                  },
+                  {
+                    label: "Дата рождения",
+                    value: formatMedBookDate(row.data.birthDate),
+                    onClick: !isClosed ? () => setEditId(row.id) : undefined,
+                  },
+                  {
+                    label: "Дата приёма",
+                    value: formatMedBookDate(row.data.hireDate),
+                    onClick: !isClosed ? () => setEditId(row.id) : undefined,
+                  },
+                  {
+                    label: "Пол",
+                    value:
+                      row.data.gender === "male"
+                        ? "Мужской"
+                        : row.data.gender === "female"
+                          ? "Женский"
+                          : "",
+                    onClick: !isClosed ? () => setEditId(row.id) : undefined,
+                  },
+                ].concat(
+                  examColumns.map((column) => {
                   const exam = row.data.examinations[column];
                   const expired = exam ? isExaminationExpired(exam) : false;
                   const soon = exam ? isExaminationExpiringSoon(exam) : false;
@@ -904,7 +983,8 @@ export function MedBookDocumentClient({
                       : undefined,
                     onClick: !isClosed ? () => void editExam(row.id, column) : undefined,
                   };
-                }),
+                  })
+                ),
                 onClick: !isClosed ? () => setEditId(row.id) : undefined,
               };
             })}
@@ -1026,6 +1106,14 @@ export function MedBookDocumentClient({
                 >
                   Должность
                 </th>
+                {/* Номер медкнижки вводился, но нигде не показывался —
+                    именно его сверяет инспектор. */}
+                <th
+                  rowSpan={2}
+                  className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
+                >
+                  № мед. книжки
+                </th>
                 <th
                   colSpan={examColumns.length}
                   className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
@@ -1057,7 +1145,7 @@ export function MedBookDocumentClient({
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
                     <Checkbox checked={false} disabled className="size-4" />
                   </td>
-                  {Array.from({ length: examColumns.length + 3 }, (_, index) => (
+                  {Array.from({ length: examColumns.length + 4 }, (_, index) => (
                     <td key={index} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                       <div className="h-7" />
                     </td>
@@ -1102,6 +1190,22 @@ export function MedBookDocumentClient({
                   >
                     {row.data.positionTitle}
                   </td>
+                  <td
+                    title={[
+                      row.data.birthDate
+                        ? `Дата рождения: ${formatMedBookDate(row.data.birthDate)}`
+                        : "",
+                      row.data.hireDate
+                        ? `Дата приёма: ${formatMedBookDate(row.data.hireDate)}`
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${cellBg(!row.data.medBookNumber)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
+                    onClick={() => !isClosed && setEditId(row.id)}
+                  >
+                    {row.data.medBookNumber || ""}
+                  </td>
                   {examColumns.map((column) => {
                     const exam = row.data.examinations[column];
                     const expired = exam ? isExaminationExpired(exam) : false;
@@ -1140,7 +1244,7 @@ export function MedBookDocumentClient({
                   // остаются пустыми ячейками.
                   leading={2}
                   labelSpan={2}
-                  trailing={examColumns.length}
+                  trailing={examColumns.length + 1}
                   label="Добавить сотрудника"
                   onClick={() => {
                     setDraft(emptyDraft());
@@ -1227,6 +1331,12 @@ export function MedBookDocumentClient({
                       Должность
                     </th>
                     <th
+                      rowSpan={2}
+                      className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
+                    >
+                      № мед. книжки
+                    </th>
+                    <th
                       colSpan={vaccColumns.length + 1}
                       className={`${GRID_HEAD_CELL_CLASS} px-3 py-4 leading-tight`}
                     >
@@ -1255,7 +1365,7 @@ export function MedBookDocumentClient({
                       <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight print:hidden`}>
                         <Checkbox checked={false} disabled className="size-4" />
                       </td>
-                      {Array.from({ length: vaccColumns.length + 4 }, (_, index) => (
+                      {Array.from({ length: vaccColumns.length + 5 }, (_, index) => (
                         <td key={index} className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                           <div className="h-7" />
                         </td>
@@ -1293,6 +1403,12 @@ export function MedBookDocumentClient({
                         onClick={() => !isClosed && setEditId(row.id)}
                       >
                         {row.data.positionTitle}
+                      </td>
+                      <td
+                        className={`${GRID_CELL_CLASS} px-2 py-1 text-center ${cellBg(!row.data.medBookNumber)} ${isClosed ? "" : "cursor-pointer hover:bg-[#eef1ff]"} leading-tight`}
+                        onClick={() => !isClosed && setEditId(row.id)}
+                      >
+                        {row.data.medBookNumber || ""}
                       </td>
                       {vaccColumns.map((column) => {
                         const vacc = row.data.vaccinations[column];
@@ -1344,7 +1460,7 @@ export function MedBookDocumentClient({
                       // прививок + «Примечание» остаются пустыми ячейками.
                       leading={2}
                       labelSpan={2}
-                      trailing={vaccColumns.length + 1}
+                      trailing={vaccColumns.length + 2}
                       label="Добавить сотрудника"
                       onClick={() => {
                         setDraft(emptyDraft());
@@ -1853,6 +1969,41 @@ export function MedBookDocumentClient({
                   className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   placeholder="Введите номер мед. книжки"
                 />
+              </div>
+
+              {/* «Пол» задавался только при добавлении строки, исправить
+                  его потом было нельзя. */}
+              <div className="space-y-2">
+                <Label className="text-[13px] font-medium text-[#3c4053]">Пол</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["male", "Мужской"],
+                      ["female", "Женский"],
+                    ] as const
+                  ).map(([value, label]) => {
+                    const active = editRow.data.gender === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={isClosed}
+                        onClick={() =>
+                          updateRow(editRow.id, {
+                            gender: active ? null : value,
+                          })
+                        }
+                        className={`flex h-9 items-center justify-center rounded-xl border px-3.5 text-[14px] font-medium transition-colors duration-150 ${
+                          active
+                            ? "border-[#5566f6] bg-[#5566f6] text-white"
+                            : "border-[#dcdfed] bg-white text-[#0b1024] hover:bg-[#fafbff]"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-2">
