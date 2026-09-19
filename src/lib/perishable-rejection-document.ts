@@ -22,6 +22,12 @@ export type PerishableRejectionRow = {
   organolepticResult: "compliant" | "non_compliant";
   storageCondition: "2_6" | "minus18" | "minus2_2";
   expiryDate: string;
+  /**
+   * Час конечного срока реализации «HH:MM». Для скоропорта срок считают
+   * в часах (12/24/36/72), одной даты мало. Старые строки поля не имеют —
+   * читаются как срок без часа.
+   */
+  expiryTime: string;
   actualSaleDate: string;
   actualSaleTime: string;
   responsiblePerson: string;
@@ -63,6 +69,69 @@ function normalizeText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function padTwo(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+/** «HH:MM» либо пустая строка: мусор из старых строк в бланк не пускаем. */
+export function normalizePerishableTime(value: unknown): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(normalizeText(value));
+  if (!match) return "";
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return "";
+  return `${padTwo(hours)}:${padTwo(minutes)}`;
+}
+
+/** Быстрые сроки скоропорта из СанПиН: 12/24/36/72 часа. */
+export const PERISHABLE_EXPIRY_PRESET_HOURS = [12, 24, 36, 72] as const;
+
+/**
+ * Дата-время + N часов. Считаем через локальный `Date` (а не через
+ * `Date.UTC` и не строками): конструктор `new Date(y, m, d, h, min)`
+ * работает в часовом поясе пользователя, поэтому нет сдвига на сутки, а
+ * перенос через полночь, конец месяца и 29 февраля Date делает сам.
+ */
+export function addHoursToLocalDateTime(
+  date: string,
+  time: string,
+  hours: number
+): { date: string; time: string } | null {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalizeText(date));
+  if (!dateMatch) return null;
+  const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(normalizeText(time) || "00:00");
+  if (!timeMatch) return null;
+  const year = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const day = Number(dateMatch[3]);
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  if (hour > 23 || minute > 59) return null;
+  const base = new Date(year, month - 1, day, hour, minute, 0, 0);
+  // Date молча переваривает 31 февраля — сверяем, что дата существует.
+  if (base.getFullYear() !== year || base.getMonth() !== month - 1 || base.getDate() !== day) {
+    return null;
+  }
+  base.setHours(base.getHours() + hours);
+  return {
+    date: `${base.getFullYear()}-${padTwo(base.getMonth() + 1)}-${padTwo(base.getDate())}`,
+    time: `${padTwo(base.getHours())}:${padTwo(base.getMinutes())}`,
+  };
+}
+
+/** Срок реализации для бланка: «дд.мм.гггг чч:мм» либо просто дата. */
+export function formatPerishableExpiry(row: {
+  expiryDate?: string;
+  expiryTime?: string;
+}): string {
+  const raw = normalizeText(row.expiryDate);
+  if (!raw) return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  const date = match ? `${match[3]}.${match[2]}.${match[1]}` : raw;
+  const time = normalizePerishableTime(row.expiryTime);
+  return time ? `${date} ${time}` : date;
+}
+
 export function createPerishableRejectionRow(
   overrides: Partial<PerishableRejectionRow> = {}
 ): PerishableRejectionRow {
@@ -85,6 +154,7 @@ export function createPerishableRejectionRow(
           ? "minus2_2"
           : "2_6",
     expiryDate: normalizeText(overrides.expiryDate),
+    expiryTime: normalizePerishableTime(overrides.expiryTime),
     actualSaleDate: normalizeText(overrides.actualSaleDate),
     actualSaleTime: normalizeText(overrides.actualSaleTime),
     responsiblePerson: normalizeText(overrides.responsiblePerson),

@@ -2,7 +2,8 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { Archive, ClipboardList, ExternalLink, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -21,12 +22,17 @@ import {
   createAuditProtocolRow,
   createAuditProtocolSection,
   createAuditProtocolSignature,
+  fillAuditProtocolFromPlan,
   normalizeAuditProtocolConfig,
   type AuditProtocolConfig,
+  type AuditProtocolPlanSource,
   type AuditProtocolRow,
   type AuditProtocolSection,
   type AuditProtocolSignature,
 } from "@/lib/audit-protocol-document";
+import { AUDIT_PLAN_TEMPLATE_CODE } from "@/lib/audit-plan-document";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
 import { useDocumentCloseAction } from "@/components/journals/document-close-button";
 import { useMobileView } from "@/lib/use-mobile-view";
@@ -48,9 +54,51 @@ type Props = {
   organizationName: string;
   status: string;
   config: unknown;
+  /**
+   * Планы аудитов организации — источник для «Заполнить из плана».
+   * Пусто ⇒ кнопка не показывается (планов ещё нет).
+   */
+  planSources?: AuditProtocolPlanSource[];
   /** Design v2 toggle. */
   useV2?: boolean;
 };
+
+/**
+ * Кнопка «Заполнить из плана аудитов»: выбор плана списком в стиле
+ * проекта (на телефоне — лист снизу). После выбора — подтверждение со
+ * счётчиком, что именно скопируется.
+ */
+function FillFromPlanButton({
+  plans,
+  onPick,
+}: {
+  plans: AuditProtocolPlanSource[];
+  onPick: (plan: AuditProtocolPlanSource) => void;
+}) {
+  if (plans.length === 0) return null;
+  return (
+    <ResponsiveMenu
+      title="Из какого плана заполнить"
+      contentClassName="w-[340px] rounded-[22px] border-0 p-3 shadow-xl"
+      items={plans.map((plan) => ({
+        key: plan.documentId,
+        label: `${plan.title} · требований: ${plan.rows.filter((row) => row.text.trim()).length}`,
+        icon: <ClipboardList className="size-4 text-[#6f7282]" />,
+        onSelect: () => onPick(plan),
+      }))}
+      trigger={
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          <ClipboardList className="size-4 text-[#5566f6]" />
+          Заполнить из плана аудитов
+        </Button>
+      }
+    />
+  );
+}
 
 function SectionDialog({
   open,
@@ -178,6 +226,7 @@ export function AuditProtocolDocumentClient({
   organizationName,
   status,
   config: initialConfig,
+  planSources = [],
   useV2 = false,
 }: Props) {
   const router = useRouter();
@@ -262,6 +311,45 @@ export function AuditProtocolDocumentClient({
       rows: config.rows.filter((row) => !selectedRowIds.includes(row.id)),
     });
     setSelectedRowIds([]);
+  }
+
+  /**
+   * Заполнение протокола из плана. Копия, а не ссылка: план потом можно
+   * править, подписанный протокол от этого не изменится.
+   */
+  async function fillFromPlan(plan: AuditProtocolPlanSource) {
+    const preview = fillAuditProtocolFromPlan(config, plan);
+    if (preview.addedRows === 0) {
+      toast.info(
+        preview.skippedRows > 0
+          ? "Все требования этого плана уже перенесены в протокол"
+          : "В этом плане нет требований для переноса"
+      );
+      return;
+    }
+
+    const ok = await confirmAsync({
+      title: "Заполнить протокол из плана?",
+      description: `План: «${plan.title}».`,
+      variant: "info",
+      confirmLabel: "Заполнить",
+      bullets: [
+        { label: `Добавится требований: ${preview.addedRows}`, tone: "info" },
+        ...(preview.skippedRows > 0
+          ? [{ label: `Уже перенесено ранее: ${preview.skippedRows}`, tone: "info" as const }]
+          : []),
+        { label: "Это копия: правка плана задним числом протокол не изменит" },
+        { label: "Уже заполненные строки протокола остаются на месте" },
+      ],
+    });
+    if (!ok) return;
+
+    try {
+      await persist(documentTitle, preview.config);
+      toast.success(`Перенесено требований: ${preview.addedRows}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
+    }
   }
 
   async function addSection(title: string) {
@@ -391,6 +479,20 @@ export function AuditProtocolDocumentClient({
                 <div><span className="font-semibold">Дата:</span> {config.documentDate}</div>
                 <div><span className="font-semibold">Основание проверки:</span> {config.basisTitle}</div>
                 <div><span className="font-semibold">Проверяемый объект:</span> {config.auditedObject}</div>
+                {/* Откуда взяты требования: видно и в печати, и на экране.
+                    Ссылка ведёт в сам документ плана. */}
+                {config.sourcePlanDocumentId ? (
+                  <div>
+                    <span className="font-semibold">Составлен по плану:</span>{" "}
+                    <Link
+                      href={`/journals/${AUDIT_PLAN_TEMPLATE_CODE}/documents/${config.sourcePlanDocumentId}`}
+                      className="inline-flex items-center gap-1 text-[#5566f6] underline-offset-2 transition-colors duration-150 hover:text-[#4a5bf0] hover:underline print:text-black print:no-underline"
+                    >
+                      {config.sourcePlanTitle || "план аудитов"}
+                      <ExternalLink className="size-4 print:hidden" />
+                    </Link>
+                  </div>
+                ) : null}
               </div>
             </>
           }
@@ -403,6 +505,10 @@ export function AuditProtocolDocumentClient({
                 <Button className="h-9 rounded-xl bg-[#5563ff] px-3.5 text-[13.5px] text-white hover:bg-[#4554ff]" onClick={() => setSectionOpen(true)}>
                   <Plus className="size-5" /> Добавить новый раздел
                 </Button>
+                <FillFromPlanButton
+                  plans={planSources}
+                  onPick={(plan) => void fillFromPlan(plan)}
+                />
               </>
             ) : undefined
           }

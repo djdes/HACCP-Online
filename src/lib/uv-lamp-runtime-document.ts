@@ -57,6 +57,67 @@ export function listUvRuntimeSessions(
   return sessions;
 }
 
+/**
+ * Сеансы для ПРАВКИ: слот 0 — плоские `startTime`/`endTime`, далее
+ * `extraSessions`. В отличие от `listUvRuntimeSessions` пустые слоты не
+ * отбрасываются — иначе индекс строки в таблице разъезжается с данными.
+ */
+export function listUvRuntimeSessionSlots(
+  data: UvRuntimeEntryData
+): UvRuntimeSession[] {
+  return [
+    { startTime: data.startTime, endTime: data.endTime },
+    ...(data.extraSessions ?? []),
+  ];
+}
+
+/** Правка одного сеанса по индексу слота. */
+export function updateUvRuntimeSession(
+  data: UvRuntimeEntryData,
+  index: number,
+  patch: Partial<UvRuntimeSession>
+): UvRuntimeEntryData {
+  const slots = listUvRuntimeSessionSlots(data);
+  if (index < 0 || index >= slots.length) return data;
+  slots[index] = { ...slots[index], ...patch };
+  return fromUvRuntimeSessionSlots(slots);
+}
+
+/** Удаление сеанса; при удалении первого следующий занимает его место. */
+export function removeUvRuntimeSession(
+  data: UvRuntimeEntryData,
+  index: number
+): UvRuntimeEntryData {
+  const slots = listUvRuntimeSessionSlots(data);
+  if (index < 0 || index >= slots.length) return data;
+  slots.splice(index, 1);
+  return fromUvRuntimeSessionSlots(slots);
+}
+
+/** Добавление сеанса в конец дня. */
+export function appendUvRuntimeSession(
+  data: UvRuntimeEntryData,
+  session: UvRuntimeSession
+): UvRuntimeEntryData {
+  return fromUvRuntimeSessionSlots([
+    ...listUvRuntimeSessionSlots(data),
+    session,
+  ]);
+}
+
+/** Обратная сборка: первый слот — плоские поля, остальные — extraSessions. */
+function fromUvRuntimeSessionSlots(
+  slots: UvRuntimeSession[]
+): UvRuntimeEntryData {
+  const first = slots[0] ?? { startTime: "", endTime: "" };
+  const extra = slots.slice(1);
+  return {
+    startTime: first.startTime,
+    endTime: first.endTime,
+    ...(extra.length > 0 ? { extraSessions: extra } : {}),
+  };
+}
+
 /** Суммарная длительность всех сеансов дня, минут. */
 export function calculateEntryDurationMinutes(
   data: UvRuntimeEntryData

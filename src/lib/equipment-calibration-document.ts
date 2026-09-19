@@ -1,8 +1,12 @@
+import { normalizeSourceEquipmentId } from "@/lib/equipment-directory-link";
+
 export const EQUIPMENT_CALIBRATION_TEMPLATE_CODE = "equipment_calibration";
 export const EQUIPMENT_CALIBRATION_DOCUMENT_TITLE = "График поверки средств измерений";
 
 export type CalibrationRow = {
   id: string;
+  /** Ссылка на `Equipment`: переименование в справочнике доходит до графика. */
+  sourceEquipmentId: string | null;
   equipmentName: string;
   equipmentNumber: string;
   location: string;
@@ -51,6 +55,7 @@ export function createCalibrationRow(
 ): CalibrationRow {
   return {
     id: overrides.id || createId(),
+    sourceEquipmentId: normalizeSourceEquipmentId(overrides.sourceEquipmentId),
     equipmentName: normalizeText(overrides.equipmentName),
     equipmentNumber: normalizeText(overrides.equipmentNumber),
     location: normalizeText(overrides.location),
@@ -193,6 +198,7 @@ export function buildEquipmentCalibrationConfigFromEquipment(
   const rows = equipment
     .map((item) =>
       createCalibrationRow({
+        sourceEquipmentId: item.id,
         equipmentName: normalizeText(item.name),
         equipmentNumber:
           normalizeText(item.serialNumber) ||

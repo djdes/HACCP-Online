@@ -32,6 +32,8 @@ import {
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
@@ -278,6 +280,8 @@ export function CleaningVentilationChecklistDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Настройки / удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsTarget, setSettingsTarget] = useState<DocumentItem | null>(null);
   const { deleteDocument, setStatus, openPdf } = useJournalDocumentActions();
@@ -438,7 +442,7 @@ export function CleaningVentilationChecklistDocumentsClient({
               <div className="flex items-center justify-center text-[#5566f6]">
                 <ResponsiveMenu
                   title="Действия с документом"
-                  items={[
+                  items={filterManageMenuItems([
                     {
                       key: "settings",
                       label: "Настройки",
@@ -467,7 +471,7 @@ export function CleaningVentilationChecklistDocumentsClient({
                       onSelect: () => handleDelete(document),
                       tone: "danger" as const,
                     },
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

@@ -32,8 +32,16 @@ export type SdcConfig = {
   zones: SdcZone[];
   items: SdcItem[];
   generalPrinciples: string[];
+  /** Снимок имени на момент выбора — для старых документов и печати. */
   responsibleName: string;
   checkerName: string;
+  /**
+   * Кто выбран в «Выполнил» / «Проверил». Раньше хранилось только имя,
+   * и после переименования сотрудника селект оказывался пустым.
+   * Старые документы (только имя) читаются как раньше.
+   */
+  responsibleUserId?: string;
+  checkerUserId?: string;
 };
 export type SdcEntryData = {
   marks: Record<string, string>; // itemId -> "HH:MM"
@@ -175,6 +183,8 @@ export function defaultSdcConfig(responsibleName = ""): SdcConfig {
     generalPrinciples: [...DEFAULT_GENERAL_PRINCIPLES],
     responsibleName,
     checkerName: "",
+    responsibleUserId: "",
+    checkerUserId: "",
   };
 }
 
@@ -232,7 +242,89 @@ export function normalizeSdcConfig(value: unknown): SdcConfig {
       typeof record.responsibleName === "string" ? record.responsibleName : "",
     checkerName:
       typeof record.checkerName === "string" ? record.checkerName : "",
+    responsibleUserId:
+      typeof record.responsibleUserId === "string"
+        ? record.responsibleUserId
+        : "",
+    checkerUserId:
+      typeof record.checkerUserId === "string" ? record.checkerUserId : "",
   };
+}
+
+/**
+ * Имя подписанта: сначала по id (переименование сотрудника не ломает
+ * бланк), иначе — снимок имени из конфига (старые документы).
+ */
+export function resolveSdcSignerName(
+  userId: string | undefined,
+  nameSnapshot: string,
+  users: Array<{ id: string; name: string }>
+): string {
+  if (userId) {
+    const user = users.find((item) => item.id === userId);
+    if (user) return user.name;
+  }
+  return nameSnapshot;
+}
+
+/**
+ * Какой сотрудник выбран в селекте: по id, а для старых документов —
+ * по совпадению имени.
+ */
+export function resolveSdcSignerId(
+  userId: string | undefined,
+  nameSnapshot: string,
+  users: Array<{ id: string; name: string }>
+): string {
+  if (userId && users.some((item) => item.id === userId)) return userId;
+  if (nameSnapshot) {
+    const byName = users.find((item) => item.name === nameSnapshot);
+    if (byName) return byName.id;
+  }
+  return "";
+}
+
+/**
+ * Отметки всех записей документа за все даты, слитые в одну картину —
+ * так же, как это делает PDF. Экран читал только `initialEntries[0]`:
+ * если чек-лист заполняли двое, видно было одного, а сохранение
+ * затирало картину другого.
+ */
+export function mergeSdcEntries(
+  entries: Array<{ data: unknown }>
+): SdcEntryData {
+  const marks: Record<string, string> = {};
+  const done: Record<string, boolean> = {};
+  for (const entry of entries) {
+    const normalized = normalizeSdcEntryData(entry.data);
+    for (const [key, value] of Object.entries(normalized.marks)) {
+      if (value) marks[key] = value;
+    }
+    for (const key of Object.keys(normalized.done)) {
+      if (normalized.done[key]) done[key] = true;
+    }
+  }
+  return { marks, done };
+}
+
+/**
+ * Чистка отметок удалённых пунктов: без неё в `data` записи навсегда
+ * оставался мусор по пунктам, которых уже нет в чек-листе.
+ */
+export function dropSdcMarksForMissingItems(
+  data: SdcEntryData,
+  itemIds: Iterable<string>
+): SdcEntryData {
+  const alive = new Set(itemIds);
+  const marks: Record<string, string> = {};
+  const done: Record<string, boolean> = {};
+  for (const [key, value] of Object.entries(data.marks)) {
+    if (alive.has(key)) marks[key] = value;
+  }
+  for (const [key, value] of Object.entries(data.done)) {
+    if (alive.has(key) && value) done[key] = true;
+  }
+  return { marks, done };
 }
 
 export function normalizeSdcEntryData(value: unknown): SdcEntryData {

@@ -15,6 +15,12 @@ export type AuditProtocolRow = {
   text: string;
   result: "yes" | "no" | "";
   note: string;
+  /**
+   * Строка плана аудитов, из которой скопировано требование. Связь
+   * односторонняя: правка плана задним числом протокол не меняет, id
+   * нужен только чтобы не скопировать одно и то же требование дважды.
+   */
+  planRowId?: string;
 };
 
 export type AuditProtocolSignature = {
@@ -31,6 +37,10 @@ export type AuditProtocolConfig = {
   sections: AuditProtocolSection[];
   rows: AuditProtocolRow[];
   signatures: AuditProtocolSignature[];
+  /** Документ плана аудитов, из которого заполнен протокол (если был). */
+  sourcePlanDocumentId?: string | null;
+  /** Название плана на момент копирования — чтобы ссылка была подписана. */
+  sourcePlanTitle?: string | null;
 };
 
 function createId(prefix: string) {
@@ -52,6 +62,7 @@ export function createAuditProtocolRow(params?: Partial<AuditProtocolRow>): Audi
     text: params?.text || "",
     result: params?.result || "",
     note: params?.note || "",
+    ...(params?.planRowId ? { planRowId: params.planRowId } : {}),
   };
 }
 
@@ -121,12 +132,14 @@ function normalizeRows(
       const source = item as Record<string, unknown>;
       const sectionId = safeText(source.sectionId);
       if (!sectionIds.includes(sectionId)) return null;
+      const planRowId = safeText(source.planRowId);
       return {
         id: safeText(source.id, `row-${index + 1}`),
         sectionId,
         text: safeText(source.text),
         result: source.result === "yes" || source.result === "no" ? source.result : "",
         note: safeText(source.note),
+        ...(planRowId ? { planRowId } : {}),
       } satisfies AuditProtocolRow;
     })
     .filter((item): item is AuditProtocolRow => item !== null);
@@ -169,5 +182,86 @@ export function normalizeAuditProtocolConfig(value: unknown): AuditProtocolConfi
       sections.map((item) => item.id)
     ),
     signatures: normalizeSignatures(source.signatures, fallback.signatures),
+    sourcePlanDocumentId: safeText(source.sourcePlanDocumentId) || null,
+    sourcePlanTitle: safeText(source.sourcePlanTitle) || null,
+  };
+}
+
+/** План аудитов в том виде, в каком его копируют в протокол. */
+export type AuditProtocolPlanSource = {
+  documentId: string;
+  title: string;
+  sections: { id: string; title: string }[];
+  rows: { id: string; sectionId: string; text: string }[];
+};
+
+function sectionKey(title: string) {
+  return title.trim().toLowerCase();
+}
+
+/**
+ * Копирует разделы и требования плана аудитов в протокол.
+ *
+ * ПОЧЕМУ копия, а не ссылка: протокол подписывают. Если бы он читал
+ * требования из плана, правка плана задним числом молча меняла бы уже
+ * подписанный документ. Поэтому текст копируется, а от плана остаётся
+ * только `planRowId` (защита от повторного копирования) и ссылка в шапке.
+ */
+export function fillAuditProtocolFromPlan(
+  config: AuditProtocolConfig,
+  plan: AuditProtocolPlanSource
+): { config: AuditProtocolConfig; addedRows: number; skippedRows: number } {
+  const sections = [...config.sections];
+  const sectionIdByKey = new Map(
+    sections.map((section) => [sectionKey(section.title), section.id])
+  );
+  const usedPlanRowIds = new Set(
+    config.rows.map((row) => row.planRowId).filter((id): id is string => Boolean(id))
+  );
+
+  const rows = [...config.rows];
+  let addedRows = 0;
+  let skippedRows = 0;
+
+  for (const planRow of plan.rows) {
+    const text = planRow.text.trim();
+    if (!text) continue;
+    if (usedPlanRowIds.has(planRow.id)) {
+      skippedRows += 1;
+      continue;
+    }
+
+    const planSection = plan.sections.find((item) => item.id === planRow.sectionId);
+    const title = planSection?.title?.trim() || "Требования плана";
+    let sectionId = sectionIdByKey.get(sectionKey(title));
+    if (!sectionId) {
+      const created = createAuditProtocolSection(title);
+      sections.push(created);
+      sectionIdByKey.set(sectionKey(title), created.id);
+      sectionId = created.id;
+    }
+
+    rows.push(createAuditProtocolRow({ sectionId, text, planRowId: planRow.id }));
+    usedPlanRowIds.add(planRow.id);
+    addedRows += 1;
+  }
+
+  const defaultBasis = getDefaultAuditProtocolConfig().basisTitle;
+  return {
+    config: {
+      ...config,
+      sections,
+      rows,
+      // Основание перебиваем только пока там стоит заводской текст —
+      // свою формулировку руководителя не трогаем.
+      basisTitle:
+        !config.basisTitle.trim() || config.basisTitle === defaultBasis
+          ? plan.title
+          : config.basisTitle,
+      sourcePlanDocumentId: plan.documentId,
+      sourcePlanTitle: plan.title,
+    },
+    addedRows,
+    skippedRows,
   };
 }

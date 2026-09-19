@@ -82,8 +82,24 @@ function safeMeasureUnit(value: unknown): MeasureUnit {
 
 // --- Computed helpers ---
 
+/**
+ * Сколько рабочего раствора уходит на одну обработку. Площадь и «расход
+ * на кв.м» раньше ни на что не влияли: если раствор на обработку не
+ * задан, потребность считалась нулевой. Теперь недостающее значение
+ * берётся как площадь × расход на кв.м; введённое руками — главнее.
+ */
+export function resolveSolutionPerTreatment(row: SubdivisionRow): number {
+  if (row.solutionPerTreatment > 0) return row.solutionPerTreatment;
+  if (row.byCapacity) return 0;
+  const area = row.area ?? 0;
+  if (area > 0 && row.solutionConsumptionPerSqm > 0) {
+    return area * row.solutionConsumptionPerSqm;
+  }
+  return 0;
+}
+
 export function computeNeedPerTreatment(row: SubdivisionRow): number {
-  return row.solutionPerTreatment * (row.concentration / 100);
+  return resolveSolutionPerTreatment(row) * (row.concentration / 100);
 }
 
 export function computeNeedPerMonth(row: SubdivisionRow): number {
@@ -102,6 +118,23 @@ export function formatNumber(value: number, decimals = 3): string {
 export function formatQuantityWithUnit(quantity: number, unit: MeasureUnit): string {
   if (quantity === 0) return "";
   return `${formatNumber(quantity)} ${MEASURE_UNIT_LABELS[unit]}`;
+}
+
+/**
+ * Итог по количествам — ПО ЕДИНИЦАМ: кг, литры и флаконы нельзя
+ * складывать в одно число. Общий для экрана и печати.
+ */
+export function sumDisinfectantQuantities(
+  rows: Array<{ quantity: number; unit: MeasureUnit }>
+): string {
+  const byUnit = new Map<MeasureUnit, number>();
+  for (const row of rows) {
+    byUnit.set(row.unit, (byUnit.get(row.unit) ?? 0) + row.quantity);
+  }
+  const parts = [...byUnit.entries()]
+    .filter(([, value]) => value > 0)
+    .map(([unit, value]) => formatQuantityWithUnit(value, unit));
+  return parts.length > 0 ? parts.join(" · ") : "—";
 }
 
 // --- Normalization ---

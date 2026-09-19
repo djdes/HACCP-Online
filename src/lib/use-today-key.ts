@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useContext, useSyncExternalStore } from "react";
+
+import { TodayKeyContext } from "@/lib/today-key-context";
 
 /**
  * «Сегодня» в ЛОКАЛЬНОЙ зоне браузера в формате `YYYY-MM-DD`.
@@ -34,17 +36,32 @@ function subscribeToNothing() {
  *
  * `useSyncExternalStore` — штатный для React способ отдать одно значение
  * при SSR/гидрации и другое после неё, без setState в эффекте.
- * Серверный снапшот — `serverTodayKey` (проп с сервера) либо пустая
- * строка: не подсветить ни одного дня честнее, чем подсветить чужой.
- * Клиентский снапшот — локальная дата браузера.
+ *
+ * Приоритет источников:
+ *  1. `serverTodayKey` (проп с сервера);
+ *  2. `TodayKeyContext` — то же значение, но через контекст страницы
+ *     документа, чтобы его не приходилось протаскивать пропом через все
+ *     журналы;
+ *  3. локальная дата браузера — когда серверного значения нет вообще.
+ *
+ * ПОЧЕМУ серверное значение побеждает и ПОСЛЕ гидрации: «сегодня» на
+ * сервере считается в поясе ОРГАНИЗАЦИИ (`orgTodayKey`), и именно с ним
+ * сверяются проверки «заполнять можно только сегодняшний день». Часы
+ * устройства сотрудника к делу не относятся.
  */
 export function useTodayKey(serverTodayKey = ""): string {
-  const getServerSnapshot = useCallback(() => serverTodayKey, [serverTodayKey]);
-  return useSyncExternalStore(
-    subscribeToNothing,
+  const contextTodayKey = useContext(TodayKeyContext);
+  const orgTodayKey = serverTodayKey || contextTodayKey;
+  const getServerSnapshot = useCallback(() => orgTodayKey, [orgTodayKey]);
+  const getSnapshot = useCallback(
     // Строка сравнивается по значению, поэтому пересчёт на каждый рендер
     // не вызывает бесконечного цикла.
-    localTodayKey,
+    () => orgTodayKey || localTodayKey(),
+    [orgTodayKey],
+  );
+  return useSyncExternalStore(
+    subscribeToNothing,
+    getSnapshot,
     getServerSnapshot,
   );
 }

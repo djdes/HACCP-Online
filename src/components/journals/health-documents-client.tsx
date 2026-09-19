@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 
 import { toast } from "sonner";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import {
   DocumentActionsMenu,
   EmptyDocumentsState,
@@ -62,6 +63,9 @@ type HealthListDocument = {
   responsibleTitle: string | null;
   periodLabel: string;
   printEmptyRows?: number;
+  /** Период документа `YYYY-MM-DD` — его можно менять в настройках. */
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 type Props = {
@@ -94,16 +98,54 @@ function EditDocumentDialog(props: {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [emptyRows, setEmptyRows] = useState("0");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!props.document || !props.open) return;
     setTitle(props.document.title);
     setEmptyRows(String(props.document.printEmptyRows ?? 0));
+    setFrom(props.document.dateFrom || "");
+    setTo(props.document.dateTo || "");
   }, [props.document, props.open]);
+
+  const periodEditable = Boolean(props.document?.dateFrom && props.document?.dateTo);
 
   async function handleSave() {
     if (!props.document) return;
+    if (periodEditable) {
+      if (!from || !to) {
+        toast.error("Укажите период документа");
+        return;
+      }
+      if (from > to) {
+        toast.error("Дата начала не может быть позже даты окончания");
+        return;
+      }
+    }
+
+    // Сокращение периода сервер принимает только с явным shrinkPeriod —
+    // предупреждаем, что отметки за его пределами уйдут из бланка.
+    const shrinks =
+      periodEditable &&
+      (from > (props.document.dateFrom || "") || to < (props.document.dateTo || ""));
+    if (shrinks) {
+      const confirmed = await confirmAsync({
+        title: "Сократить период документа?",
+        description: `Новый период: ${from} — ${to}.`,
+        variant: "warn",
+        confirmLabel: "Сократить период",
+        bullets: [
+          {
+            label: "Записи вне нового периода пропадут из бланка и печати",
+            tone: "warn",
+          },
+          { label: "Из базы они не удаляются", tone: "info" },
+        ],
+      });
+      if (!confirmed) return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -115,6 +157,13 @@ function EditDocumentDialog(props: {
           config: {
             printEmptyRows: Math.max(0, Number(emptyRows) || 0),
           },
+          ...(periodEditable
+            ? {
+                dateFrom: from,
+                dateTo: to,
+                ...(shrinks ? { shrinkPeriod: true } : {}),
+              }
+            : {}),
         }),
       });
 
@@ -167,6 +216,32 @@ function EditDocumentDialog(props: {
               </SelectContent>
             </Select>
           </FloatingLabelField>
+
+          {/* Период документа: в гигиене его менять давали, в здоровье — нет. */}
+          {periodEditable ? (
+            <div className="space-y-2">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">
+                Период документа
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(event) => setFrom(event.target.value)}
+                  aria-label="Период документа: с"
+                  className="h-10 w-[165px] rounded-xl border border-[#dcdfed] px-3.5 text-[13.5px] text-[#0b1024] outline-none transition-colors duration-150 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+                <span className="text-[13.5px] text-[#6f7282]">по</span>
+                <input
+                  type="date"
+                  value={to}
+                  onChange={(event) => setTo(event.target.value)}
+                  aria-label="Период документа: по"
+                  className="h-10 w-[165px] rounded-xl border border-[#dcdfed] px-3.5 text-[13.5px] text-[#0b1024] outline-none transition-colors duration-150 focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className={JOURNAL_DIALOG_FOOTER_CLASS}>

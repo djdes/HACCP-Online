@@ -8,6 +8,7 @@ import { JournalDocumentShell } from "@/components/journals/journal-document-she
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { JournalSettingsModal } from "@/components/journals/v2/journal-settings-modal";
 import { FocusTodayScroller } from "@/components/journals/focus-today-scroller";
+import { useTodayKey } from "@/lib/use-today-key";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -37,11 +38,13 @@ import {
   computeNeedPerTreatment,
   computeNeedPerMonth,
   computeNeedPerYear,
+  resolveSolutionPerTreatment,
   formatNumber,
   formatQuantityWithUnit,
   createEmptySubdivision,
   createEmptyReceipt,
   createEmptyConsumption,
+  sumDisinfectantQuantities,
   type DisinfectantDocumentConfig,
   type SubdivisionRow,
   type ReceiptRow,
@@ -106,6 +109,22 @@ function formatDateRu(iso: string) {
 }
 
 // ---------- Subdivision Add Dialog ----------
+/**
+ * Подсказка под «Кол-во раб. р-ра»: объясняет, откуда берётся значение,
+ * когда поле пустое, а площадь и расход на кв.м заданы.
+ */
+function SolutionPerTreatmentHint({ row }: { row: SubdivisionRow }) {
+  const derived = resolveSolutionPerTreatment(row);
+  if (row.solutionPerTreatment > 0 || derived <= 0) return null;
+  return (
+    <p className="text-[12px] leading-[1.45] text-[#6f7282]">
+      Не заполнено — считаем по площади: {row.area} кв.м ×{" "}
+      {row.solutionConsumptionPerSqm} л = {formatNumber(derived)} л.
+      Своё значение здесь главнее расчёта.
+    </p>
+  );
+}
+
 function AddSubdivisionDialog(props: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -227,6 +246,84 @@ function AddSubdivisionDialog(props: {
               placeholder="Введите кратность обработок в месяц"
               className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
             />
+          </div>
+          {/* Средство и концентрация — здесь же: без них у только что
+              добавленной строки потребность всегда была 0, пока её не
+              откроют на правку. Поля те же, что в окне редактирования. */}
+          <h3 className="pt-2 text-[18px] font-semibold">
+            Дезинфицирующее средство
+          </h3>
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#73738a]">Наименование</Label>
+            <Input
+              value={row.disinfectantName}
+              onChange={(e) =>
+                setRow({ ...row, disinfectantName: e.target.value })
+              }
+              placeholder="Введите наименование дез. средства"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#73738a]">
+              Концентрация (%)
+            </Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={row.concentration || ""}
+              onChange={(e) =>
+                setRow({ ...row, concentration: Number(e.target.value) || 0 })
+              }
+              placeholder="Введите концентрацию, %"
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#73738a]">
+              Расход рабочего раствора на один кв. м. (л)
+            </Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={row.solutionConsumptionPerSqm || ""}
+              onChange={(e) =>
+                setRow({
+                  ...row,
+                  solutionConsumptionPerSqm: Number(e.target.value) || 0,
+                })
+              }
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[16px] text-[#73738a]">
+              Кол-во раб. р-ра для одн.обр. объекта (л)
+            </Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={row.solutionPerTreatment || ""}
+              onChange={(e) =>
+                setRow({
+                  ...row,
+                  solutionPerTreatment: Number(e.target.value) || 0,
+                })
+              }
+              className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
+            />
+            <SolutionPerTreatmentHint row={row} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[14px] text-[#73738a]">
+              Потребность на одну обработку (кг, л)
+            </Label>
+            <div className="h-9 rounded-xl border border-[#d8dae6] bg-[#f1f2f8] px-3.5 py-2 text-[13.5px]">
+              {formatNumber(computeNeedPerTreatment(row)) || "—"}
+            </div>
           </div>
           <div className="flex justify-end pt-2">
             <Button
@@ -447,6 +544,7 @@ function EditSubdivisionDialog(props: {
                 }
                 className="h-9 rounded-xl border-[#d8dae6] px-3.5 text-[13.5px]"
               />
+              <SolutionPerTreatmentHint row={active} />
             </div>
             <h3 className="pt-2 text-[18px] font-semibold">
               Потребность в дезинфицирующем средстве
@@ -774,6 +872,47 @@ function ConsumptionDialog(props: {
         </DialogHeader>
         {active && (
           <div className="space-y-4 px-8 py-6">
+            {/* «За период с … по …» — обязательный реквизит бланка. Поля
+                были в данных и в таблице, но вводить их было негде. */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label className="text-[16px] text-[#73738a]">За период с</Label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={active.periodFrom}
+                    onChange={(e) =>
+                      setRow({
+                        ...active,
+                        // Пустое значение оставляем пустым: toIsoDate("")
+                        // подставил бы сегодняшнюю дату.
+                        periodFrom: e.target.value ? toIsoDate(e.target.value) : "",
+                      })
+                    }
+                    className="h-9 rounded-xl border-[#d8dae6] px-3.5 pr-14 text-[13.5px]"
+                  />
+                  <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[16px] text-[#73738a]">по</Label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={active.periodTo}
+                    min={active.periodFrom || undefined}
+                    onChange={(e) =>
+                      setRow({
+                        ...active,
+                        periodTo: e.target.value ? toIsoDate(e.target.value) : "",
+                      })
+                    }
+                    className="h-9 rounded-xl border-[#d8dae6] px-3.5 pr-14 text-[13.5px]"
+                  />
+                  <CalendarDays className="pointer-events-none absolute right-4 top-1/2 size-6 -translate-y-1/2 text-[#6e7080]" />
+                </div>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label className="text-[16px] text-[#73738a]">
                 Наименование дез. средства
@@ -1199,6 +1338,8 @@ export function DisinfectantDocumentClient({
   const normalized = normalizeDisinfectantConfig(config);
   const readOnly = status === "closed";
   const { mobileView, switchMobileView } = useMobileView("disinfectant_usage");
+  // «Сегодня» в поясе организации — якорь для «Перейти к сегодня».
+  const todayKey = useTodayKey();
 
   const [selectedSubIds, setSelectedSubIds] = useState<string[]>([]);
   const [selectedRecIds, setSelectedRecIds] = useState<string[]>([]);
@@ -1413,17 +1554,11 @@ export function DisinfectantDocumentClient({
     0
   );
   // Итог считаем ПО ЕДИНИЦАМ: раньше кг, л и флаконы складывались в одно
-  // бессмысленное число.
-  const totalReceiptQuantity = useMemo(() => {
-    const byUnit = new Map<MeasureUnit, number>();
-    for (const r of normalized.receipts) {
-      byUnit.set(r.unit, (byUnit.get(r.unit) ?? 0) + r.quantity);
-    }
-    const parts = [...byUnit.entries()]
-      .filter(([, value]) => value > 0)
-      .map(([unit, value]) => formatQuantityWithUnit(value, unit));
-    return parts.length > 0 ? parts.join(" · ") : "—";
-  }, [normalized.receipts]);
+  // бессмысленное число. Тот же helper использует печать.
+  const totalReceiptQuantity = useMemo(
+    () => sumDisinfectantQuantities(normalized.receipts),
+    [normalized.receipts]
+  );
 
   const allSubsSelected =
     normalized.subdivisions.length > 0 &&
@@ -1465,9 +1600,13 @@ export function DisinfectantDocumentClient({
             type="button"
             className="flex items-center gap-1 text-[16px] text-[#ff3b30]"
             onClick={() => {
-              if (selectedSubIds.length > 0) deleteSelectedSubs();
-              if (selectedRecIds.length > 0) deleteSelectedReceipts();
-              if (selectedConIds.length > 0) deleteSelectedConsumptions();
+              // Последовательно: без await три confirmAsync открывались
+              // одновременно и накладывались друг на друга.
+              void (async () => {
+                if (selectedSubIds.length > 0) await deleteSelectedSubs();
+                if (selectedRecIds.length > 0) await deleteSelectedReceipts();
+                if (selectedConIds.length > 0) await deleteSelectedConsumptions();
+              })();
             }}
           >
             <Trash2 className="size-4" /> Удалить
@@ -1494,9 +1633,65 @@ export function DisinfectantDocumentClient({
                 <Plus className="size-5" /> Добавить подразделение
               </Button>
             )}
-            <div className="rounded-2xl border border-dashed border-[#dcdfed] bg-[#fafbff] px-4 py-6 text-center text-[13px] text-[#6f7282]">
-              Таблица расчёта потребности слишком широкая для карточного вида. Переключитесь на «Таблица» для просмотра и редактирования.
-            </div>
+            {/* Строки расчёта потребности — такие же карточки, как приход и
+                расход: раньше здесь стояла заглушка «переключитесь на
+                Таблица», а кнопка «Добавить подразделение» над ней работала. */}
+            <RecordCardsView
+              emptyLabel="Нет подразделений в расчёте"
+              items={normalized.subdivisions.map<RecordCardItem>((sub) => ({
+                id: sub.id,
+                title: sub.name || "Без наименования",
+                subtitle: sub.disinfectantName || undefined,
+                onClick: readOnly ? undefined : () => setEditSubTarget(sub),
+                leading: readOnly ? null : (
+                  <Checkbox
+                    checked={selectedSubIds.includes(sub.id)}
+                    onCheckedChange={(c) =>
+                      setSelectedSubIds((cur) =>
+                        c === true
+                          ? [...new Set([...cur, sub.id])]
+                          : cur.filter((id) => id !== sub.id)
+                      )
+                    }
+                    className="size-5"
+                  />
+                ),
+                fields: [
+                  {
+                    label: "Площадь объекта",
+                    value: sub.byCapacity
+                      ? "На ёмкость"
+                      : sub.area
+                        ? `${sub.area} кв.м`
+                        : "—",
+                  },
+                  {
+                    label: "Вид обработки",
+                    value: sub.treatmentType === "current" ? "Текущая (Т)" : "Генеральная (Г)",
+                  },
+                  {
+                    label: "Кратность обработок в месяц",
+                    value: sub.frequencyPerMonth || "—",
+                  },
+                  {
+                    label: "Концентрация",
+                    value: sub.concentration ? `${sub.concentration} %` : "—",
+                  },
+                  {
+                    label: "Потребность на одну обработку",
+                    value: formatNumber(computeNeedPerTreatment(sub)) || "—",
+                  },
+                  {
+                    label: "Потребность на месяц",
+                    value: formatNumber(computeNeedPerMonth(sub)) || "—",
+                  },
+                  {
+                    label: "Потребность на год",
+                    value: formatNumber(computeNeedPerYear(sub)) || "—",
+                  },
+                ],
+              }))}
+            />
 
             {!readOnly && (
               <Button
@@ -1510,9 +1705,28 @@ export function DisinfectantDocumentClient({
               emptyLabel="Нет записей о поступлении"
               items={normalized.receipts.map<RecordCardItem>((rec) => ({
                 id: rec.id,
-                title: formatDateRu(rec.date) || "Без даты",
+                // Якорь «Перейти к сегодня» для карточек (телефон).
+                title: (
+                  <span data-focus-today={rec.date === todayKey ? "" : undefined}>
+                    {formatDateRu(rec.date) || "Без даты"}
+                  </span>
+                ),
                 subtitle: rec.disinfectantName || undefined,
                 onClick: readOnly ? undefined : () => setEditRecTarget(rec),
+                // Без чекбокса запись нельзя было удалить с телефона.
+                leading: readOnly ? null : (
+                  <Checkbox
+                    checked={selectedRecIds.includes(rec.id)}
+                    onCheckedChange={(c) =>
+                      setSelectedRecIds((cur) =>
+                        c === true
+                          ? [...new Set([...cur, rec.id])]
+                          : cur.filter((id) => id !== rec.id)
+                      )
+                    }
+                    className="size-5"
+                  />
+                ),
                 fields: [
                   {
                     label: "Количество",
@@ -1545,6 +1759,19 @@ export function DisinfectantDocumentClient({
                 title: `${formatDateRu(con.periodFrom) || "—"} — ${formatDateRu(con.periodTo) || "—"}`,
                 subtitle: con.disinfectantName || undefined,
                 onClick: readOnly ? undefined : () => setEditConTarget(con),
+                leading: readOnly ? null : (
+                  <Checkbox
+                    checked={selectedConIds.includes(con.id)}
+                    onCheckedChange={(c) =>
+                      setSelectedConIds((cur) =>
+                        c === true
+                          ? [...new Set([...cur, con.id])]
+                          : cur.filter((id) => id !== con.id)
+                      )
+                    }
+                    className="size-5"
+                  />
+                ),
                 fields: [
                   {
                     label: "Получено",
@@ -1736,7 +1963,9 @@ export function DisinfectantDocumentClient({
                     {sub.solutionConsumptionPerSqm || ""}
                   </td>
                   <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
-                    {sub.solutionPerTreatment || ""}
+                    {/* Пусто и площадь×расход — показываем расчётное значение,
+                        иначе колонка «потребность» выглядела взятой ниоткуда. */}
+                    {formatNumber(resolveSolutionPerTreatment(sub))}
                   </td>
                   <td className={`${GRID_CELL_CLASS} text-center px-2 py-1 leading-tight`}>
                     {formatNumber(computeNeedPerTreatment(sub))}
@@ -1838,6 +2067,9 @@ export function DisinfectantDocumentClient({
               {normalized.receipts.map((rec) => (
                 <tr
                   key={rec.id}
+                  // Якорь «Перейти к сегодня»: раньше атрибут не ставила
+                  // ни одна строка и скроллер показывал «Записей пока нет».
+                  data-focus-today={rec.date === todayKey ? "" : undefined}
                   className={
                     !readOnly ? "cursor-pointer hover:bg-[#f5f6ff]" : ""
                   }
@@ -2108,7 +2340,9 @@ export function DisinfectantDocumentClient({
         onSubmit={async (value) => {
           await patchConfig(
             {
-              ...normalized,
+              // configRef, а не серверный проп: настройки, открытые до
+              // прилёта router.refresh(), затирали свежие строки.
+              ...configRef.current,
               responsibleRole: value.responsibleRole,
               responsibleEmployeeId: value.responsibleEmployeeId || null,
               responsibleEmployee: value.responsibleEmployee,

@@ -14,11 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel } from "@/lib/user-roles";
+import { useSession } from "next-auth/react";
+import { USER_ROLE_LABEL_VALUES, getUserRoleLabel, getUsersForRoleLabel, isManagementRole } from "@/lib/user-roles";
 import {
   emptyEquipmentCleaningRow,
   EQUIPMENT_CLEANING_VARIANT_LABELS,
   formatEquipmentCleaningDate,
+  getEquipmentCleaningEntryDateBounds,
+  getEquipmentCleaningPeriodEnd,
   getEquipmentCleaningResultLabel,
   type EquipmentCleaningDocumentConfig,
   type EquipmentCleaningFieldVariant,
@@ -47,6 +50,7 @@ import { useJournalUndo } from "@/lib/journal-undo";
 import { PositionNativeOptions } from "@/components/shared/position-select";
 import { useRosterViewerId } from "@/components/journals/use-roster-viewer";
 import { rankRosterForSlot } from "@/lib/journal-roster";
+import { useTodayKey } from "@/lib/use-today-key";
 type UserItem = {
   id: string;
   name: string;
@@ -125,6 +129,15 @@ export function EquipmentCleaningDocumentClient({
   const router = useRouter();
   const journalRouteCode = routeCode || templateCode;
   const viewerId = useRosterViewerId(users);
+  // «Сегодня» — из контекста документа (пояс организации), не из часов
+  // устройства: по нему и подсветка строки, и верхняя граница даты мойки.
+  const todayKey = useTodayKey();
+  // DELETE на сервере требует управленческой роли — кнопку «Удалить»
+  // рядовому сотруднику не показываем, иначе она просто отдавала 403.
+  const { data: sessionData } = useSession();
+  const canDelete =
+    sessionData?.user?.isRoot === true ||
+    isManagementRole(sessionData?.user?.role ?? "");
   const [rows, setRows] = useState(initialRows);
   // История отмены: только правки этого человека в этой вкладке.
   const undoStack = useJournalUndo({ enabled: status === "active" });
@@ -158,12 +171,23 @@ export function EquipmentCleaningDocumentClient({
     [rows]
   );
 
+  // Разрешённый диапазон даты мойки — тот же, что проверяет сервер.
+  const dateBounds = useMemo(
+    () => getEquipmentCleaningEntryDateBounds(dateFrom, todayKey),
+    [dateFrom, todayKey]
+  );
+
   const allSelected = rows.length > 0 && selectedIds.length === rows.length;
   const { mobileView, switchMobileView } = useMobileView("equipment_cleaning");
 
   const cardItems: RecordCardItem[] = sortedRows.map((row, index) => ({
     id: row.id,
-    title: `№${index + 1} · ${row.data.equipmentName || "—"}`,
+    // Якорь «Перейти к сегодня» для режима карточек (телефон).
+    title: (
+      <span data-focus-today={row.data.washDate === todayKey ? "" : undefined}>
+        {`№${index + 1} · ${row.data.equipmentName || "—"}`}
+      </span>
+    ),
     subtitle: `${formatEquipmentCleaningDate(row.data.washDate)} ${row.data.washTime || ""}`.trim() || undefined,
     leading: status === "active" ? (
       <Checkbox
@@ -262,12 +286,14 @@ export function EquipmentCleaningDocumentClient({
         toast.error("Укажите дату мойки");
         return;
       }
-      const todayKey = new Date().toLocaleDateString("en-CA");
-      if (target.data.washDate > todayKey) {
+      if (target.data.washDate > dateBounds.max) {
         toast.error("Дата мойки не может быть в будущем");
         return;
       }
-      // Границы периода проверяет сервер: он знает dateTo документа.
+      if (target.data.washDate < dateBounds.min) {
+        toast.error("Дата мойки раньше начала журнала");
+        return;
+      }
     }
     const previousRow = target.id
       ? rows.find((row) => row.id === target.id)
@@ -341,7 +367,9 @@ export function EquipmentCleaningDocumentClient({
         body: JSON.stringify({
           title: settingsTitle.trim(),
           dateFrom: settingsDateFrom,
-          dateTo: settingsDateFrom,
+          // Журнал годовой: dateTo = settingsDateFrom схлопывал период в
+          // один день и запрещал мойку задним числом.
+          dateTo: getEquipmentCleaningPeriodEnd(settingsDateFrom),
           config: {
             fieldVariant,
           },
@@ -396,18 +424,20 @@ export function EquipmentCleaningDocumentClient({
             <X className="size-6" />
             Выбрано: {selectedIds.length}
           </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-[16px] bg-[#fff4f4] px-4 py-2 text-[18px] text-[#ff3b30]"
-            onClick={() => {
-              deleteSelectedRows().catch(() => {
-                toast.error("Не удалось удалить строки");
-              });
-            }}
-          >
-            <Trash2 className="size-5" />
-            Удалить
-          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-[16px] bg-[#fff4f4] px-4 py-2 text-[18px] text-[#ff3b30]"
+              onClick={() => {
+                deleteSelectedRows().catch(() => {
+                  toast.error("Не удалось удалить строки");
+                });
+              }}
+            >
+              <Trash2 className="size-5" />
+              Удалить
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -506,6 +536,9 @@ export function EquipmentCleaningDocumentClient({
               {sortedRows.map((row) => (
                 <tr
                   key={row.id}
+                  // Якорь «Перейти к сегодня»: без него скроллер не
+                  // находил цель и всегда показывал «Записей пока нет».
+                  data-focus-today={row.data.washDate === todayKey ? "" : undefined}
                   className={status === "active" ? "cursor-pointer hover:bg-[#fafbff]" : ""}
                   onClick={() => status === "active" && openEditRow(row)}
                 >
@@ -536,7 +569,7 @@ export function EquipmentCleaningDocumentClient({
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
                     {fieldVariant === "rinse_temperature"
                       ? row.data.rinseTemperature || "—"
-                      : getEquipmentCleaningResultLabel(row.data.rinseResult)}
+                      : getEquipmentCleaningResultLabel(row.data.rinseResult) || "—"}
                   </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>{row.data.washerName}</td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 text-center leading-tight`}>
@@ -590,6 +623,9 @@ export function EquipmentCleaningDocumentClient({
                   type="date"
                   className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
                   value={draft.data.washDate}
+                  // Задним числом — можно, вперёд — нет.
+                  min={dateBounds.min}
+                  max={dateBounds.max}
                   onChange={(e) => updateDraft({ washDate: e.target.value })}
                 />
                 <select
@@ -691,9 +727,8 @@ export function EquipmentCleaningDocumentClient({
                       ["non_compliant", "Не соответствует", "#d2453d", "#fff4f2"],
                     ] as const
                   ).map(([value, label, fg, bg]) => {
-                    const active = value === "non_compliant"
-                      ? draft.data.rinseResult === "non_compliant"
-                      : draft.data.rinseResult !== "non_compliant";
+                    // Незаполненное (null) не подсвечиваем как «Соответствует».
+                    const active = draft.data.rinseResult === value;
                     return (
                       <button
                         key={value}
@@ -853,7 +888,12 @@ export function EquipmentCleaningDocumentClient({
           onSave={async () => {
             await saveSettings();
           }}
-          onCancel={() => setSettingsOpen(false)}
+          onCancel={() => {
+            // Вариант поля — локальный state, он применяется к таблице
+            // сразу; при отмене возвращаем сохранённый.
+            setFieldVariant(config.fieldVariant);
+            setSettingsOpen(false);
+          }}
         >
           <div className="space-y-2">
             <Label className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#6f7282]">

@@ -48,6 +48,8 @@ import {
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
@@ -267,6 +269,8 @@ function UvRuntimeSettingsDialog(props: {
 
 export function UvLampRuntimeDocumentsClient(props: Props) {
   const router = useRouter();
+  // Настройки / удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [editing, setEditing] = useState<EditingState | null>(null);
   const routeCode = props.routeCode || props.templateCode;
   const heading =
@@ -378,7 +382,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
               <div className="flex items-center justify-center text-[#5566f6]">
                 <ResponsiveMenu
                   title="Действия"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -424,7 +428,7 @@ export function UvLampRuntimeDocumentsClient(props: Props) {
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

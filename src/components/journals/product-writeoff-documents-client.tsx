@@ -27,7 +27,11 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -61,10 +65,12 @@ function ProductWriteoffActionsMenu(props: {
   onArchive: () => void;
   onDelete: () => void;
 }) {
+  // Настройки / архив / удаление API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   return (
     <ResponsiveMenu
       title="Действия"
-      items={[
+      items={filterManageMenuItems([
         {
           key: "settings",
           label: "Настройки",
@@ -94,7 +100,7 @@ function ProductWriteoffActionsMenu(props: {
           tone: "danger" as const,
           onSelect: props.onDelete,
         },
-      ]}
+      ], canManageDocuments)}
       trigger={
         <button
           type="button"
@@ -115,6 +121,8 @@ export function ProductWriteoffDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Создание документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [editingDocument, setEditingDocument] = useState<JournalListDocument | null>(null);
   const [settings, setSettings] = useState<ProductWriteoffConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -199,7 +207,7 @@ export function ProductWriteoffDocumentsClient({
               page="list"
               variant="button"
             />
-            {activeTab === "active" && (
+            {canManageDocuments && activeTab === "active" && (
               <CreateDocumentDialog
                 templateCode={templateCode}
                 templateName={templateName}

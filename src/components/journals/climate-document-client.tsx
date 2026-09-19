@@ -671,14 +671,17 @@ function AddRowDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
+  // «Сегодня» — из пояса организации, а не с часов устройства: сервер
+  // сверяется именно с ним, и у сотрудника в другом поясе окно
+  // подставляло день, который тут же отвергался.
+  const todayKey = useTodayKey();
+
   useEffect(() => {
     if (!open) return;
-    const today = new Date();
-    const todayLabel = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    setDate(todayLabel);
+    setDate(todayKey);
     setResponsibleTitle(defaultResponsibleTitle || "");
     setEmployeeId(defaultResponsibleUserId || "");
-  }, [defaultResponsibleTitle, defaultResponsibleUserId, open]);
+  }, [defaultResponsibleTitle, defaultResponsibleUserId, open, todayKey]);
 
   const cascade = usePositionEmployeeCascade({
     users: employees,

@@ -37,8 +37,11 @@ import {
 } from "@/components/ui/dialog";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import {
+  addHoursToLocalDateTime,
   createPerishableRejectionRow,
+  formatPerishableExpiry,
   normalizePerishableRejectionConfig,
+  PERISHABLE_EXPIRY_PRESET_HOURS,
   STORAGE_CONDITION_LABELS,
   ORGANOLEPTIC_LABELS,
   type PerishableRejectionConfig,
@@ -313,11 +316,21 @@ export function PerishableRejectionDocumentClient({
       isColumnVisible("productionDate")
         ? { label: columnLabel("productionDate", "Дата выработки"), value: row.productionDate, hideIfEmpty: true }
         : null,
+      // В одной колонке бланка живут два поля; карточка показывала только
+      // первое — поставщик и фасовка с телефона были не видны вообще.
       isColumnVisible("manufacturer")
-        ? { label: columnLabel("manufacturer", "Изготовитель/поставщик"), value: row.manufacturer, hideIfEmpty: true }
+        ? {
+            label: columnLabel("manufacturer", "Изготовитель/поставщик"),
+            value: [row.manufacturer, row.supplier].filter(Boolean).join(" / "),
+            hideIfEmpty: true,
+          }
         : null,
       isColumnVisible("packaging")
-        ? { label: columnLabel("packaging", "Количество"), value: row.quantity, hideIfEmpty: true }
+        ? {
+            label: columnLabel("packaging", "Фасовка/количество"),
+            value: [row.packaging, row.quantity].filter(Boolean).join(" / "),
+            hideIfEmpty: true,
+          }
         : null,
       isColumnVisible("document")
         ? { label: columnLabel("document", "Документ безопасности"), value: row.documentNumber, hideIfEmpty: true }
@@ -331,6 +344,15 @@ export function PerishableRejectionDocumentClient({
         ? {
             label: columnLabel("storage", "Условия хранения"),
             value: STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition,
+            hideIfEmpty: true,
+          }
+        : null,
+      // Срок реализации в карточке раньше не показывался вообще — с
+      // телефона его нельзя было даже прочитать, не открывая запись.
+      isColumnVisible("storage")
+        ? {
+            label: "Срок реализации",
+            value: formatPerishableExpiry(row),
             hideIfEmpty: true,
           }
         : null,
@@ -785,6 +807,24 @@ export function PerishableRejectionDocumentClient({
     }
   }
 
+  /** «+N ч» — конечный срок реализации от даты-времени поступления. */
+  function applyExpiryPreset(hours: number) {
+    const next = addHoursToLocalDateTime(
+      draftRow.arrivalDate,
+      draftRow.arrivalTime,
+      hours
+    );
+    if (!next) {
+      toast.error("Укажите дату поступления — от неё считается срок");
+      return;
+    }
+    setDraftRow((prev) => ({
+      ...prev,
+      expiryDate: next.date,
+      expiryTime: next.time,
+    }));
+  }
+
   const arrivalHM = parseTimeToHM(draftRow.arrivalTime);
   const saleHM = parseTimeToHM(draftRow.actualSaleTime);
 
@@ -1157,7 +1197,12 @@ export function PerishableRejectionDocumentClient({
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-1 align-top leading-tight${isColumnVisible("storage") ? "" : " hidden"}`}>
                     <JournalCellOpensRow
-                      value={`${STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition}, ${row.expiryDate}`}
+                      value={[
+                        STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition,
+                        formatPerishableExpiry(row),
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
                       onOpen={() => openEditRow(row)}
                       disabled={readOnly}
                     />
@@ -1574,19 +1619,55 @@ export function PerishableRejectionDocumentClient({
             {/* Конечный срок реализации */}
             <div className={`space-y-2${isColumnVisible("storage") ? "" : " hidden"}`}>
               <Label className="text-[13px] font-medium text-[#3c4053]">
-                Конечный срок реализации
+                Конечный срок реализации (число, месяц, час)
               </Label>
-              <Input
-                type="date"
-                className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
-                value={draftRow.expiryDate}
-                onChange={(e) =>
-                  setDraftRow((prev) => ({
-                    ...prev,
-                    expiryDate: e.target.value,
-                  }))
-                }
-              />
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.4fr_1fr]">
+                <Input
+                  type="date"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+                  value={draftRow.expiryDate}
+                  onChange={(e) =>
+                    setDraftRow((prev) => ({
+                      ...prev,
+                      expiryDate: e.target.value,
+                    }))
+                  }
+                />
+                <Input
+                  type="time"
+                  aria-label="Час конечного срока реализации"
+                  className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
+                  value={draftRow.expiryTime}
+                  onChange={(e) =>
+                    setDraftRow((prev) => ({
+                      ...prev,
+                      expiryTime: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              {/* Скоропорт живёт 12/24/36/72 часа от поступления — считать
+                  их в уме у плиты незачем. */}
+              <div className="flex flex-wrap gap-2">
+                {PERISHABLE_EXPIRY_PRESET_HOURS.map((hours) => (
+                  <button
+                    key={hours}
+                    type="button"
+                    onClick={() => applyExpiryPreset(hours)}
+                    disabled={!draftRow.arrivalDate}
+                    className="h-9 rounded-xl border border-[#dcdfed] bg-white px-3.5 text-[13.5px] font-medium text-[#3c4053] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#0b1024] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    +{hours} ч
+                  </button>
+                ))}
+              </div>
+              <p className="text-[12px] leading-[1.5] text-[#9b9fb3]">
+                Кнопки отсчитывают срок от даты и времени поступления
+                {draftRow.arrivalDate
+                  ? ` (${draftRow.arrivalDate}${draftRow.arrivalTime ? ` ${draftRow.arrivalTime}` : ""})`
+                  : ": сначала укажите дату поступления"}
+                .
+              </p>
             </div>
 
             {/* Дата и время фактической реализации */}

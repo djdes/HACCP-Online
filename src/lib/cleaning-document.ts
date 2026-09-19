@@ -315,6 +315,17 @@ export type CleaningDocumentConfig = {
   /// IDs User-ов, которые могут забирать задачи на уборку (race).
   /// Только для cleaningMode="rooms".
   selectedCleanerUserIds?: string[];
+  /// Закреплённый номер кода уборщика: userId → N (показывается как «СN»).
+  /// Подпись в журнале ХАССП не должна менять владельца при смене состава,
+  /// поэтому номер выдаётся один раз и больше не переиспользуется: уволенный
+  /// уборщик уносит свой номер с собой, новый получает следующий свободный.
+  cleanerCodeByUserId?: Record<string, number>;
+  /// Снимок имени на момент закрепления кода. Нужен для легенды: уволенный
+  /// уборщик в ростер уже не приходит, а его подписи в журнале остаются.
+  cleanerNameByUserId?: Record<string, string>;
+  /// То же для контролёров (строка «Контролёр»).
+  controlCodeByUserId?: Record<string, number>;
+  controlNameByUserId?: Record<string, string>;
   /// Режим распределения уборщиков по комнатам (только rooms-mode):
   ///   • false (default) — round-robin: на каждую комнату ровно ОДИН
   ///     уборщик (cleaners[i % cleaners.length]). Маркова делает 0,2,4,
@@ -1366,6 +1377,36 @@ export function normalizeCleaningDocumentConfig(
     next.selectedCleanerUserIds,
   );
 
+  // Закрепляем «сотрудник → номер кода». Первая нормализация фиксирует
+  // ТЕКУЩИЙ порядок — ровно то, что документ показывал до сих пор, —
+  // и дальше номер за сотрудником больше не меняется.
+  const nameById = new Map<string, string>();
+  // Имя из конфига — запасной источник: ростер сюда приходит не всегда.
+  for (const r of [...next.cleaningResponsibles, ...next.controlResponsibles]) {
+    if (r.userId && r.userName) nameById.set(r.userId, r.userName);
+  }
+  for (const u of context.users ?? []) nameById.set(u.id, u.name);
+  const pinnedCleaners = pinSignatureCodes(
+    currentCleanerUserIds(next),
+    asCodeMap(record.cleanerCodeByUserId),
+    asNameMap(record.cleanerNameByUserId),
+    nameById,
+  );
+  next.cleanerCodeByUserId = pinnedCleaners.codeByUserId;
+  next.cleanerNameByUserId = pinnedCleaners.nameByUserId;
+  const pinnedControllers = pinSignatureCodes(
+    Array.from(
+      new Set(
+        next.controlResponsibles.map((r) => r.userId).filter((id): id is string => !!id),
+      ),
+    ),
+    asCodeMap(record.controlCodeByUserId),
+    asNameMap(record.controlNameByUserId),
+    nameById,
+  );
+  next.controlCodeByUserId = pinnedControllers.codeByUserId;
+  next.controlNameByUserId = pinnedControllers.nameByUserId;
+
   // Pipeline (subtask) mode — perRoom by default для backwards-compat.
   // legacy = без подзадач, global = один общий список, perRoom = по помещению.
   const subtaskModeRaw = record.cleaningSubtaskMode;
@@ -1478,36 +1519,364 @@ export const CLEANING_ROW_LABELS = {
 } as const;
 
 /**
+ * Префикс стабильной ссылки на сотрудника в ячейке подписи: `uid:<userId>`.
+ * Код «СN» — только отображение, оно вычисляется при отрисовке по
+ * закреплённой карте (`cleanerCodeByUserId`). Так подпись остаётся
+ * подписью конкретного человека, даже когда состав уборщиков поменялся.
+ */
+export const CLEANING_USER_REF_PREFIX = "uid:";
+
+/** Ссылка на сотрудника для ячейки подписи; пустая строка — нет сотрудника. */
+export function cleaningSignatureRef(userId: string | undefined | null): string {
+  return userId ? `${CLEANING_USER_REF_PREFIX}${userId}` : "";
+}
+
+export type CleaningCodeEntry = {
+  id: string;
+  userId: string;
+  code: string;
+  userName: string;
+  title: string;
+  /**
+   * Сотрудника уже нет в составе документа, но его подписи в журнале
+   * остались. Он держится в легенде (иначе подпись некому приписать),
+   * но новые подписи на него не ставятся.
+   */
+  retired?: boolean;
+};
+
+function asCodeMap(raw: unknown): Record<string, number> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<string, number> = {};
+  for (const [userId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (userId && typeof value === "number" && Number.isInteger(value) && value > 0) {
+      out[userId] = value;
+    }
+  }
+  return out;
+}
+
+function asNameMap(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [userId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (userId && typeof value === "string" && value.length > 0) out[userId] = value;
+  }
+  return out;
+}
+
+function pickName(
+  userId: string,
+  userNameById?: Map<string, string> | Record<string, string>,
+): string | undefined {
+  const raw =
+    userNameById instanceof Map ? userNameById.get(userId) : userNameById?.[userId];
+  return raw && raw.length > 0 ? raw : undefined;
+}
+
+/** Текущий список уборщиков документа: пул rooms-mode либо ответственные. */
+function currentCleanerUserIds(
+  config: Pick<
+    CleaningDocumentConfig,
+    "cleaningMode" | "selectedCleanerUserIds" | "cleaningResponsibles"
+  >,
+): string[] {
+  const pool = config.selectedCleanerUserIds ?? [];
+  const source =
+    config.cleaningMode === "rooms" && pool.length > 0
+      ? pool
+      : (config.cleaningResponsibles ?? []).map((r) => r.userId);
+  return Array.from(new Set(source.filter((id): id is string => !!id)));
+}
+
+/**
+ * Закрепление «сотрудник → номер кода». Уже выданные номера не двигаются
+ * и не переиспользуются, новые сотрудники получают следующий свободный.
+ * `prevNames` — снимок имён: уволенный в ростер не приходит, но его
+ * подписи в журнале остаются и должны читаться.
+ */
+export function pinSignatureCodes(
+  userIds: string[],
+  prevCodes: Record<string, number> | undefined,
+  prevNames: Record<string, string> | undefined,
+  userNameById?: Map<string, string> | Record<string, string>,
+): { codeByUserId: Record<string, number>; nameByUserId: Record<string, string> } {
+  const codeByUserId: Record<string, number> = {};
+  for (const [userId, value] of Object.entries(prevCodes ?? {})) {
+    if (userId && typeof value === "number" && Number.isInteger(value) && value > 0) {
+      codeByUserId[userId] = value;
+    }
+  }
+  const nameByUserId: Record<string, string> = {};
+  for (const [userId, value] of Object.entries(prevNames ?? {})) {
+    if (userId && typeof value === "string" && value.length > 0) {
+      nameByUserId[userId] = value;
+    }
+  }
+  let maxCode = 0;
+  for (const value of Object.values(codeByUserId)) {
+    if (value > maxCode) maxCode = value;
+  }
+  for (const userId of userIds) {
+    if (codeByUserId[userId] === undefined) codeByUserId[userId] = ++maxCode;
+  }
+  for (const userId of Object.keys(codeByUserId)) {
+    const fresh = pickName(userId, userNameById);
+    if (fresh) nameByUserId[userId] = fresh;
+  }
+  return { codeByUserId, nameByUserId };
+}
+
+/**
+ * userId'ы, на которых ссылается строка подписей в matrix. Нужны легенде:
+ * выбывший уборщик остаётся в ней, пока на него есть хоть одна подпись.
+ */
+function collectSignatureUserIds(
+  row: Record<string, CleaningMatrixValue> | undefined,
+  numberToUserId: Map<number, string>,
+): string[] {
+  if (!row) return [];
+  const out = new Set<string>();
+  for (const raw of Object.values(row)) {
+    if (typeof raw !== "string") continue;
+    for (const part of stripAutoSignatureMarker(raw).split(",")) {
+      const token = part.trim();
+      if (!token) continue;
+      if (token.startsWith(CLEANING_USER_REF_PREFIX)) {
+        const userId = token.slice(CLEANING_USER_REF_PREFIX.length);
+        if (userId) out.add(userId);
+        continue;
+      }
+      const legacy = /^С(\d+)$/.exec(token);
+      const userId = legacy ? numberToUserId.get(Number(legacy[1])) : undefined;
+      if (userId) out.add(userId);
+    }
+  }
+  return Array.from(out);
+}
+
+function buildCodeEntries(params: {
+  userIds: string[];
+  codeByUserId: Record<string, number>;
+  nameByUserId: Record<string, string>;
+  signatureRow?: Record<string, CleaningMatrixValue>;
+  idPrefix: string;
+  title: string;
+  resolved: Map<string, { id: string; userName: string; title: string }>;
+  userNameById?: Map<string, string> | Record<string, string>;
+}): CleaningCodeEntry[] {
+  const numberToUserId = new Map<number, string>();
+  for (const [userId, value] of Object.entries(params.codeByUserId)) {
+    if (!numberToUserId.has(value)) numberToUserId.set(value, userId);
+  }
+  // Выбывшие: в текущем списке их нет, но их подписи в журнале остались.
+  const extra = collectSignatureUserIds(params.signatureRow, numberToUserId).filter(
+    (userId) => !params.userIds.includes(userId) && params.codeByUserId[userId] !== undefined,
+  );
+  const retiredSet = new Set(extra);
+  return [...params.userIds, ...extra]
+    .map((userId, idx) => {
+      const meta = params.resolved.get(userId);
+      const number = params.codeByUserId[userId] ?? idx + 1;
+      return {
+        id: meta?.id ?? `${params.idPrefix}${userId}`,
+        userId,
+        code: `С${number}`,
+        userName:
+          meta?.userName ||
+          pickName(userId, params.userNameById) ||
+          params.nameByUserId[userId] ||
+          "—",
+        title: meta?.title ?? params.title,
+        ...(retiredSet.has(userId) ? { retired: true as const } : {}),
+        number,
+      };
+    })
+    .sort((a, b) => a.number - b.number)
+    .map(({ number: _number, ...entry }) => entry);
+}
+
+/**
  * Легенда «Ответственный за уборку» — коды С1…СN. Rooms-mode с непустым
- * пулом → пул в порядке selectedCleanerUserIds; иначе cleaningResponsibles.
+ * пулом → пул; иначе cleaningResponsibles. Номер берётся из закреплённой
+ * карты `cleanerCodeByUserId` (позиция в списке — только fallback для
+ * документов, которые ещё ни разу не нормализовались).
  * Один источник для экрана и PDF (раньше они читали разные списки).
  */
 export function listCleaningCodeEntries(
   config: Pick<
     CleaningDocumentConfig,
     "cleaningMode" | "selectedCleanerUserIds" | "cleaningResponsibles"
-  >,
+  > &
+    Partial<
+      Pick<CleaningDocumentConfig, "matrix" | "cleanerCodeByUserId" | "cleanerNameByUserId">
+    >,
   userNameById?: Map<string, string> | Record<string, string>,
-): Array<{ id: string; userId: string; code: string; userName: string; title: string }> {
-  const nameOf = (id: string) =>
-    userNameById instanceof Map ? userNameById.get(id) : userNameById?.[id];
+): CleaningCodeEntry[] {
+  const userIds = currentCleanerUserIds(config);
   const pool = config.selectedCleanerUserIds ?? [];
-  if (config.cleaningMode === "rooms" && pool.length > 0) {
-    return pool.map((userId, idx) => ({
-      id: `selected-cleaner-${userId}`,
-      userId,
-      code: `С${idx + 1}`,
-      userName: nameOf(userId) ?? "—",
-      title: "Уборщик",
-    }));
+  const isPoolMode = config.cleaningMode === "rooms" && pool.length > 0;
+  const resolved = new Map<string, { id: string; userName: string; title: string }>();
+  if (!isPoolMode) {
+    for (const r of config.cleaningResponsibles ?? []) {
+      if (r.userId && !resolved.has(r.userId)) {
+        resolved.set(r.userId, {
+          id: r.id,
+          userName: r.userName || pickName(r.userId, userNameById) || "",
+          title: r.title,
+        });
+      }
+    }
   }
-  return (config.cleaningResponsibles ?? []).map((r, idx) => ({
-    id: r.id,
-    userId: r.userId,
-    code: `С${idx + 1}`,
-    userName: r.userName || nameOf(r.userId) || "—",
-    title: r.title,
-  }));
+  const pinned = pinSignatureCodes(
+    userIds,
+    config.cleanerCodeByUserId,
+    config.cleanerNameByUserId,
+    userNameById,
+  );
+  return buildCodeEntries({
+    userIds,
+    codeByUserId: pinned.codeByUserId,
+    nameByUserId: pinned.nameByUserId,
+    signatureRow: config.matrix?.[CLEANING_SIGNATURE_ROW_ID],
+    idPrefix: "selected-cleaner-",
+    title: "Уборщик",
+    resolved,
+    userNameById,
+  });
+}
+
+/**
+ * Легенда «Контролёр». Отдельная нумерация от С1 — списки логически
+ * независимые. Номера тоже закреплены (`controlCodeByUserId`).
+ */
+export function listControlCodeEntries(
+  config: Pick<CleaningDocumentConfig, "controlResponsibles"> &
+    Partial<
+      Pick<CleaningDocumentConfig, "matrix" | "controlCodeByUserId" | "controlNameByUserId">
+    >,
+  userNameById?: Map<string, string> | Record<string, string>,
+): CleaningCodeEntry[] {
+  const list = config.controlResponsibles ?? [];
+  const userIds = Array.from(
+    new Set(list.map((r) => r.userId).filter((id): id is string => !!id)),
+  );
+  const resolved = new Map<string, { id: string; userName: string; title: string }>();
+  for (const r of list) {
+    if (r.userId && !resolved.has(r.userId)) {
+      resolved.set(r.userId, {
+        id: r.id,
+        userName: r.userName || pickName(r.userId, userNameById) || "",
+        title: r.title,
+      });
+    }
+  }
+  const pinned = pinSignatureCodes(
+    userIds,
+    config.controlCodeByUserId,
+    config.controlNameByUserId,
+    userNameById,
+  );
+  const entries = buildCodeEntries({
+    userIds,
+    codeByUserId: pinned.codeByUserId,
+    nameByUserId: pinned.nameByUserId,
+    signatureRow: config.matrix?.[CONTROL_SIGNATURE_ROW_ID],
+    idPrefix: "control-responsible-",
+    title: "Контролёр",
+    resolved,
+    userNameById,
+  });
+  // Строки без userId (пустой слот «не назначен») в карту кодов не
+  // попадают, но в легенде их видно — иначе слот исчезает из бланка.
+  const orphans = list.filter((r) => !r.userId);
+  if (orphans.length === 0) return entries;
+  let next = entries.length;
+  return [
+    ...entries,
+    ...orphans.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      code: `С${++next}`,
+      userName: r.userName || "—",
+      title: r.title,
+    })),
+  ];
+}
+
+/**
+ * Единый резолвер подписей: и запись, и чтение ячеек строк
+ * `__cleaning_signature__` / `__control_signature__` идут только через него.
+ * Понимает три формата значения:
+ *   • `uid:<userId>` — то, что пишется сейчас (стабильно при смене состава);
+ *   • `СN` — легаси, резолвится через закреплённую карту номеров;
+ *   • `—` / `""` — явная очистка менеджером (подавляет computed-подпись).
+ */
+export type CleaningSignatureResolver = {
+  entries: CleaningCodeEntry[];
+  /** Код «СN» сотрудника, если он есть в легенде документа. */
+  codeOf(userId: string): string | null;
+  /** Сотрудник по токену `uid:<id>` или `СN`. */
+  userIdOf(token: string): string | null;
+  /**
+   * Ручная/авто-подпись → коды для показа. `""` — явная очистка,
+   * `null` — подписи нет (вызывающий падает на computed).
+   */
+  readManual(raw: unknown): string | null;
+  /** Значение для записи в matrix. */
+  encode(userIds: string[]): string;
+};
+
+export function buildCleaningSignatureResolver(
+  entries: CleaningCodeEntry[],
+): CleaningSignatureResolver {
+  const codeByUserId = new Map<string, string>();
+  const userIdByCode = new Map<string, string>();
+  for (const entry of entries) {
+    if (!entry.userId) continue;
+    if (!codeByUserId.has(entry.userId)) codeByUserId.set(entry.userId, entry.code);
+    if (!userIdByCode.has(entry.code)) userIdByCode.set(entry.code, entry.userId);
+  }
+  const codeOf = (userId: string) => codeByUserId.get(userId) ?? null;
+  const userIdOf = (token: string) => {
+    const trimmed = token.trim();
+    if (trimmed.startsWith(CLEANING_USER_REF_PREFIX)) {
+      const userId = trimmed.slice(CLEANING_USER_REF_PREFIX.length);
+      return userId.length > 0 ? userId : null;
+    }
+    return userIdByCode.get(trimmed) ?? null;
+  };
+  return {
+    entries,
+    codeOf,
+    userIdOf,
+    readManual(raw: unknown): string | null {
+      if (typeof raw !== "string") return null;
+      const manual = stripAutoSignatureMarker(raw);
+      if (manual === "" || manual === CLEANING_EMPTY_SENTINEL) return "";
+      const codes: string[] = [];
+      for (const part of manual.split(",")) {
+        const token = part.trim();
+        if (!token || token === CLEANING_EMPTY_SENTINEL) continue;
+        const userId = userIdOf(token);
+        if (userId) {
+          const code = codeOf(userId);
+          if (code && !codes.includes(code)) codes.push(code);
+          continue;
+        }
+        // Не ссылка на сотрудника (устаревший «СN» или инициалы от руки):
+        // устаревший код отбрасываем, произвольный текст показываем как есть.
+        if (/^С\d+$/.test(token) || token.startsWith(CLEANING_USER_REF_PREFIX)) continue;
+        if (!codes.includes(token)) codes.push(token);
+      }
+      return codes.length > 0 ? codes.join(",") : null;
+    },
+    encode(userIds: string[]): string {
+      return Array.from(new Set(userIds.filter(Boolean)))
+        .map((userId) => `${CLEANING_USER_REF_PREFIX}${userId}`)
+        .join(",");
+    },
+  };
 }
 
 /** Контролёр документа по умолчанию (без учёта зон). */
@@ -2388,8 +2757,16 @@ export function applyCleaningAutoSignatures(
   dateKeys: string[],
   options: { completionDays?: ReadonlySet<string> } = {},
 ): CleaningDocumentConfig {
-  const cleaningCode = config.cleaningResponsibles[0]?.code ?? "";
-  const controlCode = config.controlResponsibles[0]?.code ?? "";
+  // Автоподпись хранит стабильную ссылку на сотрудника (`uid:<id>`), а не
+  // код «СN»: код — только отображение и зависит от состава уборщиков.
+  const cleaningCode =
+    cleaningSignatureRef(listCleaningCodeEntries(config)[0]?.userId) ||
+    config.cleaningResponsibles[0]?.code ||
+    "";
+  const controlCode =
+    cleaningSignatureRef(listControlCodeEntries(config)[0]?.userId) ||
+    config.controlResponsibles[0]?.code ||
+    "";
   const roomIds = collectMatrixRoomIds(config);
   if (roomIds.length === 0) return config;
 

@@ -1,4 +1,5 @@
 import { localDayKey } from "@/lib/entry-defaults";
+import { normalizeSourceEquipmentId } from "@/lib/equipment-directory-link";
 
 export const BREAKDOWN_HISTORY_TEMPLATE_CODE = "breakdown_history";
 export const BREAKDOWN_HISTORY_SOURCE_SLUG = "breakdownhistoryjournal";
@@ -10,6 +11,8 @@ export type BreakdownRow = {
   startDate: string;
   startHour: string;
   startMinute: string;
+  /** Ссылка на `Equipment`: переименование в справочнике доходит до записи. */
+  sourceEquipmentId: string | null;
   equipmentName: string;
   breakdownDescription: string;
   repairPerformed: string;
@@ -47,6 +50,7 @@ export function createBreakdownRow(
     startDate: normalizeText(overrides?.startDate) || today,
     startHour: normalizeText(overrides?.startHour) || "00",
     startMinute: normalizeText(overrides?.startMinute) || "00",
+    sourceEquipmentId: normalizeSourceEquipmentId(overrides?.sourceEquipmentId),
     equipmentName: normalizeText(overrides?.equipmentName),
     breakdownDescription: normalizeText(overrides?.breakdownDescription),
     repairPerformed: normalizeText(overrides?.repairPerformed),

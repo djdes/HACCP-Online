@@ -35,7 +35,9 @@ import {
   displayMatrixValue,
   getCleaningDocumentTitle,
   getCleaningFilePrefix,
+  buildCleaningSignatureResolver,
   listCleaningCodeEntries,
+  listControlCodeEntries,
   listCleaningRoomCompletions,
   normalizeCleaningDocumentConfig,
   resolveRoomCleaners,
@@ -43,7 +45,6 @@ import {
   CLEANING_ROW_LABELS,
   CLEANING_SIGNATURE_ROW_ID,
   CONTROL_SIGNATURE_ROW_ID,
-  stripAutoSignatureMarker,
 } from "@/lib/cleaning-document";
 import { applyRoomResponsiblesToConfig } from "@/lib/cleaning-room-responsibles";
 import {
@@ -54,6 +55,7 @@ import {
 } from "@/lib/finished-product-document";
 import {
   PERISHABLE_REJECTION_TEMPLATE_CODE,
+  formatPerishableExpiry,
   getPerishableRejectionDocumentTitle,
   getPerishableRejectionFilePrefix,
   normalizePerishableRejectionConfig,
@@ -113,13 +115,14 @@ import {
 import {
   UV_LAMP_RUNTIME_TEMPLATE_CODE,
   UV_LAMP_RUNTIME_PAGE_TITLE,
-  calculateDurationMinutes,
   formatControlFrequencyLabel,
   formatRuDateDash,
   getDisinfectionConditionLabel,
   getDisinfectionObjectLabel,
   getRadiationModeLabel,
   calculateMonthlyHours,
+  calculateEntryDurationMinutes as calculateUvEntryDurationMinutes,
+  listUvRuntimeSessions,
   formatMonthLabel as formatUvMonthLabel,
   normalizeUvRuntimeDocumentConfig,
   normalizeUvRuntimeEntryData,
@@ -231,6 +234,7 @@ import {
   MONTH_LABELS as EQUIPMENT_MAINTENANCE_MONTH_LABELS,
   normalizeEquipmentMaintenanceConfig,
 } from "@/lib/equipment-maintenance-document";
+import { withResolvedEquipmentNames } from "@/lib/equipment-directory-link";
 import {
   STAFF_TRAINING_FULL_TITLE,
   STAFF_TRAINING_TEMPLATE_CODE,
@@ -274,12 +278,14 @@ import {
 import {
   DISINFECTANT_DOCUMENT_TITLE,
   DISINFECTANT_TEMPLATE_CODE,
-  MEASURE_UNIT_LABELS,
   computeNeedPerMonth,
   computeNeedPerTreatment,
   computeNeedPerYear,
   formatNumber as formatDisinfectantNumber,
+  formatQuantityWithUnit,
   normalizeDisinfectantConfig,
+  resolveSolutionPerTreatment,
+  sumDisinfectantQuantities,
 } from "@/lib/disinfectant-document";
 import {
   EXAMINATION_REFERENCE_DATA,
@@ -2068,6 +2074,21 @@ function drawCleaningPdf(doc: jsPDF, params: {
   // Helper для rooms-mode: ищем cleaning_room entry по (roomId, dateKey)
   // и возвращаем инициалы cleaner-а или "" если ещё не убирался.
   function roomsModeCellValue(roomId: string, dateKey: string): string {
+    // Приоритет как на экране (cellValue): ручная отметка Т/Г/«/» из matrix
+    // важнее completion. Без этого журнал, заполненный руками, печатался
+    // пустым — в бланк попадали только инициалы закрывших TF-задачу.
+    // Sentinel «—» (менеджер явно очистил клетку) тоже возвращаем как есть:
+    // displayMatrixValue у вызывающего превратит его в пустоту, а completion
+    // при этом не всплывёт.
+    const matrixValue = config.matrix[roomId]?.[dateKey];
+    if (
+      matrixValue === "T" ||
+      matrixValue === "G" ||
+      matrixValue === "/" ||
+      matrixValue === "—"
+    ) {
+      return matrixValue;
+    }
     if (!params.userInitialsById) return "";
     for (const e of params.entries) {
       for (const c of listCleaningRoomCompletions(e.data)) {
@@ -2106,29 +2127,16 @@ function drawCleaningPdf(doc: jsPDF, params: {
   // Повторяем ровно эту логику, чтобы печать совпадала с экраном.
   // Единый список с экраном (rooms-mode: пул; иначе cleaningResponsibles).
   const cleaningResponsibleList = listCleaningCodeEntries(config, params.userNamesById);
-  const controlResponsibleList = config.controlResponsibles.map((item, index) => ({
-    ...item,
-    code: `С${index + 1}`,
-  }));
-  const validCleaningCodes = new Set(cleaningResponsibleList.map((item) => item.code));
-  const validControlCodes = new Set(controlResponsibleList.map((item) => item.code));
+  const controlResponsibleList = listControlCodeEntries(config, params.userNamesById);
+  // Тот же резолвер, что у экрана: «uid:<id>» и легаси «СN» через
+  // закреплённую карту кодов — печать не расходится с экраном.
+  const cleaningSignatures = buildCleaningSignatureResolver(cleaningResponsibleList);
+  const controlSignatures = buildCleaningSignatureResolver(controlResponsibleList);
   const cleanerCodeById = new Map(
     cleaningResponsibleList
       .filter((item) => item.userId)
       .map((item) => [String(item.userId), item.code])
   );
-
-  function pickManualSignature(raw: unknown, validCodes: Set<string>): string | null {
-    if (typeof raw !== "string") return null;
-    const manual = stripAutoSignatureMarker(raw);
-    if (manual === "" || manual === "—") return "";
-    const validParts = manual
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .filter((part) => part !== "—" && (!/^С\d+$/.test(part) || validCodes.has(part)));
-    return validParts.length > 0 ? validParts.join(",") : null;
-  }
 
   function hasCompletion(dateKey: string) {
     return params.entries.some((entry) =>
@@ -2137,9 +2145,8 @@ function drawCleaningPdf(doc: jsPDF, params: {
   }
 
   function cleaningCodeForDay(dateKey: string): string {
-    const manual = pickManualSignature(
-      config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey],
-      validCleaningCodes
+    const manual = cleaningSignatures.readManual(
+      config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey]
     );
     if (manual !== null) return manual;
     const codes = new Set<string>();
@@ -2154,9 +2161,8 @@ function drawCleaningPdf(doc: jsPDF, params: {
   }
 
   function controlCodeForDay(dateKey: string): string {
-    const manual = pickManualSignature(
-      config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey],
-      validControlCodes
+    const manual = controlSignatures.readManual(
+      config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey]
     );
     if (manual !== null) return manual;
     if (controlResponsibleList.length === 0) return "";
@@ -3329,6 +3335,7 @@ function drawPerishableRejectionPdf(doc: jsPDF, params: {
           organolepticResult: "" as unknown as "compliant",
           storageCondition: "" as unknown as "2_6",
           expiryDate: "",
+          expiryTime: "",
           actualSaleDate: "",
           actualSaleTime: "",
           responsiblePerson: "",
@@ -3391,7 +3398,11 @@ function drawPerishableRejectionPdf(doc: jsPDF, params: {
       key: "storage",
       head: perishableColumns.label("storage", "Условия хранения, конечный срок реализации"),
       cell: (row) =>
-        [STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition || "", row.expiryDate]
+        [
+          STORAGE_CONDITION_LABELS[row.storageCondition] || row.storageCondition || "",
+          // Для скоропорта важен час срока, а не только дата.
+          formatPerishableExpiry(row),
+        ]
           .filter(Boolean)
           .join("\n"),
       style: { cellWidth: 27 },
@@ -4353,9 +4364,29 @@ function drawPestControlPdf(doc: jsPDF, params: {
     { align: "center" }
   );
 
-  const bodyRows = params.entries
-    .map((entry) => {
-      const normalized = normalizePestControlEntryData(entry.data, entry.date.toISOString().slice(0, 10), params.users, entry.employeeId);
+  // Порядок — как на экране (дата, затем время): запросом строки
+  // приходят в порядке (employeeId, date), и печать шла вразнобой.
+  const bodyRows = [...params.entries]
+    .map((entry) => ({
+      entry,
+      normalized: normalizePestControlEntryData(
+        entry.data,
+        entry.date.toISOString().slice(0, 10),
+        params.users,
+        entry.employeeId
+      ),
+    }))
+    .sort((left, right) => {
+      const keyOf = (item: typeof left) =>
+        `${item.normalized.performedDate || ""}T${
+          item.normalized.timeSpecified
+            ? `${item.normalized.performedHour || "00"}:${item.normalized.performedMinute || "00"}`
+            : "00:00"
+        }`;
+      const diff = keyOf(left).localeCompare(keyOf(right));
+      return diff !== 0 ? diff : left.entry.date.getTime() - right.entry.date.getTime();
+    })
+    .map(({ entry, normalized }) => {
       const acceptedEmployeeName =
         userMap[normalized.acceptedEmployeeId] ||
         userMap[entry.employeeId] ||
@@ -4508,7 +4539,17 @@ function drawEquipmentCleaningPdf(doc: jsPDF, params: {
     align: "center",
   });
 
-  const body = params.entries.map((entry) => {
+  // Порядок — как на экране (дата+время). Запросом строки приходят
+  // в порядке (employeeId, date), и печать расходилась с бланком.
+  const sortedEntries = [...params.entries].sort((left, right) => {
+    const leftData = normalizeEquipmentCleaningRowData(left.data);
+    const rightData = normalizeEquipmentCleaningRowData(right.data);
+    return `${leftData.washDate}T${leftData.washTime}`.localeCompare(
+      `${rightData.washDate}T${rightData.washTime}`
+    );
+  });
+
+  const body = sortedEntries.map((entry) => {
     const data = normalizeEquipmentCleaningRowData(entry.data);
     return [
       `${formatRuDateDash(data.washDate)}\n${data.washTime}`,
@@ -4610,6 +4651,7 @@ function drawDisinfectantPdf(doc: jsPDF, params: {
       fontStyle: "bold",
       lineColor: [0, 0, 0],
     },
+    // Колонка «Расход на кв.м» есть на экране — в печати её не было.
     head: [[
       "Подразделение / объект",
       "Площадь / емкость",
@@ -4617,6 +4659,7 @@ function drawDisinfectantPdf(doc: jsPDF, params: {
       "Кратность в месяц",
       "Дез. средство",
       "Концентрация, %",
+      "Расход раствора на кв.м, л",
       "Раствор на обработку",
       "Потребность на обработку",
       "Потребность в месяц",
@@ -4624,19 +4667,51 @@ function drawDisinfectantPdf(doc: jsPDF, params: {
     ]],
     body:
       cfg.subdivisions.length > 0
-        ? cfg.subdivisions.map((row) => [
-            row.name || "—",
-            row.byCapacity ? "На емкость" : row.area ? formatDisinfectantNumber(row.area, 2) : "—",
-            row.treatmentType === "general" ? "Генеральная" : "Текущая",
-            String(row.frequencyPerMonth || 0),
-            row.disinfectantName || "—",
-            formatDisinfectantNumber(row.concentration, 3) || "—",
-            formatDisinfectantNumber(row.solutionPerTreatment, 3) || "—",
-            formatDisinfectantNumber(computeNeedPerTreatment(row), 3) || "—",
-            formatDisinfectantNumber(computeNeedPerMonth(row), 3) || "—",
-            formatDisinfectantNumber(computeNeedPerYear(row), 3) || "—",
-          ])
-        : [["—", "—", "—", "—", "—", "—", "—", "—", "—", "—"]],
+        ? [
+            ...cfg.subdivisions.map((row) => [
+              row.name || "—",
+              row.byCapacity ? "На емкость" : row.area ? formatDisinfectantNumber(row.area, 2) : "—",
+              row.treatmentType === "general" ? "Генеральная" : "Текущая",
+              String(row.frequencyPerMonth || 0),
+              row.disinfectantName || "—",
+              formatDisinfectantNumber(row.concentration, 3) || "—",
+              formatDisinfectantNumber(row.solutionConsumptionPerSqm, 3) || "—",
+              formatDisinfectantNumber(resolveSolutionPerTreatment(row), 3) || "—",
+              formatDisinfectantNumber(computeNeedPerTreatment(row), 3) || "—",
+              formatDisinfectantNumber(computeNeedPerMonth(row), 3) || "—",
+              formatDisinfectantNumber(computeNeedPerYear(row), 3) || "—",
+            ]),
+            // Строка итогов — как на экране («Общая потребность дез. средства»).
+            [
+              {
+                content: "Общая потребность дез. средства",
+                colSpan: 8,
+                styles: { halign: "right" as const, fontStyle: "bold" as const },
+              },
+              {
+                content: formatDisinfectantNumber(
+                  cfg.subdivisions.reduce((sum, row) => sum + computeNeedPerTreatment(row), 0),
+                  3
+                ),
+                styles: { fontStyle: "bold" as const },
+              },
+              {
+                content: formatDisinfectantNumber(
+                  cfg.subdivisions.reduce((sum, row) => sum + computeNeedPerMonth(row), 0),
+                  3
+                ),
+                styles: { fontStyle: "bold" as const },
+              },
+              {
+                content: formatDisinfectantNumber(
+                  cfg.subdivisions.reduce((sum, row) => sum + computeNeedPerYear(row), 0),
+                  3
+                ),
+                styles: { fontStyle: "bold" as const },
+              },
+            ],
+          ]
+        : [["—", "—", "—", "—", "—", "—", "—", "—", "—", "—", "—"]],
   });
 
   autoTable(doc, {
@@ -4668,13 +4743,32 @@ function drawDisinfectantPdf(doc: jsPDF, params: {
     ]],
     body:
       cfg.receipts.length > 0
-        ? cfg.receipts.map((row) => [
-            row.date || "—",
-            row.disinfectantName || "—",
-            `${formatDisinfectantNumber(row.quantity, 3) || "0"} ${MEASURE_UNIT_LABELS[row.unit]}`,
-            row.expiryDate || "—",
-            [row.responsibleRole, row.responsibleEmployee].filter(Boolean).join(", ") || "—",
-          ])
+        ? [
+            ...cfg.receipts.map((row) => [
+              // Формат как на экране (дд-мм-гггг), а не ISO из БД.
+              row.date ? formatRuDateDash(row.date) : "—",
+              row.disinfectantName || "—",
+              // Ноль на экране пуст — в печати был «0 кг».
+              formatQuantityWithUnit(row.quantity, row.unit),
+              row.expiryDate ? formatRuDateDash(row.expiryDate) : "—",
+              [row.responsibleRole, row.responsibleEmployee].filter(Boolean).join(", ") || "—",
+            ]),
+            // «Итого» по единицам — как на экране.
+            [
+              {
+                content: "Итого:",
+                colSpan: 2,
+                styles: { halign: "right" as const, fontStyle: "bold" as const },
+              },
+              {
+                content: sumDisinfectantQuantities(
+                  cfg.receipts.map((row) => ({ quantity: row.quantity, unit: row.unit }))
+                ),
+                styles: { fontStyle: "bold" as const },
+              },
+              { content: "", colSpan: 2 },
+            ],
+          ]
         : [["—", "—", "—", "—", "—"]],
   });
 
@@ -4709,11 +4803,16 @@ function drawDisinfectantPdf(doc: jsPDF, params: {
     body:
       cfg.consumptions.length > 0
         ? cfg.consumptions.map((row) => [
-            [row.periodFrom, row.periodTo].filter(Boolean).join(" - ") || "—",
+            // Формат как на экране (дд-мм-гггг), а не ISO из БД.
+            [row.periodFrom, row.periodTo]
+              .filter(Boolean)
+              .map((value) => formatRuDateDash(value))
+              .join(" - ") || "—",
             row.disinfectantName || "—",
-            `${formatDisinfectantNumber(row.totalReceived, 3) || "0"} ${MEASURE_UNIT_LABELS[row.totalReceivedUnit]}`,
-            `${formatDisinfectantNumber(row.totalConsumed, 3) || "0"} ${MEASURE_UNIT_LABELS[row.totalConsumedUnit]}`,
-            `${formatDisinfectantNumber(row.remainder, 3) || "0"} ${MEASURE_UNIT_LABELS[row.remainderUnit]}`,
+            // Ноль на экране пуст — в печати был «0 кг».
+            formatQuantityWithUnit(row.totalReceived, row.totalReceivedUnit),
+            formatQuantityWithUnit(row.totalConsumed, row.totalConsumedUnit),
+            formatQuantityWithUnit(row.remainder, row.remainderUnit),
             [row.responsibleRole, row.responsibleEmployee].filter(Boolean).join(", ") || "—",
           ])
         : [["—", "—", "—", "—", "—", "—"]],
@@ -5028,12 +5127,15 @@ function drawUvRuntimePdf(doc: jsPDF, params: {
 
   const body: RowInput[] = rows.map((entry, index) => {
     const data = normalizeUvRuntimeEntryData(entry.data);
-    const duration = calculateDurationMinutes(data.startTime, data.endTime);
+    // Регламент допускает 2-3 сеанса за смену — печатаем все, а «Итого»
+    // считаем по сумме, иначе бумага расходится с экраном.
+    const sessions = listUvRuntimeSessions(data);
+    const duration = calculateUvEntryDurationMinutes(data);
     return [
       centerCell(String(index + 1)),
       centerCell(formatRuDateDash(entry.date)),
-      centerCell(data.startTime || ""),
-      centerCell(data.endTime || ""),
+      centerCell(sessions.map((session) => session.startTime || "—").join("\n")),
+      centerCell(sessions.map((session) => session.endTime || "—").join("\n")),
       centerCell(duration !== null ? String(duration) : ""),
       centerCell(userMap[entry.employeeId] || ""),
     ];
@@ -5292,8 +5394,27 @@ function drawAuditProtocolPdf(doc: jsPDF, params: {
       });
   });
 
+  // Основание и план, по которому составлен протокол: у инспектора
+  // должно быть видно, откуда взяты требования.
+  doc.setFont("JournalUnicode", "normal");
+  doc.setFontSize(9);
+  const protocolMetaBottom = renderWrappedTextBlock(
+    doc,
+    [
+      `Основание проверки: ${params.config.basisTitle || "—"}`,
+      `Проверяемый объект: ${params.config.auditedObject || "—"}`,
+      ...(params.config.sourcePlanTitle
+        ? [`Составлен по плану: ${params.config.sourcePlanTitle}`]
+        : []),
+    ],
+    12,
+    afterHeader(metaBottom, 62),
+    270,
+    5
+  );
+
   autoTable(doc, {
-    startY: afterHeader(metaBottom, 66),
+    startY: protocolMetaBottom + 4,
     head: [[centerCell("№"), centerCell("Требование"), centerCell("Да"), centerCell("Нет"), centerCell("Примечание")]],
     body: body.length > 0 ? body : [[{ content: "", colSpan: 5 }]],
     theme: "grid",
@@ -5359,6 +5480,9 @@ function drawAuditReportPdf(doc: jsPDF, params: {
       `Основание: ${params.config.basisTitle || "—"}`,
       `Объект аудита: ${params.config.auditedObject || "—"}`,
       `Аудиторы: ${(params.config.auditors || []).join(", ") || "—"}`,
+      ...(params.config.sourceProtocolTitle
+        ? [`По протоколу: ${params.config.sourceProtocolTitle}`]
+        : []),
       `Итог: ${params.config.summary || "—"}`,
       `Рекомендации: ${params.config.recommendations || "—"}`,
     ],
@@ -6437,7 +6561,12 @@ export function renderJournalDocumentPdf(
       title: document.title || EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE,
       dateFrom: document.dateFrom,
       dateTo: document.dateTo,
-      config: normalizeEquipmentMaintenanceConfig(reconciledConfig),
+      // Имена связанных со справочником строк — как на экране, иначе
+      // после переименования в /settings/equipment печать расходилась.
+      config: withResolvedEquipmentNames(
+        normalizeEquipmentMaintenanceConfig(reconciledConfig),
+        equipment
+      ),
     });
   } else if (templateCode === STAFF_TRAINING_TEMPLATE_CODE) {
     drawStaffTrainingPdf(doc, {
@@ -6548,7 +6677,10 @@ export function renderJournalDocumentPdf(
       organizationName,
       title: document.title || BREAKDOWN_HISTORY_HEADING,
       dateFrom: document.dateFrom,
-      config: normalizeBreakdownHistoryDocumentConfig(reconciledConfig),
+      config: withResolvedEquipmentNames(
+        normalizeBreakdownHistoryDocumentConfig(reconciledConfig),
+        equipment
+      ),
     });
   } else if (templateCode === ACCIDENT_DOCUMENT_TEMPLATE_CODE) {
     drawAccidentPdf(doc, {
@@ -6563,7 +6695,7 @@ export function renderJournalDocumentPdf(
       dateFrom: document.dateFrom,
       dateTo: document.dateTo,
       title: document.title || EQUIPMENT_CALIBRATION_DOCUMENT_TITLE,
-      config: equipmentCalibrationConfig,
+      config: withResolvedEquipmentNames(equipmentCalibrationConfig, equipment),
     });
   } else if (templateCode === ACCEPTANCE_DOCUMENT_TEMPLATE_CODE) {
     drawIncomingControlPdf(doc, {

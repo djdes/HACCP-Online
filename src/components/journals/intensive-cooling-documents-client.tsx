@@ -33,7 +33,11 @@ import {
 } from "@/lib/intensive-cooling-document";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -231,6 +235,9 @@ export function IntensiveCoolingDocumentsClient({
   dishSuggestions,
 }: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsTarget, setSettingsTarget] = useState<DocumentItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentItem | null>(null);
@@ -310,7 +317,7 @@ export function IntensiveCoolingDocumentsClient({
             page="list"
             variant="button"
           />
-          {activeTab === "active" ? (
+          {canManageDocuments && activeTab === "active" ? (
             <Button
               className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[15px] text-white hover:bg-[#4452ee] sm:w-auto"
               onClick={() => setCreateOpen(true)}
@@ -373,7 +380,7 @@ export function IntensiveCoolingDocumentsClient({
                 <ResponsiveMenu
                   title="Действия с документом"
                   contentClassName="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -402,7 +409,7 @@ export function IntensiveCoolingDocumentsClient({
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

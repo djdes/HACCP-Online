@@ -4,8 +4,9 @@ import { readHeaderTitleOverride } from "@/lib/journal-header-title";
 import { registerPageLabelSlot } from "@/lib/pdf-page-labels";
 import {
   getItemNumber,
+  mergeSdcEntries,
   normalizeSdcConfig,
-  normalizeSdcEntryData,
+  resolveSdcSignerName,
 } from "@/lib/sanitary-day-checklist-document";
 
 type BasicUser = {
@@ -39,14 +40,8 @@ export function drawSanitaryDayChecklistPdf(
 ) {
   const config = normalizeSdcConfig(params.config);
 
-  // Merge marks from all entries (usually only one entry per document at dateFrom)
-  const mergedMarks: Record<string, string> = {};
-  for (const entry of params.entries) {
-    const { marks } = normalizeSdcEntryData(entry.data);
-    for (const [k, v] of Object.entries(marks)) {
-      if (v) mergedMarks[k] = v;
-    }
-  }
+  // Отметки всех записей документа — тот же helper, что и на экране.
+  const mergedMarks = mergeSdcEntries(params.entries).marks;
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
@@ -220,12 +215,26 @@ export function drawSanitaryDayChecklistPdf(
   doc.setFontSize(10);
   doc.text("ВЫПОЛНИЛ:", margin, sigY);
   doc.setFont("JournalUnicode", "normal");
-  doc.text(config.responsibleName || "_______________________", margin + 36, sigY);
+  // Имя — по id, чтобы переименование сотрудника не оставляло бланк пустым.
+  doc.text(
+    resolveSdcSignerName(
+      config.responsibleUserId,
+      config.responsibleName,
+      params.users
+    ) || "_______________________",
+    margin + 36,
+    sigY
+  );
   doc.line(margin + 36, sigY + 1, margin + 120, sigY + 1);
 
   doc.setFont("JournalUnicode", "bold");
   doc.text("ПРОВЕРИЛ:", margin, sigY + 8);
   doc.setFont("JournalUnicode", "normal");
-  doc.text(config.checkerName || "_______________________", margin + 36, sigY + 8);
+  doc.text(
+    resolveSdcSignerName(config.checkerUserId, config.checkerName, params.users) ||
+      "_______________________",
+    margin + 36,
+    sigY + 8
+  );
   doc.line(margin + 36, sigY + 9, margin + 120, sigY + 9);
 }

@@ -99,6 +99,24 @@ test("legacyFlagsFromColumns ↔ columnsConfigFromResolved", () => {
   });
 });
 
+test("колонка, заведённая позже: флаг главнее сохранённого набора колонок", () => {
+  const key = "release_allowed";
+  // Старый документ после нормализации: набор колонок без ключа и
+  // флаг `false` — колонка не должна всплыть сама.
+  const old = resolveColumns("finished_product", {
+    columns: { hidden: ["responsible"], labels: {} },
+    showReleaseAllowed: false,
+  });
+  assert.equal(old.find((column) => column.key === key)?.hidden, true);
+
+  // Новый документ (и старый после включения колонки руками).
+  const fresh = resolveColumns("finished_product", {
+    columns: { hidden: ["responsible"], labels: {} },
+    showReleaseAllowed: true,
+  });
+  assert.equal(fresh.find((column) => column.key === key)?.hidden, false);
+});
+
 test("общий набор организации: мусор и журналы без реестра отбрасываются", () => {
   const parsed = parseOrgColumnDefaults({
     finished_product: { hidden: ["temp", "name"], labels: { name: "Блюдо" } },

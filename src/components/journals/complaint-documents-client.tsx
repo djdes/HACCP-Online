@@ -19,7 +19,11 @@ import {
 } from "@/lib/complaint-document";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -326,6 +330,9 @@ export function ComplaintDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<ComplaintListDocument | null>(null);
   const [deleteDocument, setDeleteDocument] = useState<ComplaintListDocument | null>(null);
@@ -343,7 +350,7 @@ export function ComplaintDocumentsClient({
               page="list"
               variant="button"
             />
-            {activeTab === "active" && (
+            {canManageDocuments && activeTab === "active" && (
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
@@ -409,7 +416,7 @@ export function ComplaintDocumentsClient({
                 <ResponsiveMenu
                   title="Действия с документом"
                   contentClassName="w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -438,7 +445,7 @@ export function ComplaintDocumentsClient({
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

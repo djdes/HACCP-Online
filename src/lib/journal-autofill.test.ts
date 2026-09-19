@@ -213,8 +213,9 @@ test("applyCleaningAutoSignatures ставит auto-подписи по дням
   // Коды нормализуются самим конфигом (reindexResponsibles), поэтому
   // ожидание берём из него же, а не из литерала: иначе тест ловит
   // раскладку буквы «C», а не поведение подписей.
-  const cleaningCode = config.cleaningResponsibles[0].code;
-  const controlCode = config.controlResponsibles[0].code;
+  // Подпись хранит стабильную ссылку на сотрудника, а не код «СN».
+  const cleaningCode = `uid:${config.cleaningResponsibles[0].userId}`;
+  const controlCode = `uid:${config.controlResponsibles[0].userId}`;
   const next = applyCleaningAutoSignatures(config, ["2026-09-01", "2026-09-02"]);
   assert.equal(
     next.matrix[CLEANING_SIGNATURE_ROW_ID]?.["2026-09-01"],

@@ -116,7 +116,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Не найдено" }, { status: 404 });
   }
 
-  const body = await request.json();
+  // Оборванный или пустой запрос — это ошибка клиента, а не 500 сервера.
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Пустой запрос" }, { status: 400 });
+  }
   const data: Record<string, unknown> = {};
   const needsTemplateLookup =
     doc.templateId &&

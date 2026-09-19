@@ -1,3 +1,5 @@
+import { normalizeSourceEquipmentId } from "@/lib/equipment-directory-link";
+
 export const EQUIPMENT_MAINTENANCE_TEMPLATE_CODE = "equipment_maintenance";
 export const EQUIPMENT_MAINTENANCE_DOCUMENT_TITLE = "График профилактического обслуживания оборудования";
 
@@ -17,6 +19,8 @@ export type MaintenanceType = "A" | "B";
 
 export type EquipmentMaintenanceRow = {
   id: string;
+  /** Ссылка на `Equipment`: переименование в справочнике доходит до графика. */
+  sourceEquipmentId: string | null;
   equipmentName: string;
   workType: string;
   maintenanceType: MaintenanceType;
@@ -66,6 +70,7 @@ export function createEquipmentMaintenanceRow(
 ): EquipmentMaintenanceRow {
   return {
     id: overrides.id || createId("maint-row"),
+    sourceEquipmentId: normalizeSourceEquipmentId(overrides.sourceEquipmentId),
     equipmentName: normalizeText(overrides.equipmentName),
     workType: normalizeText(overrides.workType),
     maintenanceType: overrides.maintenanceType === "A" ? "A" : "B",
@@ -113,6 +118,7 @@ export function buildEquipmentMaintenanceConfigFromEquipment(
       normalizedType.includes("холодильн") ||
       normalizedType.includes("морозильн");
     return createEquipmentMaintenanceRow({
+      sourceEquipmentId: item.id,
       equipmentName: item.name,
       maintenanceType: isCold ? "B" : "A",
       plan: { ...emptyPlan },

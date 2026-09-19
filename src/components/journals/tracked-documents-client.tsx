@@ -39,7 +39,11 @@ import {
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_LIST_STACK_CLASS,
   JOURNAL_CARD_LABEL_CLASS,
@@ -351,6 +355,9 @@ function TrackedDocumentsClientImpl({
   documents,
 }: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [editingDocument, setEditingDocument] = useState<JournalListDocument | null>(null);
 
   function getResponsibleCardValue(document: JournalListDocument) {
@@ -392,7 +399,7 @@ function TrackedDocumentsClientImpl({
                 firstDocumentId={activeTab === "active" ? documents[0]?.id : undefined}
               />
             </div>
-            {activeTab === "active" && (
+            {canManageDocuments && activeTab === "active" && (
               <CreateDocumentDialog
                 templateCode={templateCode}
                 templateName={templateName}
@@ -467,7 +474,7 @@ function TrackedDocumentsClientImpl({
                 <div className="flex justify-end pt-1 sm:justify-center sm:pt-0">
                   <ResponsiveMenu
                     title="Действия"
-                    items={[
+                    items={filterManageMenuItems([
                       ...(document.status === "active"
                         ? [
                             {
@@ -496,7 +503,7 @@ function TrackedDocumentsClientImpl({
                             },
                           ]
                         : []),
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button
                         type="button"

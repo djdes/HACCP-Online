@@ -181,8 +181,12 @@ export function normalizePestControlEntryData(
 
   const source = data as Record<string, unknown>;
   const performedDate = safeString(source.performedDate) || fallbackDate;
-  const performedHour = safeString(source.performedHour).padStart(2, "0").slice(0, 2);
-  const performedMinute = safeString(source.performedMinute).padStart(2, "0").slice(0, 2);
+  // padStart по ПУСТОЙ строке давал "00": запись, сохранённая без
+  // времени, показывалась и печаталась как «00:00».
+  const rawHour = safeString(source.performedHour);
+  const rawMinute = safeString(source.performedMinute);
+  const performedHour = rawHour ? rawHour.padStart(2, "0").slice(0, 2) : "";
+  const performedMinute = rawMinute ? rawMinute.padStart(2, "0").slice(0, 2) : "";
   const acceptedRole = safeString(source.acceptedRole) || getPestControlDefaultRole(users);
   const acceptedEmployeeId =
     safeString(source.acceptedEmployeeId) ||

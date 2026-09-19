@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Plus } from "lucide-react";
+import { Archive, Plus, Trash2 } from "lucide-react";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { CELL_FOCUS_CLASS } from "@/components/journals/journal-grid";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,10 @@ import {
   buildUvRuntimeDocumentTitle,
   calculateEntryDurationMinutes,
   calculateMonthlyHours,
-  listUvRuntimeSessions,
+  appendUvRuntimeSession,
+  listUvRuntimeSessionSlots,
+  removeUvRuntimeSession,
+  updateUvRuntimeSession,
   CONTROL_FREQUENCY_OPTIONS,
   formatControlFrequencyLabel,
   formatMonthLabel,
@@ -1107,9 +1110,11 @@ export function UvLampRuntimeDocumentClient(props: Props) {
   const [specEditOpen, setSpecEditOpen] = useState(false);
   const [addRowOpen, setAddRowOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
-  // Строка, которую правим из карточки. До этого карточки УФ-журнала были
-  // только для чтения: время ВКЛ/ВЫКЛ вводилось лишь в таблице.
-  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  // Сеанс, который правим из карточки (день + номер сеанса): за день их
+  // может быть 2-3, и лист правки должен знать, какой именно открыт.
+  const [editingSession, setEditingSession] = useState<
+    { rowId: string; sessionIndex: number } | null
+  >(null);
   const [autoFill, setAutoFill] = useState(props.autoFill === true);
 
   const [config, setConfig] = useState(() => normalizeUvRuntimeDocumentConfig(props.config));
@@ -1215,7 +1220,11 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       date: row.date,
       data: row.data,
     };
-    setRows((current) => current.map((item) => (item.date === saved.date ? saved : item)));
+    // Из ответа забираем ТОЛЬКО id: пока запрос летел, человек мог уже
+    // править времена, и подстановка отправленного снимка их стирала.
+    setRows((current) =>
+      current.map((item) => (item.date === saved.date ? { ...item, id: saved.id } : item))
+    );
     savedRows.set(saved.date, saved);
 
     if (!options?.silent && previousSaved) {
@@ -1333,21 +1342,81 @@ export function UvLampRuntimeDocumentClient(props: Props) {
     }
   }
 
-  /** Сохранение времени ВКЛ/ВЫКЛ из карточного листа правки. */
-  async function saveRowFromSheet(rowId: string, values: CardEditValues) {
-    const startTime = String(values.startTime ?? "");
-    const endTime = String(values.endTime ?? "");
-    let updated: GridRow | null = null;
+  /**
+   * Правка дня в state. Новый объект строки возвращаем сразу — updater
+   * `setRows` выполняется отложенно, и ждать из него значение нельзя.
+   */
+  function patchRowData(
+    rowId: string,
+    next: (data: UvRuntimeEntryData) => UvRuntimeEntryData
+  ): GridRow | null {
+    const row = rows.find((item) => item.id === rowId);
+    if (!row) return null;
+    const updated: GridRow = { ...row, data: next(row.data) };
+    setRows((current) => current.map((item) => (item.id === rowId ? updated : item)));
+    return updated;
+  }
 
-    setRows((current) =>
-      current.map((item) => {
-        if (item.id !== rowId) return item;
-        updated = { ...item, data: { ...item.data, startTime, endTime } };
-        return updated;
+  /** Правка времени одного сеанса (без записи на сервер — она на blur). */
+  function editSessionTime(
+    rowId: string,
+    sessionIndex: number,
+    patch: { startTime?: string; endTime?: string }
+  ) {
+    patchRowData(rowId, (data) => updateUvRuntimeSession(data, sessionIndex, patch));
+  }
+
+  /** Удаление одного сеанса дня; последний сеанс удаляется вместе со строкой. */
+  async function deleteSession(rowId: string, sessionIndex: number) {
+    const row = rows.find((item) => item.id === rowId);
+    if (!row) return;
+    const confirmed = await confirmAsync({
+      title: "Удалить сеанс?",
+      description: `Сеанс №${sessionIndex + 1} за ${formatRuDateDash(row.date)} будет удалён из записи.`,
+      variant: "danger",
+      confirmLabel: "Удалить",
+    });
+    if (!confirmed) return;
+
+    const updated = patchRowData(rowId, (data) => removeUvRuntimeSession(data, sessionIndex));
+    if (!updated) return;
+    try {
+      await saveRow(updated);
+      toast.success("Сеанс удалён");
+    } catch (error) {
+      toast.error(rowSaveErrorMessage(error));
+    }
+  }
+
+  /** «Ещё сеанс» — пустой слот, который тут же заполняют. */
+  async function addSession(rowId: string) {
+    const updated = patchRowData(rowId, (data) =>
+      appendUvRuntimeSession(data, {
+        startTime: config.spec.autoFillStartTime,
+        endTime: "",
       })
     );
+    if (!updated) return;
+    try {
+      await saveRow(updated);
+    } catch (error) {
+      toast.error(rowSaveErrorMessage(error));
+    }
+  }
 
-    setEditingRowId(null);
+  /** Сохранение времени ВКЛ/ВЫКЛ из карточного листа правки. */
+  async function saveRowFromSheet(
+    rowId: string,
+    sessionIndex: number,
+    values: CardEditValues
+  ) {
+    const startTime = String(values.startTime ?? "");
+    const endTime = String(values.endTime ?? "");
+    const updated = patchRowData(rowId, (data) =>
+      updateUvRuntimeSession(data, sessionIndex, { startTime, endTime })
+    );
+
+    setEditingSession(null);
     if (!updated) return;
 
     try {
@@ -1600,15 +1669,13 @@ export function UvLampRuntimeDocumentClient(props: Props) {
         <RecordCardsView
           items={rows.map((row, index) => {
             const duration = calculateEntryDurationMinutes(row.data);
+            // С телефона тоже нужен КАЖДЫЙ сеанс дня: раньше карточка
+            // показывала времена одной строкой и правила только первый.
+            const sessions = listUvRuntimeSessionSlots(row.data);
             return {
               id: row.id,
               title: `№${index + 1} · ${formatRuDateDash(row.date)}`,
               subtitle: userMap[row.employeeId || fallbackEmployeeId] || undefined,
-              // Тап по карточке открывает лист с двумя полями времени.
-              onClick:
-                props.status === "active"
-                  ? () => setEditingRowId(row.id)
-                  : undefined,
               badge: duration !== null ? (
                 <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#5566f6]">
                   {duration} мин
@@ -1627,22 +1694,49 @@ export function UvLampRuntimeDocumentClient(props: Props) {
                   className="size-5"
                 />
               ) : null,
+              actions:
+                props.status === "active" ? (
+                  <button
+                    type="button"
+                    onClick={() => void addSession(row.id)}
+                    className="w-full rounded-xl border border-[#dcdfed] bg-[#f5f6ff] px-3 py-2 text-[13px] font-semibold text-[#5566f6] transition-colors duration-150 hover:bg-[#eef1ff]"
+                  >
+                    + Ещё сеанс
+                  </button>
+                ) : undefined,
               fields: [
-                {
-                  label: "Время ВКЛ",
-                  // Все сеансы дня, а не только первый.
-                  value: listUvRuntimeSessions(row.data)
-                    .map((s) => s.startTime || "—")
-                    .join(" · "),
-                  warnIfEmpty: props.status === "active",
-                },
-                {
-                  label: "Время ВЫКЛ",
-                  value: listUvRuntimeSessions(row.data)
-                    .map((s) => s.endTime || "—")
-                    .join(" · "),
-                  warnIfEmpty: props.status === "active",
-                },
+                ...sessions.map((session, sessionIndex) => ({
+                  label: `Сеанс №${sessionIndex + 1}`,
+                  value: (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span>
+                        {session.startTime || "—"} — {session.endTime || "—"}
+                      </span>
+                      {props.status === "active" ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingSession({ rowId: row.id, sessionIndex })
+                            }
+                            className="rounded-full bg-[#f5f6ff] px-3 py-1 text-[12px] font-semibold text-[#5566f6] transition-colors duration-150 hover:bg-[#eef1ff]"
+                          >
+                            изменить
+                          </button>
+                          {sessions.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => void deleteSession(row.id, sessionIndex)}
+                              className="rounded-full bg-[#fdf0f0] px-3 py-1 text-[12px] font-semibold text-[#e05a5a] transition-colors duration-150 hover:bg-[#fbe3e3]"
+                            >
+                              удалить
+                            </button>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </span>
+                  ),
+                })),
                 {
                   label: "Продолжительность",
                   value: duration !== null ? `${duration} минут` : "",
@@ -1735,128 +1829,155 @@ export function UvLampRuntimeDocumentClient(props: Props) {
           <tbody>
             {rows.map((row, rowIndex) => {
               const duration = calculateEntryDurationMinutes(row.data);
+              // Строка на КАЖДЫЙ сеанс дня: второй и третий раньше были
+              // текстом под первым — их нельзя было ни изменить, ни удалить.
+              const sessions = listUvRuntimeSessionSlots(row.data);
               return (
-                <tr
-                  key={row.id}
-                  data-focus-today={rowIndex === todayFocusRowIndex ? "" : undefined}
-                  className="hover:bg-[#fafbff] print:hover:bg-transparent"
-                >
-                  {props.status === "active" && (
-                    <td className="border border-[#eceef5] px-2 py-1 text-center print:hidden leading-tight">
-                      <Checkbox
-                        checked={selectedRowIds.includes(row.id)}
-                        onCheckedChange={(checked) =>
-                          setSelectedRowIds((current) =>
-                            checked === true ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id)
-                          )
-                        }
-                      />
-                    </td>
-                  )}
-                  <td className="border border-[#eceef5] px-2 py-1 print:border-[#ccc] leading-tight">
-                    <div className="px-2 py-1 text-[14px] text-black">{formatRuDateDash(row.date)}</div>
-                  </td>
-                  <td className="border border-[#eceef5] px-2 py-1 text-center print:border-[#ccc] leading-tight">
-                    {props.status === "active" ? (
-                      <Input
-                        type="time"
-                        // Q2-2: пустой time-инпут печатает браузерную «рыбу»
-                        // `--:--`. Флаг ловится в @media print (app-theme.css).
-                        data-empty={row.data.startTime ? undefined : "true"}
-                        value={row.data.startTime}
-                        onChange={(event) =>
-                          setRows((current) =>
-                            current.map((item) =>
-                              item.id === row.id
-                                ? { ...item, data: { ...item.data, startTime: event.target.value } }
-                                : item
-                            )
-                          )
-                        }
-                        onBlur={() => {
-                          saveRow(row).catch((error) => toast.error(rowSaveErrorMessage(error)));
-                        }}
-                        className="mx-auto h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
-                      />
-                    ) : (
-                      <span className="text-[14px] text-black">{row.data.startTime || "—"}</span>
-                    )}
-                    {/* Второй и третий сеансы смены — под первым. */}
-                    {(row.data.extraSessions ?? []).map((session, i) => (
-                      <div
-                        key={`start-${row.id}-${i}`}
-                        className="mt-1 text-[13px] text-[#5b6075]"
-                      >
-                        {session.startTime || "—"}
-                      </div>
-                    ))}
-                  </td>
-                  <td className="border border-[#eceef5] px-2 py-1 text-center print:border-[#ccc] leading-tight">
-                    {props.status === "active" ? (
-                      <Input
-                        type="time"
-                        data-empty={row.data.endTime ? undefined : "true"}
-                        value={row.data.endTime}
-                        onChange={(event) =>
-                          setRows((current) =>
-                            current.map((item) =>
-                              item.id === row.id
-                                ? { ...item, data: { ...item.data, endTime: event.target.value } }
-                                : item
-                            )
-                          )
-                        }
-                        onBlur={() => {
-                          saveRow(row).catch((error) => toast.error(rowSaveErrorMessage(error)));
-                        }}
-                        className="mx-auto h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
-                      />
-                    ) : (
-                      <span className="text-[14px] text-black">{row.data.endTime || "—"}</span>
-                    )}
-                    {(row.data.extraSessions ?? []).map((session, i) => (
-                      <div
-                        key={`end-${row.id}-${i}`}
-                        className="mt-1 text-[13px] text-[#5b6075]"
-                      >
-                        {session.endTime || "—"}
-                      </div>
-                    ))}
-                  </td>
-                  <td className="border border-[#eceef5] px-2 py-1 text-center print:border-[#ccc] leading-tight">
-                    <span className="text-[14px] text-black">{duration !== null ? duration : "—"}</span>
-                  </td>
-                  <td className="border border-[#eceef5] px-2 py-1 print:border-[#ccc] leading-tight">
-                    {props.status === "active" ? (
-                      <Select
-                        value={row.employeeId || fallbackEmployeeId}
-                        onValueChange={(value) => {
-                          setRows((current) =>
-                            current.map((item) => (item.id === row.id ? { ...item, employeeId: value } : item))
-                          );
-                          const updated = { ...row, employeeId: value };
-                          saveRow(updated, { id: row.id, employeeId: row.employeeId }).catch((error) =>
-                            toast.error(rowSaveErrorMessage(error))
-                          );
-                          return;
-                        }}
-                      >
-                        <SelectTrigger className="h-9 rounded-md border-[#dcdfed] text-[13px]">
-                          <SelectValue placeholder="Выберите сотрудника" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {props.users.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <span className="text-[14px] text-black">{userMap[row.employeeId] || "—"}</span>
-                    )}
-                  </td>
-                </tr>
+                <Fragment key={row.id}>
+                  {sessions.map((session, sessionIndex) => (
+                    <tr
+                      key={`${row.id}-${sessionIndex}`}
+                      data-focus-today={
+                        sessionIndex === 0 && rowIndex === todayFocusRowIndex ? "" : undefined
+                      }
+                      className="hover:bg-[#fafbff] print:hover:bg-transparent"
+                    >
+                      {sessionIndex === 0 && props.status === "active" && (
+                        <td
+                          rowSpan={sessions.length}
+                          className="border border-[#eceef5] px-2 py-1 text-center align-middle print:hidden leading-tight"
+                        >
+                          <Checkbox
+                            checked={selectedRowIds.includes(row.id)}
+                            onCheckedChange={(checked) =>
+                              setSelectedRowIds((current) =>
+                                checked === true ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id)
+                              )
+                            }
+                          />
+                        </td>
+                      )}
+                      {sessionIndex === 0 && (
+                        <td
+                          rowSpan={sessions.length}
+                          className="border border-[#eceef5] px-2 py-1 align-middle print:border-[#ccc] leading-tight"
+                        >
+                          <div className="px-2 py-1 text-[14px] text-black">{formatRuDateDash(row.date)}</div>
+                          {sessions.length > 1 && (
+                            <div className="px-2 text-[11px] text-[#8b90a6] print:text-black">
+                              сеансов: {sessions.length}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      <td className="border border-[#eceef5] px-2 py-1 text-center print:border-[#ccc] leading-tight">
+                        {props.status === "active" ? (
+                          <Input
+                            type="time"
+                            // Q2-2: пустой time-инпут печатает браузерную «рыбу»
+                            // `--:--`. Флаг ловится в @media print (app-theme.css).
+                            data-empty={session.startTime ? undefined : "true"}
+                            value={session.startTime}
+                            aria-label={`Время включения, сеанс №${sessionIndex + 1}`}
+                            onChange={(event) =>
+                              editSessionTime(row.id, sessionIndex, { startTime: event.target.value })
+                            }
+                            onBlur={() => {
+                              saveRow(row).catch((error) => toast.error(rowSaveErrorMessage(error)));
+                            }}
+                            className="mx-auto h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
+                          />
+                        ) : (
+                          <span className="text-[14px] text-black">{session.startTime || "—"}</span>
+                        )}
+                      </td>
+                      <td className="border border-[#eceef5] px-2 py-1 text-center print:border-[#ccc] leading-tight">
+                        <div className="flex items-center justify-center gap-1">
+                          {props.status === "active" ? (
+                            <Input
+                              type="time"
+                              data-empty={session.endTime ? undefined : "true"}
+                              value={session.endTime}
+                              aria-label={`Время выключения, сеанс №${sessionIndex + 1}`}
+                              onChange={(event) =>
+                                editSessionTime(row.id, sessionIndex, { endTime: event.target.value })
+                              }
+                              onBlur={() => {
+                                saveRow(row).catch((error) => toast.error(rowSaveErrorMessage(error)));
+                              }}
+                              className="h-9 w-[110px] rounded-md border-[#dcdfed] text-center text-[13px]"
+                            />
+                          ) : (
+                            <span className="text-[14px] text-black">{session.endTime || "—"}</span>
+                          )}
+                          {props.status === "active" && sessions.length > 1 && (
+                            <button
+                              type="button"
+                              title="Удалить сеанс"
+                              aria-label={`Удалить сеанс №${sessionIndex + 1}`}
+                              onClick={() => void deleteSession(row.id, sessionIndex)}
+                              className="rounded-lg p-1.5 text-[#b0b4c8] transition-colors duration-150 hover:bg-[#fdf0f0] hover:text-[#e05a5a] print:hidden"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      {sessionIndex === 0 && (
+                        <td
+                          rowSpan={sessions.length}
+                          className="border border-[#eceef5] px-2 py-1 text-center align-middle print:border-[#ccc] leading-tight"
+                        >
+                          <span className="text-[14px] text-black">{duration !== null ? duration : "—"}</span>
+                          {props.status === "active" && (
+                            <button
+                              type="button"
+                              onClick={() => void addSession(row.id)}
+                              className="mt-1 block w-full text-[12px] text-[#5566f6] underline transition-colors duration-150 hover:no-underline print:hidden"
+                            >
+                              + Ещё сеанс
+                            </button>
+                          )}
+                        </td>
+                      )}
+                      {sessionIndex === 0 && (
+                        <td
+                          rowSpan={sessions.length}
+                          className="border border-[#eceef5] px-2 py-1 align-middle print:border-[#ccc] leading-tight"
+                        >
+                          {props.status === "active" ? (
+                            <Select
+                              value={row.employeeId || fallbackEmployeeId}
+                              onValueChange={(value) => {
+                                setRows((current) =>
+                                  current.map((item) => (item.id === row.id ? { ...item, employeeId: value } : item))
+                                );
+                                const updated = { ...row, employeeId: value };
+                                saveRow(updated, { id: row.id, employeeId: row.employeeId }).catch((error) =>
+                                  toast.error(rowSaveErrorMessage(error))
+                                );
+                                return;
+                              }}
+                            >
+                              <SelectTrigger className="h-9 rounded-md border-[#dcdfed] text-[13px]">
+                                <SelectValue placeholder="Выберите сотрудника" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {props.users.map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-[14px] text-black">{userMap[row.employeeId] || "—"}</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </Fragment>
               );
             })}
 
@@ -1921,32 +2042,37 @@ export function UvLampRuntimeDocumentClient(props: Props) {
       {/* Правка строки из карточки — только время ВКЛ/ВЫКЛ, остальное
           в этом журнале считается (продолжительность) или живёт в
           спецификации установки. */}
-      <CardEditSheet
-        open={editingRowId !== null}
-        title="Работа УФ-установки"
-        subtitle={
-          editingRowId
-            ? formatRuDateDash(
-                rows.find((row) => row.id === editingRowId)?.date ?? ""
-              )
-            : undefined
-        }
-        fields={[
-          { type: "time", key: "startTime", label: "Время включения" },
-          { type: "time", key: "endTime", label: "Время выключения" },
-        ]}
-        values={{
-          startTime:
-            rows.find((row) => row.id === editingRowId)?.data.startTime ?? "",
-          endTime:
-            rows.find((row) => row.id === editingRowId)?.data.endTime ?? "",
-        }}
-        onClose={() => setEditingRowId(null)}
-        onSubmit={(values) => {
-          if (!editingRowId) return;
-          void saveRowFromSheet(editingRowId, values);
-        }}
-      />
+      {editingSession ? (
+        (() => {
+          const row = rows.find((item) => item.id === editingSession.rowId);
+          const session = row
+            ? listUvRuntimeSessionSlots(row.data)[editingSession.sessionIndex]
+            : undefined;
+          return (
+            <CardEditSheet
+              open
+              title={`Сеанс №${editingSession.sessionIndex + 1}`}
+              subtitle={row ? formatRuDateDash(row.date) : undefined}
+              fields={[
+                { type: "time", key: "startTime", label: "Время включения" },
+                { type: "time", key: "endTime", label: "Время выключения" },
+              ]}
+              values={{
+                startTime: session?.startTime ?? "",
+                endTime: session?.endTime ?? "",
+              }}
+              onClose={() => setEditingSession(null)}
+              onSubmit={(values) => {
+                void saveRowFromSheet(
+                  editingSession.rowId,
+                  editingSession.sessionIndex,
+                  values
+                );
+              }}
+            />
+          );
+        })()
+      ) : null}
     </div>
   );
 }

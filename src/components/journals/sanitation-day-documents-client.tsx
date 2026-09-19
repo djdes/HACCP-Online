@@ -51,6 +51,8 @@ import {
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
@@ -347,6 +349,8 @@ export function SanitationDayDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Настройки / удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [settingsTarget, setSettingsTarget] =
     useState<SanitationDocumentItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -597,7 +601,7 @@ export function SanitationDayDocumentsClient({
               <div className="flex items-center justify-start text-[#5566f6] sm:justify-center">
                 <ResponsiveMenu
                   title="Действия с документом"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -644,7 +648,7 @@ export function SanitationDayDocumentsClient({
                             tone: "danger" as const,
                           },
                         ]),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

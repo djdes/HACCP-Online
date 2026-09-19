@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createContext, useContext } from "react";
 import { Ellipsis, Pencil, Plus, Printer, Trash2 } from "lucide-react";
 import { CreateDocumentDialog } from "@/components/journals/create-document-dialog";
 import {
@@ -15,6 +16,67 @@ import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { LinkPendingSpinner } from "@/components/ui/link-pending";
 import { JournalEnabledIndicatorSlot } from "@/components/journals/journal-enabled-indicator";
 import { cn } from "@/lib/utils";
+
+/**
+ * Может ли смотрящий создавать / настраивать / удалять документы.
+ *
+ * ПОЧЕМУ контекст, а не проп: у каждого журнала свой
+ * `*-documents-client.tsx` (их три с половиной десятка), и протаскивать
+ * один и тот же признак через все пропсы — гарантированный источник
+ * расхождений. Провайдер ставится один раз на странице раздела
+ * (`journals/[code]/page.tsx` → `withBanner`), значение берут общая шапка,
+ * пустое состояние, меню карточки и собственные кнопки журналов.
+ *
+ * Без провайдера — `true`: Mini App и прочие места переиспользуют те же
+ * клиенты и ведут себя как раньше.
+ */
+const JournalManageContext = createContext(true);
+
+export function JournalManageProvider({
+  canManage,
+  children,
+}: {
+  canManage: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <JournalManageContext.Provider value={canManage}>{children}</JournalManageContext.Provider>
+  );
+}
+
+export function useCanManageDocuments(): boolean {
+  return useContext(JournalManageContext);
+}
+
+/**
+ * Пункты меню карточки документа, которые API отдаёт только руководителю:
+ * `POST /api/journal-documents` (создание и копия) и `PATCH/DELETE
+ * /api/journal-documents/[id]` (название, период, статус, удаление).
+ * «Печать» доступна всем, кто видит документ.
+ */
+const MANAGE_ONLY_MENU_KEYS = new Set([
+  "settings",
+  "delete",
+  "copy",
+  "duplicate",
+  "archive",
+  "unarchive",
+  "restore",
+  "close",
+  "rename",
+]);
+
+/**
+ * Убирает управляющие пункты из меню карточки, когда прав нет. Функция, а
+ * не хук: меню рисуется внутри `.map()` по документам.
+ */
+export function filterManageMenuItems<T extends { key: string }>(
+  items: T[],
+  canManage: boolean
+): T[] {
+  if (canManage) return items;
+  return items.filter((item) => !MANAGE_ONLY_MENU_KEYS.has(item.key));
+}
 
 export function JournalTopBar(props: {
   heading: string;
@@ -59,7 +121,8 @@ export function JournalTopBar(props: {
    */
   canManage?: boolean;
 }) {
-  const canManage = props.canManage !== false;
+  const canManageFromContext = useCanManageDocuments();
+  const canManage = props.canManage !== false && canManageFromContext;
   return (
     // `sm:items-center` — когда длинный H1 («Журнал бракеража скоропортящейся
     // продукции») переносится в две строки, кнопки «Инструкция» / «Создать
@@ -189,8 +252,9 @@ export function EmptyDocumentsState({
   /** Нет прав на создание — карточка остаётся, кнопка исчезает. */
   canManage?: boolean;
 } = {}) {
+  const canManageFromContext = useCanManageDocuments();
   const button =
-    canManage === false
+    canManage === false || !canManageFromContext
       ? null
       : action ??
     (templateCode && templateName && users ? (
@@ -245,6 +309,11 @@ export function DocumentActionsMenu(props: {
   // На телефоне это лист снизу, на компьютере — выпадающий список:
   // общий `ResponsiveMenu`. Меню карточки документа одно на полтора
   // десятка журналов, поэтому правка здесь меняет их все разом.
+  // «Настройки» и «Удалить» API отдаёт только руководителю — у остальных
+  // в меню остаётся одна «Печать».
+  const canManage = useCanManageDocuments();
+  const onEdit = canManage ? props.onEdit : undefined;
+  const onDelete = canManage ? props.onDelete : undefined;
   return (
     <ResponsiveMenu
       title="Действия с документом"
@@ -254,13 +323,13 @@ export function DocumentActionsMenu(props: {
           : "w-[260px] rounded-[20px] border-0 p-3 shadow-xl"
       }
       items={[
-        ...(props.onEdit
+        ...(onEdit
           ? [
               {
                 key: "settings",
                 label: "Настройки",
                 icon: <Pencil className="size-4 text-[#6f7282]" />,
-                onSelect: props.onEdit,
+                onSelect: onEdit,
               },
             ]
           : []),
@@ -270,13 +339,13 @@ export function DocumentActionsMenu(props: {
           icon: <Printer className="size-4 text-[#6f7282]" />,
           onSelect: props.onPrint,
         },
-        ...(props.onDelete
+        ...(onDelete
           ? [
               {
                 key: "delete",
                 label: "Удалить",
                 icon: <Trash2 className="size-4 text-[#ff3b30]" />,
-                onSelect: props.onDelete,
+                onSelect: onDelete,
                 tone: "danger" as const,
               },
             ]

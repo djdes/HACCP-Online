@@ -47,6 +47,7 @@ import {
   type RecordCardItem,
 } from "@/components/journals/record-cards-view";
 import { localDayKey } from "@/lib/entry-defaults";
+import { useTodayKey } from "@/lib/use-today-key";
 
 type UserItem = {
   id: string;
@@ -263,8 +264,10 @@ function EntryDialog(props: {
     // A7 — auto-fill current HH:MM для новой записи. Шаг select'а минут =
     // 5, поэтому округляем; юзер всегда может сбросить через "--".
     const now = new Date();
+    // Округление ВНИЗ: `Math.round` в 10:58 давал 60 → «00», и запись
+    // подставлялась как 10:00 — на час назад.
     const hh = String(now.getHours()).padStart(2, "0");
-    const mm = String((Math.round(now.getMinutes() / 5) * 5) % 60).padStart(2, "0");
+    const mm = String(Math.floor(now.getMinutes() / 5) * 5).padStart(2, "0");
     setEntry({
       ...createEmptyPestControlEntry(props.users, localDayKey()),
       timeSpecified: true,
@@ -498,13 +501,23 @@ export function PestControlDocumentClient(props: Props) {
   const undoStack = useJournalUndo({ enabled: !readOnly });
   const allSelected = entries.length > 0 && selectedIds.length === entries.length;
   const { mobileView, switchMobileView } = useMobileView("pest_control");
+  // «Сегодня» в поясе организации — якорь для «Перейти к сегодня».
+  const todayKey = useTodayKey();
 
   const cardItems: RecordCardItem[] = entries.map((entry, index) => {
     const acceptedUser = userMap[entry.data.acceptedEmployeeId];
     const dateTime = formatPestControlDateTime(entry.data);
     return {
       id: entry.id,
-      title: `№${index + 1} · ${dateTime.dateLabel || "—"}`,
+      title: (
+        <span
+          data-focus-today={
+            entry.data.performedDate === todayKey ? "" : undefined
+          }
+        >
+          {`№${index + 1} · ${dateTime.dateLabel || "—"}`}
+        </span>
+      ),
       subtitle: entry.data.event || undefined,
       leading: !readOnly ? (
         <Checkbox
@@ -783,6 +796,13 @@ export function PestControlDocumentClient(props: Props) {
               return (
                 <tr
                   key={entry.id}
+                  // Якорь «Перейти к сегодня»: атрибут не ставила ни одна
+                  // строка, и скроллер всегда говорил «Записей пока нет».
+                  data-focus-today={
+                    !isPlaceholder && entry.data.performedDate === todayKey
+                      ? ""
+                      : undefined
+                  }
                   // Строка-заготовка (нет ни одной записи) раньше висела на
                   // экране как единственная пустая строка, но не открывала
                   // добавление. Теперь эту роль играет кликабельная

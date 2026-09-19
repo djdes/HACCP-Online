@@ -1,5 +1,5 @@
 import fs from "node:fs"; import path from "node:path"; import { chromium } from "playwright";
-const BASE = "http://localhost:3020"; const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+const BASE = process.env.SWEEP_BASE ?? "http://localhost:3021"; const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const OUT = process.env.SWEEP_OUT!; fs.mkdirSync(OUT, { recursive: true });
 const state = JSON.parse(fs.readFileSync(path.join(HERE, "..", "journal-responsibles-org-2026-09", "e2e", "state.json"), "utf8"));
 (async () => {

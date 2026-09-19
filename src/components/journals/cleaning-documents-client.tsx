@@ -35,6 +35,8 @@ import { buildDocumentAutoTitle } from "@/lib/journal-document-title";
 import {
   EMPTY_STATE_CREATE_BUTTON_CLASS,
   EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import { CreateDocumentEmptyState } from "@/components/journals/create-document-empty-state";
 import {
@@ -432,6 +434,9 @@ function SettingsDialog(props: {
 
 export function CleaningDocumentsClient(props: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
   const [deleteDocument, setDeleteDocument] = useState<DocumentItem | null>(null);
@@ -600,7 +605,7 @@ export function CleaningDocumentsClient(props: Props) {
             />
             {/* Пока документов нет, единственная точка входа — кнопка
                 внутри карточки пустого состояния (эталон). */}
-            {props.activeTab === "active" && props.documents.length > 0 ? (
+            {canManageDocuments && props.activeTab === "active" && props.documents.length > 0 ? (
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
@@ -704,7 +709,7 @@ export function CleaningDocumentsClient(props: Props) {
                 <div className="flex justify-start sm:justify-end">
                   <ResponsiveMenu
                     title="Действия с документом"
-                    items={[
+                    items={filterManageMenuItems([
                       {
                         key: "archive",
                         label: document.status === "active" ? "Закрыть" : "Восстановить",
@@ -748,7 +753,7 @@ export function CleaningDocumentsClient(props: Props) {
                             },
                           ]
                         : []),
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button
                         type="button"

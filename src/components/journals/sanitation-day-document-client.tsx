@@ -919,7 +919,10 @@ export function SanitationDayDocumentClient({
     mode: "plan" | "fact",
     values: CardEditValues
   ) {
-    const nextRows = normalized.rows.map((row) => {
+    // configRef, а не normalized: серверный проп отстаёт до router.refresh(),
+    // и правка затирала только что введённые ячейки соседних строк.
+    const current = configRef.current;
+    const nextRows = current.rows.map((row) => {
       if (row.id !== rowId) return row;
       const nextMonths = { ...row[mode] };
       for (const month of SANITATION_MONTHS) {
@@ -928,7 +931,7 @@ export function SanitationDayDocumentClient({
       return { ...row, [mode]: nextMonths };
     });
     setEditingMonths(null);
-    await patchConfig({ ...normalized, rows: nextRows });
+    await patchConfig({ ...current, rows: nextRows });
   }
 
   /** Кто убирает / проверяет помещение строки — из справочника. */
@@ -955,21 +958,23 @@ export function SanitationDayDocumentClient({
 
   /** Помещение из справочника → строка графика (id стабильный `row-room-<Room.id>`). */
   async function addRoomFromDirectory(room: DirectoryRoom) {
-    if (normalized.rows.some((r) => r.roomId === room.id)) {
+    const current = configRef.current;
+    if (current.rows.some((r) => r.roomId === room.id)) {
       toast.error("Это помещение уже есть в графике");
       return;
     }
     await patchConfig({
-      ...normalized,
-      rows: [...normalized.rows, createEmptySanitationRow(room.name, room.id)],
+      ...current,
+      rows: [...current.rows, createEmptySanitationRow(room.name, room.id)],
     });
   }
 
   /** «Связать» legacy-строку с помещением: id строки не меняем (линки TF живы). */
   async function linkRow(rowId: string, room: { id: string; name: string }) {
+    const current = configRef.current;
     await patchConfig({
-      ...normalized,
-      rows: normalized.rows.map((r) =>
+      ...current,
+      rows: current.rows.map((r) =>
         r.id === rowId ? { ...r, roomId: room.id, roomName: room.name } : r,
       ),
     });
@@ -983,19 +988,20 @@ export function SanitationDayDocumentClient({
         return;
       }
     }
+    const current = configRef.current;
     if (!value.id) {
       const nextRow = createEmptySanitationRow(value.name);
       nextRow.plan = value.plan;
       await patchConfig({
-        ...normalized,
-        rows: [...normalized.rows, nextRow],
+        ...current,
+        rows: [...current.rows, nextRow],
       });
       return;
     }
 
     await patchConfig({
-      ...normalized,
-      rows: normalized.rows.map((row) =>
+      ...current,
+      rows: current.rows.map((row) =>
         row.id === value.id ? { ...row, roomName: value.name } : row,
       ),
     });
@@ -1012,9 +1018,10 @@ export function SanitationDayDocumentClient({
     if (!confirmed) return;
 
     const rowIdSet = new Set(selectedRowIds);
+    const current = configRef.current;
     await patchConfig({
-      ...normalized,
-      rows: normalized.rows.filter((row) => !rowIdSet.has(row.id)),
+      ...current,
+      rows: current.rows.filter((row) => !rowIdSet.has(row.id)),
     });
   }
 
@@ -1140,14 +1147,18 @@ export function SanitationDayDocumentClient({
         {mobileView === "cards" ? (
             <RecordCardsView
               items={normalized.rows.map((row, index) => {
-                const planSummary = SANITATION_MONTHS.map((m) => {
-                  const v = row.plan[m.key];
-                  return v ? `${MONTH_FIELD_LABELS[m.key]}:${v}` : null;
-                }).filter(Boolean).join(" · ");
-                const factSummary = SANITATION_MONTHS.map((m) => {
-                  const v = row.fact[m.key];
-                  return v ? `${MONTH_FIELD_LABELS[m.key]}:${v}` : null;
-                }).filter(Boolean).join(" · ");
+                // Пустая ячейка месяца хранится как «-» (normalizeMonthCell),
+                // поэтому без этой проверки карточка выдавала 12 пунктов
+                // «Январь:- · Февраль:- · …».
+                const monthSummary = (months: Record<string, string>) =>
+                  SANITATION_MONTHS.map((m) => {
+                    const v = months[m.key];
+                    return v && v !== "-" ? `${MONTH_FIELD_LABELS[m.key]}:${v}` : null;
+                  })
+                    .filter(Boolean)
+                    .join(" · ");
+                const planSummary = monthSummary(row.plan);
+                const factSummary = monthSummary(row.fact);
                 return {
                   id: row.id,
                   title: `№${index + 1} · ${row.roomName || "—"}`,

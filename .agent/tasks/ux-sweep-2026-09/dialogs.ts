@@ -1,7 +1,7 @@
 // Открывает окно «Добавить» в каждом документе журнала на ширине телефона и снимает его.
 import fs from "node:fs"; import path from "node:path"; import { chromium } from "playwright";
 import { db } from "../journal-responsibles-org-2026-09/e2e/db";
-const BASE = "http://localhost:3020";
+const BASE = process.env.SWEEP_BASE ?? "http://localhost:3021";
 const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const OUT = process.env.SWEEP_OUT!; fs.mkdirSync(OUT, { recursive: true });
 const ONLY = process.env.SWEEP_ONLY ? new RegExp(process.env.SWEEP_ONLY) : null;

@@ -39,7 +39,11 @@ import { getUserPositionLabel } from "@/lib/user-roles";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -254,6 +258,9 @@ function GlassControlFormDialog(props: {
 export function GlassControlDocumentsClient(props: Props) {
   const router = useRouter();
   const routeCode = props.routeCode || props.templateCode;
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [creating, setCreating] = useState(false);
   const [editingDocument, setEditingDocument] = useState<DocumentItem | null>(null);
   const createDefaults = useJournalCreateDefaults();
@@ -348,7 +355,7 @@ export function GlassControlDocumentsClient(props: Props) {
             page="list"
             variant="button"
           />
-          {props.activeTab === "active" && (
+          {canManageDocuments && props.activeTab === "active" && (
             <Button
               type="button"
               onClick={() => setCreating(true)}
@@ -426,7 +433,7 @@ export function GlassControlDocumentsClient(props: Props) {
               <div className="flex justify-center">
                 <ResponsiveMenu
                   title="Действия"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -459,7 +466,7 @@ export function GlassControlDocumentsClient(props: Props) {
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

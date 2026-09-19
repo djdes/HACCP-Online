@@ -527,7 +527,10 @@ function RowDialog(props: {
                 <Label className="text-[15px] text-[#7a7c8e]">Наименование сырья</Label>
                 <Select value={draft.incomingRawMaterialName || "__empty__"} onValueChange={(value) => setField("incomingRawMaterialName", value === "__empty__" ? "" : value)}>
                   <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-white px-3.5 text-[18px]"><SelectValue placeholder="Выберите из списка или добавьте новое" /></SelectTrigger>
-                  <SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{Array.from(new Set(rawOptions)).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                  {/* Своё значение строки — первым: после удаления позиции
+                      из справочника Select переставал его находить и строка
+                      выглядела пустой. */}
+                  <SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{Array.from(new Set([draft.incomingRawMaterialName, ...rawOptions].filter(Boolean))).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
                 </Select>
                 <div className="flex items-center gap-2"><Input value={newRaw} onChange={(e) => setNewRaw(e.target.value)} placeholder="Добавить название нового сырья" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[16px]" /><Button type="button" onClick={() => addCustom("raw")} className="h-10 rounded-xl bg-[#5563ff] px-3.5 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
               </div>
@@ -542,7 +545,7 @@ function RowDialog(props: {
                 <Label className="text-[15px] text-[#7a7c8e]">Наименование ПФ</Label>
                 <Select value={draft.outgoingProductName || "__empty__"} onValueChange={(value) => setField("outgoingProductName", value === "__empty__" ? "" : value)}>
                   <SelectTrigger className="h-10 rounded-xl border-[#d8dae6] bg-white px-3.5 text-[18px]"><SelectValue placeholder="Выберите из списка или добавьте новое" /></SelectTrigger>
-                  <SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{Array.from(new Set(productOptions)).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+                  <SelectContent><SelectItem value="__empty__">- Выберите значение -</SelectItem>{Array.from(new Set([draft.outgoingProductName, ...productOptions].filter(Boolean))).map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
                 </Select>
                 <div className="flex items-center gap-2"><Input value={newProduct} onChange={(e) => setNewProduct(e.target.value)} placeholder="Добавить название нового ПФ" className="h-10 rounded-xl border-[#d8dae6] px-3.5 text-[16px]" /><Button type="button" onClick={() => addCustom("product")} className="h-10 rounded-xl bg-[#5563ff] px-3.5 text-white hover:bg-[#4654ff]"><Plus className="size-5" /></Button></div>
               </div>

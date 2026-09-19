@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Plus } from "lucide-react";
+import Link from "next/link";
+import { Archive, ExternalLink, FileCheck2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,10 +20,15 @@ import {
   AUDIT_REPORT_DOCUMENT_TITLE,
   createAuditReportFinding,
   createAuditReportSignature,
+  importAuditReportFindingsFromProtocol,
   normalizeAuditReportConfig,
   type AuditReportConfig,
   type AuditReportFinding,
+  type AuditReportProtocolSource,
 } from "@/lib/audit-report-document";
+import { AUDIT_PROTOCOL_TEMPLATE_CODE } from "@/lib/audit-protocol-document";
+import { ResponsiveMenu } from "@/components/ui/responsive-menu";
+import { confirmAsync } from "@/components/ui/confirm-async";
 import { DOC_PRIMARY_BUTTON_CLASS } from "@/components/journals/journal-responsive";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
@@ -37,9 +43,51 @@ type Props = {
   organizationName: string;
   status: string;
   config: unknown;
+  /**
+   * Протоколы аудита организации — источник для «Перенести
+   * несоответствия». Пусто ⇒ кнопка не показывается.
+   */
+  protocolSources?: AuditReportProtocolSource[];
   /** Design v2 toggle. */
   useV2?: boolean;
 };
+
+/**
+ * «Перенести несоответствия из протокола»: выбор протокола списком в
+ * стиле проекта (на телефоне — лист снизу), рядом — сколько «Нет» в нём.
+ */
+function ImportFromProtocolButton({
+  protocols,
+  onPick,
+}: {
+  protocols: AuditReportProtocolSource[];
+  onPick: (protocol: AuditReportProtocolSource) => void;
+}) {
+  const withFindings = protocols.filter((item) => item.rows.length > 0);
+  if (withFindings.length === 0) return null;
+  return (
+    <ResponsiveMenu
+      title="Из какого протокола перенести"
+      contentClassName="w-[360px] rounded-[22px] border-0 p-3 shadow-xl"
+      items={withFindings.map((protocol) => ({
+        key: protocol.documentId,
+        label: `${protocol.title} · несоответствий: ${protocol.rows.length}`,
+        icon: <FileCheck2 className="size-4 text-[#6f7282]" />,
+        onSelect: () => onPick(protocol),
+      }))}
+      trigger={
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 rounded-xl border-[#dcdfed] px-4 text-[14px] font-medium text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        >
+          <FileCheck2 className="size-4 text-[#5566f6]" />
+          Перенести несоответствия из протокола
+        </Button>
+      }
+    />
+  );
+}
 
 function FindingDialog({
   open,
@@ -91,6 +139,7 @@ export function AuditReportDocumentClient({
   organizationName,
   status,
   config: initialConfig,
+  protocolSources = [],
   useV2 = false,
 }: Props) {
   const router = useRouter();
@@ -135,6 +184,41 @@ export function AuditReportDocumentClient({
       : [...config.findings, finding];
     await persist(documentTitle, { ...config, findings });
     setEditingFinding(null);
+  }
+
+  /**
+   * Перенос несоответствий из протокола. Копия: текст живёт в отчёте
+   * дальше сам по себе, повторный перенос дублей не создаёт.
+   */
+  async function importFromProtocol(protocol: AuditReportProtocolSource) {
+    const preview = importAuditReportFindingsFromProtocol(config, protocol);
+    if (preview.added === 0) {
+      toast.info("Все несоответствия этого протокола уже перенесены");
+      return;
+    }
+
+    const ok = await confirmAsync({
+      title: "Перенести несоответствия?",
+      description: `Протокол: «${protocol.title}».`,
+      variant: "info",
+      confirmLabel: "Перенести",
+      bullets: [
+        { label: `Добавится несоответствий: ${preview.added}`, tone: "info" },
+        ...(preview.skipped > 0
+          ? [{ label: `Уже перенесено ранее: ${preview.skipped}`, tone: "info" as const }]
+          : []),
+        { label: "Переносятся только строки с результатом «Нет»" },
+        { label: "Это копия: правка протокола задним числом отчёт не изменит" },
+      ],
+    });
+    if (!ok) return;
+
+    try {
+      await persist(documentTitle, preview.config);
+      toast.success(`Перенесено несоответствий: ${preview.added}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
+    }
   }
 
   async function deleteFinding(findingId: string) {
@@ -193,6 +277,19 @@ export function AuditReportDocumentClient({
             <div><span className="font-semibold">Объект аудита:</span> {config.auditedObject}</div>
             <div><span className="font-semibold">Тип проверки:</span> {config.auditType === "planned" ? "Плановая" : "Внеплановая"}</div>
             <div><span className="font-semibold">Аудиторы:</span> {config.auditors.join(", ")}</div>
+            {/* Откуда взяты несоответствия — ссылка в сам протокол. */}
+            {config.sourceProtocolDocumentId ? (
+              <div>
+                <span className="font-semibold">По протоколу:</span>{" "}
+                <Link
+                  href={`/journals/${AUDIT_PROTOCOL_TEMPLATE_CODE}/documents/${config.sourceProtocolDocumentId}`}
+                  className="inline-flex items-center gap-1 text-[#5566f6] underline-offset-2 transition-colors duration-150 hover:text-[#4a5bf0] hover:underline print:text-black print:no-underline"
+                >
+                  {config.sourceProtocolTitle || "протокол аудита"}
+                  <ExternalLink className="size-4 print:hidden" />
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -205,11 +302,15 @@ export function AuditReportDocumentClient({
           </div>
 
           {status === "active" && (
-            <div className="print:hidden">
+            <div className="flex flex-wrap gap-3 print:hidden">
               <Button type="button" onClick={() => { setEditingFinding(null); setFindingOpen(true); }} className={DOC_PRIMARY_BUTTON_CLASS}>
                 <Plus className="size-5" />
                 Добавить несоответствие
               </Button>
+              <ImportFromProtocolButton
+                protocols={protocolSources}
+                onPick={(protocol) => void importFromProtocol(protocol)}
+              />
             </div>
           )}
 

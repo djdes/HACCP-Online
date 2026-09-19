@@ -48,7 +48,11 @@ import {
 import { openDocumentPdf } from "@/lib/open-document-pdf";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -337,6 +341,9 @@ export function AuditPlanDocumentsClient({
 }: Props) {
   const router = useRouter();
   const [settingsTarget, setSettingsTarget] = useState<AuditPlanDocumentItem | null>(null);
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<AuditPlanDocumentItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AuditPlanDocumentItem | null>(null);
@@ -480,7 +487,7 @@ export function AuditPlanDocumentsClient({
             page="list"
             variant="button"
           />
-          {activeTab === "active" && (
+          {canManageDocuments && activeTab === "active" && (
             <Button
               className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff] sm:w-auto"
               onClick={() => setCreateOpen(true)}
@@ -556,7 +563,7 @@ export function AuditPlanDocumentsClient({
                 <ResponsiveMenu
                   title="Действия с документом"
                   contentClassName="w-[320px] rounded-[28px] border-0 p-5 shadow-xl"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -611,7 +618,7 @@ export function AuditPlanDocumentsClient({
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

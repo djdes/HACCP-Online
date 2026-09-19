@@ -42,7 +42,11 @@ import {
 import { getHygienePositionLabel } from "@/lib/hygiene-document";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -392,6 +396,9 @@ export function PpeIssuanceDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsTarget, setSettingsTarget] = useState<DocumentItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DocumentItem | null>(null);
@@ -485,7 +492,7 @@ export function PpeIssuanceDocumentsClient({
             page="list"
             variant="button"
           />
-          {activeTab === "active" && (
+          {canManageDocuments && activeTab === "active" && (
             <Button
               className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff] sm:w-auto"
               onClick={() => setCreateOpen(true)}
@@ -548,7 +555,7 @@ export function PpeIssuanceDocumentsClient({
               <div className="flex justify-center">
                 <ResponsiveMenu
                   title="Действия"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -577,7 +584,7 @@ export function PpeIssuanceDocumentsClient({
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

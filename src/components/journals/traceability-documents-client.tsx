@@ -26,7 +26,11 @@ import { cn } from "@/lib/utils";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -260,11 +264,13 @@ function TraceabilityActionsMenu(props: {
   onArchiveToggle: () => void;
 }) {
   const isActive = props.document.status === "active";
+  // Настройки / закрытие / удаление API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
 
   return (
     <ResponsiveMenu
       title="Действия"
-      items={[
+      items={filterManageMenuItems([
         {
           key: "settings",
           label: "Настройки",
@@ -297,7 +303,7 @@ function TraceabilityActionsMenu(props: {
           tone: "danger" as const,
           onSelect: props.onDelete,
         },
-      ]}
+      ], canManageDocuments)}
       trigger={
         <button
           type="button"
@@ -317,6 +323,8 @@ export function TraceabilityDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Создание документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState<TraceabilityDocumentItem | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<TraceabilityDocumentItem | null>(null);
@@ -450,7 +458,7 @@ export function TraceabilityDocumentsClient({
             </Link>
           </div>
         </div>
-        {activeTab === "active" && (
+        {canManageDocuments && activeTab === "active" && (
           <Button
             type="button"
             onClick={() => setCreateOpen(true)}

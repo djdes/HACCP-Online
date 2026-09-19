@@ -115,6 +115,8 @@ export const breakdownHistoryAdapter: JournalAdapter = {
       startDate: todayKey,
       startHour: String(new Date().getHours()).padStart(2, "0"),
       startMinute: String(new Date().getMinutes()).padStart(2, "0"),
+      // Задача из TF приходит текстом — со справочником не связана.
+      sourceEquipmentId: null,
       equipmentName: typeof values?.equipmentName === "string" ? values.equipmentName : "",
       breakdownDescription: typeof values?.breakdownDescription === "string" ? values.breakdownDescription : "",
       repairPerformed: typeof values?.repairPerformed === "string" ? values.repairPerformed : "",

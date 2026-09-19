@@ -21,7 +21,11 @@ import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -176,6 +180,9 @@ export function AuditProtocolDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
   const [deleteDocument, setDeleteDocument] = useState<DocumentItem | null>(null);
@@ -295,7 +302,7 @@ export function AuditProtocolDocumentsClient({
               page="list"
               variant="button"
             />
-            {activeTab === "active" && (
+            {canManageDocuments && activeTab === "active" && (
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
@@ -340,7 +347,7 @@ export function AuditProtocolDocumentsClient({
                   <ResponsiveMenu
                     title="Действия с документом"
                     contentClassName="w-[290px] rounded-[24px] border-0 p-4 shadow-xl"
-                    items={[
+                    items={filterManageMenuItems([
                       ...(document.status === "active"
                         ? [
                             {
@@ -381,7 +388,7 @@ export function AuditProtocolDocumentsClient({
                             },
                           ]
                         : []),
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button type="button" className="flex size-9 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]">
                         <Ellipsis className="size-6" />

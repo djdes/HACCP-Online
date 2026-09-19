@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Plus, Trash2, X } from "lucide-react";
+import { Archive, ListPlus, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,6 +32,12 @@ import {
   calculateNextCalibrationDate,
   isCalibrationOverdue,
 } from "@/lib/equipment-calibration-document";
+import {
+  getMissingDirectoryEquipment,
+  resolveEquipmentRowName,
+  type EquipmentDirectoryOption,
+} from "@/lib/equipment-directory-link";
+import { EquipmentDirectoryField } from "@/components/journals/equipment-directory-field";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
@@ -62,6 +68,8 @@ type Props = {
   status: string;
   initialConfig: EquipmentCalibrationConfig;
   users: { id: string; name: string; role: string }[];
+  /** Справочник «Оборудование» организации — источник имён для строк. */
+  equipmentDirectory?: EquipmentDirectoryOption[];
   /** Design v2 toggle. */
   useV2?: boolean;
 };
@@ -76,6 +84,7 @@ export function EquipmentCalibrationDocumentClient({
   status,
   initialConfig,
   users,
+  equipmentDirectory = [],
   useV2 = false,
 }: Props) {
   const router = useRouter();
@@ -115,6 +124,9 @@ export function EquipmentCalibrationDocumentClient({
   });
 
   // Add row draft state
+  const [draftSourceEquipmentId, setDraftSourceEquipmentId] = useState<
+    string | null
+  >(null);
   const [draftName, setDraftName] = useState("");
   const [draftNumber, setDraftNumber] = useState("");
   const [draftLocation, setDraftLocation] = useState("");
@@ -125,6 +137,9 @@ export function EquipmentCalibrationDocumentClient({
   const [draftNote, setDraftNote] = useState("");
 
   // Edit row draft state
+  const [editSourceEquipmentId, setEditSourceEquipmentId] = useState<
+    string | null
+  >(null);
   const [editName, setEditName] = useState("");
   const [editNumber, setEditNumber] = useState("");
   const [editLocation, setEditLocation] = useState("");
@@ -138,6 +153,14 @@ export function EquipmentCalibrationDocumentClient({
   const organizationLabel = organizationName || ORG_NAME_FALLBACK;
   const { mobileView, switchMobileView } = useMobileView("equipment_calibration");
   const { closeDocument, isClosing } = useDocumentCloseAction({ documentId, title });
+
+  /** Имя строки: у связанных — из справочника, у остальных — сохранённое. */
+  const rowName = (row: CalibrationRow) =>
+    resolveEquipmentRowName(row, equipmentDirectory);
+  const missingEquipment = getMissingDirectoryEquipment(
+    equipmentDirectory,
+    config.rows
+  );
 
   /**
    * Годы для селекта. Раньше список был жёстко «текущий−3…+6», и у
@@ -163,7 +186,7 @@ export function EquipmentCalibrationDocumentClient({
     );
     return {
       id: row.id,
-      title: `№${index + 1} · ${row.equipmentName || "—"}`,
+      title: `№${index + 1} · ${rowName(row) || "—"}`,
       subtitle:
         [row.equipmentNumber, row.location].filter(Boolean).join(" · ") || undefined,
       badge: overdue ? (
@@ -260,7 +283,27 @@ export function EquipmentCalibrationDocumentClient({
 
   /* ---------- add row ---------- */
 
+  /**
+   * Дописывает строки для СИ из справочника, которых в графике ещё нет.
+   * Даты поверки пустые — их проставляет человек.
+   */
+  function addMissingFromDirectory() {
+    if (missingEquipment.length === 0) return;
+    const added = missingEquipment.map((item) =>
+      createCalibrationRow({
+        sourceEquipmentId: item.id,
+        equipmentName: item.name,
+      })
+    );
+    void mutateConfig((current) => ({
+      ...current,
+      rows: [...current.rows, ...added],
+    }));
+    toast.success(`Добавлено строк из справочника: ${added.length}`);
+  }
+
   function resetDraft() {
+    setDraftSourceEquipmentId(null);
     setDraftName("");
     setDraftNumber("");
     setDraftLocation("");
@@ -273,6 +316,7 @@ export function EquipmentCalibrationDocumentClient({
 
   function saveDraftRow() {
     const newRow = createCalibrationRow({
+      sourceEquipmentId: draftSourceEquipmentId,
       equipmentName: draftName,
       equipmentNumber: draftNumber,
       location: draftLocation,
@@ -296,6 +340,7 @@ export function EquipmentCalibrationDocumentClient({
     const row = configRef.current.rows.find((r) => r.id === rowId);
     if (!row) return;
     setEditingRowId(rowId);
+    setEditSourceEquipmentId(row.sourceEquipmentId);
     setEditName(row.equipmentName);
     setEditNumber(row.equipmentNumber);
     setEditLocation(row.location);
@@ -311,6 +356,7 @@ export function EquipmentCalibrationDocumentClient({
     if (!editingRowId) return;
     const rowId = editingRowId;
     const patch = {
+      sourceEquipmentId: editSourceEquipmentId,
       equipmentName: editName,
       equipmentNumber: editNumber,
       location: editLocation,
@@ -463,17 +509,34 @@ export function EquipmentCalibrationDocumentClient({
         sheetMinWidth={1100}
         toolbar={
           !isClosed ? (
-            <Button
-              type="button"
-              className="bg-[#5566f6] hover:bg-[#4d58f5]"
-              onClick={() => {
-                resetDraft();
-                setAddModalOpen(true);
-              }}
-            >
-              <Plus className="size-4" />
-              Добавить
-            </Button>
+            <>
+              <Button
+                type="button"
+                className="bg-[#5566f6] hover:bg-[#4d58f5]"
+                onClick={() => {
+                  resetDraft();
+                  setAddModalOpen(true);
+                }}
+              >
+                <Plus className="size-4" />
+                Добавить
+              </Button>
+
+              {/* Добавленное в /settings/equipment раньше не попадало в
+                  уже созданный график поверки вообще. */}
+              {missingEquipment.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#dcdfed]"
+                  onClick={addMissingFromDirectory}
+                  title="Оборудование из справочника, которого нет в графике"
+                >
+                  <ListPlus className="size-4" />
+                  Добавить из справочника ({missingEquipment.length})
+                </Button>
+              ) : null}
+            </>
           ) : undefined
         }
       >
@@ -544,7 +607,7 @@ export function EquipmentCalibrationDocumentClient({
                   </td>
                   <td className={`${GRID_CELL_CLASS} p-2 leading-tight`}>
                     <div>
-                      {row.equipmentName}
+                      {rowName(row)}
                       {row.equipmentNumber ? `, ${row.equipmentNumber}` : ""}
                       {row.location ? `, ${row.location}` : ""}
                     </div>
@@ -638,11 +701,16 @@ export function EquipmentCalibrationDocumentClient({
             </button>
           </DialogHeader>
           <div className="space-y-4 px-7 py-6">
-            <Input
+            <EquipmentDirectoryField
+              label="Наименование, тип, заводское обозначение СИ"
               value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              placeholder="Введите наименование, тип, заводское обозначение СИ"
-              className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
+              sourceEquipmentId={draftSourceEquipmentId}
+              directory={equipmentDirectory}
+              documentId={documentId}
+              onChange={(name, sourceId) => {
+                setDraftName(name);
+                setDraftSourceEquipmentId(sourceId);
+              }}
             />
             <Input
               value={draftNumber}
@@ -719,14 +787,17 @@ export function EquipmentCalibrationDocumentClient({
             </button>
           </DialogHeader>
           <div className="space-y-4 px-7 py-6">
-            <div className="space-y-1">
-              <Label className="text-[14px] text-[#6f7282]">Наименование, тип, заводское обозначение СИ</Label>
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="h-9 rounded-xl border-[#dfe1ec] px-5 text-[16px]"
-              />
-            </div>
+            <EquipmentDirectoryField
+              label="Наименование, тип, заводское обозначение СИ"
+              value={editName}
+              sourceEquipmentId={editSourceEquipmentId}
+              directory={equipmentDirectory}
+              documentId={documentId}
+              onChange={(name, sourceId) => {
+                setEditName(name);
+                setEditSourceEquipmentId(sourceId);
+              }}
+            />
             <div className="space-y-1">
               <Label className="text-[14px] text-[#6f7282]">Номер СИ</Label>
               <Input

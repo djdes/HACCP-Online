@@ -266,6 +266,7 @@ import {
 } from "@/lib/user-roles";
 import { JournalAutoCreateToggle } from "@/components/journals/journal-auto-create-toggle";
 import { JournalCreateDefaultsProvider } from "@/components/journals/journal-create-defaults";
+import { JournalManageProvider } from "@/components/journals/document-list-ui";
 import { parseOrgColumnDefaults } from "@/lib/journal-columns";
 import { getPrimarySlotId } from "@/lib/journal-responsible-schemas";
 import { ORG_ROSTER_WHERE } from "@/lib/journal-roster";
@@ -1476,7 +1477,12 @@ export default async function JournalDocumentsPage({
           }}
         >
           <JournalCreateDefaultsProvider value={journalCreateDefaults}>
-            {children}
+            {/* Создание / настройки / удаление документов API отдаёт только
+                руководителю — у рядового сотрудника эти кнопки просто
+                исчезают, а не отбиваются 403. */}
+            <JournalManageProvider canManage={hasFullWorkspaceAccess(session.user)}>
+              {children}
+            </JournalManageProvider>
           </JournalCreateDefaultsProvider>
         </JournalToggleProvider>
       </div>

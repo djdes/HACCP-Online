@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -52,6 +55,8 @@ export function ScanJournalDocumentsClient({
   defaultResponsibleUserId,
 }: Props) {
   const router = useRouter();
+  // Создание и удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [isCreating, setIsCreating] = useState(false);
 
   async function handleCreate() {
@@ -110,7 +115,7 @@ export function ScanJournalDocumentsClient({
             page="list"
             variant="button"
           />
-          {activeTab === "active" && (
+          {canManageDocuments && activeTab === "active" && (
             <Button
               onClick={handleCreate}
               disabled={isCreating}
@@ -172,7 +177,7 @@ export function ScanJournalDocumentsClient({
                   <div className={JOURNAL_CARD_VALUE_CLASS}>{document.dateValue}</div>
                 </Link>
                 <div className="flex justify-center">
-                  {document.status === "active" && (
+                  {canManageDocuments && document.status === "active" && (
                     <button
                       type="button"
                       onClick={() => handleDelete(document)}

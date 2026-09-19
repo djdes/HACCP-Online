@@ -13,6 +13,11 @@ export type AuditReportFinding = {
   responsiblePosition: string;
   dueDatePlan: string;
   dueDateFact: string;
+  /**
+   * Строка протокола, из которой перенесено несоответствие. Нужна только
+   * чтобы повторный перенос не создал дубль — текст уже скопирован.
+   */
+  protocolRowId?: string;
 };
 
 export type AuditReportSignature = {
@@ -33,6 +38,10 @@ export type AuditReportConfig = {
   recommendations: string;
   findings: AuditReportFinding[];
   signatures: AuditReportSignature[];
+  /** Протокол аудита, из которого перенесены несоответствия (если был). */
+  sourceProtocolDocumentId?: string | null;
+  /** Название протокола на момент переноса — для подписи ссылки. */
+  sourceProtocolTitle?: string | null;
 };
 
 function createId(prefix: string) {
@@ -63,6 +72,7 @@ export function createAuditReportFinding(
     responsiblePosition: params?.responsiblePosition || "",
     dueDatePlan: params?.dueDatePlan || localDayKey(),
     dueDateFact: params?.dueDateFact || "",
+    ...(params?.protocolRowId ? { protocolRowId: params.protocolRowId } : {}),
   };
 }
 
@@ -110,7 +120,9 @@ function normalizeFindings(value: unknown, fallback: AuditReportFinding[]) {
     .map((item, index) => {
       if (!item || typeof item !== "object" || Array.isArray(item)) return null;
       const source = item as Record<string, unknown>;
+      const protocolRowId = safeText(source.protocolRowId);
       return {
+        ...(protocolRowId ? { protocolRowId } : {}),
         id: safeText(source.id, `finding-${index + 1}`),
         nonConformity: safeText(source.nonConformity),
         correctionActions: safeText(source.correctionActions),
@@ -157,5 +169,65 @@ export function normalizeAuditReportConfig(value: unknown): AuditReportConfig {
     recommendations: safeText(source.recommendations, fallback.recommendations),
     findings: normalizeFindings(source.findings, fallback.findings),
     signatures: normalizeSignatures(source.signatures, fallback.signatures),
+    sourceProtocolDocumentId: safeText(source.sourceProtocolDocumentId) || null,
+    sourceProtocolTitle: safeText(source.sourceProtocolTitle) || null,
+  };
+}
+
+/** Протокол аудита в том виде, в каком из него переносят несоответствия. */
+export type AuditReportProtocolSource = {
+  documentId: string;
+  title: string;
+  /** Только строки с результатом «Нет» — они и есть несоответствия. */
+  rows: { id: string; text: string; note: string }[];
+};
+
+/**
+ * Переносит в отчёт несоответствия из протокола: строки с «Нет».
+ *
+ * ПОЧЕМУ копия: отчёт подписывают и по нему ведут корректирующие
+ * действия. Перенесённый текст живёт дальше сам по себе, а `protocolRowId`
+ * нужен только чтобы повторное нажатие не наплодило дублей.
+ */
+export function importAuditReportFindingsFromProtocol(
+  config: AuditReportConfig,
+  protocol: AuditReportProtocolSource
+): { config: AuditReportConfig; added: number; skipped: number } {
+  const used = new Set(
+    config.findings
+      .map((finding) => finding.protocolRowId)
+      .filter((id): id is string => Boolean(id))
+  );
+  const findings = [...config.findings];
+  let added = 0;
+  let skipped = 0;
+
+  for (const row of protocol.rows) {
+    const text = row.text.trim();
+    const note = row.note.trim();
+    if (!text && !note) continue;
+    if (used.has(row.id)) {
+      skipped += 1;
+      continue;
+    }
+    findings.push(
+      createAuditReportFinding({
+        nonConformity: note ? `${text}\nПримечание: ${note}` : text,
+        protocolRowId: row.id,
+      })
+    );
+    used.add(row.id);
+    added += 1;
+  }
+
+  return {
+    config: {
+      ...config,
+      findings,
+      sourceProtocolDocumentId: protocol.documentId,
+      sourceProtocolTitle: protocol.title,
+    },
+    added,
+    skipped,
   };
 }

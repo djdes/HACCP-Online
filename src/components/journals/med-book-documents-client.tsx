@@ -30,6 +30,8 @@ import {
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import { getJournalDocumentHeading } from "@/lib/journal-document-helpers";
@@ -191,6 +193,8 @@ export function MedBookDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Настройки / удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [settingsDoc, setSettingsDoc] = useState<MedBookListDocument | null>(null);
   // Единый источник delete / status / pdf для журнальных документов.
   const { deleteDocument, setStatus, openPdf, isDeleting, isChangingStatus } =
@@ -263,7 +267,7 @@ export function MedBookDocumentsClient({
                 <div className="justify-self-end">
                   <ResponsiveMenu
                     title="Действия"
-                    items={[
+                    items={filterManageMenuItems([
                       {
                         key: "open",
                         label: "Открыть",
@@ -308,7 +312,7 @@ export function MedBookDocumentsClient({
                           void handleDelete(document);
                         },
                       },
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button
                         type="button"

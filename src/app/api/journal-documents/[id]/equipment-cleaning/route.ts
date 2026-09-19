@@ -5,6 +5,7 @@ import { getActiveOrgId } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import {
   EQUIPMENT_CLEANING_TEMPLATE_CODE,
+  getEquipmentCleaningEntryDateBounds,
   normalizeEquipmentCleaningRowData,
 } from "@/lib/equipment-cleaning-document";
 import { isManagementRole } from "@/lib/user-roles";
@@ -48,6 +49,40 @@ function normalizeEntry(entry: {
   };
 }
 
+/**
+ * Дата мойки: с начала года документа по сегодня (пояс организации).
+ * Проверка общая для POST и PATCH — раньше PATCH не проверял дату вовсе
+ * и через правку строки в журнал заезжало будущее.
+ */
+async function checkWashDate(
+  washDate: string,
+  documentDateFrom: Date,
+  organizationId: string
+) {
+  const organization = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: { timezone: true },
+  });
+  const todayKey = orgTodayKey(organization?.timezone ?? "Europe/Moscow");
+  const { min, max } = getEquipmentCleaningEntryDateBounds(
+    documentDateFrom.toISOString().slice(0, 10),
+    todayKey
+  );
+  if (washDate > max) {
+    return NextResponse.json(
+      { error: "Дата мойки не может быть в будущем" },
+      { status: 400 }
+    );
+  }
+  if (washDate < min) {
+    return NextResponse.json(
+      { error: `Дата мойки не может быть раньше ${min.split("-").reverse().join(".")}` },
+      { status: 400 }
+    );
+  }
+  return null;
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -85,26 +120,12 @@ export async function POST(
     return NextResponse.json({ error: "Укажите дату мойки" }, { status: 400 });
   }
 
-  // Дата — в периоде документа и не в будущем (по зоне организации).
-  const organization = await db.organization.findUnique({
-    where: { id: getActiveOrgId(session) },
-    select: { timezone: true },
-  });
-  const todayKey = orgTodayKey(organization?.timezone ?? "Europe/Moscow");
-  if (data.washDate > todayKey) {
-    return NextResponse.json(
-      { error: "Дата мойки не может быть в будущем" },
-      { status: 400 }
-    );
-  }
-  const periodFrom = document.dateFrom.toISOString().slice(0, 10);
-  const periodTo = document.dateTo.toISOString().slice(0, 10);
-  if (data.washDate < periodFrom || data.washDate > periodTo) {
-    return NextResponse.json(
-      { error: `Дата мойки должна быть в периоде документа (${periodFrom} — ${periodTo})` },
-      { status: 400 }
-    );
-  }
+  const dateError = await checkWashDate(
+    data.washDate,
+    document.dateFrom,
+    getActiveOrgId(session)
+  );
+  if (dateError) return dateError;
 
   const employeeId =
     data.washerUserId || data.controllerUserId || document.createdById || null;
@@ -182,6 +203,16 @@ export async function PATCH(
   }
 
   const data = normalizeEquipmentCleaningRowData(body.data);
+  if (!data.washDate) {
+    return NextResponse.json({ error: "Укажите дату мойки" }, { status: 400 });
+  }
+  const dateError = await checkWashDate(
+    data.washDate,
+    document.dateFrom,
+    getActiveOrgId(session)
+  );
+  if (dateError) return dateError;
+
   const employeeId =
     data.washerUserId || data.controllerUserId || document.createdById || null;
   if (!employeeId) {

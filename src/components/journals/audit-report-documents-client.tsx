@@ -21,7 +21,11 @@ import { openDocumentPdf } from "@/lib/open-document-pdf";
 import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -151,6 +155,9 @@ function SettingsDialog({
 
 export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
   const [deleteDocument, setDeleteDocument] = useState<DocumentItem | null>(null);
@@ -242,7 +249,7 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
               page="list"
               variant="button"
             />
-            {activeTab === "active" && (
+            {canManageDocuments && activeTab === "active" && (
               <Button type="button" onClick={() => setCreateOpen(true)} className="h-12 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto">
                 <Plus className="size-4" />Создать документ
               </Button>
@@ -277,7 +284,7 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
                   <ResponsiveMenu
                     title="Действия с документом"
                     contentClassName="w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
-                    items={[
+                    items={filterManageMenuItems([
                       ...(document.status === "active"
                         ? [
                             {
@@ -308,7 +315,7 @@ export function AuditReportDocumentsClient({ activeTab, routeCode, documents }: 
                             },
                           ]
                         : []),
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button type="button" className="flex size-9 items-center justify-center rounded-full text-[#5566f6] hover:bg-[#f5f6ff]">
                         <Ellipsis className="size-6" />

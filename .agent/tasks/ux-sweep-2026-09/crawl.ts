@@ -1,7 +1,7 @@
 // UX-sweep: обходит сайт на ширине телефона и собирает технические признаки проблем.
 import fs from "node:fs"; import path from "node:path"; import { chromium, type Page } from "playwright";
 import { db } from "../journal-responsibles-org-2026-09/e2e/db";
-const BASE = "http://localhost:3020";
+const BASE = process.env.SWEEP_BASE ?? "http://localhost:3021";
 const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const OUT = process.env.SWEEP_OUT!; const ROLE = process.env.SWEEP_ROLE ?? "managerA"; const W = Number(process.env.SWEEP_W ?? 390);
 const ONLY = process.env.SWEEP_ONLY ? new RegExp(process.env.SWEEP_ONLY) : null;

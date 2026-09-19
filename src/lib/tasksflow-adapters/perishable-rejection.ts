@@ -230,6 +230,7 @@ export const perishableRejectionAdapter: JournalAdapter = {
       organolepticResult,
       storageCondition: "2_6",
       expiryDate: "",
+      expiryTime: "",
       actualSaleDate: "",
       actualSaleTime: "",
       responsiblePerson: employee?.name ?? "",

@@ -50,6 +50,8 @@ import {
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
@@ -243,6 +245,8 @@ export function DisinfectantDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Настройки / удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [settingsTarget, setSettingsTarget] =
     useState<DisinfectantDocumentItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -407,7 +411,7 @@ export function DisinfectantDocumentsClient({
                 </div>
                 <ResponsiveMenu
                   title="Действия"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -452,7 +456,7 @@ export function DisinfectantDocumentsClient({
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

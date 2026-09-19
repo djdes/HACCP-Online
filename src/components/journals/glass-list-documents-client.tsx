@@ -33,7 +33,11 @@ import {
 } from "@/lib/glass-list-document";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -292,6 +296,9 @@ export function GlassListDocumentsClient(props: Props) {
   const router = useRouter();
   const routeCode = props.routeCode || props.templateCode;
   const defaultFormState = useMemo(() => getDefaultFormState(props.users), [props.users]);
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
   const [archiveDocument, setArchiveDocument] = useState<DocumentItem | null>(null);
@@ -443,7 +450,7 @@ export function GlassListDocumentsClient(props: Props) {
           </h1>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <FillGuideLauncher code="glass_items_list" page="list" variant="button" />
-          {props.activeTab === "active" && (
+          {canManageDocuments && props.activeTab === "active" && (
             <Button
               type="button"
               onClick={() => setCreateOpen(true)}
@@ -524,7 +531,7 @@ export function GlassListDocumentsClient(props: Props) {
                 <div className="flex justify-end">
                   <ResponsiveMenu
                     title="Действия"
-                    items={[
+                    items={filterManageMenuItems([
                       {
                         key: "settings",
                         label: "Настройки",
@@ -561,7 +568,7 @@ export function GlassListDocumentsClient(props: Props) {
                         tone: "danger" as const,
                         onSelect: () => setDeleteDocument(document),
                       },
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button
                         type="button"

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, ChevronDown, MousePointerSquareDashed, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus } from "lucide-react";
+import { Archive, ChevronDown, ChevronLeft, ChevronRight, MousePointerSquareDashed, Pencil, Plus, RefreshCw, Save, Sparkles, Trash2, UserPlus } from "lucide-react";
 import { ResponsiveMenu } from "@/components/ui/responsive-menu";
 import { confirmAsync } from "@/components/ui/confirm-async";
 import {
@@ -51,7 +51,10 @@ import {
   getCleaningPeriodLabel,
   isAutoSignatureValue,
   CLEANING_ROW_LABELS,
+  buildCleaningSignatureResolver,
+  cleaningSignatureRef,
   listCleaningCodeEntries,
+  listControlCodeEntries,
   listCleaningRoomCompletions,
   markAutoSignature,
   normalizeCleaningDocumentConfig,
@@ -59,7 +62,6 @@ import {
   resolveRoomCleaners,
   resolveRoomControllers,
   setCleaningMatrixValue,
-  stripAutoSignatureMarker,
   toggleCleaningMatrixValue,
   type CleaningDocumentConfig,
   type CleaningMatrixValue,
@@ -253,6 +255,12 @@ const CLEANING_VALUE_LABELS: Record<string, string> = {
   G: "Генеральная уборка",
   "/": "Уборка не проводилась",
 };
+
+/**
+ * Пометка выбывшего в легенде: его подписи в журнале остались, а новые
+ * на него уже не ставятся — менеджеру видно, почему он ещё в списке.
+ */
+const RETIRED_LEGEND_SUFFIX = " · в архиве";
 
 /** «2026-08-10» → «10 августа» для aria-label. */
 function formatDayAriaLabel(dateKey: string): string {
@@ -715,6 +723,22 @@ export function CleaningDocumentClient(props: Props) {
   const dayKeys = useMemo(() => buildDateKeys(props.dateFrom, props.dateTo), [props.dateFrom, props.dateTo]);
 
   /**
+   * Дни, за которые на телефоне можно подписаться: период документа без
+   * будущего — подпись «вперёд» ставить нечем, уборки ещё не было.
+   */
+  const signatureDayKeys = useMemo(() => {
+    const untilToday = dayKeys.filter((key) => key <= todayKey);
+    return untilToday.length > 0 ? untilToday : dayKeys;
+  }, [dayKeys, todayKey]);
+  const [signatureDay, setSignatureDay] = useState<string | null>(null);
+  // Выбранный день переживает смену периода: невалидный откатывается на
+  // последний доступный (обычно сегодня).
+  const signatureDayKey =
+    signatureDay && signatureDayKeys.includes(signatureDay)
+      ? signatureDay
+      : (signatureDayKeys[signatureDayKeys.length - 1] ?? "");
+
+  /**
    * Минимальная ширина сетки уборки (P8).
    *
    * Раньше стояло жёсткое `sm:min-w-[1200px]` при бумажном полотне 1150px:
@@ -831,29 +855,66 @@ export function CleaningDocumentClient(props: Props) {
   // МОЖЕТ быть и в «Ответственный за уборку», и в «Ответственный за
   // контроль» одновременно (раньше дедупили — пользователь жаловался,
   // что «Ярослав в контроле, но не в уборке» — теперь разрешено).
-  const cleaningResponsibleList = useMemo<CleaningResponsible[]>(() => {
+  const cleaningCodeEntries = useMemo(() => {
     // Единый источник с PDF/адаптером (listCleaningCodeEntries).
     const names = new Map(props.users.map((u) => [u.id, u.name]));
-    return listCleaningCodeEntries(effectiveConfig, names).map((r) => ({
-      id: r.id,
-      kind: "cleaning" as const,
-      code: r.code,
-      title: r.title,
-      userId: r.userId,
-      userName: r.userName,
-    }));
+    return listCleaningCodeEntries(effectiveConfig, names);
   }, [effectiveConfig, props.users]);
+  const cleaningResponsibleList = useMemo<CleaningResponsible[]>(
+    () =>
+      cleaningCodeEntries.map((r) => ({
+        id: r.id,
+        kind: "cleaning" as const,
+        code: r.code,
+        title: r.title,
+        userId: r.userId,
+        userName: r.userName,
+      })),
+    [cleaningCodeEntries],
+  );
 
   // Контролёры — С1, С2, ... СM (independent numbering от cleaning-list).
   // Каждая строка («Ответственный за уборку» и «Ответственный за контроль»)
   // имеет собственное С-нумерование от С1 — они логически независимые
   // списки, объединённая нумерация запутывала менеджера.
-  const controlResponsibleList = useMemo<CleaningResponsible[]>(() => {
-    return config.controlResponsibles.map((resp, idx) => ({
-      ...resp,
-      code: `С${idx + 1}`,
-    }));
-  }, [config.controlResponsibles]);
+  const controlCodeEntries = useMemo(() => {
+    const names = new Map(props.users.map((u) => [u.id, u.name]));
+    return listControlCodeEntries(config, names);
+  }, [config, props.users]);
+  const controlResponsibleList = useMemo<CleaningResponsible[]>(
+    () =>
+      controlCodeEntries.map((r) => ({
+        id: r.id,
+        kind: "control" as const,
+        code: r.code,
+        title: r.title,
+        userId: r.userId,
+        userName: r.userName,
+      })),
+    [controlCodeEntries],
+  );
+
+  // Коды, которые предлагает клик по ячейке подписи: выбывшие в цикл не
+  // попадают — на них можно только смотреть в уже стоящих подписях.
+  const activeCleaningCodes = useMemo(
+    () => cleaningCodeEntries.filter((r) => !r.retired).map((r) => r.code),
+    [cleaningCodeEntries],
+  );
+  const activeControlCodes = useMemo(
+    () => controlCodeEntries.filter((r) => !r.retired).map((r) => r.code),
+    [controlCodeEntries],
+  );
+
+  // Единый резолвер подписей: и чтение, и запись ячеек строк подписей идут
+  // только через него (в matrix лежит `uid:<userId>`, код «СN» — отображение).
+  const cleaningSignatures = useMemo(
+    () => buildCleaningSignatureResolver(cleaningResponsibleList),
+    [cleaningResponsibleList],
+  );
+  const controlSignatures = useMemo(
+    () => buildCleaningSignatureResolver(controlResponsibleList),
+    [controlResponsibleList],
+  );
 
   const rows = useMemo<RowDescriptor[]>(() => {
     // Cleaning unification 2026-05-08+: помещения ВСЕГДА из Buildings
@@ -961,22 +1022,12 @@ export function CleaningDocumentClient(props: Props) {
   //      (раньше через cellValue, но cellValue для room-rows больше не
   //      возвращает С-коды — только Т/Г/«/», см. cellValue выше).
   function cleaningCodeForDay(dateKey: string): string {
-    const stored = config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey];
-    // Автоподпись хранится как «auto:С1» — снимаем маркер, дальше
-    // логика та же, что для ручной подписи (включая stale-фильтр).
-    const manual = stored === undefined ? undefined : stripAutoSignatureMarker(stored);
-    if (manual !== undefined) {
-      // Пустая строка ИЛИ sentinel «—» = явная очистка владельца —
-      // пропускаем дальше (signature row не должна светить sentinel,
-      // но safety-net на случай миграции).
-      if (manual === "" || manual === "—") return "";
-      const parts = manual.split(",").map((s) => s.trim()).filter(Boolean);
-      const validParts = parts.filter(
-        (p) => p !== "—" && (!/^С\d+$/.test(p) || validCleaningCodes.has(p)),
-      );
-      if (validParts.length > 0) return validParts.join(",");
-      // Все коды устарели — fallthrough to computed.
-    }
+    // Резолвер снимает маркер «auto:», понимает «uid:<id>» и легаси «СN»
+    // и возвращает "" на явную очистку, null — когда подписи нет.
+    const manual = cleaningSignatures.readManual(
+      config.matrix[CLEANING_SIGNATURE_ROW_ID]?.[dateKey],
+    );
+    if (manual !== null) return manual;
     const codes = new Set<string>();
     for (const e of props.initialEntries) {
       for (const c of listCleaningRoomCompletions(e.data)) {
@@ -993,21 +1044,10 @@ export function CleaningDocumentClient(props: Props) {
   //   2. Иначе: коды контролёров (К1/К2) в дни где была хоть одна реальная
   //      completion в комнатах. Без completions — пусто (нечего проверять).
   function controlCodeForDay(dateKey: string): string {
-    const stored = config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey];
-    const manual = stored === undefined ? undefined : stripAutoSignatureMarker(stored);
-    if (manual !== undefined) {
-      // Пустая строка ИЛИ sentinel «—» = явная очистка владельца.
-      if (manual === "" || manual === "—") return "";
-      // Stale-codes filter (по спеке F.3): если manual содержит С-код,
-      // которого нет в текущем validControlCodes — отбрасываем. Поддержка
-      // multi-controller через split по запятой.
-      const parts = manual.split(",").map((s) => s.trim()).filter(Boolean);
-      const validParts = parts.filter(
-        (p) => p !== "—" && (!/^С\d+$/.test(p) || validControlCodes.has(p)),
-      );
-      if (validParts.length > 0) return validParts.join(",");
-      // Все коды устарели — fallthrough to computed.
-    }
+    const manual = controlSignatures.readManual(
+      config.matrix[CONTROL_SIGNATURE_ROW_ID]?.[dateKey],
+    );
+    if (manual !== null) return manual;
     if (controlResponsibleList.length === 0) return "";
     // Computed: если хоть одна completion в этот день — считаем что
     // контролёр(ы) проверили. Без completions — нечего проверять, пусто.
@@ -1024,6 +1064,35 @@ export function CleaningDocumentClient(props: Props) {
   // computed-fallback (cleaningCodeForDay из completions) показывает код,
   // менеджер не может «очистить» клетку — она всегда возвращалась к
   // computed. Sentinel явно подавляет fallback.
+  /**
+   * Запись подписи в matrix: единственное место, где решается что уходит
+   * в сторадж. `next` — код «СN», sentinel «—» (видимо пусто, подавляет
+   * computed) или "" (удалить override). Отсюда пишут и клетка таблицы,
+   * и блок «Подписи за день» на телефоне — правила одни на оба.
+   */
+  async function writeSignature(rowId: string, dateKey: string, next: string) {
+    if (props.status !== "active" || saving) return;
+    const nextRowMap = { ...(config.matrix[rowId] ?? {}) };
+    if (next === "—") {
+      nextRowMap[dateKey] = "—";
+    } else if (next === "") {
+      delete nextRowMap[dateKey];
+    } else {
+      // В matrix уходит стабильная ссылка на сотрудника, а не код «СN»:
+      // код зависит от состава, а подпись должна остаться его подписью.
+      const resolver =
+        rowId === CLEANING_SIGNATURE_ROW_ID ? cleaningSignatures : controlSignatures;
+      const userId = resolver.userIdOf(next);
+      nextRowMap[dateKey] = userId ? cleaningSignatureRef(userId) : next;
+    }
+    // Пишем БЕЗ auto-маркера: подпись, которую менеджер поставил
+    // кликом, считается ручной и автоснятием больше не трогается.
+    await patchCellsWithUndo({
+      ...config,
+      matrix: { ...config.matrix, [rowId]: nextRowMap },
+    });
+  }
+
   async function cycleSignature(
     rowId: string,
     dateKey: string,
@@ -1062,20 +1131,7 @@ export function CleaningDocumentClient(props: Props) {
         next = codes[idx + 1];
       }
     }
-    const nextRowMap = { ...(config.matrix[rowId] ?? {}) };
-    if (next === "—") {
-      nextRowMap[dateKey] = "—";
-    } else if (next === "") {
-      delete nextRowMap[dateKey];
-    } else {
-      nextRowMap[dateKey] = next;
-    }
-    // Пишем БЕЗ auto-маркера: подпись, которую менеджер поставил
-    // кликом, считается ручной и автоснятием больше не трогается.
-    await patchCellsWithUndo({
-      ...config,
-      matrix: { ...config.matrix, [rowId]: nextRowMap },
-    });
+    await writeSignature(rowId, dateKey, next);
   }
 
   /**
@@ -1156,8 +1212,13 @@ export function CleaningDocumentClient(props: Props) {
     cfg: CleaningDocumentConfig,
     dateKeys: string[],
   ): CleaningDocumentConfig {
-    const cleaningCode = cleaningResponsibleList[0]?.code ?? "";
-    const controlCode = controlResponsibleList[0]?.code ?? "";
+    // Стабильная ссылка вместо кода «СN» — см. cycleSignature.
+    const cleaningCode = cleaningSignatureRef(
+      cleaningCodeEntries.find((r) => !r.retired)?.userId,
+    );
+    const controlCode = cleaningSignatureRef(
+      controlCodeEntries.find((r) => !r.retired)?.userId,
+    );
     const roomIds = rows.map((r) => r.id);
     if (roomIds.length === 0) return cfg;
 
@@ -1255,6 +1316,14 @@ export function CleaningDocumentClient(props: Props) {
     return m;
   }, [cleaningResponsibleList]);
 
+  // Все, кто когда-либо был уборщиком этого документа (закреплённые коды).
+  // Их закрытая TF-задача — факт: после ухода из состава отметка не должна
+  // пропадать из бланка. Чужие (контролёр, случайный юзер) сюда не попадают.
+  const knownCleanerIds = useMemo(
+    () => new Set(Object.keys(effectiveConfig.cleanerCodeByUserId ?? {})),
+    [effectiveConfig.cleanerCodeByUserId],
+  );
+
   /**
    * Подпись «кто убирает зону» под названием комнаты (rooms-mode).
    * Тот же резолвер, что у адаптера и PDF — на экране видно ровно то,
@@ -1307,20 +1376,6 @@ export function CleaningDocumentClient(props: Props) {
     [dbRoomResponsibles, roomEditor?.id],
   );
 
-  // Множество допустимых кодов уборщиков ("С1", "С2", ...). Используется
-  // как safety-net: если в matrix лежит легаси-значение "С2" (записанное
-  // когда было 2 уборщика, а сейчас остался 1), мы его НЕ отображаем —
-  // менеджер увидит пустую клетку, а не invalid С2.
-  const validCleaningCodes = useMemo(() => {
-    return new Set(cleaningResponsibleList.map((r) => r.code));
-  }, [cleaningResponsibleList]);
-
-  // Аналогично — допустимые коды контролёров ("С{N+1}", ...). Применяется
-  // в controlCodeForDay чтобы не светились stale-коды легаси-контролёров.
-  const validControlCodes = useMemo(() => {
-    return new Set(controlResponsibleList.map((r) => r.code));
-  }, [controlResponsibleList]);
-
   /**
    * Значение ячейки.
    *
@@ -1362,8 +1417,8 @@ export function CleaningDocumentClient(props: Props) {
       for (const c of listCleaningRoomCompletions(e.data)) {
         if (c.roomId !== row.id || c.dateKey !== dateKey) continue;
         const cleanerId = c.cleanerUserId;
-        if (!cleanerCodeById.has(cleanerId)) {
-          // Контролёр / бывший — не показываем фантомное «выполнено».
+        if (!cleanerCodeById.has(cleanerId) && !knownCleanerIds.has(cleanerId)) {
+          // Чужой (например, контролёр) — не показываем фантомное «выполнено».
           return "";
         }
         // Cleaner валидный. Определяем тип уборки по день-недели bitmask.
@@ -2137,6 +2192,123 @@ export function CleaningDocumentClient(props: Props) {
     </>
   );
 
+  /**
+   * «Подписи за день» — телефонный эквивалент клика по клетке строки
+   * подписи в таблице: в карточках такой клетки нет, и подписаться с
+   * телефона было нечем. Пишет тем же `writeSignature`, поэтому правила
+   * записи, блокировка на время сохранения и undo — общие с таблицей.
+   */
+  const cleaningDaySignatures = signatureDayKey ? (
+    <section className="rounded-2xl border border-[#ececf4] bg-white p-3 print:hidden">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[14px] font-medium text-[#0b1024]">Подписи за день</div>
+          <div className="text-[12px] text-[#6f7282]">
+            Кто подписал уборку и контроль
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {([-1, 1] as const).map((step) => {
+            const index = signatureDayKeys.indexOf(signatureDayKey) + step;
+            const target = signatureDayKeys[index];
+            return (
+              <button
+                key={step}
+                type="button"
+                disabled={!target}
+                aria-label={step < 0 ? "Предыдущий день" : "Следующий день"}
+                onClick={() => target && setSignatureDay(target)}
+                className="flex size-8 items-center justify-center rounded-xl border border-[#ececf4] text-[#3c4053] transition-colors hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] hover:text-[#5566f6] disabled:opacity-40 disabled:hover:border-[#ececf4] disabled:hover:bg-transparent disabled:hover:text-[#3c4053]"
+              >
+                {step < 0 ? (
+                  <ChevronLeft className="size-4" />
+                ) : (
+                  <ChevronRight className="size-4" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="mt-1 text-[13px] font-medium text-[#3848c7]">
+        {formatDayAriaLabel(signatureDayKey)}
+        {signatureDayKey === todayKey ? " · сегодня" : ""}
+      </div>
+      {[
+        {
+          rowId: CLEANING_SIGNATURE_ROW_ID,
+          label: CLEANING_ROW_LABELS.cleaning,
+          codes: cleaningCodeForDay(signatureDayKey),
+          list: cleaningResponsibleList,
+          activeCodes: activeCleaningCodes,
+        },
+        {
+          rowId: CONTROL_SIGNATURE_ROW_ID,
+          label: CLEANING_ROW_LABELS.control,
+          codes: controlCodeForDay(signatureDayKey),
+          list: controlResponsibleList,
+          activeCodes: activeControlCodes,
+        },
+      ].map((row) => {
+        const signed = row.codes
+          .split(",")
+          .map((code) => code.trim())
+          .filter(Boolean);
+        const names = signed
+          .map((code) => {
+            const resp = row.list.find((item) => item.code === code);
+            return resp?.userName ? `${code} — ${resp.userName}` : code;
+          })
+          .join(", ");
+        // Выбывшие подписывать больше нельзя — тот же список, что у клетки.
+        const options = row.list.filter((resp) => row.activeCodes.includes(resp.code));
+        const locked = props.status !== "active" || saving || options.length === 0;
+        return (
+          <div
+            key={row.rowId}
+            className="mt-2 flex items-center gap-2 rounded-xl border border-[#ececf4] bg-[#fafbff] p-2.5"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] text-[#6f7282]">{row.label}</div>
+              <div className="truncate text-[13px] font-medium text-[#0b1024]">
+                {names || "Не подписано"}
+              </div>
+            </div>
+            <ResponsiveMenu
+              title={row.label}
+              items={[
+                ...options.map((resp) => ({
+                  key: resp.id,
+                  label: `${resp.code} — ${resp.userName || "не назначен"}`,
+                  onSelect: () => {
+                    void writeSignature(row.rowId, signatureDayKey, resp.code);
+                  },
+                })),
+                {
+                  key: "clear",
+                  label: "Снять подпись",
+                  tone: "danger" as const,
+                  onSelect: () => {
+                    void writeSignature(row.rowId, signatureDayKey, "—");
+                  },
+                },
+              ]}
+              trigger={
+                <button
+                  type="button"
+                  disabled={locked}
+                  className="shrink-0 rounded-xl border border-[#5566f6]/30 bg-[#f5f6ff] px-3 py-2 text-[13px] font-medium text-[#5566f6] transition-colors hover:bg-[#eef1ff] disabled:opacity-40"
+                >
+                  {signed.length > 0 ? "Изменить" : "Подписать"}
+                </button>
+              }
+            />
+          </div>
+        );
+      })}
+    </section>
+  ) : null;
+
   return (
     <>
       <div className="space-y-5">
@@ -2300,9 +2472,19 @@ export function CleaningDocumentClient(props: Props) {
                   title: row.kind === "room" ? row.room.name : row.id,
                   subtitle:
                     row.kind === "room" ? row.room.detergent || undefined : undefined,
-                  value: before || undefined,
+                  // Карточки показывали стораджевые «T»/«G»/«/», а таблица и
+                  // легенда — «Т»/«Г»/«/-/». Один и тот же день выглядел
+                  // по-разному на телефоне и на компьютере.
+                  value: displayMatrixValue(before) || undefined,
                   disabledReason:
                     props.status === "active" ? undefined : "журнал закрыт",
+                  // Карточка помещения (расписание, уборщик, QR) — с телефона
+                  // она была доступна только из таблицы.
+                  onEdit:
+                    props.status === "active"
+                      ? () => openRoomEditorFromRow(row.id)
+                      : undefined,
+                  editLabel: "Открыть карточку помещения",
                   onPress: (event: React.MouseEvent) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -2338,6 +2520,7 @@ export function CleaningDocumentClient(props: Props) {
                 })}
               emptyLabel="Добавьте помещение через меню «Добавить»."
             />
+            <div className="mt-3">{cleaningDaySignatures}</div>
           </div>
         ) : null}
 
@@ -2386,6 +2569,28 @@ export function CleaningDocumentClient(props: Props) {
                       <span className="shrink-0 rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#5566f6]">{filledCount}/{dayKeys.length}</span>
                       <ChevronDown className={`size-4 shrink-0 text-[#6f7282] transition-transform ${expanded ? "rotate-180" : ""}`} />
                     </button>
+                    {/* Карточка помещения (расписание, уборщик, QR) с телефона:
+                        раньше это действие было только в таблице. */}
+                    {props.status === "active" ? (
+                      <button
+                        type="button"
+                        aria-label={row.kind === "room" ? "Открыть карточку помещения" : "Изменить ответственного"}
+                        title={row.kind === "room" ? "Расписание, уборщик, QR" : "Изменить ответственного"}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (row.kind === "room") {
+                            openRoomEditorFromRow(row.id);
+                          } else {
+                            setResponsibleDialog(
+                              buildResponsibleState(row.kind, row.responsible),
+                            );
+                          }
+                        }}
+                        className="shrink-0 rounded-lg p-2 text-[#7a7f93] transition-colors hover:bg-[#f5f6ff] hover:text-[#5566f6]"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+                    ) : null}
                   </div>
                   {expanded ? (
                     <div className="border-t border-[#ececf4] p-3">
@@ -2444,7 +2649,7 @@ export function CleaningDocumentClient(props: Props) {
                               className={`flex h-9 flex-col items-center justify-center rounded-lg border text-[11px] font-medium transition-colors disabled:opacity-60 select-none ${cellCls}`}
                             >
                               <span className="text-[12px] font-semibold tabular-nums">{Number(dateKey.slice(-2))}</span>
-                              <span className="text-[11px] leading-none">{cellVal || "—"}</span>
+                              <span className="text-[11px] leading-none">{displayMatrixValue(cellVal) || "—"}</span>
                             </button>
                           );
                         })}
@@ -2467,6 +2672,7 @@ export function CleaningDocumentClient(props: Props) {
                 </div>
               );
             })}
+            {cleaningDaySignatures}
             {/* Mobile: 2 группированные карточки ответственных, симметрично
                 desktop-таблице. Серый фон визуально отделяет от помещений. */}
             {cleaningResponsibleList.length > 0 ? (
@@ -2487,12 +2693,13 @@ export function CleaningDocumentClient(props: Props) {
                   {CLEANING_ROW_LABELS.cleaning}
                 </button>
                 <div className="mt-1 text-[12px] leading-[1.55] text-[#3c4053]">
-                  {cleaningResponsibleList.map((resp) => (
+                  {cleaningCodeEntries.map((resp) => (
                     <div key={resp.id}>
                       <span className="font-semibold text-[#3848c7]">
                         {resp.code}
                       </span>{" "}
                       — {resp.userName || "не назначен"}
+                      {resp.retired ? RETIRED_LEGEND_SUFFIX : ""}
                     </div>
                   ))}
                 </div>
@@ -2516,12 +2723,13 @@ export function CleaningDocumentClient(props: Props) {
                   {CLEANING_ROW_LABELS.control}
                 </button>
                 <div className="mt-1 text-[12px] leading-[1.55] text-[#3c4053]">
-                  {controlResponsibleList.map((resp) => (
+                  {controlCodeEntries.map((resp) => (
                     <div key={resp.id}>
                       <span className="font-semibold text-[#7a5cff]">
                         {resp.code}
                       </span>{" "}
                       — {resp.userName || "не назначен"}
+                      {resp.retired ? RETIRED_LEGEND_SUFFIX : ""}
                     </div>
                   ))}
                 </div>
@@ -2763,9 +2971,10 @@ export function CleaningDocumentClient(props: Props) {
                   </button>
                 </td>
                 <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
-                  {cleaningResponsibleList.map((resp) => (
+                  {cleaningCodeEntries.map((resp) => (
                     <div key={resp.id}>
                       {resp.code} - {resp.userName || "не назначен"}
+                      {resp.retired ? RETIRED_LEGEND_SUFFIX : ""}
                     </div>
                   ))}
                 </td>
@@ -2779,7 +2988,7 @@ export function CleaningDocumentClient(props: Props) {
                         : "";
                   const code = cleaningCodeForDay(dateKey);
                   const interactive = props.status === "active";
-                  const cleaningCodes = cleaningResponsibleList.map((r) => r.code);
+                  const cleaningCodes = activeCleaningCodes;
                   return (
                     <td
                       key={dateKey}
@@ -2864,9 +3073,10 @@ export function CleaningDocumentClient(props: Props) {
                   </button>
                 </td>
                 <td className={`px-2 py-1 text-[13px] leading-[1.5] text-[#3c4053] ${GRID_CELL_CLASS}`}>
-                  {controlResponsibleList.map((resp) => (
+                  {controlCodeEntries.map((resp) => (
                     <div key={resp.id}>
                       {resp.code} - {resp.userName || "не назначен"}
+                      {resp.retired ? RETIRED_LEGEND_SUFFIX : ""}
                     </div>
                   ))}
                 </td>
@@ -2880,7 +3090,7 @@ export function CleaningDocumentClient(props: Props) {
                         : "";
                   const code = controlCodeForDay(dateKey);
                   const interactive = props.status === "active";
-                  const controlCodes = controlResponsibleList.map((r) => r.code);
+                  const controlCodes = activeControlCodes;
                   return (
                     <td
                       key={dateKey}

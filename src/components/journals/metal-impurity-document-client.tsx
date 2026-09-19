@@ -1079,6 +1079,17 @@ export function MetalImpurityDocumentClient({
       { label: "Количество сырья, кг", value: row.consumedQuantityKg, hideIfEmpty: true },
       { label: "Количество примеси, г", value: row.impurityQuantityG, hideIfEmpty: true },
       { label: "Характеристика примеси", value: row.impurityCharacteristic, hideIfEmpty: true },
+      // Главная цифра журнала (норма — не более 3 мг/кг) была только в
+      // таблице и в печати: с телефона превышение было не увидеть.
+      {
+        label: "Количество в мг на 1 кг",
+        value: getMetalImpurityValuePerKg(row.impurityQuantityG, row.consumedQuantityKg),
+        hideIfEmpty: true,
+        hint:
+          Number(getMetalImpurityValuePerKg(row.impurityQuantityG, row.consumedQuantityKg)) > 3
+            ? "Превышение: норма — не более 3 мг/кг"
+            : undefined,
+      },
       { label: "Ответственный", value: row.responsibleName, hideIfEmpty: true },
     ],
     onClick: status === "active"

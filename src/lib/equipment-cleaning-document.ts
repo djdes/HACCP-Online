@@ -67,14 +67,52 @@ export function getEquipmentCleaningFieldVariantLabel(
   return EQUIPMENT_CLEANING_VARIANT_LABELS[variant];
 }
 
+/**
+ * Журнал мойки ведётся непрерывно, а не одним днём: раньше здесь было
+ * `dateFrom = dateTo = сегодня`, и сервер отвечал 400 на любую мойку
+ * задним числом. Период — годовой (см. `YEARLY_JOURNAL_CODES`
+ * в `journal-period.ts`): от сегодня до 31 декабря текущего года.
+ */
 export function getEquipmentCleaningCreatePeriodBounds() {
   const today = new Date();
   const date = today.toISOString().slice(0, 10);
 
   return {
     dateFrom: date,
-    dateTo: date,
+    dateTo: `${date.slice(0, 4)}-12-31`,
   };
+}
+
+/** Конец года документа — сюда «расширяется» вырожденный период. */
+export function getEquipmentCleaningPeriodEnd(documentDateFrom: string) {
+  return `${documentDateFrom.slice(0, 4)}-12-31`;
+}
+
+/**
+ * Границы даты мойки: с начала года документа по сегодня (по поясу
+ * организации). Нижнюю границу берём по году, а не по `dateFrom`, —
+ * иначе старые документы с `dateFrom = dateTo = дата создания` не дают
+ * внести даже вчерашнюю мойку. Верхняя — сегодня: будущее не мыли.
+ */
+export function getEquipmentCleaningEntryDateBounds(
+  documentDateFrom: string,
+  todayKey: string
+) {
+  const yearStart = `${documentDateFrom.slice(0, 4)}-01-01`;
+  const min = documentDateFrom < yearStart ? documentDateFrom : yearStart;
+  return { min, max: todayKey };
+}
+
+export function isEquipmentCleaningDateAllowed(
+  washDate: string,
+  documentDateFrom: string,
+  todayKey: string
+) {
+  const { min, max } = getEquipmentCleaningEntryDateBounds(
+    documentDateFrom,
+    todayKey
+  );
+  return washDate >= min && washDate <= max;
 }
 
 export function emptyEquipmentCleaningRow(
@@ -180,5 +218,7 @@ export function getEquipmentCleaningResultLabel(
   value: EquipmentCleaningRowData["rinseResult"]
 ) {
   if (value === "non_compliant") return "Не соответствует";
-  return "Соответствует";
+  // Незаполненное — пусто: раньше null печатался как «Соответствует».
+  if (value === "compliant") return "Соответствует";
+  return "";
 }

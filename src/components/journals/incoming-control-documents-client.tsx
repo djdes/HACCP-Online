@@ -29,6 +29,8 @@ import {
   EmptyDocumentsState,
   JournalTabs,
   JournalTopBar,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import { useJournalDocumentActions } from "@/components/journals/use-journal-document-actions";
 import {
@@ -339,6 +341,8 @@ export function IncomingControlDocumentsClient({
   availableSuppliers,
 }: Props) {
   const router = useRouter();
+  // Настройки / удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
   // Единый источник delete / pdf для журнальных документов.
@@ -545,7 +549,7 @@ export function IncomingControlDocumentsClient({
                   <ResponsiveMenu
                     title="Действия с документом"
                     contentClassName="w-[280px] rounded-[24px] border-0 p-4 shadow-xl"
-                    items={[
+                    items={filterManageMenuItems([
                       ...(document.status === "active"
                         ? [
                             {
@@ -572,7 +576,7 @@ export function IncomingControlDocumentsClient({
                             },
                           ]
                         : []),
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button
                         type="button"

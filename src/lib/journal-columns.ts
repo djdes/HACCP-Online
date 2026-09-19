@@ -228,12 +228,12 @@ export function resolveColumns(
     let hidden: boolean;
     if (column.required) {
       hidden = false;
-    } else if (
-      column.introducedWithFlag &&
-      column.legacyFlag &&
-      typeof configRecord[column.legacyFlag.key] !== "boolean"
-    ) {
-      hidden = !column.legacyFlag.defaultVisible;
+    } else if (column.introducedWithFlag && column.legacyFlag) {
+      // Флаг здесь главнее сохранённого набора колонок: у старого
+      // документа в наборе ключа нет, и «нет в hidden» там значит «не
+      // знали о колонке», а не «показывать».
+      const flag = configRecord[column.legacyFlag.key];
+      hidden = typeof flag === "boolean" ? !flag : !column.legacyFlag.defaultVisible;
     } else if (source) {
       hidden = source.hidden.includes(column.key);
     } else if (column.legacyFlag) {

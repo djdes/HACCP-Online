@@ -7,6 +7,8 @@ import {
   JournalTabs,
   JournalTopBar,
   EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
 } from "@/components/journals/document-list-ui";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -71,6 +73,8 @@ export function EquipmentCalibrationDocumentsClient({
   documents,
 }: Props) {
   const router = useRouter();
+  // Настройки / удаление документов API отдаёт только руководителю.
+  const canManageDocuments = useCanManageDocuments();
   const [editingDoc, setEditingDoc] = useState<JournalListDocument | null>(null);
   const [deleteDoc, setDeleteDoc] = useState<JournalListDocument | null>(null);
   const [archiveDoc, setArchiveDoc] = useState<JournalListDocument | null>(null);
@@ -209,7 +213,7 @@ export function EquipmentCalibrationDocumentsClient({
               </div>
               <ResponsiveMenu
                 title="Действия"
-                items={[
+                items={filterManageMenuItems([
                   ...(doc.status === "active"
                     ? [
                         {
@@ -260,7 +264,7 @@ export function EquipmentCalibrationDocumentsClient({
                         },
                       ]
                     : []),
-                ]}
+                ], canManageDocuments)}
                 trigger={
                   <button className="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
                     <Ellipsis className="size-5" />

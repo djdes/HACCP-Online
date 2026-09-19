@@ -24,7 +24,10 @@ import {
 import {
   getSanitaryDayChecklistTitle,
   normalizeSdcConfig,
-  normalizeSdcEntryData,
+  mergeSdcEntries,
+  dropSdcMarksForMissingItems,
+  resolveSdcSignerId,
+  resolveSdcSignerName,
   getItemNumber,
   type SdcConfig,
   type SdcEntryData,
@@ -126,32 +129,65 @@ function SettingsDialog(props: {
 }) {
   const [docTitle, setDocTitle] = useState(props.title);
   const [dateFrom, setDateFrom] = useState(props.dateFrom);
-  const [responsibleName, setResponsibleName] = useState(
-    props.config.responsibleName
+  // Храним id, а не имя: после переименования сотрудника селект по имени
+  // оказывался пустым. Старые документы подхватываются по совпадению имени.
+  const [responsibleId, setResponsibleId] = useState(() =>
+    resolveSdcSignerId(
+      props.config.responsibleUserId,
+      props.config.responsibleName,
+      props.users
+    )
   );
-  const [checkerName, setCheckerName] = useState(props.config.checkerName);
+  const [checkerId, setCheckerId] = useState(() =>
+    resolveSdcSignerId(
+      props.config.checkerUserId,
+      props.config.checkerName,
+      props.users
+    )
+  );
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!props.open) return;
     setDocTitle(props.title);
     setDateFrom(props.dateFrom);
-    setResponsibleName(props.config.responsibleName);
-    setCheckerName(props.config.checkerName);
+    setResponsibleId(
+      resolveSdcSignerId(
+        props.config.responsibleUserId,
+        props.config.responsibleName,
+        props.users
+      )
+    );
+    setCheckerId(
+      resolveSdcSignerId(
+        props.config.checkerUserId,
+        props.config.checkerName,
+        props.users
+      )
+    );
   }, [
     props.open,
     props.title,
     props.dateFrom,
+    props.users,
     props.config.responsibleName,
     props.config.checkerName,
+    props.config.responsibleUserId,
+    props.config.checkerUserId,
   ]);
 
   async function handleSave() {
     setSubmitting(true);
+    const nameOf = (id: string) =>
+      props.users.find((user) => user.id === id)?.name || "";
     const nextConfig: SdcConfig = {
       ...props.config,
-      responsibleName,
-      checkerName,
+      responsibleUserId: responsibleId,
+      checkerUserId: checkerId,
+      // Снимок имени остаётся: по нему печатаются старые документы и
+      // читают бланк те, кого уже нет в организации.
+      responsibleName: nameOf(responsibleId),
+      checkerName: nameOf(checkerId),
     };
     try {
       await requestJson(`/api/journal-documents/${props.documentId}`, {
@@ -174,15 +210,15 @@ function SettingsDialog(props: {
     }
   }
 
-  // «Выполнил» и «Проверил» — из сотрудников организации; на бланке и в PDF
-  // печатается имя, поэтому храним имя (совместимо со старыми документами).
+  // «Выполнил» и «Проверил» — из сотрудников организации. Значение селекта
+  // — id сотрудника; имя пишется рядом снимком (печать, старые документы).
   const peopleSelects = (
     <>
       <div className="space-y-1">
         <Label className="text-[16px] text-[#6f7282]">Выполнил</Label>
         <Select
-          value={responsibleName || "__none__"}
-          onValueChange={(v) => setResponsibleName(v === "__none__" ? "" : v)}
+          value={responsibleId || "__none__"}
+          onValueChange={(v) => setResponsibleId(v === "__none__" ? "" : v)}
         >
           <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]">
             <SelectValue placeholder="- Не выбран -" />
@@ -190,7 +226,7 @@ function SettingsDialog(props: {
           <SelectContent>
             <SelectItem value="__none__">- Не выбран -</SelectItem>
             {props.users.map((user) => (
-              <SelectItem key={user.id} value={user.name}>
+              <SelectItem key={user.id} value={user.id}>
                 {user.name}
               </SelectItem>
             ))}
@@ -200,8 +236,8 @@ function SettingsDialog(props: {
       <div className="space-y-1">
         <Label className="text-[16px] text-[#6f7282]">Проверил</Label>
         <Select
-          value={checkerName || "__none__"}
-          onValueChange={(v) => setCheckerName(v === "__none__" ? "" : v)}
+          value={checkerId || "__none__"}
+          onValueChange={(v) => setCheckerId(v === "__none__" ? "" : v)}
         >
           <SelectTrigger className="h-10 rounded-xl border-[#dfe1ec] px-3.5 text-[13.5px]">
             <SelectValue placeholder="- Не выбран -" />
@@ -209,7 +245,7 @@ function SettingsDialog(props: {
           <SelectContent>
             <SelectItem value="__none__">- Не выбран -</SelectItem>
             {props.users.map((user) => (
-              <SelectItem key={user.id} value={user.name}>
+              <SelectItem key={user.id} value={user.id}>
                 {user.name}
               </SelectItem>
             ))}
@@ -715,15 +751,32 @@ function TimeCell({
   }
 
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div
+      className="flex items-center justify-center gap-1"
+      // Раньше режим правки закрывался только выбором минут и залипал,
+      // если из ячейки просто уходили.
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setEditing(false);
+        }
+      }}
+    >
       <select
         value={h || "12"}
         onChange={(e) => {
+          // Пустой пункт — единственный способ снять ошибочно
+          // поставленное время, не удаляя сам пункт чек-листа.
+          if (!e.target.value) {
+            onChange("");
+            setEditing(false);
+            return;
+          }
           const newVal = `${e.target.value}:${m || "00"}`;
           onChange(newVal);
         }}
         className="h-8 w-12 rounded border border-[#dfe1ec] text-center text-[13px]"
       >
+        <option value="">—</option>
         {HOURS.map((hh) => (
           <option key={hh} value={hh}>
             {hh}
@@ -734,12 +787,18 @@ function TimeCell({
       <select
         value={m || "00"}
         onChange={(e) => {
+          if (!e.target.value) {
+            onChange("");
+            setEditing(false);
+            return;
+          }
           const newVal = `${h || "12"}:${e.target.value}`;
           onChange(newVal);
           setEditing(false);
         }}
         className="h-8 w-12 rounded border border-[#dfe1ec] text-center text-[13px]"
       >
+        <option value="">—</option>
         {MINUTES.map((mm) => (
           <option key={mm} value={mm}>
             {mm}
@@ -772,16 +831,16 @@ export function SanitaryDayChecklistDocumentClient({
   const [config, setConfig] = useState<SdcConfig>(() =>
     normalizeSdcConfig(initialConfig)
   );
-  const [marks, setMarks] = useState<Record<string, string>>(() => {
-    const entry = initialEntries[0];
-    return entry ? normalizeSdcEntryData(entry.data).marks : {};
-  });
+  // Сливаем ВСЕ записи документа, как это делает PDF: раньше читалась
+  // только `initialEntries[0]`, и отметки второго заполнявшего пропадали
+  // с экрана, а первое же сохранение их затирало.
+  const [marks, setMarks] = useState<Record<string, string>>(
+    () => mergeSdcEntries(initialEntries).marks
+  );
   // Отметки «выполнено» приходят с сервера: раньше жили только в useState
   // и обнулялись на F5.
   const [checked, setChecked] = useState<Set<string>>(() => {
-    const entry = initialEntries[0];
-    if (!entry) return new Set<string>();
-    const done = normalizeSdcEntryData(entry.data).done;
+    const done = mergeSdcEntries(initialEntries).done;
     return new Set(Object.keys(done).filter((key) => done[key]));
   });
   const viewerId = useRosterViewerId(users);
@@ -937,12 +996,48 @@ export function SanitaryDayChecklistDocumentClient({
     saveConfig(newConfig);
   }
 
-  function handleDeleteItem(itemId: string) {
+  /**
+   * Отметки удалённых пунктов оставались в данных записи мусором —
+   * вычищаем их сразу после правки списка.
+   */
+  function purgeMarksForItems(nextItems: SdcItem[]) {
+    const current = {
+      marks,
+      done: Object.fromEntries([...checked].map((id) => [id, true])),
+    };
+    const cleaned = dropSdcMarksForMissingItems(
+      current,
+      nextItems.map((item) => item.id)
+    );
+    const changed =
+      Object.keys(cleaned.marks).length !== Object.keys(current.marks).length ||
+      Object.keys(cleaned.done).length !== Object.keys(current.done).length;
+    if (!changed) return;
+    setMarks(cleaned.marks);
+    setChecked(new Set(Object.keys(cleaned.done)));
+    void saveEntry(cleaned, { silent: true, previous: current }).catch(() => {
+      toast.error("Не удалось очистить отметки удалённых пунктов");
+    });
+  }
+
+  async function handleDeleteItem(itemId: string) {
+    // Пункт чек-листа удалялся молча, одним кликом по корзине.
+    const item = config.items.find((entry) => entry.id === itemId);
+    const confirmed = await confirmAsync({
+      title: "Удалить пункт чек-листа?",
+      description: item?.text
+        ? `«${item.text}» исчезнет из бланка и из печати. Восстановить нельзя.`
+        : "Пункт исчезнет из бланка и из печати. Восстановить нельзя.",
+      variant: "danger",
+      confirmLabel: "Удалить",
+    });
+    if (!confirmed) return;
     const newConfig = {
       ...config,
-      items: config.items.filter((item) => item.id !== itemId),
+      items: config.items.filter((entry) => entry.id !== itemId),
     };
     saveConfig(newConfig);
+    purgeMarksForItems(newConfig.items);
   }
 
   function handleSaveZones(zones: SdcZone[]) {
@@ -953,6 +1048,8 @@ export function SanitaryDayChecklistDocumentClient({
       items: config.items.filter((item) => zoneIds.has(item.zoneId)),
     };
     saveConfig(newConfig);
+    // Вместе с зоной исчезают её пункты — их отметки тоже.
+    purgeMarksForItems(newConfig.items);
   }
 
   function openEditItem(item: SdcItem) {
@@ -1081,11 +1178,17 @@ export function SanitaryDayChecklistDocumentClient({
                             >
                               {item.text}
                             </button>
-                            {time ? (
-                              <div className="mt-1 text-[12px] text-[#6f7282]">
-                                Отмечено: {time}
-                              </div>
-                            ) : null}
+                            {/* Время печатается в бланк, но в карточках его
+                                показывали текстом — с телефона проставить
+                                отметку было нечем. */}
+                            <div className="mt-1 flex items-center gap-2 text-[12px] text-[#6f7282]">
+                              <span>Отметка времени:</span>
+                              <TimeCell
+                                value={time || ""}
+                                onChange={(value) => handleTimeChange(item.id, value)}
+                                disabled={!isActive}
+                              />
+                            </div>
                           </div>
                         </li>
                       );
@@ -1126,13 +1229,21 @@ export function SanitaryDayChecklistDocumentClient({
               <div className="flex items-end justify-between">
                 <span className="font-semibold uppercase">Выполнил:</span>
                 <span className="min-w-[200px] border-b border-black text-right">
-                  {config.responsibleName}
+                  {resolveSdcSignerName(
+                    config.responsibleUserId,
+                    config.responsibleName,
+                    users
+                  )}
                 </span>
               </div>
               <div className="flex items-end justify-between">
                 <span className="font-semibold uppercase">Проверил:</span>
                 <span className="min-w-[200px] border-b border-black text-right">
-                  {config.checkerName}
+                  {resolveSdcSignerName(
+                    config.checkerUserId,
+                    config.checkerName,
+                    users
+                  )}
                 </span>
               </div>
             </div>

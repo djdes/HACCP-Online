@@ -216,7 +216,14 @@ export function drawCleaningVentilationChecklistPdf(
         { content: "Процедура", rowSpan: 2, styles: { fontStyle: "bold" } },
         { content: descriptionText, rowSpan: 2 },
         { content: "Периодичность", styles: { fontStyle: "bold" } },
-        { content: getCleaningVentilationPeriodicityLines(config.ventilationEnabled).join("\n") },
+        {
+          // Добавленные вручную строки периодичности есть на экране —
+          // печать без них расходилась с бланком.
+          content: [
+            ...getCleaningVentilationPeriodicityLines(config.ventilationEnabled),
+            ...(config.extraPeriodicityLines ?? []),
+          ].join("\n"),
+        },
       ],
       [
         { content: "Ответственные лица", styles: { fontStyle: "bold" } },

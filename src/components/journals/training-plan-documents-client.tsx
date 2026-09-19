@@ -48,7 +48,11 @@ import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 
 import { toast } from "sonner";
 import { confirmAsync } from "@/components/ui/confirm-async";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -337,6 +341,9 @@ export function TrainingPlanDocumentsClient({
 }: Props) {
   const router = useRouter();
   const [settingsTarget, setSettingsTarget] = useState<TrainingPlanDocumentItem | null>(null);
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<TrainingPlanDocumentItem | null>(null);
 
@@ -458,7 +465,7 @@ export function TrainingPlanDocumentsClient({
             page="list"
             variant="button"
           />
-          {activeTab === "active" && (
+          {canManageDocuments && activeTab === "active" && (
             <Button
               className="h-12 w-full rounded-2xl bg-[#5563ff] px-8 text-[16px] text-white hover:bg-[#4554ff] sm:w-auto"
               onClick={() => setCreateOpen(true)}
@@ -531,7 +538,7 @@ export function TrainingPlanDocumentsClient({
               <div className="flex justify-start sm:justify-center">
                 <ResponsiveMenu
                   title="Действия"
-                  items={[
+                  items={filterManageMenuItems([
                     ...(document.status === "active"
                       ? [
                           {
@@ -580,7 +587,7 @@ export function TrainingPlanDocumentsClient({
                           },
                         ]
                       : []),
-                  ]}
+                  ], canManageDocuments)}
                   trigger={
                     <button
                       type="button"

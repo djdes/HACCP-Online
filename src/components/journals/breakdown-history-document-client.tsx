@@ -38,6 +38,11 @@ import {
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
 import { JournalAddRow } from "@/components/journals/journal-add-row";
+import { EquipmentDirectoryField } from "@/components/journals/equipment-directory-field";
+import {
+  resolveEquipmentRowName,
+  type EquipmentDirectoryOption,
+} from "@/lib/equipment-directory-link";
 import { GRID_CELL_CLASS, GRID_HEAD_CELL_CLASS } from "@/components/journals/journal-grid";
 
 import { toast } from "sonner";
@@ -52,6 +57,8 @@ type Props = {
   dateFrom: string;
   status: string;
   config: unknown;
+  /** Справочник «Оборудование» организации — источник имён для записей. */
+  equipmentDirectory?: EquipmentDirectoryOption[];
   /** Design v2 toggle. */
   useV2?: boolean;
 };
@@ -84,6 +91,8 @@ function RowDialog(props: {
   onOpenChange: (open: boolean) => void;
   initialRow: BreakdownRow | null;
   onSave: (row: BreakdownRow) => Promise<void>;
+  documentId: string;
+  directory: readonly EquipmentDirectoryOption[];
 }) {
   const [row, setRow] = useState<BreakdownRow>(() => props.initialRow || createBreakdownRow());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -150,14 +159,20 @@ function RowDialog(props: {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-[13px] font-medium text-[#3c4053]">Наименование оборудования</Label>
-            <Input
-              className="h-9 rounded-xl border-[#dcdfed] px-3.5 text-[13.5px]"
-              value={row.equipmentName}
-              onChange={(e) => setValue("equipmentName", e.target.value)}
-            />
-          </div>
+          <EquipmentDirectoryField
+            label="Наименование оборудования"
+            value={row.equipmentName}
+            sourceEquipmentId={row.sourceEquipmentId}
+            directory={props.directory}
+            documentId={props.documentId}
+            onChange={(name, sourceId) =>
+              setRow((current) => ({
+                ...current,
+                equipmentName: name,
+                sourceEquipmentId: sourceId,
+              }))
+            }
+          />
 
           <div className="space-y-2">
             <Label className="text-[13px] font-medium text-[#3c4053]">Описание поломки</Label>
@@ -459,6 +474,13 @@ export function BreakdownHistoryDocumentClient(props: Props) {
   const [editingRow, setEditingRow] = useState<BreakdownRow | null>(null);
   const { mobileView, switchMobileView } = useMobileView("breakdown_history");
   const rows = useMemo(() => config.rows, [config.rows]);
+  const directory = useMemo(
+    () => props.equipmentDirectory ?? [],
+    [props.equipmentDirectory]
+  );
+  /** Имя: у связанных — из справочника, у остальных — сохранённое. */
+  const rowName = (row: BreakdownRow) =>
+    resolveEquipmentRowName(row, directory);
   const allSelected = rows.length > 0 && selectedRowIds.length === rows.length;
   const isActive = props.status === "active";
 
@@ -468,7 +490,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
       row.startHour,
       row.startMinute
     )}`,
-    subtitle: row.equipmentName || "—",
+    subtitle: rowName(row) || "—",
     leading: (
       <Checkbox
         checked={selectedRowIds.includes(row.id)}
@@ -751,7 +773,7 @@ export function BreakdownHistoryDocumentClient(props: Props) {
                     </button>
                   </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
-                    {row.equipmentName || "—"}
+                    {rowName(row) || "—"}
                   </td>
                   <td className={`${GRID_CELL_CLASS} px-2 py-1 leading-tight`}>
                     {row.breakdownDescription || "—"}
@@ -833,6 +855,8 @@ export function BreakdownHistoryDocumentClient(props: Props) {
           }}
           initialRow={editingRow}
           onSave={handleSaveRow}
+          documentId={props.documentId}
+          directory={directory}
         />
       )}
 

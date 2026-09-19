@@ -2,7 +2,7 @@
 
 import { Fragment, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Plus, Trash2 } from "lucide-react";
+import { Archive, Plus, Trash2, ListPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,6 +34,12 @@ import {
   getMonthDayOptions,
   formatMaintenanceDate,
 } from "@/lib/equipment-maintenance-document";
+import {
+  getMissingDirectoryEquipment,
+  resolveEquipmentRowName,
+  type EquipmentDirectoryOption,
+} from "@/lib/equipment-directory-link";
+import { EquipmentDirectoryField } from "@/components/journals/equipment-directory-field";
 import { buildStaffOptionLabel } from "@/lib/journal-staff-binding";
 import { JournalDocumentShell } from "@/components/journals/journal-document-shell";
 import { JournalDocumentHeader } from "@/components/journals/journal-document-header";
@@ -63,6 +69,8 @@ type Props = {
   status: string;
   initialConfig: EquipmentMaintenanceConfig;
   users: { id: string; name: string; role: string }[];
+  /** Справочник «Оборудование» организации — источник имён для строк. */
+  equipmentDirectory?: EquipmentDirectoryOption[];
   /** Design v2 toggle. */
   useV2?: boolean;
 };
@@ -85,6 +93,7 @@ export function EquipmentMaintenanceDocumentClient({
   status,
   initialConfig,
   users,
+  equipmentDirectory = [],
   useV2 = false,
 }: Props) {
   const router = useRouter();
@@ -142,6 +151,9 @@ export function EquipmentMaintenanceDocumentClient({
   });
 
   // Add row draft state
+  const [draftSourceEquipmentId, setDraftSourceEquipmentId] = useState<
+    string | null
+  >(null);
   const [draftEquipmentName, setDraftEquipmentName] = useState("");
   const [draftWorkType, setDraftWorkType] = useState("");
   const [draftMaintenanceType, setDraftMaintenanceType] = useState<MaintenanceType>("A");
@@ -152,6 +164,9 @@ export function EquipmentMaintenanceDocumentClient({
   // Edit row draft state — те же поля, что и при добавлении: раньше в
   // окне правки нельзя было изменить тип обслуживания и план, а факт
   // нельзя было отметить с телефона (в «Карточках» нет таблицы).
+  const [editSourceEquipmentId, setEditSourceEquipmentId] = useState<
+    string | null
+  >(null);
   const [editEquipmentName, setEditEquipmentName] = useState("");
   const [editWorkType, setEditWorkType] = useState("");
   const [editMaintenanceType, setEditMaintenanceType] =
@@ -168,6 +183,14 @@ export function EquipmentMaintenanceDocumentClient({
   const { mobileView, switchMobileView } = useMobileView("equipment_maintenance");
   const { closeDocument, isClosing } = useDocumentCloseAction({ documentId, title });
 
+  /** Имя строки: у связанных — из справочника, у остальных — сохранённое. */
+  const rowName = (row: EquipmentMaintenanceRow) =>
+    resolveEquipmentRowName(row, equipmentDirectory);
+  const missingEquipment = getMissingDirectoryEquipment(
+    equipmentDirectory,
+    config.rows
+  );
+
   const cardItems: RecordCardItem[] = config.rows.map((row, index) => {
     const planSummary = MONTH_KEYS.map((k) => `${MONTH_LABELS[k]}:${row.plan[k] || "—"}`)
       .filter((s) => !s.endsWith(":-"))
@@ -177,7 +200,7 @@ export function EquipmentMaintenanceDocumentClient({
       .join(" · ");
     return {
       id: row.id,
-      title: `№${index + 1} · ${row.equipmentName || "—"}`,
+      title: `№${index + 1} · ${rowName(row) || "—"}`,
       subtitle: row.workType || undefined,
       badge: (
         <span className="rounded-full bg-[#f5f6ff] px-2 py-0.5 text-[11px] font-semibold text-[#5566f6]">
@@ -273,7 +296,30 @@ export function EquipmentMaintenanceDocumentClient({
 
   /* ---------- add row ---------- */
 
+  /**
+   * Дописывает строки для оборудования, которого в графике ещё нет.
+   * План и факт пустые — отметки ставит человек.
+   */
+  function addMissingFromDirectory() {
+    if (missingEquipment.length === 0) return;
+    const added = missingEquipment.map((item) =>
+      createEquipmentMaintenanceRow({
+        sourceEquipmentId: item.id,
+        equipmentName: item.name,
+        maintenanceType: "A",
+        plan: Object.fromEntries(MONTH_KEYS.map((k) => [k, "-"])),
+        fact: Object.fromEntries(MONTH_KEYS.map((k) => [k, ""])),
+      })
+    );
+    void mutateConfig((current) => ({
+      ...current,
+      rows: [...current.rows, ...added],
+    }));
+    toast.success(`Добавлено строк из справочника: ${added.length}`);
+  }
+
   function resetDraft() {
+    setDraftSourceEquipmentId(null);
     setDraftEquipmentName("");
     setDraftWorkType("");
     setDraftMaintenanceType("A");
@@ -282,6 +328,7 @@ export function EquipmentMaintenanceDocumentClient({
 
   function saveDraftRow() {
     const newRow = createEquipmentMaintenanceRow({
+      sourceEquipmentId: draftSourceEquipmentId,
       equipmentName: draftEquipmentName,
       workType: draftWorkType,
       maintenanceType: draftMaintenanceType,
@@ -302,6 +349,7 @@ export function EquipmentMaintenanceDocumentClient({
     const row = configRef.current.rows.find((r) => r.id === rowId);
     if (!row) return;
     setEditingRowId(rowId);
+    setEditSourceEquipmentId(row.sourceEquipmentId);
     setEditEquipmentName(row.equipmentName);
     setEditWorkType(row.workType);
     setEditMaintenanceType(row.maintenanceType);
@@ -318,6 +366,7 @@ export function EquipmentMaintenanceDocumentClient({
     if (!editingRowId) return;
     const rowId = editingRowId;
     const patch = {
+      sourceEquipmentId: editSourceEquipmentId,
       equipmentName: editEquipmentName,
       workType: editWorkType,
       maintenanceType: editMaintenanceType,
@@ -478,6 +527,22 @@ export function EquipmentMaintenanceDocumentClient({
                 Добавить
               </Button>
 
+              {/* Одно действие вместо ручного переписывания справочника:
+                  добавленное в /settings/equipment раньше не попадало в
+                  уже созданный график вообще. */}
+              {missingEquipment.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#dcdfed]"
+                  onClick={addMissingFromDirectory}
+                  title="Оборудование из справочника, которого нет в графике"
+                >
+                  <ListPlus className="size-4" />
+                  Добавить из справочника ({missingEquipment.length})
+                </Button>
+              ) : null}
+
               {selectedRows.length > 0 && (
                 <>
                   <span className="text-sm text-[#7a7f93]">
@@ -567,7 +632,7 @@ export function EquipmentMaintenanceDocumentClient({
                     rowSpan={3}
                     className={`${GRID_CELL_CLASS} px-2 py-2 align-top leading-tight`}
                   >
-                    <div className="font-medium">{row.equipmentName}</div>
+                    <div className="font-medium">{rowName(row)}</div>
                     {row.workType && (
                       <div className="mt-1 text-[13px] text-gray-500">
                         {row.workType}
@@ -710,16 +775,17 @@ export function EquipmentMaintenanceDocumentClient({
           </DialogHeader>
 
           <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Название оборудования</Label>
-              <Textarea
-                className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
-                value={draftEquipmentName}
-                onChange={(e) => setDraftEquipmentName(e.target.value)}
-                placeholder="Название оборудования"
-                rows={2}
-              />
-            </div>
+            <EquipmentDirectoryField
+              label="Название оборудования"
+              value={draftEquipmentName}
+              sourceEquipmentId={draftSourceEquipmentId}
+              directory={equipmentDirectory}
+              documentId={documentId}
+              onChange={(name, sourceId) => {
+                setDraftEquipmentName(name);
+                setDraftSourceEquipmentId(sourceId);
+              }}
+            />
 
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Вид работ по обслуживанию</Label>
@@ -812,15 +878,17 @@ export function EquipmentMaintenanceDocumentClient({
           </DialogHeader>
 
           <div className="max-h-[calc(92vh-160px)] space-y-5 overflow-y-auto px-6 py-5">
-            <div className="space-y-2">
-              <Label className="text-[13px] font-medium text-[#3c4053]">Название оборудования</Label>
-              <Textarea
-                className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]"
-                value={editEquipmentName}
-                onChange={(e) => setEditEquipmentName(e.target.value)}
-                rows={2}
-              />
-            </div>
+            <EquipmentDirectoryField
+              label="Название оборудования"
+              value={editEquipmentName}
+              sourceEquipmentId={editSourceEquipmentId}
+              directory={equipmentDirectory}
+              documentId={documentId}
+              onChange={(name, sourceId) => {
+                setEditEquipmentName(name);
+                setEditSourceEquipmentId(sourceId);
+              }}
+            />
 
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Вид работ по обслуживанию</Label>

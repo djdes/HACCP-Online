@@ -6,6 +6,8 @@ import {
   getDocumentCrumbMenu,
   getJournalCrumbMenu,
 } from "@/lib/journal-crumb-menu";
+import { orgTodayKey } from "@/lib/timezone";
+import { TodayKeyProvider } from "@/lib/today-key-context";
 
 const ORG_NAME_FALLBACK = "Организация";
 
@@ -53,7 +55,7 @@ export default async function JournalDocumentLayout({
     }),
     db.organization.findUnique({
       where: { id: activeOrgId },
-      select: { name: true },
+      select: { name: true, timezone: true },
     }),
   ]);
 
@@ -100,7 +102,12 @@ export default async function JournalDocumentLayout({
         data-journal-doc-pan
         className="max-sm:-mx-4 max-sm:overflow-x-auto max-sm:overscroll-x-contain max-sm:px-4"
       >
-        {children}
+        {/* «Сегодня» по поясу организации — для ВСЕХ журналов разом: сервер
+            проверяет день именно так, а браузер в другом поясе предлагал день,
+            который тут же отвергался. */}
+        <TodayKeyProvider value={orgTodayKey(organization?.timezone)}>
+          {children}
+        </TodayKeyProvider>
       </div>
     </>
   );

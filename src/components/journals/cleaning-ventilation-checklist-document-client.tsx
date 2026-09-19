@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
@@ -287,6 +287,15 @@ function DocumentSettingsDialog(props: {
 }) {
   const [state, setState] = useState<SettingsState>(props.initial);
   const [submitting, setSubmitting] = useState(false);
+  // Окно открывается снаружи (setSettingsOpen), и Radix onOpenChange(true)
+  // при этом не срабатывает: без ресинка «Сохранить» затирал конфиг
+  // значениями с прошлого открытия. Через ref — `initial` пересоздаётся
+  // на каждый рендер родителя и в зависимостях сбрасывал бы ввод.
+  const initialRef = useRef(props.initial);
+  initialRef.current = props.initial;
+  useEffect(() => {
+    if (props.open) setState(initialRef.current);
+  }, [props.open]);
   const mainCascade = usePositionEmployeeCascade({
     users: props.users,
     positionTitle: state.mainResponsibleTitle,
@@ -692,6 +701,101 @@ function AddPeriodicityDialog(props: {
   );
 }
 
+/**
+ * Окно «Добавить дату». Даёт внести день задним числом и вернуть дату,
+ * скрытую кнопкой «Удалить».
+ */
+function AddChecklistDateDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  min: string;
+  max: string;
+  suggested: string;
+  hiddenDates: string[];
+  onAdd: (date: string) => Promise<void>;
+}) {
+  const [date, setDate] = useState(props.suggested);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (props.open) setDate(props.suggested);
+  }, [props.open, props.suggested]);
+
+  const submit = async (value: string) => {
+    setSaving(true);
+    try {
+      await props.onAdd(value);
+      props.onOpenChange(false);
+    } catch {
+      // Сообщение уже показал вызывающий — окно оставляем открытым.
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent className={JOURNAL_DIALOG_CONTENT_WIDE_CLASS}>
+        <DialogHeader className={JOURNAL_DIALOG_HEADER_CLASS}>
+          <DialogTitle className={JOURNAL_DIALOG_TITLE_CLASS}>
+            Добавление даты
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5 px-6 py-5">
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-[#3c4053]">
+              Дата строки
+            </Label>
+            <Input
+              type="date"
+              value={date}
+              min={props.min}
+              max={props.max}
+              onChange={(event) => setDate(event.target.value)}
+              className="h-10 rounded-xl border-[#dcdfed] bg-[#fafbff] px-3.5 text-[13.5px] focus:border-[#5566f6] focus:ring-4 focus:ring-[#5566f6]/15"
+            />
+            <p className="text-[12px] leading-[1.45] text-[#6f7282]">
+              Можно внести день задним числом — в пределах периода документа
+              ({formatRuDate(props.min)} — {formatRuDate(props.max)}) и не в
+              будущее. Предложена ближайшая отсутствующая дата.
+            </p>
+          </div>
+          {props.hiddenDates.length > 0 ? (
+            <div className="space-y-2">
+              <Label className="text-[13px] font-medium text-[#3c4053]">
+                Вернуть удалённую дату
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {props.hiddenDates.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void submit(item)}
+                    className="rounded-full border border-[#dcdfed] bg-white px-3 py-1.5 text-[13px] text-[#0b1024] transition-colors duration-150 hover:border-[#5566f6]/50 hover:bg-[#f5f6ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#5566f6]/15"
+                  >
+                    {formatRuDate(item)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="flex justify-end pt-2">
+            <Button
+              type="button"
+              disabled={!date || saving || date < props.min || date > props.max}
+              onClick={() => void submit(date)}
+              className="h-10 rounded-xl bg-[#5566f6] px-3.5 text-[13.5px] text-white transition-colors duration-150 hover:bg-[#4a5bf0]"
+            >
+              {saving ? "Добавление..." : "Добавить"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function CleaningVentilationChecklistDocumentClient({
   documentId,
   routeCode,
@@ -742,7 +846,15 @@ export function CleaningVentilationChecklistDocumentClient({
     }
     return map;
   });
+  // Последнее состояние отметок. Два времени одной процедуры, введённые
+  // подряд, читали `entryMap` из замыкания рендера — второй PUT затирал
+  // первый. Ref обновляется тем же setEntryMap, что и state.
+  const entryMapRef = useRef(entryMap);
+  useEffect(() => {
+    entryMapRef.current = entryMap;
+  }, [entryMap]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [addDateOpen, setAddDateOpen] = useState(false);
   const copyYesterday = useCopyYesterdayAction(documentId);
   const [responsibleDialogOpen, setResponsibleDialogOpen] = useState(false);
   const [periodicityDialogOpen, setPeriodicityDialogOpen] = useState(false);
@@ -892,7 +1004,7 @@ export function CleaningVentilationChecklistDocumentClient({
     }
 
     const previousData: CleaningVentilationChecklistEntryData =
-      entryMap[dateKey]?.data ?? { procedures: {} };
+      entryMapRef.current[dateKey]?.data ?? { procedures: {} };
 
     const result = await requestJson(`/api/journal-documents/${documentId}/entries`, {
       method: "PUT",
@@ -904,16 +1016,20 @@ export function CleaningVentilationChecklistDocumentClient({
       }),
     });
 
-    setEntryMap((current) => ({
-      ...current,
+    // Ref обновляем СРАЗУ, не дожидаясь перерисовки: следующий ввод
+    // времени может начаться раньше, чем React применит setState.
+    const nextMap = {
+      ...entryMapRef.current,
       [dateKey]: {
         id:
           result && result.entry && typeof result.entry.id === "string"
             ? result.entry.id
-            : current[dateKey]?.id,
+            : entryMapRef.current[dateKey]?.id,
         data: nextData,
       },
-    }));
+    };
+    entryMapRef.current = nextMap;
+    setEntryMap(nextMap);
 
     if (!options?.silent) {
       undoStack.push({
@@ -929,7 +1045,7 @@ export function CleaningVentilationChecklistDocumentClient({
     procedure: RowProcedure,
     values: CardEditValues
   ) => {
-    const existing = entryMap[dateKey]?.data || { procedures: {} };
+    const existing = entryMapRef.current[dateKey]?.data || { procedures: {} };
     // Позиции слотов не сдвигаем — только обрезаем пустой хвост.
     const nextTimes = [0, 1, 2].map((index) =>
       String(values[`time${index}`] ?? "")
@@ -956,7 +1072,8 @@ export function CleaningVentilationChecklistDocumentClient({
     timeIndex: number,
     value: string
   ) => {
-    const existing = entryMap[dateKey]?.data || { procedures: {} };
+    // Из ref, а не из замыкания рендера: два времени подряд теряли друг друга.
+    const existing = entryMapRef.current[dateKey]?.data || { procedures: {} };
     // Источник — только запись: плановые времена из конфига подставлять
     // нельзя (иначе пустой документ «заполняется» сам).
     const sourceTimes = existing.procedures[procedure.id] || [];
@@ -995,21 +1112,20 @@ export function CleaningVentilationChecklistDocumentClient({
       hiddenDates: [...new Set([...config.hiddenDates, ...selection])],
       customDates: config.customDates.filter((item) => !selection.includes(item)),
     };
-    const nextEntryMap = { ...entryMap };
+    const nextEntryMap = { ...entryMapRef.current };
     selection.forEach((item) => delete nextEntryMap[item]);
+    entryMapRef.current = nextEntryMap;
     setEntryMap(nextEntryMap);
     setSelection([]);
     await persistConfig(nextConfig);
   };
 
-  const addManualDate = async () => {
-    const existingDates = rows.map((item) => item.dateKey);
-    const lastDate = existingDates[existingDates.length - 1] || dateFrom;
-    const nextDate = new Date(`${lastDate}T00:00:00`);
-    nextDate.setDate(nextDate.getDate() + 1);
-    // Местная дата: toISOString() в МСК откатывал день назад, и «Добавить»
-    // всегда пыталось добавить уже существующую дату — кнопка не работала.
-    const nextIso = toLocalIsoDate(nextDate);
+  /**
+   * Добавление даты строкой чек-листа. Дата приходит из окна выбора —
+   * раньше кнопка молча брала «последнюю строку + сутки», и ни задним
+   * числом внести день, ни вернуть скрытую («Удалить») дату было нечем.
+   */
+  const addManualDate = async (nextIso: string) => {
     // Новая дата может выйти за конец месяца документа — тогда расширяем
     // период, иначе запись за неё не сохранить.
     const monthEnd = getMonthBoundsFromDate(dateFrom).dateTo;
@@ -1022,6 +1138,38 @@ export function CleaningVentilationChecklistDocumentClient({
       nextIso > monthEnd ? { dateTo: nextIso } : undefined
     );
   };
+
+  /** Границы выбора: от даты начала документа по сегодня (не в будущее). */
+  const addDateBounds = useMemo(() => {
+    const monthEnd = getMonthBoundsFromDate(dateFrom).dateTo;
+    // Документ прошлого месяца: дальше его конца строки не нужны.
+    const max = todayKey && todayKey < monthEnd ? todayKey : monthEnd;
+    return { min: dateFrom, max: max < dateFrom ? dateFrom : max };
+  }, [dateFrom, todayKey]);
+
+  /** По умолчанию — ближайшая к сегодня отсутствующая дата. */
+  const suggestedDate = useMemo(() => {
+    const present = new Set(rows.map((item) => item.dateKey));
+    const cursor = new Date(`${addDateBounds.max}T00:00:00`);
+    const start = new Date(`${addDateBounds.min}T00:00:00`);
+    while (cursor >= start) {
+      const iso = toLocalIsoDate(cursor);
+      if (!present.has(iso)) return iso;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return addDateBounds.max;
+  }, [rows, addDateBounds]);
+
+  /** Скрытые через «Удалить» даты в пределах периода — их можно вернуть. */
+  const restorableDates = useMemo(
+    () =>
+      [...config.hiddenDates]
+        .filter(
+          (item) => item >= addDateBounds.min && item <= addDateBounds.max
+        )
+        .sort(),
+    [config.hiddenDates, addDateBounds]
+  );
 
   return (
     <div className="space-y-5">
@@ -1473,11 +1621,7 @@ export function CleaningVentilationChecklistDocumentClient({
           {isActive ? (
             <Button
               type="button"
-              onClick={() => {
-                addManualDate().catch((error) =>
-                  toast.error(error instanceof Error ? error.message : "Не удалось добавить дату")
-                );
-              }}
+              onClick={() => setAddDateOpen(true)}
               className="h-11 gap-2 rounded-lg bg-[#5566f6] px-5 text-[15px] font-semibold text-white hover:bg-[#4a5bf0]"
             >
               <Plus className="size-5" strokeWidth={2.5} />
@@ -1671,6 +1815,25 @@ export function CleaningVentilationChecklistDocumentClient({
         useV2={useV2}
       />
 
+      <AddChecklistDateDialog
+        open={addDateOpen}
+        onOpenChange={setAddDateOpen}
+        min={addDateBounds.min}
+        max={addDateBounds.max}
+        suggested={suggestedDate}
+        hiddenDates={restorableDates}
+        onAdd={async (date) => {
+          try {
+            await addManualDate(date);
+          } catch (error) {
+            toast.error(
+              error instanceof Error ? error.message : "Не удалось добавить дату"
+            );
+            throw error;
+          }
+        }}
+      />
+
       <AddPeriodicityDialog
         open={periodicityDialogOpen}
         onOpenChange={setPeriodicityDialogOpen}
@@ -1702,14 +1865,20 @@ export function CleaningVentilationChecklistDocumentClient({
         const procedure = editingRow?.procedures.find(
           (item) => item.id === editingProcedure?.procedureId
         );
-        const fields: CardEditFieldDef[] = procedure
-          ? procedure.times.map((_, index) => ({
-              type: "time",
-              key: `time${index}`,
-              label:
-                procedure.times.length > 1 ? `Время ${index + 1}` : "Время",
-            }))
-          : [];
+        // Слоты те же три, что и в таблице. Раньше поля строились от УЖЕ
+        // заполненных времён, и для пустого дня лист правки открывался
+        // без единого поля — с телефона день нельзя было заполнить.
+        const slotCount = procedure
+          ? Math.min(3, Math.max(procedure.times.length, procedure.plannedCount, 1))
+          : 0;
+        const fields: CardEditFieldDef[] = Array.from(
+          { length: slotCount },
+          (_, index) => ({
+            type: "time" as const,
+            key: `time${index}`,
+            label: slotCount > 1 ? `Время ${index + 1}` : "Время",
+          })
+        );
         const values: CardEditValues = {};
         procedure?.times.forEach((time, index) => {
           values[`time${index}`] = time || "";

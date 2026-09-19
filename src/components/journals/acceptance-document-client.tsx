@@ -2004,8 +2004,15 @@ export function AcceptanceDocumentClient(props: Props) {
   // (legacy). `shelfLifeDate` зеркалит `expiryDate`, поэтому одна формула.
   const displayedRows = useMemo(() => {
     if (!sortByExpiry) return rows;
+    // Строки без срока — в конец: иначе пустые всплывали наверх и
+    // закрывали собой то, что сгорит первым.
     const key = (row: AcceptanceRow) => row.shelfLifeDate || row.expiryDate || "";
-    return [...rows].sort((a, b) => key(a).localeCompare(key(b)));
+    return [...rows].sort((a, b) => {
+      const left = key(a);
+      const right = key(b);
+      if (!left || !right) return left === right ? 0 : left ? -1 : 1;
+      return left.localeCompare(right);
+    });
   }, [rows, sortByExpiry]);
   const { mobileView, switchMobileView } = useMobileView(routeCode);
 

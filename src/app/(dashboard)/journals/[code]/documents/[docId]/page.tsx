@@ -67,18 +67,22 @@ import { getScanJournalPageCount } from "@/lib/scan-journal-pages";
 import { TRAINING_PLAN_TEMPLATE_CODE } from "@/lib/training-plan-document";
 import { TrainingPlanDocumentClient } from "@/components/journals/training-plan-document-client";
 import {
+  AUDIT_PLAN_DOCUMENT_TITLE,
   AUDIT_PLAN_TEMPLATE_CODE,
   normalizeAuditPlanConfig,
 } from "@/lib/audit-plan-document";
 import { AuditPlanDocumentClient } from "@/components/journals/audit-plan-document-client";
 import {
+  AUDIT_PROTOCOL_DOCUMENT_TITLE,
   AUDIT_PROTOCOL_TEMPLATE_CODE,
   normalizeAuditProtocolConfig,
+  type AuditProtocolPlanSource,
 } from "@/lib/audit-protocol-document";
 import { AuditProtocolDocumentClient } from "@/components/journals/audit-protocol-document-client";
 import {
   AUDIT_REPORT_TEMPLATE_CODE,
   normalizeAuditReportConfig,
+  type AuditReportProtocolSource,
 } from "@/lib/audit-report-document";
 import { AuditReportDocumentClient } from "@/components/journals/audit-report-document-client";
 import { DISINFECTANT_TEMPLATE_CODE } from "@/lib/disinfectant-document";
@@ -182,6 +186,7 @@ import { COMPLAINT_REGISTER_TEMPLATE_CODE, normalizeComplaintConfig } from "@/li
 import { isIntegrationCryptoConfigured } from "@/lib/integration-crypto";
 
 import { orgTodayKey } from "@/lib/timezone";
+import { TodayKeyProvider } from "@/lib/today-key-context";
 export const dynamic = "force-dynamic";
 
 type TrackedFieldOption = {
@@ -726,6 +731,7 @@ async function JournalDocumentBody({
         status={document.status}
         initialConfig={normalizeEquipmentMaintenanceConfig(document.config)}
         users={enrichedEmployees}
+        equipmentDirectory={equipment}
         useV2={organization?.experimentalUiV2 ?? true}
       />
     );
@@ -741,6 +747,7 @@ async function JournalDocumentBody({
         status={document.status}
         initialConfig={normalizeEquipmentCalibrationConfig(document.config)}
         users={enrichedEmployees}
+        equipmentDirectory={equipment}
         useV2={organization?.experimentalUiV2 ?? true}
       />
     );
@@ -779,6 +786,9 @@ async function JournalDocumentBody({
 
   if (document.template.code === COLD_EQUIPMENT_DOCUMENT_TEMPLATE_CODE) {
     return (
+      // «Сегодня» — из пояса организации, а не из часов устройства:
+      // иначе сервер отвергал заполнение с «только сегодняшний день».
+      <TodayKeyProvider value={todayKey}>
       <ColdEquipmentDocumentClient
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
@@ -805,6 +815,7 @@ async function JournalDocumentBody({
           isRoot: session.user.isRoot === true,
         }}
       />
+      </TodayKeyProvider>
     );
   }
 
@@ -873,6 +884,38 @@ async function JournalDocumentBody({
   }
 
   if (document.template.code === AUDIT_PROTOCOL_TEMPLATE_CODE) {
+    // Планы аудитов организации — источник для «Заполнить из плана».
+    // Связь односторонняя: требования копируются, протокол потом живёт
+    // сам по себе (см. fillAuditProtocolFromPlan).
+    const planDocuments = await db.journalDocument.findMany({
+      where: {
+        organizationId: getActiveOrgId(session),
+        template: { code: AUDIT_PLAN_TEMPLATE_CODE },
+      },
+      select: { id: true, title: true, config: true, dateFrom: true },
+      orderBy: { dateFrom: "desc" },
+      take: 30,
+    });
+    const planSources: AuditProtocolPlanSource[] = planDocuments.map((plan) => {
+      const planConfig = normalizeAuditPlanConfig(plan.config, {
+        organizationName: organization?.name || ORG_NAME_FALLBACK,
+        users: enrichedEmployees,
+      });
+      return {
+        documentId: plan.id,
+        title: plan.title || AUDIT_PLAN_DOCUMENT_TITLE,
+        sections: planConfig.sections.map((section) => ({
+          id: section.id,
+          title: section.title,
+        })),
+        rows: planConfig.rows.map((row) => ({
+          id: row.id,
+          sectionId: row.sectionId,
+          text: row.text,
+        })),
+      };
+    });
+
     return (
       <AuditProtocolDocumentClient
         documentId={document.id}
@@ -880,12 +923,37 @@ async function JournalDocumentBody({
         organizationName={organizationName}
         status={document.status}
         config={normalizeAuditProtocolConfig(document.config)}
+        planSources={planSources}
         useV2={organization?.experimentalUiV2 ?? true}
       />
     );
   }
 
   if (document.template.code === AUDIT_REPORT_TEMPLATE_CODE) {
+    // Протоколы аудита организации — источник для «Перенести
+    // несоответствия». В список попадают только строки с «Нет».
+    const protocolDocuments = await db.journalDocument.findMany({
+      where: {
+        organizationId: getActiveOrgId(session),
+        template: { code: AUDIT_PROTOCOL_TEMPLATE_CODE },
+      },
+      select: { id: true, title: true, config: true, dateFrom: true },
+      orderBy: { dateFrom: "desc" },
+      take: 30,
+    });
+    const protocolSources: AuditReportProtocolSource[] = protocolDocuments.map(
+      (protocol) => {
+        const protocolConfig = normalizeAuditProtocolConfig(protocol.config);
+        return {
+          documentId: protocol.id,
+          title: protocol.title || AUDIT_PROTOCOL_DOCUMENT_TITLE,
+          rows: protocolConfig.rows
+            .filter((row) => row.result === "no")
+            .map((row) => ({ id: row.id, text: row.text, note: row.note })),
+        };
+      }
+    );
+
     return (
       <AuditReportDocumentClient
         documentId={document.id}
@@ -893,6 +961,7 @@ async function JournalDocumentBody({
         organizationName={organizationName}
         status={document.status}
         config={normalizeAuditReportConfig(document.config)}
+        protocolSources={protocolSources}
         useV2={organization?.experimentalUiV2 ?? true}
       />
     );
@@ -921,6 +990,7 @@ async function JournalDocumentBody({
         dateFrom={toDateKey(document.dateFrom)}
         status={document.status}
         config={document.config}
+        equipmentDirectory={equipment}
         useV2={organization?.experimentalUiV2 ?? true}
       />
     );
@@ -997,6 +1067,8 @@ async function JournalDocumentBody({
     if (document.template.code === FRYER_OIL_TEMPLATE_CODE) {
       const fryerConfig = normalizeFryerOilDocumentConfig(document.config);
       return (
+        // «Сегодня» — из пояса организации (см. TodayKeyProvider).
+        <TodayKeyProvider value={todayKey}>
         <FryerOilDocumentClient
           documentId={document.id}
           currentUserId={session.user.id}
@@ -1016,6 +1088,7 @@ async function JournalDocumentBody({
           routeCode={code}
           useV2={organization?.experimentalUiV2 ?? true}
         />
+        </TodayKeyProvider>
       );
     }
 
@@ -1157,6 +1230,8 @@ async function JournalDocumentBody({
     // Room (нормы и имя из карточки помещения).
     const directoryBuildings = await loadDirectoryBuildings(getActiveOrgId(session));
     return (
+      // «Сегодня» — из пояса организации (см. TodayKeyProvider).
+      <TodayKeyProvider value={todayKey}>
       <ClimateDocumentClient
         documentId={document.id}
         controlPeriodicity={controlPeriodicity}
@@ -1184,6 +1259,7 @@ async function JournalDocumentBody({
           isRoot: session.user.isRoot === true,
         }}
       />
+      </TodayKeyProvider>
     );
   }
 

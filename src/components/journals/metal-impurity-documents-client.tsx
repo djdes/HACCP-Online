@@ -40,7 +40,11 @@ import { getUsersForRoleLabel, pickPrimaryManager } from "@/lib/user-roles";
 import { useAutoDocumentTitle } from "@/components/journals/use-auto-document-title";
 
 import { toast } from "sonner";
-import { EmptyDocumentsState } from "@/components/journals/document-list-ui";
+import {
+  EmptyDocumentsState,
+  filterManageMenuItems,
+  useCanManageDocuments,
+} from "@/components/journals/document-list-ui";
 import {
   JOURNAL_CARD_LABEL_CLASS,
   JOURNAL_CARD_SECTION_CLASS,
@@ -381,6 +385,9 @@ export function MetalImpurityDocumentsClient({
   availableSuppliers,
 }: Props) {
   const router = useRouter();
+  // Создание / настройки / удаление документов API отдаёт только
+  // руководителю — у остальных эти кнопки не показываем.
+  const canManageDocuments = useCanManageDocuments();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsDocument, setSettingsDocument] = useState<DocumentItem | null>(null);
   const [deleteDocument, setDeleteDocument] = useState<DocumentItem | null>(null);
@@ -497,7 +504,7 @@ export function MetalImpurityDocumentsClient({
               page="list"
               variant="button"
             />
-            {activeTab === "active" && (
+            {canManageDocuments && activeTab === "active" && (
               <Button
                 type="button"
                 onClick={() => setCreateOpen(true)}
@@ -575,7 +582,7 @@ export function MetalImpurityDocumentsClient({
                 <div className="justify-self-end">
                   <ResponsiveMenu
                     title="Действия"
-                    items={[
+                    items={filterManageMenuItems([
                       ...(document.status === "active"
                         ? [
                             {
@@ -608,7 +615,7 @@ export function MetalImpurityDocumentsClient({
                             },
                           ]
                         : []),
-                    ]}
+                    ], canManageDocuments)}
                     trigger={
                       <button
                         type="button"
