@@ -197,6 +197,66 @@ function mergeDateTime(date: string, time: string) {
   return `${date} ${time}`;
 }
 
+/** «YYYY-MM-DD HH:MM» для момента `minutesAgo` минут назад (локальное время). */
+function dateTimeMinutesAgo(minutesAgo: number): string {
+  const dt = new Date(Date.now() - minutesAgo * 60_000);
+  const date = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  const time = `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+  return mergeDateTime(date, time);
+}
+
+/**
+ * Быстрые сдвиги времени под полем: «−15 мин … −1 ч» от текущего момента
+ * и «Сейчас». Бракераж снимают уже после готовки — по умолчанию
+ * изготовление стоит на 30 минут раньше, а точнее — одним касанием.
+ */
+const PRODUCTION_OFFSETS = [
+  { minutes: 15, label: "−15 мин" },
+  { minutes: 30, label: "−30 мин" },
+  { minutes: 45, label: "−45 мин" },
+  { minutes: 60, label: "−1 ч" },
+] as const;
+
+function QuickTimeChips({
+  value,
+  onChange,
+  offsets,
+  nowLabel = "Сейчас",
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  offsets?: ReadonlyArray<{ minutes: number; label: string }>;
+  nowLabel?: string;
+}) {
+  const active = (candidate: string) => candidate === value;
+  const chip = (label: string, next: () => string, key: string) => {
+    const current = active(next());
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={() => onChange(next())}
+        aria-pressed={current}
+        className={`inline-flex h-8 items-center rounded-full border px-3 text-[12.5px] font-medium tabular-nums transition-colors duration-150 ${
+          current
+            ? "border-[#5566f6] bg-[#eef1ff] text-[#3848c7]"
+            : "border-[#dcdfed] bg-white text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  };
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {(offsets ?? []).map((offset) =>
+        chip(offset.label, () => dateTimeMinutesAgo(offset.minutes), `m${offset.minutes}`)
+      )}
+      {chip(nowLabel, () => dateTimeMinutesAgo(0), "now")}
+    </div>
+  );
+}
+
 /**
  * Новая строка. Люди — только назначенные в документе: ответственный и
  * проверяющий. Раньше сюда вписывались первые два сотрудника по алфавиту,
@@ -211,7 +271,8 @@ function createDraft(
     (id && users.find((user) => user.id === id)?.name) || "";
   return createFinishedProductRow({
     productName,
-    productionDateTime: mergeDateTime(nowDate(), nowTime()),
+    // Бракераж снимают после готовки: по умолчанию изготовление на 30 минут раньше.
+    productionDateTime: dateTimeMinutesAgo(30),
     rejectionTime: mergeDateTime(nowDate(), nowTime()),
     releasePermissionTime: mergeDateTime(nowDate(), nowTime()),
     courierTransferTime: mergeDateTime(nowDate(), nowTime()),
@@ -226,14 +287,30 @@ function createDraft(
 /** Поле ввода даты/времени: `min-w-0`, иначе на iPhone нативные
     date/time-инпуты держат свою ширину, наезжают друг на друга и
     уводят окно в горизонтальный скролл. */
-const DATE_TIME_INPUT_CLASS = "h-10 w-full min-w-0 rounded-xl border-[#dcdfed] px-3 text-[13.5px]";
+/**
+ * iOS Safari рисует date/time-инпуты по своей внутренней ширине и
+ * центрирует текст: без `appearance-none` + `block` + `min-w-0` они
+ * вылезали из колонок и наезжали друг на друга. Высота 44px — под палец.
+ */
+const DATE_TIME_INPUT_CLASS =
+  "block h-11 w-full min-w-0 appearance-none rounded-xl border-[#dcdfed] px-3 text-left text-[15px] leading-none [&::-webkit-date-and-time-value]:min-h-[1.2em] [&::-webkit-date-and-time-value]:text-left";
 
-function DateTimePair({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+function DateTimePair({
+  value,
+  onChange,
+  dateLabel,
+  timeLabel,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  dateLabel: string;
+  timeLabel: string;
+}) {
   const parts = parseDateTime(value);
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
-      <Input type="date" className={DATE_TIME_INPUT_CLASS} value={parts.date} onChange={(e) => onChange(mergeDateTime(e.target.value, parts.time))} />
-      <Input type="time" className={DATE_TIME_INPUT_CLASS} value={parts.time} onChange={(e) => onChange(mergeDateTime(parts.date, e.target.value))} />
+    <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-2">
+      <Input type="date" aria-label={dateLabel} className={DATE_TIME_INPUT_CLASS} value={parts.date} onChange={(e) => onChange(mergeDateTime(e.target.value, parts.time))} />
+      <Input type="time" aria-label={timeLabel} className={DATE_TIME_INPUT_CLASS} value={parts.time} onChange={(e) => onChange(mergeDateTime(parts.date, e.target.value))} />
     </div>
   );
 }
@@ -463,16 +540,49 @@ export function FinishedProductDocumentClient({
       {leading}
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время изготовления</Label>
-              <DateTimePair value={draftRow.productionDateTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, productionDateTime: next }))} />
+              <DateTimePair dateLabel="Дата изготовления" timeLabel="Время изготовления" value={draftRow.productionDateTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, productionDateTime: next }))} />
+              <QuickTimeChips
+                value={draftRow.productionDateTime}
+                offsets={PRODUCTION_OFFSETS}
+                onChange={(next) => setDraftRow((prev) => ({ ...prev, productionDateTime: next }))}
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Время снятия бракеража</Label>
-              <DateTimePair value={draftRow.rejectionTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, rejectionTime: next }))} />
+              <DateTimePair dateLabel="Дата снятия бракеража" timeLabel="Время снятия бракеража" value={draftRow.rejectionTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, rejectionTime: next }))} />
+              <QuickTimeChips
+                value={draftRow.rejectionTime}
+                onChange={(next) => setDraftRow((prev) => ({ ...prev, rejectionTime: next, releasePermissionTime: next }))}
+                nowLabel="Сейчас (и разрешение тем же временем)"
+              />
             </div>
             {withProductName ? (
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">Наименование изделия</Label>
                 <SuggestInput ariaLabel="Наименование изделия" value={draftRow.productName} options={productOptions} onChange={(next) => setDraftRow((prev) => ({ ...prev, productName: next }))} />
+                {/* Последние блюда — одним касанием, без открытия списка. */}
+                {productOptions.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5" aria-label="Недавние наименования">
+                    {productOptions.slice(0, 6).map((name) => {
+                      const current = draftRow.productName === name;
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          aria-pressed={current}
+                          onClick={() => setDraftRow((prev) => ({ ...prev, productName: name }))}
+                          className={`inline-flex h-8 max-w-full items-center truncate rounded-full border px-3 text-[12.5px] font-medium transition-colors duration-150 ${
+                            current
+                              ? "border-[#5566f6] bg-[#eef1ff] text-[#3848c7]"
+                              : "border-[#dcdfed] bg-white text-[#3c4053] hover:border-[#5566f6]/40 hover:bg-[#f5f6ff]"
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <div className="space-y-2">
@@ -528,6 +638,10 @@ export function FinishedProductDocumentClient({
                 <Textarea className="rounded-2xl border-[#dcdfed] px-4 py-3 text-[15px]" value={draftRow.correctiveAction} onChange={(e) => setDraftRow((prev) => ({ ...prev, correctiveAction: e.target.value }))} />
               </div>
             ) : null}
+            {/* Колонка выключена ⇒ и в окне не спрашиваем: иначе выбор
+                «Нет» некуда деть — его не видно ни в таблице, ни в
+                карточке, ни на печати. */}
+            {isColumnVisible("release_allowed") ? (
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Разрешение к реализации</Label>
               {/* Выбранный вариант — заливка + галочка + кольцо; невыбранный —
@@ -558,14 +672,15 @@ export function FinishedProductDocumentClient({
                 })}
               </div>
             </div>
+            ) : null}
             <div className="space-y-2">
               <Label className="text-[13px] font-medium text-[#3c4053]">Дата и время разрешения</Label>
-              <DateTimePair value={draftRow.releasePermissionTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: next }))} />
+              <DateTimePair dateLabel="Дата разрешения" timeLabel="Время разрешения" value={draftRow.releasePermissionTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, releasePermissionTime: next }))} />
             </div>
             {isColumnVisible("courier") ? (
               <div className="space-y-2">
                 <Label className="text-[13px] font-medium text-[#3c4053]">{columnLabel("courier", "Дата и время передачи блюд курьеру")}</Label>
-                <DateTimePair value={draftRow.courierTransferTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, courierTransferTime: next }))} />
+                <DateTimePair dateLabel="Дата передачи курьеру" timeLabel="Время передачи курьеру" value={draftRow.courierTransferTime} onChange={(next) => setDraftRow((prev) => ({ ...prev, courierTransferTime: next }))} />
               </div>
             ) : null}
             {isColumnVisible("responsible") ? (
@@ -737,7 +852,12 @@ export function FinishedProductDocumentClient({
     setEditingRowId(null);
   }
 
-  async function saveDraftRow() {
+  /**
+   * `keepOpen` — «Сохранить и добавить ещё»: серия блюд одного бракеража
+   * вносится без повторного выбора времени, оценки и людей — меняется
+   * только наименование.
+   */
+  async function saveDraftRow(options: { keepOpen?: boolean } = {}) {
     const nextConfig = {
       ...config,
       rows: editingRowId
@@ -747,6 +867,21 @@ export function FinishedProductDocumentClient({
     setConfig(nextConfig);
     await saveConfig(nextConfig);
     void dishSuggestions.remember([draftRow.productName]);
+    if (options.keepOpen && !editingRowId) {
+      toast.success(`Записано: ${draftRow.productName || "без названия"}. Следующее изделие.`);
+      setDraftRow({
+        ...createDraft(users, "", draftPeople),
+        productionDateTime: draftRow.productionDateTime,
+        rejectionTime: draftRow.rejectionTime,
+        releasePermissionTime: draftRow.releasePermissionTime,
+        courierTransferTime: draftRow.courierTransferTime,
+        organoleptic: draftRow.organoleptic,
+        releaseAllowed: draftRow.releaseAllowed,
+        responsiblePerson: draftRow.responsiblePerson,
+        inspectorName: draftRow.inspectorName,
+      });
+      return;
+    }
     setDraftRow(createDraft(users, "", draftPeople));
     setEditingRowId(null);
     setAddModalOpen(false);
@@ -1094,6 +1229,18 @@ export function FinishedProductDocumentClient({
           {rowFields({ withProductName: true })}
           <div className="flex flex-col-reverse gap-2 border-t bg-white px-6 py-4 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" className="h-9 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#0b1024] shadow-none hover:bg-[#fafbff] sm:w-auto" onClick={closeRowModal}>Отмена</Button>
+            {!editingRowId ? (
+              <Button
+                type="button"
+                variant="outline"
+                title="Сохранить это изделие и сразу открыть чистую строку с теми же временем, оценкой и людьми"
+                className="h-10 w-full rounded-xl border-[#dcdfed] px-5 text-[14px] font-medium text-[#3848c7] shadow-none hover:border-[#5566f6]/40 hover:bg-[#f5f6ff] sm:w-auto"
+                onClick={() => { void saveDraftRow({ keepOpen: true }); }}
+                disabled={isSaving || !draftRow.productName.trim()}
+              >
+                Сохранить и добавить ещё
+              </Button>
+            ) : null}
             <Button type="button" className="h-10 w-full rounded-xl bg-[#5566f6] px-5 text-[14px] font-medium text-white hover:bg-[#4a5bf0] sm:w-auto" onClick={() => { void saveDraftRow(); }} disabled={isSaving}>
               {isSaving
                 ? "Сохранение…"

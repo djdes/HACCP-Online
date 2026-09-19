@@ -18,3 +18,19 @@
 Откат: `cleanup-names` удалил тестовые подсказки и строки «E2E …»
 (бракераж, скоропорт, пустую строку охлаждения), `restore` вернул список
 отключённых журналов организации.
+
+## Дополнение 2026-09-19 — быстрый ввод (`e2e/verify-quick.ts`, `results-quick-{chromium,webkit}.json`)
+
+Один вход через `login-state.ts` (storageState), затем прогоны на Chromium
+(mobile emulation) и WebKit (движок Safari), 390×844.
+
+| AC | Вердикт | Доказательство |
+|----|---------|----------------|
+| AC8 | PASS | Обе среды: 4 пары дата/время — `overlap: false`, `offscreen: false`, `appearance: "none"`, `height: 44`; `formScroll 390/390` (`pairs`, `formScroll`; `webkit-10-defaults.png`, `chromium-10-defaults.png`). |
+| AC9 | PASS | `defaultProductionOffsetMin: 30`, `defaultRejectionOffsetMin: 0`; чипы `−15 мин, −30 мин, −45 мин, −1 ч`; `chip30Pressed: true`; после «−1 ч» — `afterHourChipOffsetMin: 60`, `chipHourPressed: true`. |
+| AC10 | PASS | `rejectionEqualsRelease: true`. |
+| AC11 | PASS | `recentChips` содержит недавние блюда; `chipSetsName` = имя первого чипа. |
+| AC12 | PASS | `keepOpen: { stillOpen: true, nameCleared: "", productionKept: true, recentChipFirst: <только что сохранённое>, rating: "Отлично" }` (`webkit-11-after-save-more.png`). |
+
+Откат: `cleanup-names` удалил строки «E2E …» и подсказки, `restore` вернул
+список отключённых журналов; `state.json` (сессия) в git не попадает.

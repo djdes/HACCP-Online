@@ -1,0 +1,78 @@
+{
+  "defaultProductionOffsetMin": 30,
+  "defaultRejectionOffsetMin": 0,
+  "pairs": [
+    {
+      "dateW": 186,
+      "dateRight": 210,
+      "timeLeft": 218,
+      "timeRight": 366,
+      "overlap": false,
+      "offscreen": false,
+      "appearance": "none",
+      "textAlign": "left",
+      "height": 44
+    },
+    {
+      "dateW": 186,
+      "dateRight": 210,
+      "timeLeft": 218,
+      "timeRight": 366,
+      "overlap": false,
+      "offscreen": false,
+      "appearance": "none",
+      "textAlign": "left",
+      "height": 44
+    },
+    {
+      "dateW": 186,
+      "dateRight": 210,
+      "timeLeft": 218,
+      "timeRight": 366,
+      "overlap": false,
+      "offscreen": false,
+      "appearance": "none",
+      "textAlign": "left",
+      "height": 44
+    },
+    {
+      "dateW": 186,
+      "dateRight": 210,
+      "timeLeft": 218,
+      "timeRight": 366,
+      "overlap": false,
+      "offscreen": false,
+      "appearance": "none",
+      "textAlign": "left",
+      "height": 44
+    }
+  ],
+  "formScroll": {
+    "sw": 390,
+    "cw": 390
+  },
+  "offsetChips": [
+    "−15 мин",
+    "−30 мин",
+    "−45 мин",
+    "−1 ч"
+  ],
+  "chip30Pressed": "true",
+  "afterHourChipOffsetMin": 60,
+  "chipHourPressed": "true",
+  "rejectionEqualsRelease": true,
+  "recentChips": [
+    "E2E Быстро 06948",
+    "E2E Дебаг",
+    "E2E Быстро 35436"
+  ],
+  "keepOpen": {
+    "stillOpen": true,
+    "nameCleared": "",
+    "productionKept": true,
+    "recentChipFirst": "E2E Быстро 24183",
+    "rating": "Отлично\n"
+  },
+  "chipSetsName": "E2E Быстро 24183",
+  "errors": []
+}
